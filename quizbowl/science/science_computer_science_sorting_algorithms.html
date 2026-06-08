@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💻 Quizbowl · Sorting Algorithms (Quicksort, Mergesort) — CS Concept Study Sheet</title>
+    <style>
+        :root {
+            --bg-dark: #16131f;
+            --bg-card: #1e1830;
+            --bg-hover: #2d2348;
+            --accent-blue: #a78bfa;
+            --accent-purple: #c084fc;
+            --accent-green: #22d3ee;
+            --accent-orange: #fbbf24;
+            --accent-red: #fb7185;
+            --text-primary: #ece9f5;
+            --text-secondary: #ada6c4;
+            --border-color: #352a52;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0d0b14 100%);
+            color: var(--text-primary); line-height: 1.7; min-height: 100vh;
+        }
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(22, 19, 31, 0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+        }
+        .header-title {
+            font-size: 1.5rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .crumb { font-size: 0.8rem; color: var(--text-secondary); }
+        .crumb a { color: var(--accent-blue); text-decoration: none; }
+        .progress-tracker { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; color: var(--text-secondary); }
+        .progress-bar {
+            width: 120px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 0.5rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer; font-size: 0.92rem; font-weight: 500;
+            border-bottom: 2px solid transparent; transition: all 0.3s ease; white-space: nowrap; text-decoration: none;
+        }
+        .nav-link:hover, .nav-link.active { color: var(--accent-purple); border-bottom-color: var(--accent-purple); }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 2rem; display: flex; flex-direction: column; gap: 2.5rem; }
+
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow); scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.1rem; }
+        .section-title {
+            font-size: 1.7rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        h3.minor { color: var(--accent-purple); margin: 1.5rem 0 0.6rem; font-size: 1.1rem; }
+        p { margin-bottom: 0.8rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        ul, ol { margin-left: 1.6rem; margin-bottom: 0.8rem; }
+        li { margin-bottom: 0.4rem; }
+        .lead { color: var(--text-secondary); font-size: 0.95rem; }
+
+        /* OVERVIEW QUICK FACTS */
+        .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.9rem; margin: 1rem 0; }
+        .fact { background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.9rem 1.1rem; }
+        .fact .k { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-purple); font-weight: 700; margin-bottom: 0.25rem; }
+        .fact .v { font-size: 0.95rem; }
+
+        /* FORMULA BOX */
+        .formula-box {
+            background: rgba(0,0,0,0.25); border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-green); border-radius: 10px;
+            padding: 1rem 1.3rem; margin: 1rem 0; font-family: 'Courier New', Courier, monospace; font-size: 0.95rem;
+        }
+        .formula-box .f-label { color: var(--accent-purple); font-weight: 700; font-family: inherit; margin-bottom: 0.4rem; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .formula-box .f-eq { color: var(--accent-green); font-size: 1.05rem; }
+        .formula-box .f-note { color: var(--text-secondary); font-size: 0.82rem; margin-top: 0.3rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+
+        /* HIGH-YIELD CONCEPT BLOCKS */
+        .concept {
+            background: rgba(0,0,0,0.18); border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-purple); border-radius: 10px;
+            padding: 1.25rem 1.4rem; margin-bottom: 1.5rem;
+        }
+        .concept-title { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.15rem; }
+        .concept-sub { font-size: 0.85rem; color: var(--accent-orange); font-weight: 600; margin-bottom: 0.8rem; }
+        .clue { margin-bottom: 0.4rem; }
+        .clue-power { background: rgba(251,113,133,0.12); border-left: 3px solid var(--accent-red); padding: 0.5rem 0.8rem; border-radius: 6px; margin-top: 0.6rem; }
+        .tag { display: inline-block; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 999px; margin-right: 0.5rem; vertical-align: middle; }
+        .tag-power { background: var(--accent-red); color: #2a0a12; }
+        .tag-recog { background: var(--bg-hover); color: var(--accent-green); }
+
+        /* DEEPER CUTS — list style for concept sheets */
+        .cuts-list { display: flex; flex-direction: column; gap: 0.7rem; }
+        .cut-row {
+            background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 0.75rem 1.1rem;
+            display: grid; grid-template-columns: 200px 1fr; gap: 1rem; align-items: baseline;
+        }
+        .cut-row .cut-title { font-size: 0.95rem; font-weight: 700; color: var(--accent-purple); }
+        .cut-row .cut-desc { font-size: 0.88rem; color: var(--text-primary); }
+        @media (max-width: 600px) { .cut-row { grid-template-columns: 1fr; } }
+
+        /* CLUE BANK COLUMNS */
+        .bank { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.25rem; }
+        .bank-col h3 { color: var(--accent-purple); font-size: 1rem; margin-bottom: 0.5rem; }
+        .bank-col ul { margin-left: 1.3rem; }
+
+        /* COMPARISON TABLE */
+        table.compare { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem; }
+        table.compare th, table.compare td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+        table.compare th { color: var(--accent-purple); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        table.compare td:first-child { color: var(--accent-green); font-weight: 600; white-space: nowrap; }
+
+        /* SELF-QUIZ */
+        details.quiz { background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 1rem; margin-bottom: 0.6rem; }
+        details.quiz summary { cursor: pointer; font-weight: 600; color: var(--accent-blue); }
+        details.quiz[open] summary { margin-bottom: 0.5rem; }
+
+        .big-picture {
+            background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(34,211,238,0.10));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem 1.25rem; border-radius: 8px; margin-top: 1.25rem; font-size: 0.92rem;
+        }
+        .big-picture .bp-title { display: block; color: var(--accent-orange); font-weight: 700; margin-bottom: 0.4rem; }
+
+        a.src { color: var(--text-secondary); font-size: 0.72rem; text-decoration: none; }
+        a.src:hover { color: var(--accent-blue); }
+
+        code { font-family: 'Courier New', Courier, monospace; background: rgba(0,0,0,0.3); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.9em; color: var(--accent-green); }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-top">
+            <div>
+                <div class="header-title">💻 sorting algorithms (quicksort, mergesort)</div>
+                <div class="crumb"><a href="../index.html">Quizbowl</a> › 💻 Science › <a href="science_computer_science.html">Computer Science</a> › sorting algorithms (quicksort, mergesort)</div>
+            </div>
+            <div class="progress-tracker">
+                <span>Progress</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="overview">Overview</button>
+            <button class="nav-link" data-section="high-yield">High-Yield</button>
+            <button class="nav-link" data-section="deeper-cuts">Deeper Cuts</button>
+            <button class="nav-link" data-section="clue-bank">Clue Bank</button>
+            <button class="nav-link" data-section="traps">Comparison Traps</button>
+            <button class="nav-link" data-section="quiz">Self-Quiz</button>
+        </nav>
+    </header>
+
+    <div class="container">
+
+        <!-- OVERVIEW -->
+        <section class="section" id="overview">
+            <div class="section-header">
+                <span class="section-icon">🎯</span>
+                <h1 class="section-title">Quick Overview</h1>
+            </div>
+
+            <p><strong>Comparison-based sorting algorithms</strong> that rearrange a sequence by comparing elements. The two most quizbowl-tested are <strong>quicksort</strong> (in-place, pivot-based, divide-and-conquer) and <strong>mergesort</strong> (stable, divide-and-conquer, guaranteed O(n log n)).</p>
+
+            <div class="facts">
+                <div class="fact"><span class="k">Quicksort invented by</span><span class="v"><strong>Tony Hoare</strong>, 1959–1960</span></div>
+                <div class="fact"><span class="k">Mergesort invented by</span><span class="v"><strong>John von Neumann</strong>, 1945</span></div>
+                <div class="fact"><span class="k">Paradigm</span><span class="v"><strong>Divide and conquer</strong> (both)</span></div>
+                <div class="fact"><span class="k">Comparison lower bound</span><span class="v"><strong>Ω(n log n)</strong> for any comparison sort</span></div>
+            </div>
+
+            <div class="formula-box">
+                <div class="f-label">Quicksort complexity</div>
+                <div class="f-eq">Best / Avg: O(n log n) &nbsp;|&nbsp; Worst: O(n²)</div>
+                <div class="f-note">Worst case occurs when pivot is always the smallest or largest element (already-sorted input with naive pivot choice).</div>
+            </div>
+            <div class="formula-box">
+                <div class="f-label">Mergesort complexity</div>
+                <div class="f-eq">All cases: O(n log n) &nbsp;|&nbsp; Space: O(n) auxiliary</div>
+                <div class="f-note">Guaranteed — no bad pivot choices. Extra memory is the trade-off; standard implementation is stable.</div>
+            </div>
+
+            <h3 class="minor">Core shared idea</h3>
+            <ul>
+                <li>Both use <strong>divide and conquer</strong>: split the problem, recurse, combine.</li>
+                <li><strong>Quicksort</strong> does the work <em>before</em> recursing (partitioning); <strong>mergesort</strong> does the work <em>after</em> recursing (merging).</li>
+                <li>Both achieve O(n log n) average / best case — mergesort guarantees it, quicksort does not.</li>
+                <li>The <strong>O(n log n) lower bound</strong> is proven by decision-tree argument: any comparison sort must make at least log₂(n!) comparisons.</li>
+            </ul>
+        </section>
+
+        <!-- HIGH-YIELD -->
+        <section class="section" id="high-yield">
+            <div class="section-header">
+                <span class="section-icon">⭐</span>
+                <h1 class="section-title">High-Yield Concepts (Very Common)</h1>
+            </div>
+            <p class="lead">The most frequently tested facts. <span class="tag tag-power">power</span> = hard early clue to buzz on. <span class="tag tag-recog">recog</span> = recognition / mid-clue.</p>
+
+            <!-- QUICKSORT -->
+            <div class="concept">
+                <div class="concept-title">Quicksort</div>
+                <div class="concept-sub">Tony Hoare · 1959–1960 · in-place · not stable by default</div>
+                <div class="clue clue-power"><span class="tag tag-power">power</span>Invented by <strong>C. A. R. (Tony) Hoare</strong> while working on machine translation at Moscow State University, 1959–60; published 1962 in <em>The Computer Journal</em>.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>Selects a <strong>pivot</strong> element; partitions the array into elements ≤ pivot (left) and &gt; pivot (right); recurses on each subarray.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>Average-case <strong>O(n log n)</strong>; worst case <strong>O(n²)</strong> when pivot is always the extreme element.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span><strong>In-place</strong> partitioning — uses O(log n) stack space on average (no extra array needed).</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>Despite O(n²) worst case, <strong>fastest in practice</strong> on random data due to small constant factors and cache friendliness.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span><strong>Not stable</strong> in standard form — equal elements may be reordered.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>Pivot selection strategies: <strong>first element, last element, median-of-three, random</strong> — random pivot reduces worst-case probability to nearly zero.</div>
+            </div>
+
+            <!-- MERGESORT -->
+            <div class="concept">
+                <div class="concept-title">Mergesort</div>
+                <div class="concept-sub">John von Neumann · 1945 · stable · O(n) extra space</div>
+                <div class="clue clue-power"><span class="tag tag-power">power</span>Conceived by <strong>John von Neumann</strong> in 1945 — one of the earliest algorithms ever designed for a stored-program computer (EDVAC context).</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>Divides array in half, recursively sorts each half, then <strong>merges the two sorted halves</strong> — the merge step is the key operation.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span><strong>Guaranteed O(n log n)</strong> in all cases — best, average, and worst.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>Requires <strong>O(n) auxiliary space</strong> (extra array for merging) — main practical disadvantage vs. quicksort.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span><strong>Stable sort</strong> — equal elements preserve their original relative order.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>Preferred for <strong>linked lists</strong> (no random-access penalty) and <strong>external sorting</strong> (data too large to fit in memory — sort chunks on disk, merge).</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>The recurrence <strong>T(n) = 2T(n/2) + O(n)</strong> solves to O(n log n) by the Master Theorem.</div>
+            </div>
+
+            <!-- HOARE PARTITION -->
+            <div class="concept">
+                <div class="concept-title">Hoare Partition Scheme</div>
+                <div class="concept-sub">The original quicksort partition · two-pointer approach</div>
+                <div class="clue clue-power"><span class="tag tag-power">power</span>Uses <strong>two pointers starting from each end</strong>, moving inward until they find a pair to swap; fewer swaps than Lomuto's scheme on average.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>The alternate <strong>Lomuto partition</strong> scheme (pivot = last element, single scan left-to-right) is simpler to code but performs slightly worse.</div>
+            </div>
+
+            <!-- COMPARISON LOWER BOUND -->
+            <div class="concept">
+                <div class="concept-title">Comparison-Sort Lower Bound</div>
+                <div class="concept-sub">Decision-tree argument · Ω(n log n) is tight</div>
+                <div class="clue clue-power"><span class="tag tag-power">power</span>Any algorithm that sorts by comparing element pairs must make <strong>at least log₂(n!)</strong> comparisons in the worst case; by Stirling's approximation, log₂(n!) = Θ(n log n).</div>
+                <div class="clue"><span class="tag tag-recog">recog</span>The decision tree has n! leaves (all permutations); height ≥ log₂(n!) — this proves <strong>no comparison sort beats O(n log n)</strong>.</div>
+                <div class="clue"><span class="tag tag-recog">recog</span><strong>Non-comparison sorts</strong> (radix, counting, bucket) can beat O(n log n) by exploiting structure of keys — they are NOT comparison-based.</div>
+            </div>
+        </section>
+
+        <!-- DEEPER CUTS -->
+        <section class="section" id="deeper-cuts">
+            <div class="section-header">
+                <span class="section-icon">🔍</span>
+                <h1 class="section-title">Deeper Cuts (Hard Clues)</h1>
+            </div>
+            <p class="lead">Related algorithms and results that appear as <strong>hard early clues</strong>. One-line identifiers.</p>
+            <div class="cuts-list">
+                <div class="cut-row">
+                    <span class="cut-title">Heapsort</span>
+                    <span class="cut-desc">In-place O(n log n) worst-case; uses a max-heap; not stable; worse cache performance than quicksort.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Timsort</span>
+                    <span class="cut-desc">Hybrid mergesort + insertion sort; default in Python and Java; exploits natural runs; stable; O(n log n) worst, O(n) best.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Introsort</span>
+                    <span class="cut-desc">Quicksort + heapsort fallback when recursion depth exceeds 2·log n; used in C++ STL <code>std::sort</code>; guarantees O(n log n).</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Insertion sort</span>
+                    <span class="cut-desc">O(n²) but O(n) on nearly sorted data; used as base case in Timsort and recursive cutoffs; stable; in-place.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Bubble sort</span>
+                    <span class="cut-desc">Repeatedly swaps adjacent out-of-order pairs; O(n²) always; stable; famous as worst practical algorithm for large n.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Selection sort</span>
+                    <span class="cut-desc">Finds minimum, places it at front, repeats; O(n²) always; minimizes swaps (O(n)); not stable in standard form.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Radix sort</span>
+                    <span class="cut-desc">Sorts integers digit by digit using counting sort; O(d·n) where d = digits; beats O(n log n) for fixed-width integers.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Counting sort</span>
+                    <span class="cut-desc">Creates frequency array; O(n + k) where k = range; only for integer keys in bounded range; stable; linear time.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Bucket sort</span>
+                    <span class="cut-desc">Distributes elements into buckets, sorts each; O(n + k) average for uniform distribution; good for floating-point data.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Master Theorem</span>
+                    <span class="cut-desc">Solves recurrences of form T(n) = aT(n/b) + f(n); quicksort and mergesort are canonical textbook examples.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">Shellsort</span>
+                    <span class="cut-desc">Generalization of insertion sort using gap sequences; O(n log² n) with Hibbard gaps; not stable; in-place.</span>
+                </div>
+                <div class="cut-row">
+                    <span class="cut-title">k-way mergesort</span>
+                    <span class="cut-desc">Splits into k parts instead of 2; used in external sorting; merge step uses a min-heap of size k.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CLUE BANK -->
+        <section class="section" id="clue-bank">
+            <div class="section-header">
+                <span class="section-icon">🗂️</span>
+                <h1 class="section-title">Recognition / Clue Bank</h1>
+            </div>
+            <div class="bank">
+                <div class="bank-col">
+                    <h3>Key people</h3>
+                    <ul>
+                        <li><strong>Tony Hoare</strong> — quicksort (1959); also Hoare logic, CSP, Turing Award 1980</li>
+                        <li><strong>John von Neumann</strong> — mergesort (1945); also EDVAC architecture, game theory, quantum mechanics</li>
+                        <li><strong>Donald Knuth</strong> — analyzed sorting algorithms exhaustively in <em>The Art of Computer Programming</em> vol. 3 (<em>Sorting and Searching</em>)</li>
+                    </ul>
+                </div>
+                <div class="bank-col">
+                    <h3>Key terms</h3>
+                    <ul>
+                        <li><strong>Pivot</strong> — element chosen to partition around (quicksort)</li>
+                        <li><strong>Partition</strong> — rearrange so left ≤ pivot ≤ right</li>
+                        <li><strong>Merge</strong> — combine two sorted sequences into one</li>
+                        <li><strong>Stable sort</strong> — equal elements keep original order</li>
+                        <li><strong>In-place</strong> — O(1) extra space (ignoring recursion stack)</li>
+                        <li><strong>Divide and conquer</strong> — split, recurse, combine</li>
+                        <li><strong>Recurrence relation</strong> — T(n) = 2T(n/2) + O(n)</li>
+                    </ul>
+                </div>
+                <div class="bank-col">
+                    <h3>Complexity cheat sheet</h3>
+                    <ul>
+                        <li><strong>Mergesort:</strong> O(n log n) all cases, O(n) space</li>
+                        <li><strong>Quicksort avg:</strong> O(n log n), O(log n) stack space</li>
+                        <li><strong>Quicksort worst:</strong> O(n²) — sorted input + bad pivot</li>
+                        <li><strong>Heapsort:</strong> O(n log n) all cases, O(1) space</li>
+                        <li><strong>Insertion sort:</strong> O(n²) worst, O(n) best (nearly sorted)</li>
+                        <li><strong>Lower bound:</strong> Ω(n log n) for any comparison sort</li>
+                    </ul>
+                </div>
+                <div class="bank-col">
+                    <h3>Practical / "also appears in"</h3>
+                    <ul>
+                        <li>Python's <code>list.sort()</code> and <code>sorted()</code> use <strong>Timsort</strong></li>
+                        <li>C++ <code>std::sort</code> uses <strong>Introsort</strong> (quicksort + heapsort)</li>
+                        <li>Java <code>Arrays.sort(Object[])</code> uses <strong>Timsort</strong></li>
+                        <li><strong>External sorting</strong> on disk uses mergesort (sequential I/O)</li>
+                        <li>Quicksort's worst case triggers on <strong>already-sorted</strong> data with naive pivot</li>
+                        <li>Mergesort is preferred for <strong>linked lists</strong> — no random access needed</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPARISON TRAPS -->
+        <section class="section" id="traps">
+            <div class="section-header">
+                <span class="section-icon">⚖️</span>
+                <h1 class="section-title">Comparison Traps</h1>
+            </div>
+            <table class="compare">
+                <tr><th>Don't confuse</th><th>How to tell them apart</th></tr>
+                <tr><td>Quicksort vs. Mergesort</td><td><strong>Quicksort:</strong> in-place, not stable, O(n²) worst case, fastest in practice. <strong>Mergesort:</strong> stable, O(n) space, guaranteed O(n log n). Key: "guaranteed" = mergesort; "worst case O(n²)" = quicksort.</td></tr>
+                <tr><td>Mergesort vs. Heapsort</td><td>Both <strong>O(n log n) worst case</strong>. Mergesort is <strong>stable</strong> and needs O(n) space; heapsort is <strong>in-place</strong> and not stable. Heapsort uses a heap data structure; mergesort does not.</td></tr>
+                <tr><td>Quicksort vs. Quickselect</td><td><strong>Quickselect</strong> uses quicksort's partition to find the k-th smallest element in O(n) average — it does NOT fully sort. Same partition logic, different recursion choice (only one side).</td></tr>
+                <tr><td>Stable vs. unstable sort</td><td>A sort is <strong>stable</strong> if equal-key elements keep their original relative order. Mergesort, Timsort, insertion sort, counting sort = stable. Quicksort (standard), heapsort, selection sort = NOT stable.</td></tr>
+                <tr><td>Comparison sorts vs. radix/counting</td><td>Comparison sorts have Ω(n log n) lower bound. <strong>Radix and counting sorts</strong> bypass this by not comparing elements directly — they exploit structure of integer keys and run in O(n·d) or O(n+k).</td></tr>
+                <tr><td>Hoare vs. Lomuto partition</td><td><strong>Hoare:</strong> two pointers from both ends, fewer swaps, pivot ends up somewhere in the middle. <strong>Lomuto:</strong> single pointer, pivot = last element, simpler but slower. Both are for quicksort.</td></tr>
+                <tr><td>Mergesort recurrence vs. binary search</td><td>Both give T(n) = T(n/2) + O(something), but mergesort is <code>2T(n/2) + O(n)</code> → O(n log n), while binary search is <code>T(n/2) + O(1)</code> → O(log n).</td></tr>
+            </table>
+        </section>
+
+        <!-- SELF-QUIZ -->
+        <section class="section" id="quiz">
+            <div class="section-header">
+                <span class="section-icon">🧠</span>
+                <h1 class="section-title">Guess-Before-You-Reveal</h1>
+            </div>
+            <p class="lead">Read the clue, buzz in your head, then expand to check.</p>
+
+            <details class="quiz"><summary>This algorithm, invented by Tony Hoare in 1959, selects a pivot element and partitions an array around it.</summary><strong>Quicksort.</strong></details>
+            <details class="quiz"><summary>This sorting algorithm was invented by John von Neumann in 1945 and guarantees O(n log n) in all cases by splitting an array in half and merging sorted halves.</summary><strong>Mergesort.</strong></details>
+            <details class="quiz"><summary>The worst-case time complexity of quicksort, which occurs on already-sorted input with a naive pivot choice.</summary><strong>O(n²).</strong></details>
+            <details class="quiz"><summary>The space complexity of mergesort, which is its main practical disadvantage over quicksort.</summary><strong>O(n) auxiliary space.</strong></details>
+            <details class="quiz"><summary>The recurrence relation for mergesort, whose solution by the Master Theorem gives O(n log n).</summary><strong>T(n) = 2T(n/2) + O(n).</strong></details>
+            <details class="quiz"><summary>The proven lower bound on any comparison-based sorting algorithm, derived by a decision-tree argument using log₂(n!) comparisons.</summary><strong>Ω(n log n).</strong></details>
+            <details class="quiz"><summary>The property of a sorting algorithm that guarantees equal-key elements preserve their original relative order.</summary><strong>Stability (a stable sort).</strong></details>
+            <details class="quiz"><summary>The hybrid algorithm combining quicksort and heapsort (as a fallback), used in C++'s std::sort.</summary><strong>Introsort.</strong></details>
+            <details class="quiz"><summary>The hybrid mergesort/insertion sort algorithm used as the default sort in Python and Java's Arrays.sort for objects.</summary><strong>Timsort.</strong></details>
+            <details class="quiz"><summary>Donald Knuth's three-volume work that provides exhaustive analysis of sorting algorithms, with the relevant volume being "Sorting and Searching."</summary><strong>The Art of Computer Programming (volume 3).</strong></details>
+            <details class="quiz"><summary>The quicksort variant that stops after one partition step and recurses on only one side, finding the k-th smallest element in O(n) average time without fully sorting.</summary><strong>Quickselect.</strong></details>
+            <details class="quiz"><summary>This sorting algorithm uses a frequency count array to sort in O(n + k) time, bypassing the comparison-sort lower bound, but only works on bounded integer keys.</summary><strong>Counting sort.</strong></details>
+
+            <div class="big-picture">
+                <span class="bp-title">🔗 Big picture: why sorting algorithms matter in quizbowl</span>
+                Sorting sits at the intersection of <strong>CS theory</strong> (decision trees, information theory, recurrences), <strong>algorithm design</strong> (divide-and-conquer, the Master Theorem), and <strong>practical systems</strong> (every language's standard library). The O(n log n) lower bound is a canonical application of <strong>information-theoretic arguments</strong> — log₂(n!) comes from the number of bits needed to encode a permutation. Quicksort's inventor Tony Hoare later developed <strong>Hoare logic</strong> (formal program verification) and <strong>CSP</strong> (communicating sequential processes), so his name appears across theory tossups. Von Neumann's mergesort connects to the broader EDVAC/stored-program computer history. On the math side, the Master Theorem that solves mergesort's recurrence is itself a frequent answer.
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.section');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(s => { if (window.pageYOffset >= s.offsetTop - 160) current = s.getAttribute('id'); });
+            navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('data-section') === current));
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (window.scrollY / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+        });
+
+        navLinks.forEach(link => link.addEventListener('click', () => {
+            const id = link.getAttribute('data-section');
+            const section = id && document.getElementById(id);
+            if (section) section.scrollIntoView({ behavior: 'smooth' });
+        }));
+    </script>
+</body>
+</html>
