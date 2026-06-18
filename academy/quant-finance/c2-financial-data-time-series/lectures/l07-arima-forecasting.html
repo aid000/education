@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C2 · Lecture 7 — ARIMA &amp; Forecasting</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C2 Time Series</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>ARIMA &amp; Forecasting</h1>
+        <p class="sub">Differencing turns a wandering price into a stationary series an ARMA model can chew on — but the same exercise reveals the brutal truth that the next return is almost pure noise.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define the ARIMA(p, d, q) model and explain the role of the integration order <em>d</em> as repeated differencing.</li>
+            <li>Decide when a series needs differencing (prices) and when it does not (returns), and recognize over-differencing.</li>
+            <li>Produce multi-step forecasts and understand why they decay toward the mean as the horizon grows.</li>
+            <li>Distinguish in-sample fit from out-of-sample accuracy, and build forecast confidence intervals that widen with horizon.</li>
+            <li>Confront the hard truth: returns are nearly unforecastable, while volatility and volume carry real persistence you <em>can</em> model.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>From ARMA to ARIMA: the Missing "I"</h2>
+        <p>Last week's ARMA model came with a fine-print requirement: the series must be <strong>stationary</strong> — its mean, variance, and autocorrelation cannot drift over time. Returns mostly satisfy this. But the raw object traders actually stare at, the <strong>price</strong>, does not. A price wanders; it has no fixed level to revert to. Feed a trending price straight into ARMA and the estimates are meaningless.</p>
+        <p>The fix is the <span class="key">I</span> in ARIMA — "Integrated." Before modeling, we <strong>difference</strong> the series: replace each value by its change from the previous step. One difference of a price <em>is</em> a return (in level terms). The differencing order <em>d</em> counts how many times we do this.</p>
+        <div class="eq">∇y<sub>t</sub> = y<sub>t</sub> − y<sub>t−1</sub><br>ARIMA(p, d, q): difference <em>d</em> times, then fit ARMA(p, q) to the result<small>p = autoregressive lags, d = differencing order, q = moving-average lags. ARIMA(p, 0, q) is just ARMA(p, q); ARIMA(0, 1, 0) is a pure random walk.</small></div>
+        <p>So the recipe is mechanical: difference the series <em>d</em> times until it looks stationary, fit an ARMA(p, q) to that stationary remainder, then <strong>integrate back up</strong> (cumulatively sum the forecasts) to express predictions in the original units. The word "integrated" is just the inverse of "differenced": summing undoes differencing the way integration undoes a derivative.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a price as the <strong>position</strong> of a car and the return as its <strong>velocity</strong>. Position rambles all over the map (non-stationary), but velocity fluctuates around a steady cruising speed (stationary). Differencing position once gives you velocity — and velocity is the quantity worth modeling. ARIMA simply automates "work in changes, then add them back up."</div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>Choosing d: Just Enough Differencing</h2>
+        <p>The integration order <em>d</em> is almost never larger than 1 for financial prices, and 0 for returns. The decision rule is: difference until the series is stationary, and <strong>not one step more</strong>.</p>
+        <h3>How to tell you have differenced enough</h3>
+        <p>Recall the tools from Week 4. After differencing, run the <span class="key">ADF test</span> (Augmented Dickey–Fuller) — a small p-value rejects the "unit root" and declares stationarity. The autocorrelation function (ACF) of a stationary series decays quickly to zero; the ACF of a non-stationary one stays stubbornly high across many lags.</p>
+        <table class="dist">
+            <thead><tr><th>Series</th><th>Typical d</th><th>Why</th></tr></thead>
+            <tbody>
+                <tr><td><b>Stock / index price</b></td><td>1</td><td>One difference gives returns, which are stationary</td></tr>
+                <tr><td><b>Log price</b></td><td>1</td><td>One difference gives log-returns (the cleanest case)</td></tr>
+                <tr><td><b>Returns directly</b></td><td>0</td><td>Already stationary — no differencing needed</td></tr>
+                <tr><td><b>Some yield / spread levels</b></td><td>0 or 1</td><td>Mean-reverting series may already be stationary</td></tr>
+            </tbody>
+        </table>
+        <div class="box warn"><span class="lbl">Common mistake</span><strong>Over-differencing.</strong> If you difference an already-stationary series, you inject a spurious negative autocorrelation at lag 1 and inflate the variance — the model gets worse, not better. A tell-tale sign is a sharp ACF spike near −0.5 at lag 1 after differencing. Rule of thumb: stop at the smallest <em>d</em> that passes the stationarity test. For most equity work, that is d = 1 on prices, d = 0 on returns.</div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 400 220" role="img" aria-label="Top panel shows a trending wandering price line that is non-stationary. Bottom panel shows the same series after one difference, fluctuating around a flat zero line, now stationary.">
+            <!-- TOP: non-stationary price -->
+            <text x="200" y="16" fill="#bcae8c" font-size="11" text-anchor="middle">Price y(t) — wanders, non-stationary (needs d = 1)</text>
+            <line x1="30" y1="100" x2="380" y2="100" stroke="#3a3119" stroke-width="1"/>
+            <polyline points="30,92 70,80 110,84 150,62 190,48 230,52 270,34 310,40 350,26 380,30"
+                      fill="none" stroke="#fbbf24" stroke-width="2.2"/>
+            <!-- divider -->
+            <line x1="30" y1="118" x2="380" y2="118" stroke="#3a3119" stroke-width="1" stroke-dasharray="2 3"/>
+            <!-- BOTTOM: differenced, stationary -->
+            <text x="200" y="138" fill="#bcae8c" font-size="11" text-anchor="middle">∇y(t) = y(t) − y(t−1) — flat mean, stationary</text>
+            <line x1="30" y1="185" x2="380" y2="185" stroke="#bcae8c" stroke-width="1.3"/>
+            <text x="20" y="189" fill="#6ee7b7" font-size="9" text-anchor="end">0</text>
+            <polyline points="50,172 70,196 90,178 110,200 130,166 150,190 170,176 190,198 210,170 230,192 250,174 270,196 290,180 310,168 330,194 350,178 370,188"
+                      fill="none" stroke="#34d399" stroke-width="1.8"/>
+        </svg>
+        <figcaption>The whole point of the "I": the top price (gold) trends upward with no fixed level, so ARMA cannot fit it. After one difference, the bottom series (green) hovers around a flat zero mean — stationary, and ready for ARMA(p, q).</figcaption>
+    </figure>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Producing Forecasts &amp; Their Confidence Bands</h2>
+        <p>Once an ARIMA model is fitted, forecasting is iterative. To predict one step ahead, plug the most recent observations and residuals into the fitted equation. To go further, feed each forecast back in as if it were observed, and keep stepping. This is the <span class="key">recursive forecast</span>.</p>
+        <p>A crucial property emerges: as the horizon <em>h</em> grows, an AR forecast <strong>decays toward the unconditional mean</strong>. Intuition: an AR(1) with coefficient φ predicts ŷ<sub>t+h</sub> = μ + φ<sup>h</sup>(y<sub>t</sub> − μ), and since |φ| &lt; 1 for a stationary series, φ<sup>h</sup> → 0. The further out you look, the more the model shrugs and says "probably the long-run average."</p>
+        <div class="eq">AR(1) forecast:&nbsp; ŷ<sub>t+h</sub> = μ + φ<sup>h</sup>(y<sub>t</sub> − μ)<small>For a differenced price (d = 1), this is a forecast of the <em>return</em>; you then cumulatively sum to get the price forecast.</small></div>
+        <h3>Confidence intervals that widen with horizon</h3>
+        <p>A point forecast alone is a half-truth. The honest output is an <strong>interval</strong>. Because each future step compounds fresh shocks, forecast variance accumulates and the band <em>fans out</em>. For a random walk (the d = 1, no-ARMA case), the h-step forecast standard error grows like σ√h — the same square-root-of-time scaling from Course 1.</p>
+        <div class="eq">95% band ≈ ŷ<sub>t+h</sub> ± 1.96 · σ · √h&nbsp;&nbsp;(random-walk case)<small>The interval widens with √h: doubling the horizon widens the band by √2, not 2× — but it never stops growing.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Reading only the central forecast line and ignoring the band. A flat point forecast at the last price is <em>not</em> a confident prediction — for a random walk it simply means "your best guess is no change," surrounded by an ever-widening cone of uncertainty. The band, not the line, is the risk-relevant output.</div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 400 210" role="img" aria-label="A historical price line up to a vertical 'now' marker, followed by a flat-decaying forecast line and a shaded confidence cone that widens with the forecast horizon.">
+            <!-- axes -->
+            <line x1="30" y1="175" x2="380" y2="175" stroke="#bcae8c" stroke-width="1.3"/>
+            <line x1="30" y1="20" x2="30" y2="175" stroke="#bcae8c" stroke-width="1.3"/>
+            <!-- history -->
+            <polyline points="30,150 55,138 80,148 105,120 130,128 155,100 180,108 205,92"
+                      fill="none" stroke="#fbbf24" stroke-width="2.4"/>
+            <!-- now divider -->
+            <line x1="205" y1="20" x2="205" y2="175" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <text x="205" y="195" fill="#93c5fd" font-size="10" text-anchor="middle">now</text>
+            <text x="115" y="195" fill="#bcae8c" font-size="10" text-anchor="middle">history</text>
+            <text x="300" y="195" fill="#bcae8c" font-size="10" text-anchor="middle">forecast</text>
+            <!-- confidence cone (widening) -->
+            <path d="M205,92 L370,55 L370,135 Z" fill="rgba(52,211,153,.12)" stroke="none"/>
+            <line x1="205" y1="92" x2="370" y2="55" stroke="#34d399" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <line x1="205" y1="92" x2="370" y2="135" stroke="#34d399" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <!-- central forecast (decays gently toward mean) -->
+            <polyline points="205,92 370,95" fill="none" stroke="#fcd34d" stroke-width="2.2"/>
+            <text x="355" y="48" fill="#6ee7b7" font-size="9.5" text-anchor="middle">+1.96σ√h</text>
+            <text x="355" y="148" fill="#6ee7b7" font-size="9.5" text-anchor="middle">−1.96σ√h</text>
+        </svg>
+        <figcaption>A forecast is a cone, not a line. The point forecast (gold dashes) drifts toward the mean while the 95% band (green) fans out like σ√h. For near-random-walk prices the cone swallows almost any plausible level within a few steps — the model's honest message is "I don't know much."</figcaption>
+    </figure>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>In-Sample vs Out-of-Sample, and the Hard Truth</h2>
+        <p>It is trivially easy to fit a model that hugs the data you trained it on. Adding lags always improves the <strong>in-sample</strong> fit — the model is just memorizing. The only test that matters for trading is <span class="key">out-of-sample</span>: fit on the past, predict the future you withheld, and measure the error there.</p>
+        <h3>The right way to evaluate</h3>
+        <p>Split the series chronologically (never shuffle time series!): a training window and a later test window. Better still, use a <strong>walk-forward</strong> scheme — refit as time advances, always predicting the next unseen point. Score with out-of-sample <span class="key">RMSE</span> or MAE, and compare against the dumbest possible benchmark.</p>
+        <div class="eq">RMSE = √( (1/m) Σ (y<sub>t</sub> − ŷ<sub>t</sub>)² )&nbsp;&nbsp;over the m test points<small>The benchmark to beat for a price is the <em>naive forecast</em>: ŷ<sub>t+1</sub> = y<sub>t</sub> (tomorrow ≈ today). Beating it on returns is the real bar.</small></div>
+        <h3>The hard truth about returns</h3>
+        <p>Here is the result that humbles every newcomer: for liquid assets, <strong>returns are very close to unforecastable</strong>. A well-tuned ARIMA on daily returns rarely beats the naive "no change" forecast out-of-sample — which is exactly what efficient-markets reasoning predicts. If reliable return autocorrelation existed, it would be arbitraged away.</p>
+        <p>But "returns" is not the whole story. Other series derived from the same data <em>are</em> persistent and forecastable:</p>
+        <table class="dist">
+            <thead><tr><th>Series</th><th>Forecastable?</th><th>Why</th></tr></thead>
+            <tbody>
+                <tr><td><b>Daily returns</b></td><td>Barely</td><td>Near-zero autocorrelation; efficient markets erase signals</td></tr>
+                <tr><td><b>Squared returns / volatility</b></td><td>Yes</td><td>Strong, slow-decaying autocorrelation — volatility clusters (Week 8)</td></tr>
+                <tr><td><b>Trading volume</b></td><td>Yes</td><td>Highly persistent, with intraday and day-of-week seasonality</td></tr>
+                <tr><td><b>Bid–ask spread / liquidity</b></td><td>Often</td><td>Mean-reverting and regime-driven; useful for execution</td></tr>
+            </tbody>
+        </table>
+        <p>So the lesson is not "forecasting is useless" — it is "forecast the <em>right thing</em>." The level of returns resists you; their <em>magnitude</em> (risk) does not. That single insight is the doorway to next week's volatility models.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Predicting tomorrow's return is like predicting the next coin flip — the direction is essentially fair. But predicting tomorrow's <strong>volatility</strong> is like predicting the weather: a stormy day is usually followed by another stormy day. You cannot say which way the market moves, but you can often say <em>how violently</em> it will move.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — ARIMA(0,1,0) forecast &amp; band on a price</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A stock closes today at $100. Its daily log-returns have mean ≈ 0 and daily standard deviation σ = 1.5% (0.015). You model the log price as ARIMA(0,1,0) — a pure random walk with no drift. Forecast the price 10 trading days out with a 95% band.</p>
+        <ol>
+            <li><strong>Identify the model:</strong> ARIMA(0,1,0) on log price means the differenced series (log-returns) is pure white noise. No AR or MA terms, so the best forecast of every future return is <strong>0</strong>.</li>
+            <li><strong>Point forecast:</strong> with zero expected return, the 10-day-ahead point forecast of the log price is unchanged. In price terms, ŷ<sub>t+10</sub> ≈ <strong>$100</strong>. (The honest central guess for a random walk is "no change.")</li>
+            <li><strong>Forecast standard error:</strong> variance accumulates linearly, so the 10-day log-return SE is σ·√h = 0.015·√10 = 0.015·3.162 ≈ <strong>0.0474</strong> (about 4.74%).</li>
+            <li><strong>95% band (log scale):</strong> ±1.96 · 0.0474 ≈ <strong>±0.0930</strong>, i.e. roughly ±9.3% in log terms.</li>
+            <li><strong>Translate to price:</strong> upper ≈ 100·e<sup>0.0930</sup> ≈ <strong>$109.7</strong>; lower ≈ 100·e<sup>−0.0930</sup> ≈ <strong>$91.1</strong>. So your honest 10-day call is "about $100, but plausibly anywhere from ~$91 to ~$110." The band, widening as √h, is the entire value of the forecast.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: fit ARIMA &amp; back-test out-of-sample</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1/2 stack (pandas + yfinance + statsmodels + NumPy + Matplotlib — the install block lives in <a href="l02-pandas-yfinance.html" style="color:var(--accent2);">Lecture 2</a>). We pull a price series, fit an ARIMA, forecast with a confidence band, and — most importantly — check whether it beats the naive forecast out-of-sample.</p>
+        <pre><span class="c"># arima_forecast.py — Lecture 7</span>
+import numpy as np, pandas as pd, yfinance as yf
+from statsmodels.tsa.arima.model import ARIMA
+
+<span class="c"># 1) pull a daily price series</span>
+px = yf.download("SPY", start="2018-01-01", end="2023-01-01")["Close"].dropna()
+logpx = np.log(px)
+
+<span class="c"># 2) chronological train / test split (NEVER shuffle time)</span>
+split = int(len(logpx) * 0.8)
+train, test = logpx.iloc[:split], logpx.iloc[split:]
+
+<span class="c"># 3) fit ARIMA(p=1, d=1, q=1) on the LOG PRICE (d=1 -> models log-returns)</span>
+model = ARIMA(train, order=(1, 1, 1)).fit()
+print(model.summary().tables[1])           <span class="c"># AR/MA coefficients</span>
+
+<span class="c"># 4) forecast with a 95% confidence band</span>
+fc = model.get_forecast(steps=len(test))
+mean_fc = fc.predicted_mean
+ci = fc.conf_int(alpha=0.05)               <span class="c"># lower / upper columns</span>
+
+<span class="c"># 5) the honest test: beat the NAIVE forecast (tomorrow = today)?</span>
+naive = train.iloc[-1]                      <span class="c"># flat at last train value</span>
+rmse_arima = np.sqrt(np.mean((test.values - mean_fc.values) ** 2))
+rmse_naive = np.sqrt(np.mean((test.values - naive) ** 2))
+print(f"out-of-sample RMSE  ARIMA: {rmse_arima:.4f}")
+print(f"out-of-sample RMSE  naive: {rmse_naive:.4f}")
+print("ARIMA beats naive?  ", rmse_arima &lt; rmse_naive)</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Run it and notice: on raw price the long-horizon forecast flattens out and the band fans wide, while ARIMA only barely edges (or loses to) the naive benchmark — the empirical face of "returns are nearly unforecastable." Now swap the target for <code>logpx.diff().pow(2)</code> (squared returns, a volatility proxy) and refit: the autocorrelation is real, the model has something to grip, and out-of-sample skill appears. That contrast <em>is</em> the lecture.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You just hit the wall that defines quant forecasting: the <em>level</em> of returns is nearly noise, but their <em>magnitude</em> clusters and persists. Next week (<strong>Week 8: ARCH &amp; GARCH</strong>) we build models for exactly that — forecasting volatility instead of direction, the most reliably predictable thing in markets. From there, <strong>Week 9</strong> uses cointegration to find <em>pairs</em> whose <em>spread</em> is forecastable even when each leg is a random walk, and <strong>Course 4</strong> turns these forecasts into position sizes and risk limits. ARIMA is the honest baseline every later model must beat.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In ARIMA(p, d, q), what does the parameter <em>d</em> represent?</div>
+            <div class="opt"><b>A.</b> The number of autoregressive lag terms</div>
+            <div class="opt"><b>B.</b> The number of times the series is differenced to reach stationarity</div>
+            <div class="opt"><b>C.</b> The number of moving-average error terms</div>
+            <div class="opt"><b>D.</b> The forecast horizon in days</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> d is the integration/differencing order. The AR lags are p (A) and the MA error terms are q (C); the horizon is a forecasting choice, not a model parameter (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> You take a series that is already stationary and difference it one extra time. The most likely consequence is…</div>
+            <div class="opt"><b>A.</b> The model fits better because more differencing is always safer</div>
+            <div class="opt"><b>B.</b> Nothing changes; differencing a stationary series is harmless</div>
+            <div class="opt"><b>C.</b> The series becomes a perfect random walk</div>
+            <div class="opt"><b>D.</b> Over-differencing: a spurious negative lag-1 autocorrelation and inflated variance</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Over-differencing injects an artificial negative autocorrelation (near −0.5 at lag 1) and raises the variance, making the model worse. So more is not safer (A) and it is not harmless (B); differencing does not create a random walk — that is the thing you difference <em>away</em> (C).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> For a stationary AR(1) with |φ| &lt; 1, what happens to the point forecast as the horizon h grows large?</div>
+            <div class="opt"><b>A.</b> It diverges to infinity</div>
+            <div class="opt"><b>B.</b> It oscillates with growing amplitude</div>
+            <div class="opt"><b>C.</b> It decays toward the unconditional mean</div>
+            <div class="opt"><b>D.</b> It stays pinned exactly at the last observed value forever</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Since ŷ<sub>t+h</sub> = μ + φ<sup>h</sup>(y<sub>t</sub> − μ) and |φ| &lt; 1, the term φ<sup>h</sup> → 0, so the forecast converges to the mean μ. It cannot diverge (A) for a stationary process; it decays rather than oscillating wildly (B); only a random walk (φ = 1) stays at the last value (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why does the forecast confidence band widen as the horizon increases?</div>
+            <div class="opt"><b>A.</b> Because forecast variance accumulates with each future shock — for a random walk it grows like σ√h</div>
+            <div class="opt"><b>B.</b> Because the model's coefficients change every day</div>
+            <div class="opt"><b>C.</b> Because the point forecast always trends upward</div>
+            <div class="opt"><b>D.</b> Because RMSE is computed in-sample</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Each step into the future adds an unobserved shock, so the cumulative forecast variance grows (σ√h for a random walk), fanning the band out. Coefficients are fixed once fitted (B); the point forecast need not trend (C); RMSE evaluation is unrelated to why the band widens (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> An ARIMA model on daily returns barely matches the naive "tomorrow = today" forecast out-of-sample, yet the same toolkit forecasts squared returns well. The best interpretation is…</div>
+            <div class="opt"><b>A.</b> The ARIMA code has a bug, since it should always beat naive</div>
+            <div class="opt"><b>B.</b> Return levels are nearly unforecastable, but volatility (magnitude) is persistent and forecastable</div>
+            <div class="opt"><b>C.</b> Squared returns are random and the result is luck</div>
+            <div class="opt"><b>D.</b> Out-of-sample testing is the wrong way to evaluate forecasts</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Efficient markets erase autocorrelation in return <em>levels</em>, so beating naive is hard — but volatility clusters, giving squared returns strong, exploitable persistence. There is no bug (A); the volatility signal is real, not luck (C); out-of-sample testing is precisely the correct, honest method (D).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>ARIMA(p, d, q) = <b>difference d times</b>, fit ARMA(p, q), then integrate back; d = 1 for prices, d = 0 for returns.</li>
+            <li>Choose the <b>smallest d</b> that passes a stationarity test (ADF / fast-decaying ACF) — and beware <b>over-differencing</b>.</li>
+            <li>Forecasts are <b>recursive</b> and AR forecasts <b>decay to the mean</b>; the honest output is a <b>cone</b> whose band widens like <b>σ√h</b>.</li>
+            <li>Judge models by <b>out-of-sample</b> RMSE in a chronological / walk-forward split, against the <b>naive</b> benchmark — never by in-sample fit.</li>
+            <li>The hard truth: <b>return levels are nearly unforecastable</b>, while <b>volatility and volume</b> are persistent and worth modeling.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: ARCH &amp; GARCH — modeling the one thing markets reliably let you forecast, the clustering of volatility.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-arma-models.html"><div class="dir">← Week 6</div><div class="ttl">AR, MA &amp; ARMA Models</div></a>
+        <a class="next" href="l08-garch-volatility.html"><div class="dir">Week 8 →</div><div class="ttl">Volatility: ARCH &amp; GARCH</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Time Series</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

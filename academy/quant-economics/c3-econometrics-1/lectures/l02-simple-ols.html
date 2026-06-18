@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C3 · Lecture 2 — Simple Linear Regression (OLS)</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C3 Econometrics</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Simple Linear Regression (OLS)</h1>
+        <p class="sub">Draw the one straight line that sits as close as possible to every data point at once — and you've built the workhorse of all of empirical economics.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Write the simple linear regression model and separate the systematic part from the error term.</li>
+            <li>Define ordinary least squares (OLS) as the line that minimizes the sum of squared residuals.</li>
+            <li>Derive the closed-form slope and intercept estimators from the minimization problem.</li>
+            <li>Compute fitted values and residuals, and explain why residuals are not the same as the model's errors.</li>
+            <li>Interpret R-squared as the share of variation explained, and read off the meaning of the slope coefficient.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>The Simple Linear Regression Model</h2>
+        <p>In Week 1 we asked what econometrics <em>does</em>: turn data into quantified relationships. The simplest such relationship links one outcome <strong>y</strong> (the <span class="key">dependent</span> variable) to one explanatory variable <strong>x</strong> (the <span class="key">regressor</span>). Think of y as a household's monthly consumption and x as its income, or y as a country's inflation and x as its unemployment rate. We do <em>not</em> assume the points fall exactly on a line — real data never do. Instead we split y into a part explained by x and a leftover:</p>
+        <div class="eq">y = &beta;0 + &beta;1 &middot; x + u<small>&beta;0 = intercept (value of y when x = 0); &beta;1 = slope (how much y moves per one-unit rise in x); u = error capturing everything else.</small></div>
+        <p>The error term <strong>u</strong> is the honest admission that income is not the only thing driving consumption — tastes, family size, and luck all live inside u. The slope <strong>&beta;1</strong> is the object we usually care about: it is the <em>marginal effect</em> of x on y. If &beta;1 = 0.8, then a $1 rise in income is associated with an $0.80 rise in consumption on average (the marginal propensity to consume, a number macro forecasters obsess over).</p>
+        <p>The catch: &beta;0 and &beta;1 are unknown <strong>population parameters</strong>. We never see them. All we have is a sample of n paired observations (x&#8321;, y&#8321;), &hellip;, (x&#8345;, y&#8345;), from which we must produce <em>estimates</em>, written &beta;0-hat and &beta;1-hat. Estimating those two numbers is the entire job of this lecture.</p>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Least Squares: Picking the Best Line</h2>
+        <p>Lay your scatter of points on a graph and imagine sliding a ruler around. Any candidate line gives each point a <strong>fitted value</strong> y-hat = &beta;0-hat + &beta;1-hat&middot;x, and the vertical gap between the actual point and the line is the <strong>residual</strong>:</p>
+        <div class="eq">e&#7522; = y&#7522; &minus; y-hat&#7522; = y&#7522; &minus; (&beta;0-hat + &beta;1-hat &middot; x&#7522;)<small>The residual is what the line failed to predict for observation i — measured vertically, in the units of y.</small></div>
+        <p>We want a line that is close to <em>all</em> the points. Why not just add up the residuals and minimize that? Because positive and negative gaps cancel: a wildly wrong line can have residuals that sum to zero. The fix is to <strong>square</strong> each residual before adding — squares are always positive, and they punish a big miss far more than several small ones. The total we minimize is the <span class="key">sum of squared residuals</span> (SSR):</p>
+        <div class="eq">minimize over (&beta;0-hat, &beta;1-hat):&nbsp;&nbsp; SSR = &Sigma; e&#7522;&sup2; = &Sigma; ( y&#7522; &minus; &beta;0-hat &minus; &beta;1-hat &middot; x&#7522; )&sup2;<small>Ordinary least squares = the (intercept, slope) pair that makes this sum as small as it can be.</small></div>
+        <p>That is the whole idea of <strong>ordinary least squares</strong>. The figure shows the geometry: each dashed segment is a residual, and OLS is the unique line that minimizes the combined area of all the little squares built on those segments.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 280" role="img" aria-label="Scatter plot of points with an upward-sloping OLS regression line. Vertical dashed segments connect each point to the line, representing residuals.">
+                <!-- axes -->
+                <line x1="50" y1="240" x2="400" y2="240" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="240" x2="50" y2="30" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="225" y="270" fill="#93a8c8" font-size="12" text-anchor="middle">x  (income)</text>
+                <text x="20" y="135" fill="#93a8c8" font-size="12" text-anchor="middle" transform="rotate(-90 20 135)">y  (consumption)</text>
+                <!-- OLS line: y = 230 - 0.5 x  in svg coords (downward in svg = upward in data) -->
+                <line x1="60" y1="210" x2="390" y2="70" stroke="#60a5fa" stroke-width="2.5"/>
+                <text x="350" y="58" fill="#60a5fa" font-size="11" text-anchor="middle">y-hat = b0 + b1 x</text>
+                <!-- residual segments + points: line at given x has y_line -->
+                <!-- pt1 x=100 line y=210-(40/330*140)=210-16.97=193 -->
+                <line x1="100" y1="193" x2="100" y2="168" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <circle cx="100" cy="168" r="4.5" fill="#34d399"/>
+                <!-- pt2 x=150 y_line=210-(90/330*140)=210-38.2=172 -->
+                <line x1="150" y1="172" x2="150" y2="188" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <circle cx="150" cy="188" r="4.5" fill="#34d399"/>
+                <!-- pt3 x=210 y_line=210-(150/330*140)=210-63.6=146 -->
+                <line x1="210" y1="146" x2="210" y2="124" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <circle cx="210" cy="124" r="4.5" fill="#34d399"/>
+                <!-- pt4 x=270 y_line=210-(210/330*140)=210-89.1=121 -->
+                <line x1="270" y1="121" x2="270" y2="138" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <circle cx="270" cy="138" r="4.5" fill="#34d399"/>
+                <!-- pt5 x=340 y_line=210-(280/330*140)=210-118.8=91 -->
+                <line x1="340" y1="91" x2="340" y2="78" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <circle cx="340" cy="78" r="4.5" fill="#34d399"/>
+                <!-- residual label -->
+                <text x="160" y="200" fill="#fbbf24" font-size="10" text-anchor="start">e_i (residual)</text>
+            </svg>
+            <figcaption>Green dots are the data; the blue line is the OLS fit. Each amber dashed segment is a residual e&#7522; — the vertical miss between a point and the line. OLS chooses the slope and intercept that minimize the sum of the squares of these segments.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Picture each data point tethered to the line by a spring that runs straight up or down. A spring's stored energy grows with the <em>square</em> of how far it's stretched. OLS is the line that settles into the lowest total spring energy — pulled equally hard from above and below, it comes to rest exactly through the "balance point" of the cloud of points.</div>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Deriving the Slope and Intercept</h2>
+        <p>SSR is a smooth, bowl-shaped function of the two unknowns &beta;0-hat and &beta;1-hat, so its minimum is where both partial derivatives are zero. Setting them to zero gives the two <strong>normal equations</strong>, which solve cleanly. Using sample means x-bar and y-bar:</p>
+        <div class="eq">&beta;1-hat = &Sigma;(x&#7522; &minus; x-bar)(y&#7522; &minus; y-bar) / &Sigma;(x&#7522; &minus; x-bar)&sup2;<small>= sample covariance of x and y divided by the sample variance of x. The slope is "how x and y move together" scaled by "how much x moves."</small></div>
+        <div class="eq">&beta;0-hat = y-bar &minus; &beta;1-hat &middot; x-bar<small>The intercept is pinned so the line passes through the point of means (x-bar, y-bar).</small></div>
+        <p>Two facts fall straight out of the normal equations and are worth memorizing. First, the residuals always <strong>sum to zero</strong> (&Sigma;e&#7522; = 0), so the line never has a systematic over- or under-shoot. Second, the residuals are <strong>uncorrelated with x</strong> (&Sigma;x&#7522;e&#7522; = 0) — there is no leftover linear signal in x that the line ignored. These are not assumptions; they are algebraic guarantees of how OLS is built.</p>
+        <p>Notice the slope formula's intuition: the numerator is the sample <strong>covariance</strong> of x and y (do they rise together?), and the denominator is the <strong>variance</strong> of x (how spread out is x?). Divide them and you get the rise in y per unit of x. This is why OLS fails outright if x never varies — the denominator is zero and the slope is undefined.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not confuse the <strong>residual</strong> e&#7522; with the model <strong>error</strong> u&#7522;. The error u&#7522; = y&#7522; &minus; (&beta;0 + &beta;1 x&#7522;) uses the <em>true, unknown</em> parameters and can never be observed. The residual e&#7522; uses the <em>estimated</em> hatted parameters and is something you compute from your fitted line. They look alike on paper, but conflating "the thing the world generated" with "the thing my line left over" is the classic beginner's error — and it quietly sabotages every inference argument that comes later.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Goodness of Fit: R-squared &amp; Reading the Slope</h2>
+        <p>We have the best line — but is it any good? We measure that by asking how much of y's variation the line accounts for. Decompose the total variation in y (its total sum of squares, SST) into the part the line explains (SSE) plus the part it leaves as residual (SSR):</p>
+        <div class="eq">SST = SSE + SSR&nbsp;&nbsp;&rarr;&nbsp;&nbsp; R&sup2; = SSE / SST = 1 &minus; SSR / SST<small>SST = &Sigma;(y&#7522; &minus; y-bar)&sup2;,&nbsp; SSE = &Sigma;(y-hat&#7522; &minus; y-bar)&sup2;,&nbsp; SSR = &Sigma;e&#7522;&sup2;. The decomposition holds exactly for OLS.</small></div>
+        <p><strong>R-squared</strong> is the fraction of the variation in y explained by x. It runs from 0 (the line explains nothing; you'd do just as well guessing y-bar every time) to 1 (every point sits exactly on the line). In a simple regression with one regressor, R&sup2; is literally the square of the correlation between x and y. An R&sup2; of 0.64 means x accounts for 64% of the up-and-down in y.</p>
+        <p>Finally, the payoff — <strong>reading the slope</strong>. Always state it with units: "a one-[unit-of-x] increase in x is associated with a &beta;1-hat-[unit-of-y] change in y, on average, holding everything in u fixed." Note the careful words <em>associated with</em>, not <em>causes</em>: regression measures correlation in the data, and turning that into a causal claim requires the assumptions we build in the coming weeks.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>A high R&sup2; does <strong>not</strong> mean the relationship is causal, important, or correctly specified — and a low R&sup2; does not mean the slope is useless. Individual behavior is noisy, so a true and policy-relevant effect can sit inside a regression with R&sup2; near 0.1. Chasing R&sup2; for its own sake is how analysts get fooled by spurious fits.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — fit a line by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Five neighborhoods report average household income x (in $1,000s) and average monthly consumption y (in $100s): (1,3), (2,4), (3,4), (4,6), (5,8). Find the OLS line, an R&sup2;, and interpret the slope.</p>
+        <ol>
+            <li><strong>Means:</strong> x-bar = (1+2+3+4+5)/5 = 3; &nbsp; y-bar = (3+4+4+6+8)/5 = 5.</li>
+            <li><strong>Deviations &amp; products:</strong> (x&minus;x-bar) = (&minus;2,&minus;1,0,1,2); (y&minus;y-bar) = (&minus;2,&minus;1,&minus;1,1,3). Products (x&minus;x-bar)(y&minus;y-bar) = (4, 1, 0, 1, 6), summing to <strong>12</strong>.</li>
+            <li><strong>Variance numerator:</strong> &Sigma;(x&minus;x-bar)&sup2; = 4+1+0+1+4 = <strong>10</strong>.</li>
+            <li><strong>Slope:</strong> &beta;1-hat = 12 / 10 = <strong>1.2</strong>.</li>
+            <li><strong>Intercept:</strong> &beta;0-hat = y-bar &minus; &beta;1-hat&middot;x-bar = 5 &minus; 1.2&times;3 = <strong>1.4</strong>. So y-hat = 1.4 + 1.2x.</li>
+            <li><strong>Fitted &amp; residuals:</strong> y-hat = (2.6, 3.8, 5.0, 6.2, 7.4); residuals e = (0.4, 0.2, &minus;1.0, &minus;0.2, 0.6). Check: they sum to 0. &check;</li>
+            <li><strong>Goodness of fit:</strong> SSR = &Sigma;e&sup2; = 0.16+0.04+1.0+0.04+0.36 = 1.6; &nbsp;SST = &Sigma;(y&minus;y-bar)&sup2; = 4+1+1+1+9 = 16. So R&sup2; = 1 &minus; 1.6/16 = <strong>0.90</strong>.</li>
+            <li><strong>Interpretation:</strong> each extra $1,000 of income is associated with about $120 more monthly consumption (slope 1.2 in units of $100s), and income explains 90% of the variation in consumption across these neighborhoods.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: run OLS in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This course runs entirely on free, open tools and public data: <code>statsmodels</code> for regression, <code>pandas</code> for data, <code>pandas-datareader</code> to pull live series from FRED (the Federal Reserve's free database), and <code>NumPy</code>. <strong>Week 2 setup:</strong> install once below, then reuse it the rest of the course.</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + statsmodels + pandas + pandas-datareader (one-time setup)</summary>
+            <p>With Python 3 installed, create an environment and install the stack:</p>
+            <pre>python3 -m venv econ-env
+source econ-env/bin/activate       <span class="c"># macOS / Linux</span>
+econ-env\Scripts\activate          <span class="c"># Windows (PowerShell)</span>
+pip install statsmodels pandas pandas-datareader numpy matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import statsmodels, pandas, pandas_datareader; print('ok')"</code> — printing <code>ok</code> means you're set. No API key is needed for FRED.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">First, reproduce the worked example exactly, then fit a real consumption-vs-income relationship from live FRED data. Notice the slope, intercept, and R&sup2; that statsmodels prints.</p>
+        <pre><span class="c"># simple_ols.py — Lecture 2</span>
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+
+<span class="c"># --- 1. reproduce the worked example by hand-built data ---</span>
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([3, 4, 4, 6, 8])
+
+X = sm.add_constant(x)          <span class="c"># add a column of 1s for the intercept</span>
+model = sm.OLS(y, X).fit()
+print(model.params)             <span class="c"># [1.4, 1.2] -> intercept, slope</span>
+print("R-squared:", model.rsquared)   <span class="c"># 0.90</span>
+
+<span class="c"># --- 2. real data: US consumption vs disposable income (FRED) ---</span>
+from pandas_datareader import data as web
+pce = web.DataReader("PCE",  "fred", "2000-01-01")     <span class="c"># consumption</span>
+dpi = web.DataReader("DSPI", "fred", "2000-01-01")     <span class="c"># disposable income</span>
+df = pd.concat([pce, dpi], axis=1).dropna()
+df.columns = ["consumption", "income"]
+
+Xr = sm.add_constant(df["income"])
+fit = sm.OLS(df["consumption"], Xr).fit()
+print(fit.summary())            <span class="c"># slope ~ marginal propensity to consume</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The first block prints <code>[1.4, 1.2]</code> and R&sup2; = 0.90 — exactly your by-hand answer. The second estimates the marginal propensity to consume from decades of real US data; the slope on income is the headline number macro forecasters care about.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>One regressor is rarely enough — consumption depends on wealth and interest rates too, not just income. <strong>Week 3</strong> generalizes OLS to <em>multiple regression</em>, where each slope is read "holding the other variables fixed," finally giving teeth to the <em>ceteris paribus</em> claims you make in every economics course. From there we ask <em>when</em> OLS estimates are trustworthy: the Gauss-Markov assumptions and the standard errors that turn a point estimate into a confidence interval and a hypothesis test (the inference half of the course). The same least-squares engine reappears in the Quant Finance track as the workhorse behind factor models and the CAPM "beta," and in the machine-learning track as linear regression — your first supervised learner.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Ordinary least squares chooses the intercept and slope to minimize…</div>
+            <div class="opt"><b>A.</b> the sum of the residuals</div>
+            <div class="opt"><b>B.</b> the sum of the squared residuals</div>
+            <div class="opt"><b>C.</b> the largest single residual</div>
+            <div class="opt"><b>D.</b> the sum of the absolute residuals</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> OLS minimizes &Sigma;e&#7522;&sup2;. (A) is useless because positive and negative residuals cancel — the OLS residuals already sum to zero for many lines. Minimizing the max residual (C) or the absolute residuals (D) defines different estimators (minimax and LAD), not OLS.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The OLS slope estimator &beta;1-hat equals…</div>
+            <div class="opt"><b>A.</b> the variance of y divided by the variance of x</div>
+            <div class="opt"><b>B.</b> the correlation between x and y</div>
+            <div class="opt"><b>C.</b> the sample covariance of x and y divided by the sample variance of x</div>
+            <div class="opt"><b>D.</b> y-bar minus x-bar</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> &beta;1-hat = Cov(x,y)/Var(x). (B) is unitless and only proportional to the slope, not equal to it. (A) ignores how x and y co-move. (D) is nonsense dimensionally — that expression isn't the slope.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The residual e&#7522; differs from the model error u&#7522; because…</div>
+            <div class="opt"><b>A.</b> the residual uses the estimated coefficients, while the error uses the true unknown parameters</div>
+            <div class="opt"><b>B.</b> they are exactly the same thing</div>
+            <div class="opt"><b>C.</b> the error is always larger than the residual</div>
+            <div class="opt"><b>D.</b> the residual is measured horizontally and the error vertically</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> e&#7522; = y&#7522; &minus; (&beta;0-hat + &beta;1-hat x&#7522;) is observable; u&#7522; uses the true &beta;'s and is not. (B) conflates them — the central error of the lecture. (C) has no general ordering. (D) is wrong: both are vertical, in units of y.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> An R&sup2; of 0.90 in a simple regression means…</div>
+            <div class="opt"><b>A.</b> the slope coefficient equals 0.90</div>
+            <div class="opt"><b>B.</b> 90% of observations lie exactly on the line</div>
+            <div class="opt"><b>C.</b> x causes 90% of y</div>
+            <div class="opt"><b>D.</b> x explains 90% of the variation in y</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> R&sup2; is the share of the variation (SST) explained by the line. (A) confuses R&sup2; with the slope. (B) misreads it as a count of points. (C) is the causal trap — R&sup2; measures fit, never causation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A fitted line is y-hat = 2 + 3x, with x measured in years of schooling and y in thousands of dollars of annual earnings. The slope says…</div>
+            <div class="opt"><b>A.</b> each extra year of schooling is associated with $3,000 more earnings per year, on average</div>
+            <div class="opt"><b>B.</b> someone with zero schooling earns $3,000</div>
+            <div class="opt"><b>C.</b> schooling explains 3% of earnings</div>
+            <div class="opt"><b>D.</b> earnings rise by 300% per year of schooling</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The slope 3 is the change in y (in $1,000s) per one-unit rise in x — about $3,000 per extra year, on average. (B) describes the intercept (2 -> $2,000), not the slope. (C) confuses the slope with R&sup2;. (D) misreads a level change as a percentage change.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Wrote the <b>simple linear regression model</b> y = &beta;0 + &beta;1 x + u and separated its systematic part from the <b>error</b>.</li>
+            <li>Defined <b>OLS</b> as the line that minimizes the <b>sum of squared residuals</b>, and saw the spring-energy intuition.</li>
+            <li>Derived <b>&beta;1-hat = Cov(x,y)/Var(x)</b> and <b>&beta;0-hat = y-bar &minus; &beta;1-hat x-bar</b> from the normal equations.</li>
+            <li>Computed <b>fitted values and residuals</b>, and distinguished the observable residual from the unobservable error.</li>
+            <li>Read <b>R&sup2;</b> as the share of variation explained and interpreted a <b>slope</b> with units and a "no causation yet" caveat.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: <b>Multiple Regression</b>, where we add more regressors and finally give meaning to "holding all else equal."</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-what-is-econometrics.html"><div class="dir">← Week 1</div><div class="ttl">What Econometrics Does</div></a>
+        <a class="next" href="l03-multiple-regression.html"><div class="dir">Week 3 →</div><div class="ttl">Multiple Regression</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Econometrics</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

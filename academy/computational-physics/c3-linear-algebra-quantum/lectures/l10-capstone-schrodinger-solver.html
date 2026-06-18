@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C3 · Lecture 10 — Capstone: A 1D Schrödinger Solver</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C3 LinAlg &amp; Quantum</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Capstone: A 1D Schrödinger Solver</h1>
+        <p class="sub">Everything in this course — matrices, eigenvalues, diagonalization, sparsity — collapses into one elegant program that finds the energy levels and wavefunctions of any 1D quantum system you can draw.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Turn the time-independent Schrödinger equation into a matrix eigenvalue problem with a finite-difference Laplacian.</li>
+            <li>Build and diagonalize the Hamiltonian matrix for any 1D potential V(x) using NumPy/SciPy.</li>
+            <li>Reproduce the textbook square-well and harmonic-oscillator spectra and verify the equally spaced ladder E_n = (n + ½)ħω.</li>
+            <li>Model a symmetric double well and measure the tunneling splitting between the lowest two states.</li>
+            <li>Frame and ship the capstone deliverable: a validated solver, three test cases, and a written error analysis.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>The Schrödinger Equation Is an Eigenvalue Problem</h2>
+        <p>The time-independent Schrödinger equation in one dimension is, at heart, the same statement we met in Lecture 2: a linear operator acting on a function returns that same function scaled by a number. The function is the <strong>stationary wavefunction</strong> ψ(x), the operator is the <strong>Hamiltonian</strong> Ĥ, and the scale factor is the <strong>energy</strong> E:</p>
+        <div class="eq">Ĥ ψ(x) = E ψ(x),&nbsp;&nbsp; Ĥ = −(ħ²/2m) d²/dx² + V(x)<small>Kinetic term (the second derivative) plus a potential term. ψ is an eigenfunction; E is its eigenvalue.</small></div>
+        <p>The whole strategy of computational quantum mechanics is to <em>discretize</em> this continuous operator onto a grid so that Ĥ becomes a finite matrix. Once it is a matrix, "find the allowed energies and states" is exactly the eigenvalue problem we have solved all course: the eigenvalues are the bound-state energies, and the eigenvectors are the wavefunctions sampled at the grid points.</p>
+        <p>Choose a grid of N points x<sub>j</sub> spaced by h on the interval [a, b]. The kinetic operator needs the second derivative, which we approximate with the second-order central finite difference from Course 1:</p>
+        <div class="eq">d²ψ/dx² |<sub>j</sub> ≈ (ψ<sub>j+1</sub> − 2ψ<sub>j</sub> + ψ<sub>j−1</sub>) / h²<small>Couples each grid point to its two neighbours — a tridiagonal stencil.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the wavefunction as the shape of a vibrating guitar string, and the grid points as beads strung along it. Each bead is pulled by its two neighbours (the kinetic coupling) and sits in a landscape of hills and valleys (the potential V). The "natural shapes" of this beaded string — its standing-wave modes and their frequencies — are precisely the eigenvectors and eigenvalues of the Hamiltonian matrix. We literally reused the <strong>normal-modes machinery from Lecture 3</strong>; only the labels changed.</div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Assembling the Hamiltonian Matrix</h2>
+        <p>The finite-difference stencil makes the kinetic operator a tridiagonal matrix: −2 on the diagonal, +1 on each off-diagonal, scaled by −ħ²/(2m h²). The potential is even simpler — it is <em>diagonal</em>, because V(x) just multiplies ψ(x) point by point. Adding them gives the full Hamiltonian:</p>
+        <div class="eq">H<sub>jj</sub> = ħ²/(m h²) + V(x<sub>j</sub>),&nbsp;&nbsp; H<sub>j,j±1</sub> = −ħ²/(2m h²)<small>Diagonal = kinetic "+2" term plus the local potential; off-diagonals = the "−1" neighbour coupling.</small></div>
+        <p>Because each row touches only three columns, H is <strong>sparse</strong> — exactly the structure Lecture 6 prepared us to exploit. For a clear derivation we will work in <strong>natural units</strong> ħ = m = 1, so the prefactors reduce to 1/h² and the matrix is purely geometric. The figure shows the resulting band structure of the matrix.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 230" role="img" aria-label="Tridiagonal Hamiltonian matrix: diagonal entries equal 1 over h squared plus V at each point, and the two off-diagonals equal minus one half over h squared.">
+                <text x="210" y="22" fill="#a5b4fc" font-size="13" text-anchor="middle" font-weight="bold">H = kinetic (tridiagonal) + potential (diagonal)</text>
+                <!-- matrix bracket -->
+                <line x1="60" y1="45" x2="50" y2="45" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="45" x2="50" y2="205" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="205" x2="60" y2="205" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="360" y1="45" x2="370" y2="45" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="370" y1="45" x2="370" y2="205" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="370" y1="205" x2="360" y2="205" stroke="#a3a8c8" stroke-width="1.5"/>
+                <!-- diagonal cells -->
+                <rect x="70" y="50" width="58" height="28" fill="rgba(129,140,248,.35)" stroke="#818cf8" stroke-width="1.2"/>
+                <rect x="138" y="82" width="58" height="28" fill="rgba(129,140,248,.35)" stroke="#818cf8" stroke-width="1.2"/>
+                <rect x="206" y="114" width="58" height="28" fill="rgba(129,140,248,.35)" stroke="#818cf8" stroke-width="1.2"/>
+                <rect x="274" y="146" width="58" height="28" fill="rgba(129,140,248,.35)" stroke="#818cf8" stroke-width="1.2"/>
+                <!-- super-diagonal -->
+                <rect x="138" y="50" width="58" height="28" fill="rgba(251,191,36,.30)" stroke="#fbbf24" stroke-width="1.2"/>
+                <rect x="206" y="82" width="58" height="28" fill="rgba(251,191,36,.30)" stroke="#fbbf24" stroke-width="1.2"/>
+                <rect x="274" y="114" width="58" height="28" fill="rgba(251,191,36,.30)" stroke="#fbbf24" stroke-width="1.2"/>
+                <!-- sub-diagonal -->
+                <rect x="70" y="82" width="58" height="28" fill="rgba(52,211,153,.28)" stroke="#34d399" stroke-width="1.2"/>
+                <rect x="138" y="114" width="58" height="28" fill="rgba(52,211,153,.28)" stroke="#34d399" stroke-width="1.2"/>
+                <rect x="206" y="146" width="58" height="28" fill="rgba(52,211,153,.28)" stroke="#34d399" stroke-width="1.2"/>
+                <!-- labels -->
+                <text x="99" y="68" fill="#e9ebf8" font-size="9" text-anchor="middle">1/h2+V1</text>
+                <text x="167" y="100" fill="#e9ebf8" font-size="9" text-anchor="middle">1/h2+V2</text>
+                <text x="235" y="132" fill="#e9ebf8" font-size="9" text-anchor="middle">1/h2+V3</text>
+                <text x="303" y="164" fill="#e9ebf8" font-size="9" text-anchor="middle">1/h2+V4</text>
+                <text x="167" y="68" fill="#fbbf24" font-size="9" text-anchor="middle">-1/2h2</text>
+                <text x="235" y="100" fill="#fbbf24" font-size="9" text-anchor="middle">-1/2h2</text>
+                <text x="303" y="132" fill="#fbbf24" font-size="9" text-anchor="middle">-1/2h2</text>
+                <text x="99" y="100" fill="#34d399" font-size="9" text-anchor="middle">-1/2h2</text>
+                <text x="167" y="132" fill="#34d399" font-size="9" text-anchor="middle">-1/2h2</text>
+                <text x="235" y="164" fill="#34d399" font-size="9" text-anchor="middle">-1/2h2</text>
+                <text x="320" y="194" fill="#a3a8c8" font-size="10" text-anchor="middle">... (zeros elsewhere)</text>
+                <text x="395" y="128" fill="#a3a8c8" font-size="10" text-anchor="middle" transform="rotate(90 395 128)">N x N, sparse</text>
+            </svg>
+            <figcaption>The Hamiltonian in natural units (ħ = m = 1). Blue = diagonal (kinetic 1/h&sup2; plus on-site potential V<sub>j</sub>); amber = super-diagonal and green = sub-diagonal neighbour couplings (&minus;1/2h&sup2;). All other entries are zero, so H is tridiagonal and sparse.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Forgetting to divide the kinetic stencil by h&sup2;, or mixing up which factor carries the units. A frequent symptom is energies that scale wrongly when you change the grid spacing. Also: the boundary rows have no neighbour on one side, which silently imposes <strong>ψ = 0 at the walls</strong> (Dirichlet boundaries). That is fine for a box, but if your domain is too narrow the wavefunction gets squeezed and every energy comes out too high — always check that ψ has decayed to ~0 before the edges.</div>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Three Test Cases — and Their Analytic Answers</h2>
+        <p>A capstone is only as good as its validation. We choose three potentials whose exact spectra are known, so every computed number has a target to be checked against.</p>
+        <h3>Infinite square well</h3>
+        <p>A particle confined to a box of width L (V = 0 inside, infinite outside) has the classic ladder of energies that grow as n²:</p>
+        <div class="eq">E<sub>n</sub> = n² π² ħ² / (2 m L²),&nbsp;&nbsp; n = 1, 2, 3, ...<small>In natural units with L = 1: E_n = n&sup2; pi&sup2;/2 ≈ 4.93, 19.7, 44.4, ...</small></div>
+        <h3>Harmonic oscillator</h3>
+        <p>For V(x) = ½ m ω² x², the levels are <strong>equally spaced</strong> — the single most-tested fact in quantum mechanics, and the basis of phonons, photons, and quantized fields:</p>
+        <div class="eq">E<sub>n</sub> = (n + ½) ħω,&nbsp;&nbsp; n = 0, 1, 2, ...<small>With ħ = m = ω = 1 the levels are exactly 0.5, 1.5, 2.5, 3.5, ... — a constant gap of ħω = 1.</small></div>
+        <h3>Symmetric double well</h3>
+        <p>Two wells separated by a barrier, e.g. V(x) = λ(x² − a²)². Classically a particle sits in one well forever; quantum mechanically it can <strong>tunnel</strong> through the barrier. The two lowest states are a symmetric and an antisymmetric combination, split by a tiny <strong>tunneling gap</strong> ΔE that shrinks exponentially as the barrier grows:</p>
+        <div class="eq">ΔE = E<sub>1</sub> − E<sub>0</sub> ∝ e<sup>−S/ħ</sup><small>S is the action under the barrier. A taller/wider barrier means a smaller splitting and slower tunneling between wells.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 440 250" role="img" aria-label="Symmetric double-well potential with a central barrier. The lowest two energy levels are drawn as nearly degenerate horizontal lines; their small separation is the tunneling splitting. The symmetric ground state has no node, the antisymmetric first excited state has one node at the center.">
+                <line x1="40" y1="210" x2="420" y2="210" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="40" y1="30" x2="40" y2="210" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="30" y="40" fill="#a3a8c8" font-size="11" text-anchor="end">V, E</text>
+                <text x="415" y="228" fill="#a3a8c8" font-size="11" text-anchor="end">x</text>
+                <!-- double well curve: high - dip - bump - dip - high -->
+                <path d="M60,55 C100,200 140,205 160,150 C185,85 215,85 240,150 C260,205 300,200 340,55" fill="none" stroke="#c084fc" stroke-width="2.4"/>
+                <text x="350" y="60" fill="#c084fc" font-size="11">V(x)</text>
+                <text x="200" y="78" fill="#c084fc" font-size="10" text-anchor="middle">barrier</text>
+                <!-- two close energy levels inside the wells -->
+                <line x1="118" y1="172" x2="282" y2="172" stroke="#fbbf24" stroke-width="1.8"/>
+                <line x1="116" y1="180" x2="284" y2="180" stroke="#34d399" stroke-width="1.8"/>
+                <text x="300" y="170" fill="#fbbf24" font-size="10">E1 (antisym)</text>
+                <text x="300" y="188" fill="#34d399" font-size="10">E0 (sym)</text>
+                <!-- splitting bracket -->
+                <line x1="95" y1="172" x2="95" y2="180" stroke="#a5b4fc" stroke-width="1.5"/>
+                <text x="70" y="179" fill="#a5b4fc" font-size="10" text-anchor="middle">dE</text>
+                <!-- symmetric ground-state wavefunction (two equal positive bumps, no node) -->
+                <path d="M118,150 C140,118 160,118 175,140 C188,158 212,158 225,140 C240,118 260,118 282,150" fill="none" stroke="#34d399" stroke-width="1.6" stroke-dasharray="4 3"/>
+                <!-- antisymmetric (positive bump left, negative bump right, one node at center) -->
+                <path d="M118,150 C140,120 160,120 178,140 L200,150 L222,160 C240,180 260,180 282,150" fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-dasharray="4 3"/>
+                <circle cx="200" cy="150" r="2.5" fill="#fbbf24"/>
+                <text x="200" y="240" fill="#a3a8c8" font-size="9" text-anchor="middle">node of the antisymmetric state at x = 0</text>
+            </svg>
+            <figcaption>Symmetric double well V(x) = &lambda;(x&sup2; &minus; a&sup2;)&sup2;. The lowest two states are nearly degenerate, separated by the tunneling splitting &Delta;E. The symmetric ground state (green) has no node; the antisymmetric first excited state (amber) has one node at the centre. As the barrier rises, &Delta;E shrinks exponentially.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>Framing the Deliverable</h2>
+        <p>This is the payoff week: your project is <strong>due now</strong>. The deliverable is a single, well-documented solver plus evidence that it works. A strong submission has four parts:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>The solver.</strong> A function <code>solve(V, x)</code> that takes any potential array on a grid and returns the lowest <em>k</em> energies and wavefunctions. Reuse the sparse eigensolver from Lecture 6 (<code>scipy.sparse.linalg.eigsh</code>) so it scales to large grids.</li>
+            <li><strong>Three validated test cases.</strong> Square well, harmonic oscillator, double well — each with a plot of V(x), the lowest few levels drawn as horizontal lines, and the wavefunctions. Tabulate computed vs analytic energies.</li>
+            <li><strong>A convergence study.</strong> Show the energy error falling like h² (second-order) as you refine the grid — the Course 1 error budget, applied to your own code.</li>
+            <li><strong>A short write-up.</strong> One page: the method, the three results, the tunneling splitting you measured, and the one thing that surprised you.</li>
+        </ul>
+        <p>The grader is checking <em>physics fidelity</em>: does your harmonic ladder come out equally spaced? Do your square-well energies follow n²? Does the double-well splitting shrink when you raise the barrier? Getting those three qualitative signatures right is worth more than any single decimal place.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Shipping the capstone is like a flight test, not a thought experiment. You do not just claim the wing will fly — you instrument it, fly it against three known conditions, and plot how the error behaves. "It ran without crashing" is not validation; "it reproduced the analytic spectrum to 0.1% and converged as h²" is.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — harmonic-oscillator ground state by hand-checking the grid</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">In natural units (ħ = m = ω = 1) take V(x) = ½ x² on the domain [−6, 6] with N = 600 interior points. Predict the lowest two energies and confirm the gap, then estimate the grid error.</p>
+        <ol>
+            <li><strong>Grid spacing:</strong> domain length 12 over N + 1 = 601 intervals gives h = 12 / 601 ≈ <strong>0.0200</strong>.</li>
+            <li><strong>Kinetic prefactor:</strong> 1/h² ≈ 2500, so the diagonal kinetic term is 1/h² ≈ 2500 and the off-diagonals are −1/(2h²) ≈ −1250. These dwarf the potential at small x, as they should (kinetic energy dominates fine structure).</li>
+            <li><strong>Analytic targets:</strong> E<sub>n</sub> = (n + ½), so E<sub>0</sub> = 0.5 and E<sub>1</sub> = 1.5; the level spacing is exactly ħω = <strong>1.0</strong>.</li>
+            <li><strong>What the solver returns:</strong> diagonalizing H gives E<sub>0</sub> ≈ 0.49999, E<sub>1</sub> ≈ 1.49998 — both within ~10⁻⁵ of the exact values; the gap is 1.00000 to five digits.</li>
+            <li><strong>Error scaling:</strong> the finite-difference Laplacian is second-order, so halving h (doubling N) should cut the energy error by ~4. Going from N = 600 to N = 1200 takes the E<sub>0</sub> error from ~10⁻⁵ to ~2.5×10⁻⁶ — a factor of 4, confirming p = 2.</li>
+            <li><strong>Takeaway:</strong> the <em>equally spaced</em> ladder (gap = 1) is the signature to look for; if your gaps drift, your domain is too small or your h too coarse.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: the complete capstone solver</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This is the whole engine in ~30 lines, using the free Python + NumPy/SciPy/Matplotlib stack from the <strong>Week 1/2 setup</strong> (see the install <code>details</code> in Lecture 1 if you need to recreate the environment). It assembles a sparse Hamiltonian, diagonalizes it with <code>eigsh</code>, and runs all three test cases.</p>
+        <pre><span class="c"># schrodinger1d.py — Capstone, C3 Lecture 10  (natural units hbar = m = 1)</span>
+import numpy as np
+from scipy.sparse import diags
+from scipy.sparse.linalg import eigsh
+
+def solve(V, x, k=5):
+    <span class="c"># V = potential sampled on grid x (uniform spacing); returns lowest k (E, psi)</span>
+    h = x[1] - x[0]
+    N = len(x)
+    main = 1.0 / h**2 + V                 <span class="c"># diagonal: -1/2 * (-2)/h^2 = 1/h^2, plus V</span>
+    off  = -0.5 / h**2 * np.ones(N - 1)   <span class="c"># neighbour coupling -1/(2h^2)</span>
+    H = diags([off, main, off], [-1, 0, 1])
+    E, psi = eigsh(H, k=k, which='SM')    <span class="c"># k smallest eigenvalues (bound states)</span>
+    order = np.argsort(E)
+    return E[order], psi[:, order]
+
+<span class="c"># --- Test 1: infinite square well, width L = 1  ->  E_n = n^2 pi^2 / 2 ---</span>
+x = np.linspace(0, 1, 1002)[1:-1]         <span class="c"># interior points, psi = 0 at walls</span>
+E, _ = solve(np.zeros_like(x), x, k=4)
+print("well   :", np.round(E, 2), " exact:", [round(n**2*np.pi**2/2,2) for n in (1,2,3,4)])
+
+<span class="c"># --- Test 2: harmonic oscillator V = x^2/2  ->  E_n = n + 1/2 ---</span>
+x = np.linspace(-6, 6, 602)[1:-1]
+E, _ = solve(0.5 * x**2, x, k=4)
+print("SHO    :", np.round(E, 4), " gaps:", np.round(np.diff(E), 4))   <span class="c"># gaps ~ 1.0</span>
+
+<span class="c"># --- Test 3: double well V = 0.5*(x^2 - 4)^2  ->  measure tunneling split ---</span>
+x = np.linspace(-5, 5, 1002)[1:-1]
+E, _ = solve(0.5 * (x**2 - 4.0)**2, x, k=4)
+print("double :", np.round(E, 5), " split dE =", round(E[1] - E[0], 6))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Now experiment: raise the double-well barrier by changing <code>4.0</code> to <code>9.0</code> (deeper, wider wells) and watch <code>dE</code> collapse by orders of magnitude — direct numerical evidence of exponential tunneling suppression. Then add a Matplotlib panel plotting V(x) with each E<sub>n</sub> as a horizontal line and the wavefunctions stacked on top; that figure is the centrepiece of your write-up.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You have just built, in miniature, the core loop of real electronic-structure software: discretize an operator, exploit sparsity, diagonalize for the lowest states. The <strong>Final Exam</strong> (building now) will test exactly these ideas end to end. Beyond this course, the same pattern scales up: in three dimensions the grid Laplacian becomes the workhorse of density-functional and grid-based quantum chemistry; replacing the static potential with a time step takes you into the <strong>time-dependent Schrödinger equation</strong> and the PDE methods of Course 4; and the tight-binding Hamiltonian from Week 9 is the same matrix in a different basis, the gateway to band structure and condensed-matter simulation. Master this 1D solver and you own the conceptual template for nearly every quantum simulation you will ever write.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> After discretizing the 1D Schrödinger equation on a grid, finding the bound-state energies and wavefunctions becomes…</div>
+            <div class="opt"><b>A.</b> a matrix eigenvalue problem: eigenvalues are energies, eigenvectors are wavefunctions</div>
+            <div class="opt"><b>B.</b> a root-finding problem on a single scalar function</div>
+            <div class="opt"><b>C.</b> a Monte-Carlo integration over phase space</div>
+            <div class="opt"><b>D.</b> a least-squares curve fit to the potential</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The discrete Hamiltonian is a matrix; Ĥψ = Eψ is literally an eigenproblem. B/C/D describe unrelated numerical tasks — root finding solves f(x)=0, Monte-Carlo samples randomly, and fitting minimizes residuals; none yield quantized energy levels here.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why is the discrete Hamiltonian for a 1D problem tridiagonal (and thus sparse)?</div>
+            <div class="opt"><b>A.</b> because the potential V(x) couples every point to every other point</div>
+            <div class="opt"><b>B.</b> because the second-derivative stencil couples each grid point only to its two nearest neighbours, and V is diagonal</div>
+            <div class="opt"><b>C.</b> because we throw away small matrix entries to save memory</div>
+            <div class="opt"><b>D.</b> because eigsh requires tridiagonal input</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The central second difference touches j−1, j, j+1, and V(x) is a pure diagonal (point-by-point) operator. A is backwards (V is local, not all-to-all); C describes lossy thresholding, which we do not do; D is false — <code>eigsh</code> accepts any sparse symmetric matrix.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The defining signature of the quantum harmonic oscillator spectrum is that the energy levels are…</div>
+            <div class="opt"><b>A.</b> spaced proportionally to n²</div>
+            <div class="opt"><b>B.</b> all degenerate (equal)</div>
+            <div class="opt"><b>C.</b> equally spaced, E_n = (n + ½)ħω, with a constant gap ħω</div>
+            <div class="opt"><b>D.</b> spaced like 1/n²</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The oscillator gives a uniform ladder with gap ħω. A is the <em>square-well</em> pattern (E_n ∝ n²); D is the hydrogen-atom pattern; B would mean no spectrum at all.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In a symmetric double well, what happens to the tunneling splitting ΔE between the lowest two states as you make the central barrier taller and wider?</div>
+            <div class="opt"><b>A.</b> it grows linearly with barrier height</div>
+            <div class="opt"><b>B.</b> it stays constant — barriers don't affect splittings</div>
+            <div class="opt"><b>C.</b> it oscillates with no clear trend</div>
+            <div class="opt"><b>D.</b> it shrinks exponentially, since ΔE ∝ e^(−S/ħ)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> A higher/wider barrier increases the action S under it, so the splitting falls off exponentially — tunneling between wells becomes exponentially slower. A, B, and C all contradict the e^(−S/ħ) dependence you can measure directly in the solver.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Your harmonic-oscillator energies come out systematically too high and the level gaps drift away from ħω. The most likely cause is…</div>
+            <div class="opt"><b>A.</b> the computational domain is too narrow, so the wavefunction is squeezed against the Dirichlet walls (and/or h is too coarse)</div>
+            <div class="opt"><b>B.</b> floating-point round-off in a single subtraction</div>
+            <div class="opt"><b>C.</b> using a sparse matrix instead of a dense one</div>
+            <div class="opt"><b>D.</b> requesting too few eigenvalues from eigsh</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> If ψ hasn't decayed to ~0 before the box edges, confinement raises every energy and distorts the gaps; a coarse grid adds h² truncation error on top. B is far too small to explain a systematic shift; C doesn't change the eigenvalues (only how they're computed); D affects how many states you get, not their accuracy.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The time-independent Schrödinger equation is an <b>eigenvalue problem</b> Ĥψ = Eψ; discretizing turns Ĥ into a matrix.</li>
+            <li>The finite-difference Laplacian makes H <b>tridiagonal and sparse</b> — kinetic off-diagonals plus a diagonal potential.</li>
+            <li>Three validating test cases: square well (E ∝ n²), harmonic oscillator (<b>equally spaced</b> E_n = (n+½)ħω), and a <b>double well</b>.</li>
+            <li>The double-well <b>tunneling splitting</b> ΔE shrinks exponentially as the barrier grows — measurable straight from your solver.</li>
+            <li>A complete capstone = solver + three validated cases + an h² <b>convergence study</b> + a short write-up.</li>
+        </ul>
+        <p class="next-up">Next up — the <b>Final Exam</b> (building now): a comprehensive test of vectors, eigenvalues, diagonalization, sparsity, and this Schrödinger solver across the whole C3 course.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-tight-binding-bands.html"><div class="dir">← Week 9</div><div class="ttl">Tight-Binding &amp; Band Structure</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 LinAlg &amp; Quantum</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C1 · Lecture 3 — Techniques of Analysis</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* figures (inline SVG diagrams) */
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        /* quiz */
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        /* ── DISCUSSION (interactive prototype) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08121a; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C1 Circuits</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3</span>
+        <h1>Techniques of Analysis</h1>
+        <p class="sub">Three power tools that turn an intimidating circuit into a one-line answer: superposition, Thévenin/Norton equivalents, and maximum power transfer.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Apply superposition to find a response from multiple independent sources.</li>
+            <li>Reduce any linear two-terminal network to its Thévenin equivalent (V<sub>th</sub>, R<sub>th</sub>).</li>
+            <li>Convert between Thévenin and Norton equivalents via source transformation.</li>
+            <li>Find the load resistance that extracts maximum power, and compute that power.</li>
+            <li>Verify a Thévenin equivalent in Ngspice.</li>
+        </ul>
+    </div>
+
+    <section class="lec">
+        <h2><span class="n">3.1</span>Superposition</h2>
+        <p>In Lecture 2 you solved circuits with node and mesh analysis — powerful, but it can mean a lot of simultaneous equations. <strong>Superposition</strong> is a shortcut that works in any <span class="key">linear</span> circuit (resistors, plus the capacitors/inductors we meet later):</p>
+        <div class="eq">total response = Σ (response from each source acting alone)</div>
+        <p>To "turn off" the other sources while you analyze one: replace each <strong>voltage source with a short</strong> (0 V = wire) and each <strong>current source with an open</strong> (0 A = gap). Solve the simple one-source circuit, repeat for every source, then add the partial answers.</p>
+        <div class="box warn"><span class="lbl">Why "linear"?</span>Superposition relies on responses scaling and adding proportionally. A diode or transistor is non-linear, so you can't superpose sources across one — a key reason we treat those elements separately later.</div>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">3.2</span>Thévenin's Theorem</h2>
+        <p>Here's the big idea: <strong>any</strong> linear two-terminal network — no matter how many sources and resistors — looks, from the outside, exactly like a single voltage source in series with a single resistor.</p>
+        <div class="eq">V<sub>th</sub> in series with R<sub>th</sub><small>The Thévenin equivalent — indistinguishable from the original at the terminals.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 180" role="img" aria-label="Any linear two-terminal network equals a Thevenin voltage source in series with a Thevenin resistance">
+                <!-- left: network box -->
+                <rect x="20" y="50" width="110" height="80" rx="6" fill="none" stroke="#67e8f9" stroke-width="2"/>
+                <text x="75" y="86" fill="#94a8bc" font-size="12" text-anchor="middle">any linear</text>
+                <text x="75" y="102" fill="#94a8bc" font-size="12" text-anchor="middle">network</text>
+                <line x1="130" y1="68" x2="160" y2="68" stroke="#67e8f9" stroke-width="2"/>
+                <line x1="130" y1="112" x2="160" y2="112" stroke="#67e8f9" stroke-width="2"/>
+                <circle cx="160" cy="68" r="3" fill="#22d3ee"/><circle cx="160" cy="112" r="3" fill="#22d3ee"/>
+                <text x="168" y="66" fill="#94a8bc" font-size="12">a</text>
+                <text x="168" y="124" fill="#94a8bc" font-size="12">b</text>
+                <!-- equivalence -->
+                <text x="205" y="96" fill="#34d399" font-size="22" text-anchor="middle">≡</text>
+                <!-- right: Vth in series with Rth -->
+                <g stroke="#67e8f9" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M320,40 V58"/>
+                    <polyline points="320,58 320,66 312,70 328,78 312,86 328,94 312,98 320,102 320,118"/>
+                    <path d="M320,118 V128"/>
+                    <path d="M320,150 V160"/>
+                </g>
+                <g stroke="#e8f0f8" stroke-width="2"><line x1="306" y1="128" x2="334" y2="128"/><line x1="313" y1="140" x2="327" y2="140"/></g>
+                <circle cx="320" cy="40" r="3" fill="#22d3ee"/><circle cx="320" cy="160" r="3" fill="#22d3ee"/>
+                <text x="328" y="40" fill="#94a8bc" font-size="12">a</text>
+                <text x="328" y="166" fill="#94a8bc" font-size="12">b</text>
+                <text x="336" y="86" fill="#e8f0f8" font-size="12">R<tspan font-size="9" dy="3">th</tspan></text>
+                <text x="278" y="138" fill="#67e8f9" font-size="12">V<tspan font-size="9" dy="3">th</tspan></text>
+            </svg>
+            <figcaption>Thévenin's theorem: the entire network on the left, however complex, behaves at terminals a–b exactly like a single source V<sub>th</sub> in series with R<sub>th</sub>.</figcaption>
+        </figure>
+        <h3>Finding V<sub>th</sub> and R<sub>th</sub></h3>
+        <p><span class="key">V<sub>th</sub></span> = the <strong>open-circuit voltage</strong> across the terminals (disconnect the load and measure/compute the voltage).</p>
+        <p><span class="key">R<sub>th</sub></span> = the resistance seen looking into the terminals with <strong>all independent sources turned off</strong> (voltage→short, current→open).</p>
+        <div class="box analogy"><span class="lbl">Why it's useful</span>If you're going to test many different loads on the same circuit, you find V<sub>th</sub>/R<sub>th</sub> <em>once</em>, then every load is a trivial two-resistor divider. That's the practical payoff — and the subject of today's discussion below.</div>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">3.3</span>Norton's Theorem &amp; Source Transformation</h2>
+        <p>Norton is Thévenin's dual: the same network can instead be modeled as a <strong>current source in parallel with a resistor</strong>.</p>
+        <div class="eq">I<sub>N</sub> in parallel with R<sub>N</sub>,&nbsp;&nbsp; R<sub>N</sub> = R<sub>th</sub></div>
+        <p><span class="key">I<sub>N</sub></span> = the <strong>short-circuit current</strong> (current that flows if you short the terminals). The two equivalents are linked by Ohm's law:</p>
+        <div class="eq">V<sub>th</sub> = I<sub>N</sub> · R<sub>th</sub></div>
+        <p>Swapping between the two forms — <strong>source transformation</strong> — often collapses a messy circuit a step at a time until the answer falls out.</p>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">3.4</span>Maximum Power Transfer</h2>
+        <p>Given a source with Thévenin resistance R<sub>th</sub>, what load R<sub>L</sub> draws the <em>most</em> power? Too small a load and the voltage collapses; too large and little current flows. The optimum is the match:</p>
+        <div class="eq">R<sub>L</sub> = R<sub>th</sub>&nbsp;&nbsp;⟹&nbsp;&nbsp; P<sub>max</sub> = V<sub>th</sub>² / (4 · R<sub>th</sub>)</div>
+        <figure class="fig">
+            <svg viewBox="0 0 300 200" role="img" aria-label="Power delivered to the load versus load resistance, peaking when load equals Thevenin resistance">
+                <line x1="42" y1="170" x2="272" y2="170" stroke="#94a8bc" stroke-width="1.5"/>
+                <line x1="42" y1="170" x2="42" y2="24" stroke="#94a8bc" stroke-width="1.5"/>
+                <text x="250" y="188" fill="#94a8bc" font-size="12">R<tspan font-size="9" dy="3">L</tspan></text>
+                <text x="22" y="34" fill="#94a8bc" font-size="12">P</text>
+                <path d="M42,170 C95,80 130,52 152,52 C200,52 245,95 268,118" fill="none" stroke="#22d3ee" stroke-width="2.5"/>
+                <line x1="152" y1="170" x2="152" y2="52" stroke="#fbbf24" stroke-width="1.3" stroke-dasharray="4 4"/>
+                <circle cx="152" cy="52" r="3.5" fill="#fbbf24"/>
+                <text x="152" y="186" fill="#fbbf24" font-size="11" text-anchor="middle">R<tspan font-size="8" dy="2">L</tspan><tspan dy="-2"> = R</tspan><tspan font-size="8" dy="2">th</tspan></text>
+                <text x="158" y="46" fill="#fbbf24" font-size="11">P<tspan font-size="8" dy="2">max</tspan></text>
+            </svg>
+            <figcaption>Power to the load peaks exactly when R<sub>L</sub> = R<sub>th</sub> — too small starves the voltage, too large starves the current.</figcaption>
+        </figure>
+        <p>This "impedance matching" idea reappears everywhere — audio amplifiers, RF antennas, and the signal-integrity work you'll meet in the VLSI courses. (Note: matching maximizes <em>power transfer</em>, not <em>efficiency</em> — at the match, half the power is lost in R<sub>th</sub>.)</p>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 12 V source connects through R₁ = 6 kΩ to node A; R₂ = 3 kΩ runs from A to ground. Find the Thévenin equivalent seen at A–ground, then the load for maximum power and that power.</p>
+        <ol>
+            <li><strong>V<sub>th</sub> (open-circuit at A):</strong> with the load removed it's a divider — V<sub>th</sub> = 12 · R₂/(R₁+R₂) = 12 · 3/9 = <strong>4 V</strong>.</li>
+            <li><strong>R<sub>th</sub> (sources off):</strong> short the 12 V source; from A you see R₁ ∥ R₂ = (6·3)/(6+3) = <strong>2 kΩ</strong>.</li>
+            <li><strong>Equivalent:</strong> 4 V in series with 2 kΩ.</li>
+            <li><strong>Max power transfer:</strong> R<sub>L</sub> = R<sub>th</sub> = <strong>2 kΩ</strong>; P<sub>max</sub> = V<sub>th</sub>²/(4R<sub>th</sub>) = 16/(4·2000) = <strong>2 mW</strong>.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: verify the Thévenin equivalent in Ngspice</h3>
+        <p>Simulate the original circuit and the 4 V / 2 kΩ equivalent with the same load — confirm both give identical load voltage and current.</p>
+        <pre><span class="c">* Thevenin check — Lecture 3</span>
+<span class="c">* Original network with a 2k load at node A</span>
+V1 1 0 12
+R1 1 2 6k
+R2 2 0 3k
+RL 2 0 2k         <span class="c">; load across A-ground</span>
+<span class="c">* Equivalent: 4V + 2k in series, same 2k load</span>
+V2 3 0 4
+Rth 3 4 2k
+RLe 4 0 2k
+.op
+.end</pre>
+        <p>Expected: node 2 and node 4 both sit at 2 V across the 2 kΩ load (1 mA each) — the equivalent is indistinguishable from the original. Try other load values and watch them still agree.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Superposition can be applied only to circuits that are…</div>
+            <div class="opt"><b>A.</b> linear</div>
+            <div class="opt"><b>B.</b> purely resistive</div>
+            <div class="opt"><b>C.</b> driven by a single source</div>
+            <div class="opt"><b>D.</b> at DC steady state</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Superposition requires linearity (responses scale and add). Non-linear elements like diodes break it.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> To compute R<sub>th</sub>, an independent voltage source is replaced by…</div>
+            <div class="opt"><b>A.</b> an open circuit</div>
+            <div class="opt"><b>B.</b> a short circuit</div>
+            <div class="opt"><b>C.</b> a 1 Ω resistor</div>
+            <div class="opt"><b>D.</b> a current source</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Voltage sources → short (0 V is a wire); current sources → open (0 A is a gap).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The Thévenin voltage V<sub>th</sub> equals the network's…</div>
+            <div class="opt"><b>A.</b> short-circuit current</div>
+            <div class="opt"><b>B.</b> source voltage, always</div>
+            <div class="opt"><b>C.</b> total power</div>
+            <div class="opt"><b>D.</b> open-circuit terminal voltage</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> V<sub>th</sub> is the voltage measured across the terminals with the load removed (open circuit).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A Norton equivalent has I<sub>N</sub> = 3 mA and R<sub>N</sub> = 2 kΩ. Its Thévenin voltage is…</div>
+            <div class="opt"><b>A.</b> 1.5 V</div>
+            <div class="opt"><b>B.</b> 6 V</div>
+            <div class="opt"><b>C.</b> 0.67 V</div>
+            <div class="opt"><b>D.</b> 600 V</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> V<sub>th</sub> = I<sub>N</sub>·R<sub>th</sub> = (3×10⁻³)(2×10³) = 6 V.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A source with V<sub>th</sub> = 10 V, R<sub>th</sub> = 5 Ω delivers maximum power to a load when R<sub>L</sub> = 5 Ω. That power is…</div>
+            <div class="opt"><b>A.</b> 20 W</div>
+            <div class="opt"><b>B.</b> 10 W</div>
+            <div class="opt"><b>C.</b> 5 W</div>
+            <div class="opt"><b>D.</b> 2.5 W</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> P<sub>max</sub> = V<sub>th</sub>²/(4R<sub>th</sub>) = 100/(20) = 5 W.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Used <b>superposition</b> to find a response by summing one source at a time (linear circuits only).</li>
+            <li>Reduced any linear two-terminal network to its <b>Thévenin equivalent</b> — V<sub>th</sub> (open-circuit voltage) and R<sub>th</sub> (resistance with sources off).</li>
+            <li>Converted between <b>Thévenin and Norton</b> forms via source transformation (V<sub>th</sub> = I<sub>N</sub>·R<sub>th</sub>).</li>
+            <li>Found the <b>maximum-power</b> load (R<sub>L</sub> = R<sub>th</sub>) and computed P<sub>max</sub> = V<sub>th</sub>²/(4·R<sub>th</sub>).</li>
+            <li>Verified a Thévenin equivalent in <b>Ngspice</b>.</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: capacitors and inductors, the energy-storing elements that bring time into circuits.</p>
+    </div>
+
+    <!-- ════════════════ DISCUSSION (interactive prototype) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 1 · Week 3</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="c1-l3-d1">
+            <p class="disc-prompt" id="prompt-c1l3">When is Thévenin-equivalent thinking more useful than just solving the full circuit directly? Describe a concrete, real-world example where reducing a network to its Thévenin equivalent saves real work — and note one situation where it would <em>not</em> help.</p>
+
+            <textarea id="ans-c1l3" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-c1l3">Not saved yet</span>
+                <span class="toast" id="toast-c1l3"></span>
+            </div>
+
+            <div class="disc-model" id="model-c1l3" hidden>
+                <h4>Model response</h4>
+                <p>Thévenin thinking shines whenever you test <strong>many different loads on the same source network</strong>. Example: a sensor's output stage drives different display, logging, and alarm circuits. Instead of re-solving the whole sensor network for each load, you find V<sub>th</sub>/R<sub>th</sub> once, then every load is a simple two-resistor divider — and R<sub>th</sub> immediately tells you how much the output "sags" under load (output resistance). It also makes <em>maximum power transfer</em> and impedance-matching decisions one-liners.</p>
+                <p>Where it does <em>not</em> help: if you only ever have one fixed circuit with one load and need internal node voltages/currents, the reduction throws away exactly the internal detail you want — full node/mesh analysis is more direct. It also doesn't apply across non-linear elements (a diode/transistor inside the box breaks the linear-equivalent assumption).</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Names a concrete scenario with <em>multiple/changing loads</em> on one source</li>
+                    <li>Explains <em>why</em> it saves work (solve once → reuse; R<sub>th</sub> = output resistance / matching)</li>
+                    <li>Identifies a limitation (single fixed load, need for internal values, or non-linearity)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
+    <div class="lec-nav">
+        <a href="l02-dc-resistive-circuits.html"><div class="dir">← Week 2</div><div class="ttl">DC Resistive Circuits</div></a>
+        <a href="l04-capacitors-inductors.html" class="next"><div class="dir">Week 4 →</div><div class="ttl">Capacitors &amp; Inductors</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Circuits</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    // ── scroll progress bar ──
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my circuits & electronics tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        // URL prefill works for short text; clipboard is the reliable fallback for long answers.
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Lecture 1 — Floorplanning</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C5 Physical Design</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>Floorplanning</h1>
+        <p class="sub">The first and most consequential physical-design decision — where everything goes before a single standard cell is placed.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define floorplanning as the first step of physical design and list what it fixes.</li>
+            <li>Pick a die size from a target core utilization (~60–75%) and explain why headroom matters.</li>
+            <li>Place large hard macros sensibly — at edges/corners, pins facing the logic that uses them.</li>
+            <li>Explain why the power grid (rings + straps) must be planned early.</li>
+            <li>Recognize why a bad floorplan is the costliest mistake to fix downstream.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>What Floorplanning Is</h2>
+        <p><strong>Floorplanning</strong> is the <em>first</em> step of physical design — it happens after logic synthesis hands you a netlist of gates, and before any standard cells are placed. In this step you make the big, structural decisions: you <span class="key">fix the die size and shape</span>, <span class="key">place the I/O pads</span> around the boundary, drop the <span class="key">large hard macros</span> (SRAMs, IP blocks) into position, and <span class="key">define the core area and power grid</span>.</p>
+        <p>Crucially, all of this is decided <strong>before</strong> the tool places the thousands of tiny standard cells. The floorplan is the empty stage; placement and routing then fill it in. Everything downstream — placement quality, routing congestion, timing closure — inherits the constraints you set here.</p>
+        <div class="eq">netlist → <span class="key">floorplan</span> → placement → clock tree → routing → signoff<small>Floorplanning is step one: die, I/O, macros, and power grid come first.</small></div>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>Die Size &amp; Utilization</h2>
+        <p>You size the die to <em>fit</em> the design at a target <span class="key">core utilization</span> — the fraction of the core area actually occupied by standard cells. Typical targets land around <strong>60–75%</strong>. The leftover space isn't waste: it leaves room for routing tracks, buffer insertion, and timing fixes later.</p>
+        <div class="eq">utilization = (cell area) / (core area)<small>Target ~60–75%. Higher leaves no room to route; lower wastes silicon.</small></div>
+        <p>The <span class="key">aspect ratio</span> (width ÷ height of the core) matters too. A near-square core is often easiest to route, but a tall or wide block may be forced by I/O placement, macro shapes, or how the block must abut its neighbors at the chip level.</p>
+        <div class="box warn"><span class="lbl">Watch the ceiling</span>Push utilization toward 100% and the design becomes <strong>unroutable</strong> — there's literally no track space left for wires. The headroom is the budget the router spends.</div>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>Macro Placement</h2>
+        <p>Large <strong>hard macros</strong> — SRAM arrays, analog IP, pre-built blocks — are placed <em>first</em>, before standard cells. They're big, fixed-shape, and can't be reshaped by the tool, so they dictate where everything else can go. Convention is to push them to the <span class="key">edges and corners</span> of the core, keeping the center open as a clean field for standard-cell placement.</p>
+        <p>Orientation matters: a macro should be flipped/rotated so its <span class="key">pins face the logic</span> that talks to it, shortening the nets and easing routing. And you must leave <span class="key">channels</span> — gaps between and around macros — so signal and power routing can pass through rather than dead-ending.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 300" role="img" aria-label="Floorplan: a die outline with an I/O pad ring, two hard macros at corners with pins facing the core, a standard-cell core area, and a power ring">
+                <!-- die outline -->
+                <rect x="20" y="20" width="420" height="260" rx="6" fill="none" stroke="#67e8f9" stroke-width="2"/>
+                <text x="30" y="38" fill="#67e8f9" font-size="12">Die</text>
+                <!-- I/O pad ring -->
+                <g fill="#a78bfa">
+                    <rect x="60" y="26" width="22" height="9"/><rect x="110" y="26" width="22" height="9"/><rect x="160" y="26" width="22" height="9"/><rect x="280" y="26" width="22" height="9"/><rect x="330" y="26" width="22" height="9"/><rect x="380" y="26" width="22" height="9"/>
+                    <rect x="60" y="265" width="22" height="9"/><rect x="110" y="265" width="22" height="9"/><rect x="160" y="265" width="22" height="9"/><rect x="280" y="265" width="22" height="9"/><rect x="330" y="265" width="22" height="9"/><rect x="380" y="265" width="22" height="9"/>
+                    <rect x="26" y="70" width="9" height="22"/><rect x="26" y="120" width="9" height="22"/><rect x="26" y="180" width="9" height="22"/><rect x="26" y="210" width="9" height="22"/>
+                    <rect x="425" y="70" width="9" height="22"/><rect x="425" y="120" width="9" height="22"/><rect x="425" y="180" width="9" height="22"/><rect x="425" y="210" width="9" height="22"/>
+                </g>
+                <text x="226" y="16" fill="#a78bfa" font-size="11" text-anchor="middle">I/O pad ring</text>
+                <!-- power ring (around core) -->
+                <rect x="48" y="48" width="364" height="204" rx="4" fill="none" stroke="#fbbf24" stroke-width="3"/>
+                <text x="226" y="294" fill="#fbbf24" font-size="11" text-anchor="middle">power ring (VDD / VSS)</text>
+                <!-- core area -->
+                <rect x="58" y="58" width="344" height="184" fill="rgba(34,211,238,.06)"/>
+                <!-- macro 1: top-left corner, pins (right edge) face core -->
+                <rect x="62" y="62" width="96" height="74" rx="3" fill="#1c2c3e" stroke="#34d399" stroke-width="2"/>
+                <text x="110" y="96" fill="#34d399" font-size="12" text-anchor="middle">SRAM</text>
+                <text x="110" y="112" fill="#94a8bc" font-size="10" text-anchor="middle">macro</text>
+                <g fill="#22d3ee"><rect x="156" y="74" width="6" height="5"/><rect x="156" y="88" width="6" height="5"/><rect x="156" y="102" width="6" height="5"/><rect x="156" y="116" width="6" height="5"/></g>
+                <!-- macro 2: bottom-right corner, pins (left edge) face core -->
+                <rect x="302" y="168" width="96" height="74" rx="3" fill="#1c2c3e" stroke="#34d399" stroke-width="2"/>
+                <text x="350" y="200" fill="#34d399" font-size="12" text-anchor="middle">IP block</text>
+                <text x="350" y="216" fill="#94a8bc" font-size="10" text-anchor="middle">macro</text>
+                <g fill="#22d3ee"><rect x="298" y="180" width="6" height="5"/><rect x="298" y="194" width="6" height="5"/><rect x="298" y="208" width="6" height="5"/><rect x="298" y="222" width="6" height="5"/></g>
+                <!-- core label -->
+                <text x="240" y="150" fill="#67e8f9" font-size="12" text-anchor="middle">standard-cell core</text>
+                <text x="240" y="166" fill="#94a8bc" font-size="10" text-anchor="middle">(filled during placement)</text>
+            </svg>
+            <figcaption>A floorplan: the die boundary holds the I/O pad ring; two hard macros sit in opposite corners with their pins (cyan) facing the open standard-cell core; a power ring (amber) encloses the core.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>Power-Grid Planning</h2>
+        <p>Every gate on the chip needs <strong>VDD</strong> and <strong>VSS</strong>. The power grid delivers them as a mesh of <span class="key">rings</span> (around the core and macros) and <span class="key">straps</span> — wide metal lines running across the chip on the upper metal layers, dropping down through vias to the cell rows below.</p>
+        <p>You plan this grid <em>early</em>, during floorplanning, for one blunt reason: those straps occupy real <span class="key">routing tracks</span>. Every track the power grid claims is a track signals can't use. If you skip the grid until later, you risk a design that can't be powered <em>or</em> routed — or worse, IR-drop problems that quietly slow down or break the chip.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 440 300" role="img" aria-label="Power grid: VDD and VSS rings around the core with vertical and horizontal straps crossing it">
+                <!-- core boundary -->
+                <rect x="40" y="40" width="360" height="220" fill="rgba(34,211,238,.04)" stroke="#243648" stroke-width="1"/>
+                <!-- horizontal straps (VSS, blue) -->
+                <g stroke="#60a5fa" stroke-width="6" opacity=".85">
+                    <line x1="40" y1="95" x2="400" y2="95"/>
+                    <line x1="40" y1="150" x2="400" y2="150"/>
+                    <line x1="40" y1="205" x2="400" y2="205"/>
+                </g>
+                <!-- vertical straps (VDD, amber) -->
+                <g stroke="#fbbf24" stroke-width="6" opacity=".85">
+                    <line x1="110" y1="40" x2="110" y2="260"/>
+                    <line x1="220" y1="40" x2="220" y2="260"/>
+                    <line x1="330" y1="40" x2="330" y2="260"/>
+                </g>
+                <!-- outer rings -->
+                <rect x="40" y="40" width="360" height="220" fill="none" stroke="#fbbf24" stroke-width="4"/>
+                <rect x="49" y="49" width="342" height="202" fill="none" stroke="#60a5fa" stroke-width="4"/>
+                <!-- labels -->
+                <text x="220" y="28" fill="#94a8bc" font-size="12" text-anchor="middle">power-grid mesh over the core</text>
+                <text x="220" y="284" fill="#fbbf24" font-size="11" text-anchor="middle">VDD straps + ring (vertical / outer)</text>
+                <text x="220" y="298" fill="#60a5fa" font-size="11" text-anchor="middle">VSS straps + ring (horizontal / inner)</text>
+            </svg>
+            <figcaption>The power grid: VDD (amber) and VSS (blue) rings enclose the core, with straps running vertically and horizontally to form a mesh that feeds the cell rows below — consuming routing tracks as it goes.</figcaption>
+        </figure>
+    </section>
+
+    <div class="box analogy"><span class="lbl">Analogy</span>Floorplanning is like laying out a building's floor plan before any furniture arrives. First you fix the footprint of the building (the die). Then you install the big, immovable structures — the elevator shafts and the server room (your <em>hard macros</em>) — and run the electrical risers and conduit (the <em>power grid</em>). Only once those are locked in do you arrange the desks, chairs, and partitions (the standard cells) in whatever space is left. Get the elevators and risers wrong and no amount of clever desk-shuffling will save the building.</div>
+
+    <div class="box warn"><span class="lbl">Common mistake</span>Floorplanning is done <strong>first</strong> and is the <strong>hardest step to undo</strong>. A bad floorplan dooms everything downstream — placement, routing, and timing all inherit its constraints, and fixing it usually means starting over. Two specific traps: setting <strong>utilization too high</strong> leaves no track space and makes the design <strong>unroutable</strong>; and skipping the <strong>power grid</strong> early bites you because it steals routing tracks you'll have already promised to signals.</div>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A block has a total standard-cell area of <strong>1.0 mm²</strong>. Targeting a core utilization of <strong>70%</strong>, estimate the core area, then the die size after adding margin for macros and the I/O ring.</p>
+        <ol>
+            <li><strong>Core area from utilization:</strong> utilization = cell area / core area, so core area = cell area / utilization = 1.0 / 0.70 ≈ <strong>1.43 mm²</strong>.</li>
+            <li><strong>Add macro + I/O margin:</strong> the core must also host hard macros and sit inside an I/O pad ring, so add headroom — roughly +10–15%.</li>
+            <li><strong>Die size:</strong> 1.43 mm² + margin ≈ <strong>1.6 mm²</strong> total. A square die would be about √1.6 ≈ 1.26 mm on a side.</li>
+            <li><strong>Sanity check:</strong> at 70% utilization, ~30% of the core stays open for routing — exactly the headroom the router needs.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: run the floorplan step in OpenROAD</h3>
+        <p>This is the Week-1 project setup. Install <code>OpenROAD</code>/<code>OpenLane</code> (the Docker image is easiest), then run a flow up through the floorplan step — set a die area and a target utilization — and open the result in <code>KLayout</code>.</p>
+        <pre><span class="c"># Pull the OpenLane Docker image and enter it</span>
+docker pull efabless/openlane:latest
+docker run -it -v $(pwd):/work efabless/openlane:latest
+
+<span class="c"># In the config, set the floorplan controls:</span>
+<span class="c"># FP_CORE_UTIL = 70        ; target core utilization (%)</span>
+<span class="c"># DIE_AREA = "0 0 1260 1260" ; or let util drive the size</span>
+
+<span class="c"># Run just the floorplan stage, then view it</span>
+flow.tcl -design my_design -to floorplan
+klayout runs/.../results/floorplan/my_design.def</pre>
+        <p>Inspect the result: you should see the die outline, the core area, and the power ring. Try changing <code>FP_CORE_UTIL</code> to 90 and re-running — note how much tighter (and harder to route) the core becomes.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Floorplanning is…</div>
+            <div class="opt"><b>A.</b> the last signoff step of the flow</div>
+            <div class="opt"><b>B.</b> the first physical-design step (die size, I/O, macros, power grid)</div>
+            <div class="opt"><b>C.</b> a logic-synthesis step</div>
+            <div class="opt"><b>D.</b> a simulation step</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Floorplanning is the first physical-design step — it fixes the die size and shape, places I/O and hard macros, and defines the core area and power grid, all before standard cells are placed.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Target core utilization is typically…</div>
+            <div class="opt"><b>A.</b> 100%</div>
+            <div class="opt"><b>B.</b> about 60–75% (leaving room for routing)</div>
+            <div class="opt"><b>C.</b> under 10%</div>
+            <div class="opt"><b>D.</b> exactly 50% always</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Around 60–75% is typical. The leftover space gives the router, buffer insertion, and timing fixes the headroom they need; 100% would be unroutable.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Large hard macros (SRAM/IP) are placed…</div>
+            <div class="opt"><b>A.</b> last, in the center of the core</div>
+            <div class="opt"><b>B.</b> randomly</div>
+            <div class="opt"><b>C.</b> first, usually at edges/corners with pins facing the logic</div>
+            <div class="opt"><b>D.</b> only after routing</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Macros are big and fixed-shape, so they go first — pushed to edges/corners, oriented so their pins face the logic that uses them, with channels left for routing.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The power grid should be planned…</div>
+            <div class="opt"><b>A.</b> after detailed routing</div>
+            <div class="opt"><b>B.</b> early, because it consumes routing resources</div>
+            <div class="opt"><b>C.</b> only if timing fails</div>
+            <div class="opt"><b>D.</b> never</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The grid's rings and straps occupy routing tracks, so it must be planned early — otherwise you risk an unroutable or unpowerable design with IR-drop problems.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A bad floorplan…</div>
+            <div class="opt"><b>A.</b> has no downstream effect</div>
+            <div class="opt"><b>B.</b> is fixed automatically by the router</div>
+            <div class="opt"><b>C.</b> only affects power</div>
+            <div class="opt"><b>D.</b> propagates to placement/routing/timing and is costly to fix later</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Floorplanning is first and hardest to undo — placement, routing, and timing all inherit its constraints, so a bad floorplan usually means starting over.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Floorplanning is the <b>first physical-design step</b> — it fixes die size/shape, I/O, macros, and power grid before any standard cell is placed.</li>
+            <li>Size the die from a <b>target utilization (~60–75%)</b>, leaving routing headroom; aspect ratio matters too.</li>
+            <li><b>Hard macros go first</b>, at edges/corners, pins facing the logic, with channels left for routing.</li>
+            <li>The <b>power grid (rings + straps)</b> is planned early because it consumes routing tracks.</li>
+            <li>A <b>bad floorplan</b> propagates to placement, routing, and timing — and is the costliest mistake to fix.</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: Power &amp; Clock Planning — building the full power-delivery network and distributing the clock with low skew.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Syllabus</div><div class="ttl">C5 Syllabus</div></a>
+        <a href="l02-power-clock-planning.html" class="next"><div class="dir">Lecture 2 →</div><div class="ttl">Power &amp; Clock Planning</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Physical Design</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C4 · Lecture 8 — The Poisson/Laplace Equation &amp; Relaxation</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>The Poisson/Laplace Equation &amp; Relaxation</h1>
+        <p class="sub">No clock ticks here — the field everywhere simply settles into balance with its boundaries, and we coax that balance out of a grid by letting each point average its neighbors over and over.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Recognize Poisson and Laplace as <em>elliptic</em> boundary-value problems with no time derivative, and contrast them with the parabolic/hyperbolic equations of earlier weeks.</li>
+            <li>Discretize the 2-D Laplacian with the five-point stencil and read the result as "each value is the average of its neighbors."</li>
+            <li>Implement Jacobi and Gauss–Seidel relaxation, and explain why each iteration drives the residual toward zero.</li>
+            <li>Apply Successive Over-Relaxation (SOR) and estimate the optimal relaxation factor ω for a rectangular grid.</li>
+            <li>Solve the electrostatic potential in a charged box with NumPy and visualize the converged field with Matplotlib.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>Elliptic Equations: a Field in Equilibrium</h2>
+        <p>The wave and diffusion equations of Weeks 6 and 7 both carry a <strong>time derivative</strong>: you give them a starting state and march it forward. The <strong>Poisson equation</strong> is different. It has <em>no</em> time derivative at all. It describes a field that has already finished evolving — a steady state in equilibrium with whatever is fixed on its boundary.</p>
+        <div class="eq">∇²φ = −ρ / ε₀&nbsp;&nbsp;&nbsp;(Poisson)&nbsp;&nbsp;&nbsp;&nbsp;∇²φ = 0&nbsp;&nbsp;&nbsp;(Laplace)<small>φ is the electrostatic potential, ρ the charge density, ε₀ the permittivity of free space. Laplace is just the source-free case ρ = 0.</small></div>
+        <p>In two dimensions the Laplacian is ∇²φ = ∂²φ/∂x² + ∂²φ/∂y². The model problem for this whole lecture is <strong>electrostatics</strong>: fix the potential on the walls of a region (the boundary conditions), specify any charge inside (the source ρ), and the equation tells you the potential everywhere in between. The electric field then follows as <strong>E = −∇φ</strong>.</p>
+        <p>Because there is no time direction, you cannot "march" the solution. Every interior value depends on every boundary value <em>simultaneously</em>. This is what makes the problem <span class="key">elliptic</span>: information from the boundary reaches the whole interior at once, not along characteristics. The job is to solve one big coupled system, and the most intuitive way to do that is <strong>iterative relaxation</strong>.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Stretch a soap film across a bent wire loop. The film does not "evolve" in time toward a shape — pin the wire and it instantly finds the surface of least area, whose height satisfies Laplace's equation. Push your finger up through the middle (a point source) and you get Poisson. The boundary is the wire; relaxation is what happens if you nudge the film and let surface tension smooth out the wrinkles until nothing moves.</div>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>The Five-Point Stencil: Averaging Your Neighbors</h2>
+        <p>Put the region on a square grid with spacing h. Approximate each second derivative with the centered second difference from Week 1's toolkit:</p>
+        <div class="eq">∂²φ/∂x² ≈ [φ(i+1,j) − 2φ(i,j) + φ(i−1,j)] / h²<small>Centered, second-order accurate. The y-derivative is the same with the j-index stepping.</small></div>
+        <p>Add the x and y pieces. For Laplace (ρ = 0) the discrete equation ∇²φ = 0 rearranges into something beautifully simple:</p>
+        <div class="eq">φ(i,j) = ¼ [ φ(i+1,j) + φ(i−1,j) + φ(i,j+1) + φ(i,j−1) ]<small>Each interior value equals the average of its four nearest neighbors. This is the discrete Laplace equation.</small></div>
+        <p>With a source term, the right-hand side picks up an extra piece: φ(i,j) = ¼[ sum of neighbors + h²·ρ(i,j)/ε₀ ]. The five points — center plus four neighbors — are the <strong>five-point stencil</strong>, and they are the engine of everything that follows.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 220" role="img" aria-label="Five-point stencil: a center grid node connected to its four nearest neighbors above, below, left, and right">
+                <!-- faint grid -->
+                <line x1="60" y1="40" x2="60" y2="180" stroke="#2a3052" stroke-width="1"/>
+                <line x1="180" y1="40" x2="180" y2="180" stroke="#2a3052" stroke-width="1"/>
+                <line x1="300" y1="40" x2="300" y2="180" stroke="#2a3052" stroke-width="1"/>
+                <line x1="60" y1="40" x2="300" y2="40" stroke="#2a3052" stroke-width="1"/>
+                <line x1="60" y1="110" x2="300" y2="110" stroke="#2a3052" stroke-width="1"/>
+                <line x1="60" y1="180" x2="300" y2="180" stroke="#2a3052" stroke-width="1"/>
+                <!-- connecting bonds -->
+                <line x1="180" y1="110" x2="60" y2="110" stroke="#818cf8" stroke-width="2"/>
+                <line x1="180" y1="110" x2="300" y2="110" stroke="#818cf8" stroke-width="2"/>
+                <line x1="180" y1="110" x2="180" y2="40" stroke="#818cf8" stroke-width="2"/>
+                <line x1="180" y1="110" x2="180" y2="180" stroke="#818cf8" stroke-width="2"/>
+                <!-- neighbor nodes -->
+                <circle cx="60" cy="110" r="7" fill="#60a5fa"/>
+                <circle cx="300" cy="110" r="7" fill="#60a5fa"/>
+                <circle cx="180" cy="40" r="7" fill="#60a5fa"/>
+                <circle cx="180" cy="180" r="7" fill="#60a5fa"/>
+                <!-- center node -->
+                <circle cx="180" cy="110" r="9" fill="#a5b4fc" stroke="#fff" stroke-width="1.5"/>
+                <!-- labels -->
+                <text x="180" y="100" fill="#fff" font-size="12" text-anchor="middle">phi(i,j)</text>
+                <text x="42" y="100" fill="#a3a8c8" font-size="11" text-anchor="middle">(i-1,j)</text>
+                <text x="318" y="100" fill="#a3a8c8" font-size="11" text-anchor="middle">(i+1,j)</text>
+                <text x="180" y="30" fill="#a3a8c8" font-size="11" text-anchor="middle">(i,j+1)</text>
+                <text x="180" y="200" fill="#a3a8c8" font-size="11" text-anchor="middle">(i,j-1)</text>
+                <text x="120" y="125" fill="#a5b4fc" font-size="10" text-anchor="middle">h</text>
+            </svg>
+            <figcaption>The five-point stencil. The discrete Laplace equation says the center value phi(i,j) is the average of its four neighbors a distance h away — relaxation simply enforces this average at every node until it holds everywhere.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>Jacobi, Gauss–Seidel, and the Idea of Relaxation</h2>
+        <p>The averaging rule is also a recipe for <em>fixing</em> a guess. Start with any field that respects the boundary values (zeros inside is fine). It will not satisfy "every point equals its neighbors' average" — so just <strong>make it so</strong>, point by point, and repeat. Each pass nudges the field closer to balance. This is <span class="key">relaxation</span>.</p>
+        <h3>Jacobi iteration</h3>
+        <p>The simplest version computes a whole new field from the old one. Using superscript k for the iteration count:</p>
+        <div class="eq">φ(i,j)^(k+1) = ¼ [ φ(i+1,j)^k + φ(i−1,j)^k + φ(i,j+1)^k + φ(i,j−1)^k ]<small>Every new value uses only OLD neighbor values — you need two copies of the grid.</small></div>
+        <p>Jacobi is correct but slow: it ignores updates you just computed. Its error per sweep shrinks by a factor that approaches 1 as the grid grows, so a large grid needs many thousands of sweeps.</p>
+        <h3>Gauss–Seidel iteration</h3>
+        <p>Sweep the grid in order and <strong>use new values as soon as they exist</strong>. By the time you reach node (i,j), its left and lower neighbors have already been updated this pass:</p>
+        <div class="eq">φ(i,j)^(k+1) = ¼ [ φ(i+1,j)^k + φ(i−1,j)^(k+1) + φ(i,j+1)^k + φ(i,j−1)^(k+1) ]<small>News travels across the grid within a single sweep — about twice as fast as Jacobi, and you need only one copy of the grid.</small></div>
+        <p>How do you know you are done? Track the <strong>residual</strong> — how badly the discrete equation is violated, r(i,j) = (neighbor average) − φ(i,j). When the largest residual drops below a tolerance, the field has relaxed to the solution.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <em>not</em> overwrite or relax the boundary nodes. The fixed boundary values are the data that drive the whole solution; if your update loop accidentally averages them too, the boundary "leaks" inward and you converge to the wrong (often all-zero) field. In array code this means iterating only over the <code>[1:-1, 1:-1]</code> interior and never touching the edges.</div>
+    </section>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>Successive Over-Relaxation (SOR): Push Past the Average</h2>
+        <p>Gauss–Seidel always moves each node <em>toward</em> the neighbor average, but it consistently undershoots — the correction it applies is in the right direction but too timid. The fix is daring: compute the Gauss–Seidel update, then <strong>overshoot it</strong> by a factor ω &gt; 1. This is <span class="key">Successive Over-Relaxation</span>.</p>
+        <div class="eq">φ_new = (1 − ω)·φ_old + ω·φ_GS<small>ω = 1 is plain Gauss–Seidel. ω in (1, 2) over-corrects and converges faster. ω ≥ 2 diverges.</small></div>
+        <p>The payoff is enormous. For an N×N grid, Jacobi and Gauss–Seidel both need O(N²) sweeps, but SOR with the <strong>optimal</strong> ω needs only O(N) — turning a problem that took ten thousand sweeps into one that takes a few hundred. For a rectangular grid the optimal factor is known in closed form:</p>
+        <div class="eq">ω_opt = 2 / ( 1 + sin(pi / N) )<small>N is the number of grid intervals along a side. As N grows, ω_opt creeps toward 2.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 230" role="img" aria-label="Sweeps to converge versus relaxation factor omega: the curve falls steeply to a sharp minimum at omega optimal, then rises toward divergence near omega equals 2">
+                <!-- axes -->
+                <line x1="50" y1="190" x2="360" y2="190" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="30" x2="50" y2="190" stroke="#a3a8c8" stroke-width="1.5"/>
+                <!-- axis labels -->
+                <text x="200" y="216" fill="#a3a8c8" font-size="11" text-anchor="middle">relaxation factor omega</text>
+                <text x="30" y="40" fill="#a3a8c8" font-size="11" text-anchor="middle">sweeps</text>
+                <!-- omega tick labels -->
+                <text x="50" y="205" fill="#a3a8c8" font-size="10" text-anchor="middle">1.0</text>
+                <text x="285" y="205" fill="#a3a8c8" font-size="10" text-anchor="middle">w_opt</text>
+                <text x="350" y="205" fill="#a3a8c8" font-size="10" text-anchor="middle">2.0</text>
+                <!-- curve: high at omega=1, sharp min at omega_opt, rises toward 2 -->
+                <path d="M55,55 Q150,150 285,165 Q320,168 352,60" fill="none" stroke="#818cf8" stroke-width="2.5"/>
+                <!-- minimum marker -->
+                <circle cx="285" cy="165" r="3.5" fill="#a5b4fc"/>
+                <line x1="285" y1="165" x2="285" y2="190" stroke="#a5b4fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <!-- Gauss-Seidel marker at omega=1 -->
+                <circle cx="55" cy="55" r="3.5" fill="#34d399"/>
+                <text x="70" y="50" fill="#34d399" font-size="10">Gauss-Seidel (w=1)</text>
+                <!-- divergence note -->
+                <text x="330" y="48" fill="#fbbf24" font-size="10" text-anchor="end">diverges as w -> 2</text>
+            </svg>
+            <figcaption>Iterations to converge versus the relaxation factor omega. Gauss-Seidel (w = 1) is slow; the count plunges to a sharp minimum at the optimal w near 2, then blows up as w approaches 2. Choosing w well is the single biggest speedup in classical relaxation.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — one relaxation sweep by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 4×4 grid (indices 0–3 in each direction) solves Laplace's equation. The boundary is held at φ = 100 on the entire top edge (j = 3) and φ = 0 on the other three edges. The four interior nodes (i, j ∈ {1, 2}) all start at 0. Do one Gauss–Seidel sweep, visiting interior nodes in order (1,1), (2,1), (1,2), (2,2).</p>
+        <ol>
+            <li><strong>Node (1,1):</strong> neighbors are left = 0 (edge), right = φ(2,1) = 0, below = 0 (edge), above = φ(1,2) = 0. Average = ¼(0+0+0+0) = <strong>0</strong>.</li>
+            <li><strong>Node (2,1):</strong> left = φ(1,1) = 0 (just updated), right = 0 (edge), below = 0 (edge), above = φ(2,2) = 0. Average = <strong>0</strong>.</li>
+            <li><strong>Node (1,2):</strong> left = 0 (edge), right = φ(2,2) = 0, below = φ(1,1) = 0, above = 100 (top edge). Average = ¼(0+0+0+100) = <strong>25</strong>.</li>
+            <li><strong>Node (2,2):</strong> left = φ(1,2) = 25 (just updated this sweep!), right = 0 (edge), below = φ(2,1) = 0, above = 100. Average = ¼(25+0+0+100) = <strong>31.25</strong>.</li>
+            <li><strong>Takeaway:</strong> after just one sweep the top row of interior nodes already feels the hot boundary, and (2,2) used the fresh value 25 from (1,2) — that is Gauss–Seidel passing news within a sweep. The exact solution by symmetry has the two top nodes equal (≈ 42.9) and the two bottom nodes equal (≈ 7.1); a dozen more sweeps converge there. A Jacobi sweep would have left (2,2) = 25, since it would use the <em>old</em> zero for (1,2).</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: relax the potential inside a charged box</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Everything here runs on the free Python + NumPy + Matplotlib stack you set up in <strong>Week 1</strong> (the install <code>details</code> lives in Lecture 1 — reuse that environment; no new tools needed this week). We solve Laplace's equation on a square plate with one hot edge, then watch SOR crush the iteration count.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">The vectorized Jacobi/SOR update below averages all interior nodes at once with NumPy slicing — orders of magnitude faster than a Python double loop, and the natural way to express the five-point stencil.</p>
+        <pre><span class="c"># poisson_relax.py — Lecture 8: Laplace on a plate, Jacobi vs SOR</span>
+import numpy as np
+import matplotlib.pyplot as plt
+
+N = 60                              <span class="c"># grid intervals per side</span>
+phi = np.zeros((N + 1, N + 1))
+phi[-1, :] = 100.0                  <span class="c"># top edge held hot; others stay 0</span>
+
+def sweep_sor(phi, omega):
+    <span class="c"># in-place Gauss-Seidel + over-relaxation, interior only</span>
+    err = 0.0
+    for i in range(1, N):
+        for j in range(1, N):
+            gs = 0.25 * (phi[i+1, j] + phi[i-1, j] +
+                         phi[i, j+1] + phi[i, j-1])
+            new = (1 - omega) * phi[i, j] + omega * gs
+            err = max(err, abs(new - phi[i, j]))
+            phi[i, j] = new
+    return err
+
+omega = 2.0 / (1.0 + np.sin(np.pi / N))   <span class="c"># optimal SOR factor</span>
+print(f"omega_opt = {omega:.4f}")
+
+for it in range(5000):
+    if sweep_sor(phi, omega) &lt; 1e-4:       <span class="c"># residual tolerance</span>
+        print(f"converged in {it+1} sweeps"); break
+
+plt.imshow(phi, origin='lower', cmap='inferno')
+plt.colorbar(label='potential phi'); plt.title('Relaxed Laplace solution')
+plt.show()
+<span class="c"># Try omega=1.0 (Gauss-Seidel): it needs ~10x more sweeps for the same N.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Add a point charge by initializing a source array <code>rho</code> and changing the update to <code>gs = 0.25*(neighbors + h*h*rho[i,j]/eps0)</code> — that turns Laplace into Poisson. Then compute the field with <code>Ey, Ex = np.gradient(-phi)</code> and overlay <code>plt.streamplot</code> to see the field lines bend around the charge.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Relaxation is the gateway to all of elliptic computational physics. The same five-point stencil and residual idea power the <strong>multigrid</strong> methods that solve million-node grids in near-linear time, and the conjugate-gradient solvers of Course 3 attack the very same sparse linear system from the Krylov side. Next week (Week 9) we add time back in with <strong>Maxwell &amp; the FDTD method</strong>, where Poisson's instantaneous balance becomes one piece of fully dynamic electromagnetics. The pattern reappears far beyond E&amp;M: steady heat flow, incompressible-flow pressure solves, and the Schrödinger eigenproblem of the Quantum track all reduce to "solve ∇²φ = source." <strong>Capstone milestone (Week 8 checkpoint):</strong> get your project's 2-D Poisson solver converging on a non-trivial boundary — e.g. the field of a parallel-plate capacitor — with a logged residual-vs-sweep curve comparing Jacobi, Gauss–Seidel, and SOR; that plot is the deliverable that proves your field engine works before FDTD builds on it.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> What makes the Poisson/Laplace equation <em>elliptic</em> and different from the wave and diffusion equations?</div>
+            <div class="opt"><b>A.</b> It is nonlinear</div>
+            <div class="opt"><b>B.</b> It has no time derivative — it is a boundary-value problem in equilibrium</div>
+            <div class="opt"><b>C.</b> It can only be solved in one dimension</div>
+            <div class="opt"><b>D.</b> It requires complex numbers</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Elliptic equations have no time derivative; the interior is fixed by the boundary all at once. (A) Poisson is linear in φ. (C) It is most interesting in 2-D/3-D. (D) It is purely real.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In the discrete Laplace equation on a square grid, the interior value φ(i,j) equals…</div>
+            <div class="opt"><b>A.</b> the sum of its four neighbors</div>
+            <div class="opt"><b>B.</b> the maximum of its four neighbors</div>
+            <div class="opt"><b>C.</b> the average of its four nearest neighbors</div>
+            <div class="opt"><b>D.</b> the value of the nearest boundary node</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The five-point stencil for ∇²φ = 0 rearranges to φ(i,j) = ¼(sum of 4 neighbors) — the average. (A) is off by the factor ¼. (B) and (D) are not what the stencil says.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The key difference between Jacobi and Gauss–Seidel iteration is that Gauss–Seidel…</div>
+            <div class="opt"><b>A.</b> uses freshly updated neighbor values within the same sweep, so it converges faster</div>
+            <div class="opt"><b>B.</b> uses only old values and needs two grid copies</div>
+            <div class="opt"><b>C.</b> changes the boundary conditions each sweep</div>
+            <div class="opt"><b>D.</b> solves the equation exactly in one sweep</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Gauss–Seidel reuses just-computed values, roughly doubling the rate and needing one grid copy. (B) describes Jacobi. (C) is the bug to avoid. (D) no iterative method finishes in one sweep.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In SOR, the relaxation factor ω must satisfy which condition for the iteration to converge?</div>
+            <div class="opt"><b>A.</b> ω &lt; 0</div>
+            <div class="opt"><b>B.</b> ω = 0 exactly</div>
+            <div class="opt"><b>C.</b> ω &gt; 2</div>
+            <div class="opt"><b>D.</b> 0 &lt; ω &lt; 2, with the optimal value between 1 and 2</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> SOR converges for 0 &lt; ω &lt; 2; over-relaxation (1 &lt; ω &lt; 2) is fastest and ω ≥ 2 diverges. (A)/(B) would not relax the field; (C) diverges.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> For a large N×N grid, optimal SOR reduces the number of sweeps to converge from O(N²) down to about…</div>
+            <div class="opt"><b>A.</b> O(N)</div>
+            <div class="opt"><b>B.</b> O(N³)</div>
+            <div class="opt"><b>C.</b> O(N²) still — no improvement</div>
+            <div class="opt"><b>D.</b> O(1), independent of grid size</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Optimal SOR needs O(N) sweeps versus O(N²) for Jacobi/Gauss–Seidel — the big classical speedup. (B) is worse than either. (C) ignores the gain. (D) is what multigrid approaches, not single-grid SOR.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Poisson (∇²φ = −ρ/ε₀)</b> and <b>Laplace (∇²φ = 0)</b> are elliptic boundary-value problems with no time derivative — the steady electrostatic potential is the model case.</li>
+            <li>The <b>five-point stencil</b> turns ∇²φ = 0 into "each node is the average of its four neighbors."</li>
+            <li><b>Jacobi</b> averages using old values (needs two grids); <b>Gauss–Seidel</b> reuses fresh values and converges about twice as fast.</li>
+            <li><b>SOR</b> over-corrects by a factor ω in (1, 2); the optimal ω = 2/(1 + sin(π/N)) drops the work from O(N²) to O(N) sweeps.</li>
+            <li>You relaxed the potential inside a charged box in NumPy, tracked the <b>residual</b> to decide convergence, and visualized E = −∇φ.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: <b>Maxwell &amp; the FDTD method</b>. We put the time derivative back and leapfrog the electric and magnetic fields together, turning today's static balance into propagating electromagnetic waves.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-wave-equation.html"><div class="dir">← Week 7</div><div class="ttl">The Wave Equation</div></a>
+        <a class="next" href="l09-maxwell-fdtd.html"><div class="dir">Week 9 →</div><div class="ttl">Maxwell &amp; the FDTD Method</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

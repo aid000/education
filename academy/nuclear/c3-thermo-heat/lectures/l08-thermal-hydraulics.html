@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuclear Thermo C3 · Lecture 8 — Thermal-Hydraulic Core Analysis</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C3 Thermo &amp; Heat</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>Thermal-Hydraulic Core Analysis</h1>
+        <p class="sub">Stitch conduction and convection together along a single coolant channel and you can read the entire temperature story of a reactor core — and discover the quiet feedback loop where heat talks back to the neutrons.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Assemble conduction (fuel) and convection (coolant) into a single thermal resistance network for one channel.</li>
+            <li>Derive the coolant temperature rise from inlet to outlet using an energy balance on the flowing coolant.</li>
+            <li>Define and apply hot-channel factors to find the limiting (hottest) channel from the core average.</li>
+            <li>Estimate channel pressure drop from friction, acceleration, and gravity, and explain why it sets pump power.</li>
+            <li>Describe the two-way coupling between neutronics (power shape) and thermal-hydraulics (temperature feedback).</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>One Channel, Two Heat-Transfer Modes in Series</h2>
+        <p>A reactor core is, to first approximation, a bundle of thousands of near-identical <strong>coolant channels</strong> running in parallel. Each channel is a long fuel rod (or a sub-region around one) with coolant flowing past it. If you understand the temperatures along a <em>single</em> channel, you understand the whole core — the rest is bookkeeping over many channels. So we zoom all the way in to one rod and ask: how does heat get from the spot where fission happens out to the coolant?</p>
+        <p>The heat takes a journey through obstacles arranged <strong>in series</strong>, and each obstacle is a thermal resistance. Heat is born in the <span class="key">fuel pellet</span> (where fission deposits energy), then <strong>conducts</strong> outward through the ceramic fuel, across a thin gas-filled gap, and through the metal cladding. Only at the cladding's outer surface does it finally hand off to the moving coolant by <strong>convection</strong>. Conduction (a solid-state diffusion of heat) and convection (heat swept away by a fluid) are the two modes we built up in earlier weeks; thermal-hydraulics is where we wire them together.</p>
+        <p>Because the resistances are in series, the same heat rate per unit length, the <strong>linear heat rate</strong> q' (units W/m), flows through every layer. Each layer drops some temperature in proportion to its resistance, exactly like voltage divides across resistors carrying one current:</p>
+        <div class="eq">T_center - T_coolant = q' * ( R_fuel + R_gap + R_clad + R_conv )<small>q' = linear heat rate (W/m). Each R is a thermal resistance per unit length (m-K/W). Temperature drops add up across the chain.</small></div>
+        <p>The convective resistance is set by Newton's law of cooling on the rod surface, R_conv = 1 / (h * P), where h is the convective heat-transfer coefficient (from the Dittus-Boelter correlation you met in the convection lecture) and P is the wetted perimeter. The conduction resistances come from the geometry and thermal conductivities of the pellet, gap, and clad. Add them up and one number, q', plus the local coolant temperature, fixes the entire radial temperature profile — including the all-important fuel centerline temperature, which must stay below the melting point of the ceramic.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of heat leaving the fuel like a single line of people leaving a stadium through a series of gates: the pellet gate, the gap gate, the cladding gate, and finally the convection turnstile at the curb. The same crowd flow passes through every gate (one heat rate), and the most congested gate causes the biggest "back-up" of temperature behind it. In oxide fuel the gas <em>gap</em> is famously the worst gate — a sliver of gas is a terrible conductor, so a large temperature jump piles up right there.</div>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>The Coolant Temperature Rise: Inlet to Outlet</h2>
+        <p>Section 8.1 fixed the <em>radial</em> story at one height. But the coolant also heats up as it travels <em>up</em> the channel, so the local coolant temperature T_coolant(z) keeps rising from inlet to outlet. To track it, write an energy balance on the flowing coolant: every watt the fuel adds between the bottom and height z must show up as enthalpy carried away by the mass flow.</p>
+        <div class="eq">m_dot * c_p * ( T_out - T_in ) = Q_channel<small>m_dot = coolant mass flow rate (kg/s), c_p = specific heat (J/kg-K), Q_channel = total power added in the channel (W).</small></div>
+        <p>This single equation already gives the channel <strong>bulk temperature rise</strong>. But the local picture is more interesting because the power is not deposited uniformly. In a bare core the axial power follows a cosine shape (most fission near the middle, less near the ends), so the local linear heat rate is roughly q'(z) = q'_max * cos(pi * z / H_e), with z measured from the core midplane and H_e an extrapolated height. Integrating the energy balance with this cosine source gives a coolant temperature that rises as a shifted sine:</p>
+        <div class="eq">T_c(z) = T_in + ( q'_max * H_e ) / ( pi * m_dot * c_p ) * [ sin(pi z / H_e) + sin(pi L / 2 H_e) ]<small>Coolant temperature climbs fastest where the power is highest (the midplane) and flattens near the top, where little heat is left to add.</small></div>
+        <p>Here is the subtlety that trips up every newcomer. The <em>coolant</em> is hottest at the outlet (top). But the <em>cladding and fuel</em> are not — their peak sits <strong>above the core midplane</strong>. Why? The cladding temperature is the coolant temperature plus the convective rise q'(z)/(hP). Near the top the coolant is hot but the local power has fallen off, while at the midplane the power is maximal but the coolant is still cool. The cladding peak lands at the crossover, somewhere between the midplane and the outlet. Finding exactly where that peak sits — and confirming it stays below limits — is the heart of a channel analysis.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> assume the hottest fuel is at the top of the channel just because the coolant is hottest there. The fuel and cladding temperatures peak <em>below</em> the outlet, where the rising coolant temperature and the falling power profile combine to a maximum. Locating the peak at the outlet underestimates the true centerline temperature near the midplane region and can hide a melting risk.</div>
+    </section>
+
+    <!-- FIGURE 1: axial temperature profiles -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 320" role="img" aria-label="Axial temperature profiles up a coolant channel. Coolant temperature rises as a smooth S-curve and is highest at the outlet. The cladding temperature runs above the coolant and peaks below the outlet, between midplane and top.">
+            <!-- axes -->
+            <line x1="70" y1="280" x2="520" y2="280" stroke="#94b8a2" stroke-width="1.5"/>
+            <line x1="70" y1="280" x2="70" y2="40" stroke="#94b8a2" stroke-width="1.5"/>
+            <text x="295" y="308" fill="#94b8a2" font-size="12" text-anchor="middle">Height up the channel z  (inlet -> outlet)</text>
+            <text x="22" y="160" fill="#94b8a2" font-size="12" text-anchor="middle" transform="rotate(-90 22 160)">Temperature</text>
+            <text x="78" y="296" fill="#94b8a2" font-size="10" text-anchor="middle">inlet</text>
+            <text x="510" y="296" fill="#94b8a2" font-size="10" text-anchor="middle">outlet</text>
+            <line x1="295" y1="280" x2="295" y2="48" stroke="#24382b" stroke-width="1" stroke-dasharray="3 4"/>
+            <text x="295" y="60" fill="#5f7191" font-size="10" text-anchor="middle">midplane</text>
+            <!-- coolant curve: S-shaped rise, monotonic -->
+            <path d="M 70,250 C 150,242 210,210 295,180 C 380,150 440,138 520,132" fill="none" stroke="#60a5fa" stroke-width="3"/>
+            <text x="455" y="124" fill="#60a5fa" font-size="11" text-anchor="middle">coolant T_c</text>
+            <!-- cladding curve: above coolant, peaks below outlet -->
+            <path d="M 70,210 C 150,170 230,120 320,100 C 380,90 440,108 520,128" fill="none" stroke="#fbbf24" stroke-width="3"/>
+            <text x="330" y="86" fill="#fbbf24" font-size="11" text-anchor="middle">cladding T_clad</text>
+            <!-- mark cladding peak -->
+            <circle cx="355" cy="95" r="4" fill="#fbbf24"/>
+            <line x1="355" y1="95" x2="355" y2="280" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2 4"/>
+            <text x="355" y="296" fill="#fbbf24" font-size="9" text-anchor="middle">clad peak</text>
+            <!-- power profile cosine (faint, for reference) -->
+            <path d="M 70,265 C 160,250 230,225 295,222 C 360,225 430,250 520,265" fill="none" stroke="#34d399" stroke-width="2" stroke-dasharray="5 4"/>
+            <text x="150" y="240" fill="#34d399" font-size="10" text-anchor="middle">power q'(z)</text>
+        </svg>
+        <figcaption>Axial profiles along one channel. The <span style="color:#60a5fa">coolant</span> heats monotonically and is hottest at the outlet, but the <span style="color:#fbbf24">cladding</span> peaks <em>below</em> the outlet — the crossover of a rising coolant temperature and a falling cosine <span style="color:#34d399">power</span> profile q'(z). Locating that peak is the core of channel analysis.</figcaption>
+    </figure>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>Hot-Channel Factors and Pressure Drop</h2>
+        <p>A core has many channels, and they are not identical. Manufacturing tolerances, neutron-flux peaking, and uneven flow mean one unlucky channel runs hotter than the average. Safety is not governed by the average channel — it is governed by the <strong>hottest</strong> one. We bridge from the easy-to-compute average to the dangerous limiting channel with <strong>hot-channel factors</strong> (also called peaking factors).</p>
+        <p>Two factors do the work. The <span class="key">nuclear (enthalpy-rise) factor</span> F_dH captures how much more power the hot channel produces than the average channel — it scales the temperature <em>rise</em>. The <span class="key">heat-flux (total peaking) factor</span> F_q captures the single hottest spot, multiplying the average linear heat rate up to the local maximum. They combine the average behavior with the worst case:</p>
+        <div class="eq">q'_max = F_q * q'_avg          (T_out - T_in)_hot = F_dH * (T_out - T_in)_avg<small>F_q (total peaking) sets the hottest local heat flux; F_dH (enthalpy-rise) sets the hottest channel's temperature rise. Both exceed 1.</small></div>
+        <p>Typical large reactors carry F_q around 2.3-2.5 and F_dH around 1.5-1.6. Designers spend enormous effort flattening the power distribution — clever fuel loading, control patterns, burnable poisons — precisely to push these factors down, because a lower peaking factor lets the same core run at higher total power before the hot spot hits its limit.</p>
+        <h3>Pressure drop: the price of moving coolant</h3>
+        <p>Pushing coolant through a long, narrow channel costs pressure, and that pressure must be supplied by pumps (forced circulation) or by buoyancy (natural circulation, next week). The total channel pressure drop has three pieces: <strong>friction</strong> along the walls, <strong>acceleration</strong> as the fluid heats and speeds up (especially if it boils), and <strong>gravity</strong> (elevation) for the weight of the coolant column.</p>
+        <div class="eq">Delta_p = f * (L/D_h) * (rho V^2 / 2)  +  (G^2)(1/rho_out - 1/rho_in)  +  rho_avg * g * L<small>f = friction factor, D_h = hydraulic diameter, G = mass flux (kg/m2-s), V = velocity. Friction + acceleration + gravity heads.</small></div>
+        <p>The friction term usually dominates in single-phase forced flow and grows with the square of velocity, so doubling the flow rate roughly quadruples the friction pressure drop — and pumping power scales with flow times pressure drop, so it climbs even faster. This is the central thermal-hydraulic trade-off: more flow keeps the fuel cooler but burns more pumping power and stresses the structures. The hydraulic diameter D_h = 4 * (flow area) / (wetted perimeter) lets us apply round-pipe correlations to the non-circular gaps between fuel rods.</p>
+    </section>
+
+    <!-- FIGURE 2: thermal resistance network -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 230" role="img" aria-label="Series thermal resistance network from fuel centerline to coolant. Four resistances in a line: fuel, gap, cladding, convection, with the same heat rate flowing through all of them and temperature dropping across each.">
+            <!-- nodes -->
+            <text x="280" y="26" fill="#6ee7b7" font-size="13" text-anchor="middle">Heat path: fuel centerline -> coolant (resistances in series)</text>
+            <!-- centerline node -->
+            <circle cx="55" cy="110" r="6" fill="#fbbf24"/>
+            <text x="55" y="140" fill="#fbbf24" font-size="10" text-anchor="middle">T_center</text>
+            <!-- resistor boxes -->
+            <rect x="80" y="96" width="80" height="28" rx="5" fill="none" stroke="#34d399" stroke-width="2"/>
+            <text x="120" y="114" fill="#34d399" font-size="11" text-anchor="middle">R_fuel</text>
+            <rect x="190" y="96" width="80" height="28" rx="5" fill="none" stroke="#34d399" stroke-width="2"/>
+            <text x="230" y="114" fill="#34d399" font-size="11" text-anchor="middle">R_gap</text>
+            <rect x="300" y="96" width="80" height="28" rx="5" fill="none" stroke="#34d399" stroke-width="2"/>
+            <text x="340" y="114" fill="#34d399" font-size="11" text-anchor="middle">R_clad</text>
+            <rect x="410" y="96" width="80" height="28" rx="5" fill="none" stroke="#60a5fa" stroke-width="2"/>
+            <text x="450" y="114" fill="#60a5fa" font-size="11" text-anchor="middle">R_conv</text>
+            <!-- connecting wires -->
+            <line x1="61" y1="110" x2="80" y2="110" stroke="#94b8a2" stroke-width="2"/>
+            <line x1="160" y1="110" x2="190" y2="110" stroke="#94b8a2" stroke-width="2"/>
+            <line x1="270" y1="110" x2="300" y2="110" stroke="#94b8a2" stroke-width="2"/>
+            <line x1="380" y1="110" x2="410" y2="110" stroke="#94b8a2" stroke-width="2"/>
+            <line x1="490" y1="110" x2="515" y2="110" stroke="#94b8a2" stroke-width="2"/>
+            <!-- coolant node -->
+            <circle cx="521" cy="110" r="6" fill="#60a5fa"/>
+            <text x="521" y="140" fill="#60a5fa" font-size="10" text-anchor="middle">T_coolant</text>
+            <!-- heat flow arrow -->
+            <line x1="80" y1="70" x2="490" y2="70" stroke="#fbbf24" stroke-width="2"/>
+            <polygon points="490,70 480,65 480,75" fill="#fbbf24"/>
+            <text x="285" y="62" fill="#fbbf24" font-size="11" text-anchor="middle">same q' through every R</text>
+            <!-- caption math -->
+            <text x="280" y="185" fill="#94b8a2" font-size="11" text-anchor="middle">T_center - T_coolant = q' * ( R_fuel + R_gap + R_clad + R_conv )</text>
+            <text x="280" y="205" fill="#94b8a2" font-size="10" text-anchor="middle">the gap is usually the largest resistance -> biggest temperature drop</text>
+        </svg>
+        <figcaption>The radial heat path as a series resistor chain. One heat rate q' flows through fuel, gap, cladding, and the convective film; the temperature drop across each is proportional to its resistance. Summing them links the fuel centerline to the local coolant temperature.</figcaption>
+    </figure>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>The Neutronics &harr; Thermal-Hydraulics Coupling</h2>
+        <p>So far we treated the power as a fixed input and computed temperatures. But a reactor is not so polite: the temperatures feed <em>back</em> on the power. This two-way conversation between <strong>neutronics</strong> (which sets the power) and <strong>thermal-hydraulics</strong> (which sets the temperatures) is the deepest idea in core analysis, and it is what makes a reactor controllable — or not.</p>
+        <p>Here is the loop. The neutron flux determines where and how fast fission happens, which fixes the power shape q'(z) we fed into Section 8.2. That power heats the fuel and coolant. But the cross-sections that govern the neutrons depend on temperature and coolant density. As fuel heats, Doppler broadening of resonance absorption in uranium-238 captures more neutrons (a prompt, strongly stabilizing effect). As coolant heats it thins out, changing moderation. Each effect is summarized by a <strong>reactivity coefficient</strong>:</p>
+        <div class="eq">delta_rho = alpha_fuel * delta_T_fuel + alpha_cool * delta_T_cool<small>alpha = reactivity coefficient (per K). Negative coefficients mean a temperature rise reduces reactivity -> self-stabilizing.</small></div>
+        <p>If the coefficients are <strong>negative</strong>, the loop is self-correcting: a power surge raises temperatures, the negative feedback lowers reactivity, and the power settles back down — the reactor is inherently stable. This is why reactors are designed with negative temperature coefficients; it is a cornerstone of safe design. The thermal-hydraulics you computed in this lecture is exactly the input the neutronics needs to evaluate that feedback, and vice versa. Neither half is complete alone.</p>
+        <p>In practice the two physics are solved together by <strong>coupled codes</strong>: a neutron-transport solver and a thermal-hydraulics solver pass temperatures and powers back and forth, iterating until both agree (a self-consistent, or converged, solution). Modern multiphysics core simulators do exactly this, channel by channel, for a whole core. Your single-channel model is the building block they stack thousands of times.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The coupling is a thermostat built from physics rather than wiring. Crank a power surge and the fuel warms; the negative reactivity coefficient acts like a thermostat that quietly turns the fission "burner" down — no operator action, no electronics, just the cross-sections responding to heat. A reactor with a <em>positive</em> coefficient is a thermostat wired backwards, and history shows that is a design to avoid at all costs.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — coolant rise and hot-channel outlet temperature</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A pressurized-water channel carries m_dot = 0.32 kg/s of coolant with c_p = 5500 J/kg-K. The average channel produces Q_avg = 0.30 MW and enters at T_in = 290 &deg;C. The enthalpy-rise hot-channel factor is F_dH = 1.55. Find the average and hot-channel outlet temperatures.</p>
+        <ol>
+            <li><strong>Average temperature rise:</strong> Delta_T_avg = Q_avg / (m_dot &times; c_p) = 300000 / (0.32 &times; 5500) = 300000 / 1760 &approx; <strong>170.5 &deg;C</strong>.</li>
+            <li><strong>Average outlet:</strong> T_out,avg = 290 + 170.5 = <strong>460.5 &deg;C</strong> (this is the mixed-mean of all channels).</li>
+            <li><strong>Apply the hot-channel factor:</strong> the hottest channel rises F_dH times more: Delta_T_hot = 1.55 &times; 170.5 &approx; <strong>264.3 &deg;C</strong>.</li>
+            <li><strong>Hot-channel outlet:</strong> T_out,hot = 290 + 264.3 = <strong>554.3 &deg;C</strong>. (In a real PWR this would exceed the saturation temperature, so the channel would be boiling near the top — handled by the boiling and CHF analysis from Week 7.)</li>
+            <li><strong>Sanity check:</strong> the hot channel is hotter than the average by 1.55&times; the rise, i.e. by about 94 &deg;C at the outlet — exactly the kind of margin a peaking factor is meant to expose. Designers must verify this hot channel still clears its CHF and centerline-melt limits.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: plot the axial coolant and cladding temperatures</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the course's free Python stack — <code>NumPy</code> for the math, <code>SciPy</code> for the root-find that locates the cladding peak, and <code>Matplotlib</code> for the plot. If you set up the environment back in the <strong>Week 1/2 install</strong> (the install <code>&lt;details&gt;</code> in the early lectures), you already have everything; no new tools are needed here.</p>
+        <pre><span class="c"># channel_temps.py — Lecture 8: axial T_coolant and T_clad up one channel</span>
+import numpy as np
+from scipy.optimize import minimize_scalar
+import matplotlib.pyplot as plt
+
+<span class="c"># --- channel parameters (SI) ---</span>
+L      = 3.66            <span class="c"># active height, m</span>
+He     = 1.30 * L        <span class="c"># extrapolated height (chopped cosine)</span>
+mdot   = 0.32            <span class="c"># coolant mass flow, kg/s</span>
+cp     = 5500.0          <span class="c"># coolant specific heat, J/kg-K</span>
+T_in   = 290.0           <span class="c"># inlet temperature, deg C</span>
+qmax   = 4.3e4           <span class="c"># peak linear heat rate, W/m</span>
+hP     = 4.0e4           <span class="c"># h * perimeter, W/m-K (convective conductance)</span>
+
+z = np.linspace(-L/2, L/2, 400)          <span class="c"># 0 = midplane</span>
+
+def q_prime(z):                           <span class="c"># cosine axial power</span>
+    return qmax * np.cos(np.pi * z / He)
+
+<span class="c"># coolant temp: integrate energy balance from inlet (z = -L/2) upward</span>
+const = qmax * He / (np.pi * mdot * cp)
+T_cool = T_in + const * (np.sin(np.pi*z/He) + np.sin(np.pi*L/(2*He)))
+
+<span class="c"># cladding temp = coolant temp + convective rise q'(z)/(hP)</span>
+T_clad = T_cool + q_prime(z) / hP
+
+<span class="c"># locate the cladding peak (minimize the negative)</span>
+res = minimize_scalar(lambda zz: -(T_in + const*(np.sin(np.pi*zz/He)
+        + np.sin(np.pi*L/(2*He))) + qmax*np.cos(np.pi*zz/He)/hP),
+        bounds=(-L/2, L/2), method="bounded")
+z_peak = res.x
+print(f"coolant outlet  T = {T_cool[-1]:.1f} deg C  (hottest coolant, at top)")
+print(f"cladding peak   T = {-res.fun:.1f} deg C  at z = {z_peak:+.2f} m (above midplane)")
+
+plt.plot(z, T_cool, label="coolant")
+plt.plot(z, T_clad, label="cladding")
+plt.axvline(z_peak, ls="--", color="gray", label="clad peak")
+plt.xlabel("z from midplane (m)"); plt.ylabel("T (deg C)"); plt.legend()
+plt.title("Axial temperatures up one channel"); plt.show()
+
+<span class="c"># Typical output:</span>
+<span class="c"># coolant outlet  T = 460.x deg C  (hottest coolant, at top)</span>
+<span class="c"># cladding peak   T = 4xx.x deg C  at z = +0.4x m (above midplane)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Notice the print-out confirms the lecture's key point: the coolant is hottest at the very top, but the cladding peaks at a positive z — <em>above</em> the midplane, below the outlet. Try lowering <code>hP</code> (worse convection) and watch the cladding peak both rise and shift toward the midplane.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have the steady-state temperature map of a channel — the launch pad for everything that follows. <strong>Week 9</strong> removes the pumps: when forced flow stops, buoyancy alone drives <em>natural circulation</em>, and the same energy balance and pressure-drop terms decide whether <em>decay heat</em> can be carried away safely. Later in the specialization these single-channel tools scale up into coupled multiphysics core simulations, where your channel model is solved thousands of times alongside a neutron-transport code. <strong>Project checkpoint (Week 8):</strong> by the end of this week your capstone should produce a working axial temperature plot for your chosen reactor channel — coolant and cladding curves with the cladding peak located — built directly from today's <code>channel_temps.py</code>; this becomes the thermal-hydraulics module you will later couple to your neutronics model.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Heat travels from the fuel centerline to the coolant through the pellet, gap, cladding, and convective film. How are these resistances arranged, and what does the arrangement imply?</div>
+            <div class="opt"><b>A.</b> In parallel; the smallest resistance dominates the total</div>
+            <div class="opt"><b>B.</b> In series; the same heat rate flows through each and the temperature drops add up</div>
+            <div class="opt"><b>C.</b> In series; each layer carries a different heat rate</div>
+            <div class="opt"><b>D.</b> They cannot be treated as resistances at all</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The layers are in series, so one heat rate q' passes through all of them and the temperature drops sum (like resistors in series). (A) is the wrong topology — they are not in parallel. (C) violates conservation: in series the heat rate is the same in each layer. (D) is false; the thermal-resistance analogy is the standard tool.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Along a channel with a cosine axial power profile, where does the coolant reach its highest temperature?</div>
+            <div class="opt"><b>A.</b> At the core midplane, where power peaks</div>
+            <div class="opt"><b>B.</b> At the inlet</div>
+            <div class="opt"><b>C.</b> At the outlet (top), because heat keeps being added all the way up</div>
+            <div class="opt"><b>D.</b> Exactly one quarter-height from the bottom</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The coolant integrates all the heat added below it, so it rises monotonically and is hottest at the outlet. (A) confuses the power peak with the temperature peak — power is highest at the midplane but temperature keeps climbing past it. (B) is the coolest point. (D) has no physical basis for the coolant maximum.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Why does the cladding temperature peak <em>below</em> the channel outlet rather than at the top?</div>
+            <div class="opt"><b>A.</b> Because the cladding is thickest near the top</div>
+            <div class="opt"><b>B.</b> Because coolant flows downward in this region</div>
+            <div class="opt"><b>C.</b> Because it is the crossover of a rising coolant temperature and a falling power (convective rise) profile</div>
+            <div class="opt"><b>D.</b> Because the cladding has no convective resistance near the top</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> T_clad = T_coolant + q'(z)/(hP): the coolant term rises toward the top while the convective-rise term falls with the cosine power, so their sum peaks in between, above the midplane. (A) cladding geometry is uniform. (B) flow is upward. (D) the convective resistance does not vanish at the top.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A core's average channel has a coolant temperature rise of 170 &deg;C. With an enthalpy-rise hot-channel factor F_dH = 1.5, what is the hot channel's temperature rise?</div>
+            <div class="opt"><b>A.</b> 255 &deg;C</div>
+            <div class="opt"><b>B.</b> 170 &deg;C (the factor applies only to heat flux, not temperature rise)</div>
+            <div class="opt"><b>C.</b> 113 &deg;C</div>
+            <div class="opt"><b>D.</b> 320 &deg;C</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The enthalpy-rise factor scales the temperature rise: 1.5 &times; 170 = 255 &deg;C. (B) is wrong — F_dH is precisely the factor for the enthalpy (temperature) rise; F_q is the one for heat flux. (C) divides instead of multiplies. (D) corresponds to a factor of ~1.9, not 1.5.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In a reactor with negative temperature reactivity coefficients, what happens when a power surge raises fuel and coolant temperatures?</div>
+            <div class="opt"><b>A.</b> Reactivity increases, amplifying the surge</div>
+            <div class="opt"><b>B.</b> Reactivity is unchanged; temperature and neutronics are decoupled</div>
+            <div class="opt"><b>C.</b> Pumping power alone removes the excess with no neutronic effect</div>
+            <div class="opt"><b>D.</b> Reactivity decreases, reducing power back toward its set point — the reactor self-stabilizes</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Negative coefficients mean a temperature rise lowers reactivity, so the power surge is damped automatically — inherent stability. (A) describes a dangerous positive coefficient. (B) ignores the coupling that is the whole point of this section. (C) confuses heat removal with the neutronic feedback; both occur, but the stabilizing mechanism here is the reactivity feedback.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Wired <b>conduction and convection in series</b> into a thermal-resistance chain linking fuel centerline to coolant.</li>
+            <li>Derived the <b>coolant temperature rise</b> from an energy balance and saw why the cladding peaks <b>above the midplane</b>, not at the outlet.</li>
+            <li>Used <b>hot-channel factors</b> (F_q, F_dH) to step from the average channel to the limiting hot channel.</li>
+            <li>Broke <b>channel pressure drop</b> into friction, acceleration, and gravity, and tied it to pump power.</li>
+            <li>Explained the <b>neutronics &harr; thermal-hydraulics coupling</b> and why negative reactivity coefficients make a reactor self-stabilizing — and built the axial profile in Python as your <b>Week 8 capstone milestone</b>.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: Natural Circulation &amp; Decay Heat. When the pumps stop, buoyancy must carry the residual fission-product heat away on its own — the same balances, now driven by gravity instead of pumps.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-boiling-critical-heat-flux.html"><div class="dir">← Week 7</div><div class="ttl">Boiling &amp; Critical Heat Flux</div></a>
+        <a class="next" href="l09-natural-circulation-decay-heat.html"><div class="dir">Week 9 →</div><div class="ttl">Natural Circulation &amp; Decay Heat</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Thermo &amp; Heat</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

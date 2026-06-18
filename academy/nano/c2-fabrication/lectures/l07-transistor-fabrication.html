@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 · Lecture 7 — Basic Transistor Fabrication</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C2 Fabrication</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Basic Transistor Fabrication</h1>
+        <p class="sub">Six weeks of single steps — deposit, pattern, etch, dope — now combine into one device. We build a working MOSFET, then pair two of them into the CMOS that runs all digital logic.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Identify the parts of a MOSFET: substrate, source/drain, gate oxide, gate, and channel.</li>
+            <li>Describe the gate stack: thermal gate oxide → deposited gate → pattern &amp; etch.</li>
+            <li>Explain self-aligned source/drain and why self-alignment was essential to scaling.</li>
+            <li>Order the full step sequence to form a gate and self-aligned source/drain.</li>
+            <li>State what CMOS is, why it needs an n-well and a p-well, and why it sips power.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>Putting It Together</h2>
+        <p>For six weeks you learned single fabrication steps in isolation. A <strong>MOSFET</strong> (metal-oxide-semiconductor field-effect transistor) is what you get when you orchestrate them into one device. Strip it down and a MOSFET is just four things stacked on silicon:</p>
+        <div class="eq">doped silicon + thin gate oxide + gate electrode + source/drain regions</div>
+        <p>There is no new magic here — the transistor is built by <em>repeating the same</em> <span class="key">deposit → pattern → etch → dope</span> steps from earlier weeks, in the right order, on the right layers. Mastering the sequence <em>is</em> mastering transistor fabrication.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="MOSFET cross-section showing substrate, source and drain, gate oxide, gate, and the channel between source and drain under the gate">
+                <!-- substrate -->
+                <rect x="30" y="120" width="320" height="70" fill="#1c2c3e" stroke="#243648" stroke-width="1.5"/>
+                <text x="190" y="178" fill="#94a8bc" font-size="13" text-anchor="middle">substrate (doped Si)</text>
+                <!-- source region -->
+                <rect x="50" y="120" width="80" height="34" fill="#2a4a5e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="90" y="142" fill="#67e8f9" font-size="12" text-anchor="middle">source</text>
+                <!-- drain region -->
+                <rect x="250" y="120" width="80" height="34" fill="#2a4a5e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="290" y="142" fill="#67e8f9" font-size="12" text-anchor="middle">drain</text>
+                <!-- gate oxide -->
+                <rect x="130" y="110" width="120" height="10" fill="#a78bfa" stroke="#a78bfa" stroke-width="1"/>
+                <!-- gate -->
+                <rect x="130" y="78" width="120" height="32" fill="#34d399" stroke="#34d399" stroke-width="1"/>
+                <text x="190" y="100" fill="#0a121a" font-size="13" text-anchor="middle" font-weight="700">gate</text>
+                <!-- gate oxide label/leader -->
+                <line x1="190" y1="115" x2="115" y2="40" stroke="#a78bfa" stroke-width="1"/>
+                <text x="110" y="34" fill="#a78bfa" font-size="11" text-anchor="end">gate oxide</text>
+                <!-- channel label/leader -->
+                <line x1="190" y1="127" x2="270" y2="40" stroke="#fbbf24" stroke-width="1"/>
+                <text x="274" y="34" fill="#fbbf24" font-size="11" text-anchor="start">channel</text>
+                <!-- channel marker between S and D under gate -->
+                <line x1="130" y1="123" x2="250" y2="123" stroke="#fbbf24" stroke-width="2" stroke-dasharray="3 3"/>
+            </svg>
+            <figcaption>A MOSFET cross-section: source and drain are doped regions in the substrate; a thin gate oxide insulates the gate; the channel forms in the substrate directly under the gate, between source and drain.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>The Gate Stack</h2>
+        <p>The heart of the transistor is the <span class="key">gate stack</span> — the gate electrode sitting on a very thin insulator. It is built in three moves:</p>
+        <div class="eq">grow gate oxide → deposit gate → pattern &amp; etch gate</div>
+        <h3>1. Grow a thin gate oxide</h3>
+        <p>Using <strong>thermal oxidation</strong> (Week 3), the silicon surface is grown into a thin, high-quality layer of SiO₂. This oxide insulates the gate from the channel — the gate controls the channel by an electric field <em>through</em> the oxide, never by touching it.</p>
+        <h3>2. Deposit the gate electrode</h3>
+        <p>A conductive gate is deposited on top of the oxide — historically <strong>polysilicon</strong> ("poly"), in modern processes a metal. This is the terminal you'll bias to switch the transistor on and off.</p>
+        <h3>3. Pattern and etch the gate</h3>
+        <p>Lithography (Week 4) prints the gate shape; etching (Week 5) removes the unwanted gate material. What remains is a narrow gate stripe — and its width sets the transistor's channel length.</p>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Self-Aligned Source/Drain</h2>
+        <p>Now the clever part. The source and drain must sit <em>right beside</em> the gate, with essentially no gap. Rather than print a separate mask and hope it lines up, we use the <strong>patterned gate itself as the implant mask</strong>:</p>
+        <div class="eq">implant dopants → gate blocks the channel → source/drain land on either side</div>
+        <p>Dopant ions (Week 6) rain down on the wafer. Wherever the gate stands, it shields the silicon beneath it — that protected strip becomes the <span class="key">channel</span>. Everywhere else, the silicon is doped, forming the source and drain. Because the same gate that defines the channel also defines where the implant can't reach, the source and drain are <span class="key">self-aligned</span> to the gate — automatically, with zero alignment error.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 230" role="img" aria-label="Self-aligned implant: the gate blocks the channel region while implant arrows dope the source and drain on either side of the gate">
+                <!-- implant arrows -->
+                <defs><marker id="ai" markerWidth="9" markerHeight="9" refX="5" refY="6" orient="auto"><path d="M0,0 L5,6 L10,0 Z" fill="#22d3ee"/></marker></defs>
+                <text x="190" y="20" fill="#22d3ee" font-size="12" text-anchor="middle">implant (dopant ions)</text>
+                <!-- left implant arrows over source -->
+                <line x1="60" y1="30" x2="60" y2="108" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ai)"/>
+                <line x1="95" y1="30" x2="95" y2="108" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ai)"/>
+                <!-- right implant arrows over drain -->
+                <line x1="285" y1="30" x2="285" y2="108" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ai)"/>
+                <line x1="320" y1="30" x2="320" y2="108" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ai)"/>
+                <!-- blocked arrows over gate (stop short, bounce) -->
+                <line x1="160" y1="30" x2="160" y2="60" stroke="#6b8299" stroke-width="1.5"/>
+                <line x1="220" y1="30" x2="220" y2="60" stroke="#6b8299" stroke-width="1.5"/>
+                <text x="190" y="52" fill="#6b8299" font-size="10" text-anchor="middle">blocked</text>
+                <!-- substrate -->
+                <rect x="30" y="120" width="320" height="80" fill="#1c2c3e" stroke="#243648" stroke-width="1.5"/>
+                <text x="190" y="190" fill="#94a8bc" font-size="13" text-anchor="middle">substrate</text>
+                <!-- source doped region -->
+                <rect x="40" y="120" width="100" height="36" fill="#2a4a5e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="90" y="143" fill="#67e8f9" font-size="12" text-anchor="middle">source</text>
+                <!-- drain doped region -->
+                <rect x="240" y="120" width="100" height="36" fill="#2a4a5e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="290" y="143" fill="#67e8f9" font-size="12" text-anchor="middle">drain</text>
+                <!-- gate oxide -->
+                <rect x="140" y="110" width="100" height="10" fill="#a78bfa"/>
+                <!-- gate (the mask) -->
+                <rect x="140" y="74" width="100" height="36" fill="#34d399" stroke="#34d399" stroke-width="1"/>
+                <text x="190" y="97" fill="#0a121a" font-size="12" text-anchor="middle" font-weight="700">gate</text>
+                <!-- channel under gate -->
+                <line x1="140" y1="124" x2="240" y2="124" stroke="#fbbf24" stroke-width="2" stroke-dasharray="3 3"/>
+                <text x="190" y="138" fill="#fbbf24" font-size="11" text-anchor="middle">channel (shielded)</text>
+            </svg>
+            <figcaption>Self-alignment: the gate masks the silicon beneath it, so the implant dopes only the source and drain on either side. The channel is defined by the same gate that blocks the implant — no separate alignment step.</figcaption>
+        </figure>
+        <p>This was the breakthrough that <strong>made scaling practical</strong>. As gates shrank to nanometers, a separate alignment step could never have been precise enough to place source and drain that close without overlap or gaps. Letting the gate align them to itself removes the error entirely.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Self-alignment is like spray-painting a wall with an object leaning against it, then taking the object away: the object masks its own silhouette, so the unpainted patch lands <em>exactly</em> where the object stood — no measuring, no separate stencil. The gate masks its own channel, so source and drain land precisely beside it.</div>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>CMOS</h2>
+        <p>A single MOSFET is a switch. Digital logic is built from <strong>CMOS</strong> — <em>complementary</em> MOS — which pairs an <span class="key">n-MOS</span> and a <span class="key">p-MOS</span> transistor. The two are complements: in any logic state one is on while the other is off.</p>
+        <p>Because the two device types need oppositely-doped bodies, CMOS requires both an <span class="key">n-well</span> (to host the p-MOS) and a <span class="key">p-well</span> (to host the n-MOS) built into the wafer. That extra well-doping is the price of putting both flavors on one chip.</p>
+        <div class="eq">CMOS = n-MOS + p-MOS&nbsp;&nbsp;·&nbsp;&nbsp;needs n-well + p-well</div>
+        <p>The payoff is enormous: in a steady logic state, one transistor is always off, so the path from supply to ground is broken and <strong>almost no static (standby) current flows</strong>. CMOS draws power mainly only while it switches. That near-zero static power is exactly why CMOS became the basis of <em>all</em> modern digital logic — the topic you'll build on in <span class="key">Course 3, Architecture</span>.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Keep the ordering and structure straight: the <strong>gate is patterned BEFORE</strong> the source/drain implant (that is precisely what lets it self-align them). The <strong>channel sits UNDER the gate and is NOT doped</strong> like the source and drain — it's the strip the gate shielded. And <strong>CMOS needs BOTH</strong> an n-MOS and a p-MOS (hence both an n-well and a p-well) — neither type alone is CMOS.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">List, in order, the major process steps to form a MOSFET gate and its self-aligned source/drain.</p>
+        <ol>
+            <li><strong>Grow the gate oxide</strong> — thermal oxidation forms a thin SiO₂ layer on the silicon surface.</li>
+            <li><strong>Deposit the gate</strong> — lay down polysilicon (or metal) over the oxide.</li>
+            <li><strong>Pattern &amp; etch the gate</strong> — lithography prints the gate shape; etch removes the rest, leaving the gate stripe.</li>
+            <li><strong>Implant source/drain</strong> — dope the wafer using the patterned gate as the mask, so source/drain self-align to it.</li>
+            <li><strong>Anneal</strong> — heat the wafer to activate the dopants and repair implant damage.</li>
+        </ol>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:10px;">Note: the channel <strong>length</strong> is set by the gate length — which is why lithography (Week 4) is what ultimately gates transistor density. Smaller printable gates ⟹ shorter channels ⟹ more transistors per wafer.</p>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: find the gate and source/drain layers</h3>
+        <p>Open an open-source standard-cell layout in <code>Sky130</code> with <code>KLayout</code>. Pick any cell (e.g. an inverter) and turn layers on one at a time.</p>
+        <pre><span class="c"># Sky130 layer hunt — Lecture 7</span>
+1. Open a standard cell .gds in KLayout
+2. Isolate the <span class="c">poly</span> layer   <span class="c">; this is the GATE</span>
+3. Isolate the <span class="c">diff</span> layer   <span class="c">; this is the SOURCE/DRAIN (active)</span>
+4. Note where poly crosses diff   <span class="c">; that crossing IS a transistor</span></pre>
+        <p>Where the polysilicon (gate) crosses the diffusion (source/drain) is a single MOSFET — the poly shields the channel and self-aligns the S/D on either side. No KLayout? Trace the five-step sequence above on paper and sketch the cross-section at each step.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In a MOSFET, the thin insulator under the gate is the…</div>
+            <div class="opt"><b>A.</b> channel</div>
+            <div class="opt"><b>B.</b> gate oxide</div>
+            <div class="opt"><b>C.</b> source</div>
+            <div class="opt"><b>D.</b> substrate</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The gate oxide is the thin SiO₂ layer that insulates the gate from the channel. The gate controls the channel by a field through this oxide, never by touching the silicon.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> "Self-aligned" source/drain means…</div>
+            <div class="opt"><b>A.</b> the gate masks the channel, so the source/drain align to it automatically</div>
+            <div class="opt"><b>B.</b> a robot aligns each wafer</div>
+            <div class="opt"><b>C.</b> the mask is reused</div>
+            <div class="opt"><b>D.</b> the wafer self-rotates</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The patterned gate itself blocks the implant over the channel, so the source/drain dope in exactly beside it — aligned automatically, with no separate alignment step.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The transistor's channel is located…</div>
+            <div class="opt"><b>A.</b> above the gate</div>
+            <div class="opt"><b>B.</b> under the gate, between the source and drain</div>
+            <div class="opt"><b>C.</b> inside the source</div>
+            <div class="opt"><b>D.</b> in the metal layer</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The channel is the strip of substrate directly under the gate, between source and drain — the region the gate shielded from the implant, so it is not doped like S/D.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> CMOS logic requires…</div>
+            <div class="opt"><b>A.</b> only n-MOS</div>
+            <div class="opt"><b>B.</b> only p-MOS</div>
+            <div class="opt"><b>C.</b> both n-MOS and p-MOS devices (n-well and p-well)</div>
+            <div class="opt"><b>D.</b> only diodes</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> CMOS is <em>complementary</em>: it pairs an n-MOS and a p-MOS, which need oppositely-doped bodies — hence both an n-well and a p-well. That pairing is what gives near-zero static power.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the process flow, the gate is patterned…</div>
+            <div class="opt"><b>A.</b> before the source/drain implant (to enable self-alignment)</div>
+            <div class="opt"><b>B.</b> after the implant</div>
+            <div class="opt"><b>C.</b> after packaging</div>
+            <div class="opt"><b>D.</b> during dicing</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The gate must already be patterned so it can act as the implant mask — that is exactly what makes the source/drain self-align to it.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A <b>MOSFET</b> = doped silicon + a thin <b>gate oxide</b> + a <b>gate</b> + <b>source/drain</b> regions, built by repeating deposit → pattern → etch → dope.</li>
+            <li>The <b>gate stack</b>: grow a thermal gate oxide, deposit the gate (poly/metal), then pattern &amp; etch it.</li>
+            <li><b>Self-aligned source/drain</b>: the patterned gate masks the channel, so the implant dopes S/D right beside it — the trick that made scaling practical.</li>
+            <li>The channel sits <b>under the gate</b> and its <b>length = gate length</b>, so lithography gates transistor density.</li>
+            <li><b>CMOS</b> pairs an n-MOS and a p-MOS (n-well + p-well), draws almost no static power, and is the basis of all digital logic.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: Interconnects &amp; Metallization — the metal wiring layers that connect millions of these transistors into a working chip.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l06-doping-implantation.html"><div class="dir">← Week 6</div><div class="ttl">Doping &amp; Ion Implantation</div></a>
+        <a href="l08-interconnects-metallization.html" class="next"><div class="dir">Week 8 →</div><div class="ttl">Interconnects &amp; Metallization</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Fabrication</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

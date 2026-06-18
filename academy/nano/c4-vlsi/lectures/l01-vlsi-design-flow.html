@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Lecture 1 — VLSI Overview &amp; Design Flow</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C4 VLSI</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>VLSI Overview &amp; Design Flow</h1>
+        <p class="sub">How a chip goes from an idea to a manufacturable layout — and the open-source tools for each step.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define VLSI and explain why abstraction is the only way to manage millions–billions of transistors.</li>
+            <li>List the abstraction levels: behavioral/RTL → logic gates → transistors → physical layout.</li>
+            <li>Walk the RTL-to-GDSII flow stage by stage, and explain what "tape-out" means.</li>
+            <li>Contrast full-custom, standard-cell ASIC, and FPGA design styles.</li>
+            <li>Name the recurring design challenges — timing, power, area, verification — and the open tool for each flow stage.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>What VLSI Is</h2>
+        <p><strong>VLSI</strong> — Very-Large-Scale Integration — is the practice of integrating <em>millions to billions</em> of transistors onto a single chip. A modern processor has more transistors than there are stars in the Milky Way, and no human could place them one at a time. The only way to manage that scale is <span class="key">abstraction</span>: working at a high level and letting tools fill in the detail below.</p>
+        <p>VLSI is where two earlier threads of this track meet. The <strong>fabrication</strong> physics from C2 tells you what a transistor <em>is</em> and how it's manufactured; the <strong>architecture</strong> ideas from C3 tell you what the chip should <em>compute</em>. VLSI design is the discipline that turns an architectural intent into a pattern of transistors a fab can actually build.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>VLSI design is like building a city from a master plan. You don't lay every brick by hand. You work first at the level of <em>zoning</em> (what goes where — this is your RTL), then <em>blueprints</em> (the gate-level structure of each building), then actual <em>construction</em> (the physical layout). Each level abstracts away the one below it, so the city planner never has to think about individual bricks.</div>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>Abstraction Levels</h2>
+        <p>A chip is described at several levels, each hiding the detail of the one beneath it. You design at the top and the tools translate downward:</p>
+        <div class="eq">behavioral / RTL &nbsp;→&nbsp; logic gates &nbsp;→&nbsp; transistors &nbsp;→&nbsp; physical layout (GDSII)</div>
+        <p>At the <span class="key">behavioral/RTL</span> level you describe <em>what</em> the circuit does — register transfers and logic — in a language like Verilog, without saying which gates implement it. At the <span class="key">logic-gate</span> level the design is a netlist of ANDs, ORs, flip-flops. At the <span class="key">transistor</span> level each gate becomes a handful of MOSFETs. Finally the <span class="key">physical-layout</span> level is the actual geometry of polygons on each mask layer, stored as a <strong>GDSII</strong> file. Each step down adds detail; each step up hides it so a human can reason about the design.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 240" role="img" aria-label="Abstraction stack from behavioral RTL at the top down through logic gates, transistors, and layout at the bottom">
+                <rect x="70" y="22" width="220" height="40" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="180" y="42" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Behavioral / RTL</text>
+                <text x="180" y="56" fill="#94a8bc" font-size="10" text-anchor="middle">what it does (Verilog)</text>
+
+                <rect x="70" y="78" width="220" height="40" rx="8" fill="#1c2c3e" stroke="#60a5fa" stroke-width="2"/>
+                <text x="180" y="98" fill="#cfe2ff" font-size="14" text-anchor="middle" font-weight="bold">Logic Gates</text>
+                <text x="180" y="112" fill="#94a8bc" font-size="10" text-anchor="middle">AND / OR / flip-flops</text>
+
+                <rect x="70" y="134" width="220" height="40" rx="8" fill="#1c2c3e" stroke="#a78bfa" stroke-width="2"/>
+                <text x="180" y="154" fill="#d3c4ff" font-size="14" text-anchor="middle" font-weight="bold">Transistors</text>
+                <text x="180" y="168" fill="#94a8bc" font-size="10" text-anchor="middle">MOSFET networks</text>
+
+                <rect x="70" y="190" width="220" height="40" rx="8" fill="#1c2c3e" stroke="#34d399" stroke-width="2"/>
+                <text x="180" y="210" fill="#9defc9" font-size="14" text-anchor="middle" font-weight="bold">Physical Layout</text>
+                <text x="180" y="224" fill="#94a8bc" font-size="10" text-anchor="middle">mask polygons (GDSII)</text>
+
+                <line x1="180" y1="62" x2="180" y2="76" stroke="#94a8bc" stroke-width="2" marker-end="url(#dn)"/>
+                <line x1="180" y1="118" x2="180" y2="132" stroke="#94a8bc" stroke-width="2" marker-end="url(#dn)"/>
+                <line x1="180" y1="174" x2="180" y2="188" stroke="#94a8bc" stroke-width="2" marker-end="url(#dn)"/>
+                <defs><marker id="dn" markerWidth="9" markerHeight="9" refX="4" refY="6" orient="auto"><path d="M0,0 L8,0 L4,6 Z" fill="#94a8bc"/></marker></defs>
+
+                <text x="30" y="46" fill="#94a8bc" font-size="11" text-anchor="middle">more</text>
+                <text x="30" y="60" fill="#94a8bc" font-size="11" text-anchor="middle">abstract</text>
+                <text x="30" y="206" fill="#94a8bc" font-size="11" text-anchor="middle">more</text>
+                <text x="30" y="220" fill="#94a8bc" font-size="11" text-anchor="middle">detail</text>
+            </svg>
+            <figcaption>The abstraction stack: you design at the top (RTL) and tools translate down through gates and transistors to the physical layout. Each tier hides the complexity of the tier below it.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>The RTL-to-GDSII Flow</h2>
+        <p>The heart of digital VLSI is a pipeline that turns hand-written <strong>RTL</strong> into a finished <strong>GDSII</strong> layout. It is a sequence of mostly automated tool steps:</p>
+        <div class="eq">RTL → synthesis → netlist → floorplan → placement → CTS → routing → signoff → GDSII</div>
+        <p>Starting from <span class="key">RTL</span> (Verilog), <span class="key">synthesis</span> compiles it into a <span class="key">gate netlist</span>. <span class="key">Floorplanning</span> decides the chip outline and where big blocks and I/O go; <span class="key">placement</span> drops each standard cell into a row. <span class="key">Clock-tree synthesis (CTS)</span> builds a balanced network that delivers the clock to every flip-flop with minimal skew. <span class="key">Routing</span> connects every pin with metal wires. <span class="key">Signoff</span> is the final round of timing, DRC and LVS checks. The output is the <strong>GDSII</strong> file — and shipping it to the fab is called <span class="key">tape-out</span>.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 760 200" role="img" aria-label="The RTL to GDSII flow as a chain of labeled boxes connected by arrows: RTL, synthesis, netlist, floorplan, placement, CTS, routing, signoff, GDSII">
+                <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#22d3ee"/></marker></defs>
+
+                <!-- row 1: RTL, Synthesis, Netlist, Floorplan, Placement -->
+                <rect x="14" y="40" width="120" height="44" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="74" y="67" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">RTL</text>
+
+                <rect x="174" y="40" width="120" height="44" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="234" y="67" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Synthesis</text>
+
+                <rect x="334" y="40" width="120" height="44" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="394" y="67" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Netlist</text>
+
+                <rect x="494" y="40" width="120" height="44" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="554" y="67" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Floorplan</text>
+
+                <rect x="640" y="40" width="106" height="44" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="693" y="67" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Placement</text>
+
+                <line x1="134" y1="62" x2="172" y2="62" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+                <line x1="294" y1="62" x2="332" y2="62" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+                <line x1="454" y1="62" x2="492" y2="62" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+                <line x1="614" y1="62" x2="638" y2="62" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+
+                <!-- connector down from Placement to row 2 -->
+                <path d="M693,84 L693,108 L74,108 L74,134" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+
+                <!-- row 2: CTS, Routing, Signoff, GDSII -->
+                <rect x="14" y="138" width="120" height="44" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="74" y="165" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">CTS</text>
+
+                <rect x="174" y="138" width="120" height="44" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="234" y="165" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Routing</text>
+
+                <rect x="334" y="138" width="120" height="44" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="394" y="165" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Signoff</text>
+
+                <rect x="494" y="138" width="120" height="44" rx="8" fill="#1c2c3e" stroke="#34d399" stroke-width="2"/>
+                <text x="554" y="161" fill="#9defc9" font-size="14" text-anchor="middle" font-weight="bold">GDSII</text>
+                <text x="554" y="175" fill="#94a8bc" font-size="9" text-anchor="middle">→ tape-out</text>
+
+                <line x1="134" y1="160" x2="172" y2="160" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+                <line x1="294" y1="160" x2="332" y2="160" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+                <line x1="454" y1="160" x2="492" y2="160" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+            </svg>
+            <figcaption>The RTL-to-GDSII flow: each stage feeds the next, ending in a GDSII layout file. Releasing that file to the fab is "tape-out."</figcaption>
+        </figure>
+    </section>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>ASIC vs FPGA &amp; the Design Challenges</h2>
+        <p>There's more than one way to realize a digital design in silicon:</p>
+        <h3>Full-custom</h3>
+        <p>Every transistor and wire is hand-tuned for maximum performance and density. Used for the most demanding blocks (memories, analog, top-end CPUs) — but enormously labor-intensive.</p>
+        <h3>Standard-cell ASIC</h3>
+        <p>The design is built from a library of pre-characterized cells (the RTL-to-GDSII flow above). Far less effort than full-custom, near-custom efficiency. This is how most chips are made — but a fabricated ASIC is fixed forever.</p>
+        <h3>FPGA</h3>
+        <p>A field-programmable gate array is a pre-fabricated chip of configurable logic blocks you <em>program</em> after manufacturing. No fab run, instant turnaround — at the cost of speed, power, and per-unit price compared to an ASIC.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The RTL→GDSII flow is a sequence of (largely <strong>automated</strong>) tool steps — you are <em>not</em> hand-drawing transistors. And <strong>"tape-out" means releasing the final GDSII to the fab</strong> (the name comes from the era when layouts shipped on magnetic tape). It does <em>not</em> mean testing the finished chip.</div>
+        <p>Across all of these, the same four <span class="key">design challenges</span> recur and trade off against one another: <strong>timing</strong> (does it run at the target clock?), <strong>power</strong> (does it fit the energy budget?), <strong>area</strong> (does it fit the die?), and <strong>verification</strong> (does it actually do what the spec says?).</p>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Map each stage of the RTL-to-GDSII flow to the open-source tool that performs it in the OpenLane flow:</p>
+        <ol>
+            <li><strong>RTL simulation</strong> (check the Verilog behaves) → <strong>Icarus Verilog</strong> or <strong>Verilator</strong>.</li>
+            <li><strong>Logic synthesis</strong> (RTL → gate netlist) → <strong>Yosys</strong>.</li>
+            <li><strong>Floorplan / placement / CTS / routing</strong> → <strong>OpenROAD</strong> (driven end-to-end by <strong>OpenLane</strong>).</li>
+            <li><strong>Layout viewing / editing</strong> → <strong>KLayout</strong> or <strong>Magic</strong>.</li>
+            <li><strong>Signoff DRC / LVS</strong> (design-rule &amp; layout-vs-schematic checks) → <strong>Magic</strong> (DRC) and <strong>Netgen</strong> (LVS).</li>
+        </ol>
+        <p style="font-size:.88rem; color:var(--text2); margin-top:10px; margin-bottom:0;">OpenLane is the orchestration script that chains these together so a single command takes Verilog all the way to a GDSII.</p>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: run the OpenLane flow end to end</h3>
+        <p>This is the Week-1 project setup. Install the Docker-based OpenLane flow — which bundles Yosys, OpenROAD, and KLayout/Magic — and run its built-in example design all the way to a GDSII.</p>
+        <pre><span class="c"># clone OpenLane and pull the Docker image + PDK</span>
+git clone https://github.com/The-OpenROAD-Project/OpenLane
+cd OpenLane
+make            <span class="c"># pulls the prebuilt Docker image and Sky130 PDK</span>
+make test       <span class="c"># runs the built-in spm example: RTL → GDSII</span></pre>
+        <p>A clean <code>make test</code> ends with "Basic test passed" and writes a GDSII under <code>designs/spm/runs/</code>. Open that <code>.gds</code> in <code>KLayout</code> to see your first hand-run layout. Then peek at the run logs to spot each stage — synthesis, placement, CTS, routing, signoff — in order.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The VLSI design flow proceeds as…</div>
+            <div class="opt"><b>A.</b> RTL → synthesis → place &amp; route → signoff → GDSII</div>
+            <div class="opt"><b>B.</b> GDSII → RTL → test</div>
+            <div class="opt"><b>C.</b> layout → synthesis → RTL</div>
+            <div class="opt"><b>D.</b> fab → RTL → tape-out</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> You start from RTL, synthesize to gates, then place &amp; route, run signoff checks, and emit the GDSII. The other orderings run the pipeline backwards.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> "Tape-out" means…</div>
+            <div class="opt"><b>A.</b> testing the finished chip</div>
+            <div class="opt"><b>B.</b> sending the final GDSII layout to the fab for manufacturing</div>
+            <div class="opt"><b>C.</b> simulating the RTL</div>
+            <div class="opt"><b>D.</b> installing the tools</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Tape-out is the release of the finished GDSII to the fab. The name dates from when layouts were shipped on magnetic tape — it is not the testing step.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Abstraction in VLSI…</div>
+            <div class="opt"><b>A.</b> makes chips slower</div>
+            <div class="opt"><b>B.</b> lets designers manage complexity by hiding lower-level detail</div>
+            <div class="opt"><b>C.</b> removes the need for layout</div>
+            <div class="opt"><b>D.</b> is only for FPGAs</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Abstraction is the only way to manage billions of transistors — you work at a high level (RTL) and tools handle the detail beneath. Layout is still required.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the open-source flow, logic synthesis (RTL → gates) is done by…</div>
+            <div class="opt"><b>A.</b> KLayout</div>
+            <div class="opt"><b>B.</b> GTKWave</div>
+            <div class="opt"><b>C.</b> Yosys</div>
+            <div class="opt"><b>D.</b> Magic</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Yosys is the open-source synthesis tool. KLayout/Magic are for layout, and GTKWave views simulation waveforms.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> GDSII is…</div>
+            <div class="opt"><b>A.</b> a Verilog dialect</div>
+            <div class="opt"><b>B.</b> a simulation waveform</div>
+            <div class="opt"><b>C.</b> the layout file format describing the physical mask geometry</div>
+            <div class="opt"><b>D.</b> a timing report</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> GDSII is the binary format that stores the chip's physical mask polygons — the file you send to the fab at tape-out.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>VLSI</b> integrates millions–billions of transistors; <b>abstraction</b> is the only way to manage that complexity.</li>
+            <li>The abstraction levels: <b>behavioral/RTL → logic gates → transistors → physical layout (GDSII)</b>.</li>
+            <li>The <b>RTL-to-GDSII flow</b>: RTL → synthesis → netlist → floorplan → placement → CTS → routing → signoff → GDSII, then <b>tape-out</b> to the fab.</li>
+            <li>Design styles — <b>full-custom</b>, <b>standard-cell ASIC</b>, <b>FPGA</b> — and the four recurring challenges: <b>timing, power, area, verification</b>.</li>
+            <li>The open tools per stage: <b>Yosys</b> (synthesis), <b>OpenROAD/OpenLane</b> (place &amp; route), <b>KLayout/Magic</b> (layout), <b>Magic/Netgen</b> (signoff).</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: CMOS Layout Basics — how individual logic gates become transistors and polygons on the physical layers.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Prev</div><div class="ttl">C4 Syllabus</div></a>
+        <a href="l02-cmos-layout.html" class="next"><div class="dir">Next →</div><div class="ttl">CMOS Layout Basics</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 VLSI</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

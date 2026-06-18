@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C5 · Lecture 10 — Capstone: A Dynamic-Programming Model or Policy Simulation</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C5 Computational Econ</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Capstone: A Dynamic-Programming Model or Policy Simulation</h1>
+        <p class="sub">Everything you've built this course converges here — pose a model, solve it, calibrate it to data, and let it answer a policy question no spreadsheet can.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Pose an end-to-end computational model as either a dynamic program (Bellman equation) or an agent-based policy simulation.</li>
+            <li>Solve it with the right engine — value-function iteration, optimization, or equilibrium-finding — and confirm it converged.</li>
+            <li>Calibrate parameters so the model's moments match real data, using calibration or estimation.</li>
+            <li>Run a counterfactual policy experiment by changing one parameter and re-solving, then read the welfare effect.</li>
+            <li>Frame the capstone deliverable: a reproducible repository plus a short report that states a question, a method, and an answer.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>The Anatomy of an End-to-End Model</h2>
+        <p>For nine weeks you collected tools: root-finders, optimizers, Markov chains, value-function iteration, equilibrium solvers. A capstone is where those tools stop being exercises and become a single pipeline that takes a real economic question in one end and produces a defensible number out the other. Every credible computational study, no matter the topic, runs the same four stages:</p>
+        <div class="eq">Pose  ->  Solve  ->  Calibrate  ->  Counterfactual<small>Write the model as math, solve it numerically, fit it to data, then change a policy and re-solve to measure the effect.</small></div>
+        <p>The discipline is that the stages are <em>separable</em>. The "pose" stage produces equations independent of any code. The "solve" stage is a black box that, given parameters, returns a solution. "Calibrate" wraps the solver in a loop that searches for parameters matching data. "Counterfactual" reuses the exact same solver with one input changed. If you keep these four pieces decoupled in your code, you can swap solvers, re-calibrate, or run a dozen policy scenarios without rewriting anything.</p>
+        <p>Two model archetypes dominate this course's toolkit. A <strong>dynamic-programming (DP) model</strong> describes a forward-looking agent who maximizes discounted payoffs over time — savings, investment, job search. A <strong>policy simulation</strong> instead steps a population of heterogeneous agents forward under explicit rules and aggregates the outcome — useful when closed-form optimization is intractable or when distributions, not just averages, are the point.</p>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Posing &amp; Solving a Dynamic Program</h2>
+        <p>The canonical DP in economics is the <strong>income-fluctuation (consumption-savings) problem</strong>. A household earns stochastic income, chooses how much to consume versus save, and wants to smooth consumption over time. Writing <span class="key">a</span> for assets and <span class="key">y</span> for income, the value function obeys the <strong>Bellman equation</strong>:</p>
+        <div class="eq">V(a, y) = max over c of  [ u(c) + B * E[ V(a', y') | y ] ]<small>subject to a' = (1+r)(a - c) + y' ,  with discount factor B in (0,1) and utility u. The max over today's consumption c balances enjoying now vs. carrying assets forward.</small></div>
+        <p>The Bellman operator is a <strong>contraction</strong> with modulus B, so iterating it from any starting guess converges to the unique fixed point — that is <strong>value-function iteration (VFI)</strong>, the workhorse you met in Weeks 5–6. We discretize assets onto a grid, discretize income as a Markov chain, and repeatedly apply the operator until the value function stops changing:</p>
+        <div class="eq">|| V_{k+1} - V_k ||  &lt;  tol<small>Stop when the sup-norm change between sweeps falls below a tolerance; the contraction guarantees this happens, geometrically, at rate B.</small></div>
+        <p>The output is a <strong>policy function</strong> c(a, y): the optimal consumption at every state. That policy is the object you simulate and the object policy experiments move.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 520 300" role="img" aria-label="Value-function iteration converging: a sequence of curves rising toward a fixed-point value function over the asset grid.">
+                <!-- axes -->
+                <line x1="60" y1="250" x2="490" y2="250" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="250" x2="60" y2="40" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="275" y="285" fill="#93a8c8" font-size="12" text-anchor="middle">assets a</text>
+                <text x="22" y="145" fill="#93a8c8" font-size="12" text-anchor="middle" transform="rotate(-90 22 145)">value V(a)</text>
+                <!-- iterate 0 (flat low guess) -->
+                <path d="M60 220 L490 215" fill="none" stroke="#5f7191" stroke-width="1.6"/>
+                <text x="495" y="216" fill="#5f7191" font-size="10">V0</text>
+                <!-- iterate 1 -->
+                <path d="M60 200 Q200 150 490 130" fill="none" stroke="#818cf8" stroke-width="1.8"/>
+                <text x="495" y="131" fill="#818cf8" font-size="10">V1</text>
+                <!-- iterate 2 -->
+                <path d="M60 180 Q200 110 490 88" fill="none" stroke="#a78bfa" stroke-width="1.8"/>
+                <text x="495" y="89" fill="#a78bfa" font-size="10">V2</text>
+                <!-- fixed point -->
+                <path d="M60 165 Q200 85 490 62" fill="none" stroke="#34d399" stroke-width="2.6"/>
+                <text x="430" y="52" fill="#34d399" font-size="11">V* (fixed point)</text>
+                <!-- convergence arrows -->
+                <line x1="300" y1="210" x2="300" y2="100" stroke="#fbbf24" stroke-width="1.3" stroke-dasharray="4 3"/>
+                <polygon points="300,96 296,106 304,106" fill="#fbbf24"/>
+                <text x="312" y="160" fill="#fbbf24" font-size="10">sweeps</text>
+            </svg>
+            <figcaption>Value-function iteration: starting from a crude guess V0, each Bellman sweep (V1, V2, ...) climbs geometrically toward the unique fixed point V*. The contraction property guarantees this convergence regardless of the starting guess.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>VFI is like repeatedly applying the same camera filter to a photo until it stops changing. Because the Bellman operator <em>shrinks</em> differences (a contraction), each pass moves you a fixed fraction B of the remaining distance to the final image. You never overshoot, and the picture you converge to does not depend on the photo you started with.</div>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Calibration: Making the Model Match Reality</h2>
+        <p>A solved model with made-up parameters is just a cartoon. <strong>Calibration</strong> chooses parameters so that statistics generated by the model — its <em>moments</em> — match the same statistics measured in real data. The classic approach is the <strong>method of moments</strong>: pick parameters theta to minimize the distance between model moments m(theta) and data moments m_data.</p>
+        <div class="eq">theta* = argmin  [ m(theta) - m_data ]' W [ m(theta) - m_data ]<small>Minimize a weighted squared gap between simulated and observed moments. W is a positive-definite weighting matrix; this is the generalized method of moments (GMM) objective.</small></div>
+        <p>For our savings model, natural targets are the <strong>aggregate wealth-to-income ratio</strong> and the <strong>fraction of households with near-zero assets</strong>. We pick the discount factor B and a borrowing limit so the model reproduces both. Each evaluation of the objective requires <em>re-solving the entire DP</em> — calibration is an outer optimization loop wrapped around the VFI solver. This is why decoupling stages matters: the calibrator just calls <code>solve(theta)</code>.</p>
+        <p>Calibration sits between two styles. <strong>Pure calibration</strong> sets a handful of parameters to match a few salient moments, prized for transparency. <strong>Structural estimation</strong> (GMM, maximum likelihood, or simulated method of moments) formally estimates parameters with standard errors, prized for inference. Your capstone may use either, but must state which and why.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Calibrating to the <em>same</em> moments you later use to judge the model proves nothing — of course it fits, you forced it to. Reserve at least one <strong>untargeted moment</strong>: calibrate on (say) the wealth-to-income ratio, then check whether the model also reproduces, untargeted, the share of wealth held by the top 10%. Matching a moment you did <em>not</em> target is the real evidence your model captures the mechanism.</div>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>Counterfactuals &amp; the Capstone Deliverable</h2>
+        <p>The payoff of a calibrated model is the <strong>counterfactual experiment</strong>: change one policy parameter, re-solve, and compare. Because the model is disciplined by data in the baseline, the <em>difference</em> between baseline and counterfactual is a credible estimate of the policy's effect — even though no such experiment ever ran in the world. This is the entire reason economists build structural models instead of only running regressions.</p>
+        <p>In the savings model, a natural counterfactual is changing the interest rate r (a monetary-policy lever) or introducing a tax on capital income. We re-solve VFI under the new r, simulate the household panel, and report two numbers: the change in aggregate savings and the change in welfare, where welfare is measured as the <strong>consumption-equivalent variation</strong> — the constant percentage boost to baseline consumption that would make a household indifferent to the policy.</p>
+        <div class="eq">CEV  such that  E[ V_baseline((1+CEV) c) ] = E[ V_counterfactual(c) ]<small>The consumption-equivalent variation translates an abstract change in the value function into a plain-language "x% better off" welfare statement.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 520 300" role="img" aria-label="Counterfactual comparison: baseline and policy savings policy functions over the asset grid, with a shaded welfare gap.">
+                <!-- axes -->
+                <line x1="60" y1="250" x2="490" y2="250" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="250" x2="60" y2="40" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="275" y="285" fill="#93a8c8" font-size="12" text-anchor="middle">current assets a</text>
+                <text x="22" y="150" fill="#93a8c8" font-size="12" text-anchor="middle" transform="rotate(-90 22 150)">next-period assets a'</text>
+                <!-- 45 deg reference -->
+                <line x1="60" y1="250" x2="430" y2="60" stroke="#5f7191" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <text x="436" y="60" fill="#5f7191" font-size="10">45 deg</text>
+                <!-- baseline policy -->
+                <path d="M60 235 Q200 150 470 95" fill="none" stroke="#60a5fa" stroke-width="2.4"/>
+                <text x="360" y="120" fill="#60a5fa" font-size="11">baseline (r = 3%)</text>
+                <!-- counterfactual policy (higher r -> more saving) -->
+                <path d="M60 225 Q200 120 470 70" fill="none" stroke="#fbbf24" stroke-width="2.4"/>
+                <text x="250" y="80" fill="#fbbf24" font-size="11">policy (r = 5%)</text>
+                <!-- welfare gap marker -->
+                <line x1="300" y1="150" x2="300" y2="118" stroke="#34d399" stroke-width="1.6"/>
+                <polygon points="300,114 296,124 304,124" fill="#34d399"/>
+                <text x="308" y="148" fill="#34d399" font-size="10">more saving</text>
+            </svg>
+            <figcaption>Counterfactual savings policy functions a'(a). Raising the interest rate from 3% to 5% lifts the policy curve above the baseline at every asset level — households save more. Re-solving the calibrated model is what makes this gap a credible policy estimate.</figcaption>
+        </figure>
+        <p>The <strong>capstone deliverable</strong> bundles this into something reproducible. A reader should be able to clone your repository, run one command, and regenerate every figure. The expected pieces:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li>A <strong>question</strong> stated in one sentence ("How does a 2-point rise in r change aggregate savings and welfare?").</li>
+            <li>A <strong>model</strong> section with the Bellman equation or simulation rules written out.</li>
+            <li>A <strong>solution + calibration</strong> section: which solver, which targets, a convergence check, and an untargeted-moment validation.</li>
+            <li>A <strong>counterfactual</strong> section with at least one figure and a welfare number.</li>
+            <li>A <strong>reproducible repo</strong>: a <code>requirements.txt</code>, a <code>solve.py</code>, and a notebook or script that produces the report's figures from scratch.</li>
+        </ul>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of your capstone as a flight simulator, not a photograph. A photograph (a regression on past data) shows what happened. A simulator, once you've tuned it to fly like the real plane (calibration), lets you ask "what if we add this new wing?" and watch the answer — safely, before anyone builds the wing. Counterfactuals are test flights in a world disciplined to behave like ours.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — a counterfactual interest-rate experiment</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A calibrated savings model has discount factor B = 0.96 and baseline interest rate r = 3%. Simulating 10,000 households gives mean assets <strong>4.20</strong> (in units of annual income) and baseline lifetime value <strong>V_base = -20.00</strong>. You raise r to 5%, re-solve, and re-simulate. Quantify the effect.</p>
+        <ol>
+            <li><strong>Re-solve under r = 0.05.</strong> VFI converges in 312 sweeps; the sup-norm change falls below tol = 1e-6. The new policy function saves more at every asset level (the amber curve in the figure).</li>
+            <li><strong>Re-simulate the panel.</strong> New mean assets = <strong>4.95</strong>. Change in aggregate savings = (4.95 − 4.20) / 4.20 = <strong>+17.9%</strong>.</li>
+            <li><strong>Read the new value.</strong> New mean lifetime value V_cf = −19.61.</li>
+            <li><strong>Compute welfare in consumption-equivalent terms.</strong> With log utility, CEV solves V_base + ln(1+CEV)/(1−B) = V_cf, so ln(1+CEV) = (V_cf − V_base)(1−B) = (−19.61 − (−20.00)) × 0.04 = 0.39 × 0.04 = 0.0156.</li>
+            <li><strong>Translate to plain language.</strong> CEV = e^(0.0156) − 1 = <strong>+1.57%</strong>. Households are as well off as if their baseline consumption rose 1.57% forever. <em>Report</em>: "A 2-point rise in r raises aggregate savings 17.9% and welfare by 1.57% in consumption-equivalent terms."</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a full DP pipeline in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This pulls the whole course together with the free QuantEcon stack — <code>numpy</code>, <code>scipy</code>, and <code>quantecon</code> (which gives us ready-made Markov chains and a VFI helper). If you set up the environment in the <strong>Week 1/2 install step</strong>, you already have everything; no new tool is needed here. The structure below mirrors the four decoupled stages from 10.1.</p>
+        <pre><span class="c"># capstone_savings.py — Lecture 10: pose -> solve -> calibrate -> counterfactual</span>
+import numpy as np
+from scipy.optimize import brentq
+import quantecon as qe
+
+<span class="c"># ---- POSE: primitives -------------------------------------------------</span>
+beta = 0.96                      <span class="c"># discount factor</span>
+a_grid = np.linspace(0.0, 20.0, 400)   <span class="c"># asset grid</span>
+mc = qe.tauchen(n=5, rho=0.9, sigma=0.1)   <span class="c"># income as a Markov chain</span>
+y_grid, P = np.exp(mc.state_values), mc.P
+
+def u(c):                        <span class="c"># log utility; -inf if infeasible</span>
+    return np.where(c &gt; 1e-10, np.log(np.maximum(c, 1e-10)), -1e10)
+
+<span class="c"># ---- SOLVE: value-function iteration ----------------------------------</span>
+def solve(r, tol=1e-6, maxit=2000):
+    V = np.zeros((len(a_grid), len(y_grid)))
+    for it in range(maxit):
+        EV = V @ P.T                          <span class="c"># expected next-period value</span>
+        c = (1 + r) * a_grid[:, None, None] + y_grid[None, :, None] \
+            - a_grid[None, None, :]           <span class="c"># consumption for every (a, y, a')</span>
+        candidate = u(c) + beta * EV[None, None, :, 0]  <span class="c"># Bellman RHS</span>
+        Vnew = candidate.max(axis=2)          <span class="c"># max over next assets a'</span>
+        if np.max(np.abs(Vnew - V)) &lt; tol:
+            return Vnew, candidate.argmax(axis=2), it
+        V = Vnew
+    return V, candidate.argmax(axis=2), maxit
+
+<span class="c"># ---- COUNTERFACTUAL: re-solve under a new policy lever -----------------</span>
+V_base, pol_base, n0 = solve(r=0.03)
+V_cf,   pol_cf,   n1 = solve(r=0.05)
+
+dV = V_cf.mean() - V_base.mean()
+cev = np.exp(dV * (1 - beta)) - 1            <span class="c"># consumption-equivalent variation</span>
+print(f"converged in {n0}/{n1} sweeps; welfare CEV = {cev:.4f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Swap <code>solve(r=0.05)</code> for a tax on capital income, or wrap <code>solve</code> in a <code>scipy.optimize.minimize</code> loop to <em>calibrate</em> B so simulated mean assets hit a data target — that outer loop is the calibration stage. Each piece is independently testable, which is exactly what makes the capstone reproducible.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have the full computational-economics loop in your hands. The <strong>Final Exam</strong> (building) will test your ability to pose, solve, and interpret a small model end to end under time pressure. Beyond this course, the same pose–solve–calibrate–counterfactual pipeline scales directly into <em>heterogeneous-agent macro</em> (where the asset distribution itself feeds back into prices), <em>dynamic market design</em> (the auction and energy-market work from Week 9), and the <em>structural estimation</em> methods at the heart of modern applied micro. The plumbing never changes — only the equations you pour through it.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The four stages of an end-to-end computational study, in order, are…</div>
+            <div class="opt"><b>A.</b> pose, solve, calibrate, counterfactual</div>
+            <div class="opt"><b>B.</b> calibrate, pose, counterfactual, solve</div>
+            <div class="opt"><b>C.</b> solve, pose, counterfactual, calibrate</div>
+            <div class="opt"><b>D.</b> counterfactual, calibrate, solve, pose</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> You must write the model (pose) before you can solve it, fit it to data (calibrate), then change a lever (counterfactual). The other orders put steps before their prerequisites — you cannot calibrate or run a counterfactual on a model you haven't yet posed or solved.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Value-function iteration is guaranteed to converge to a unique fixed point because the Bellman operator is…</div>
+            <div class="opt"><b>A.</b> linear in the state</div>
+            <div class="opt"><b>B.</b> a contraction mapping with modulus equal to the discount factor</div>
+            <div class="opt"><b>C.</b> monotone but not bounded</div>
+            <div class="opt"><b>D.</b> differentiable everywhere</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Discounting by B &lt; 1 makes the operator a contraction, so by the Banach fixed-point theorem it has a unique fixed point reached from any start. Linearity (A) is false — the max makes it nonlinear. Monotonicity alone (C) doesn't give uniqueness, and differentiability (D) is irrelevant to convergence.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The strongest evidence that a calibrated model captures the real mechanism is that it…</div>
+            <div class="opt"><b>A.</b> exactly reproduces the moments it was calibrated to</div>
+            <div class="opt"><b>B.</b> uses the largest possible number of parameters</div>
+            <div class="opt"><b>C.</b> reproduces an untargeted moment it was not fit to</div>
+            <div class="opt"><b>D.</b> converges in the fewest VFI sweeps</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Matching a moment you did <em>not</em> target is genuine validation. Reproducing targeted moments (A) is circular — you forced that fit. More parameters (B) invites overfitting, and sweep count (D) is about numerical speed, not realism.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A counterfactual policy experiment in a structural model means…</div>
+            <div class="opt"><b>A.</b> running a regression on historical policy changes</div>
+            <div class="opt"><b>B.</b> changing a policy parameter, re-solving the calibrated model, and comparing outcomes</div>
+            <div class="opt"><b>C.</b> collecting new survey data after a policy is enacted</div>
+            <div class="opt"><b>D.</b> assuming the policy has no effect and testing that hypothesis</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The whole point of a structural model is to alter a lever and re-solve, so the baseline-vs-policy difference estimates an effect no real experiment ran. A regression (A) and new data (C) are empirical, not structural; (D) describes a null hypothesis, not a counterfactual.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Welfare effects of a policy are best reported as a consumption-equivalent variation (CEV) because it…</div>
+            <div class="opt"><b>A.</b> is the only quantity a model can compute</div>
+            <div class="opt"><b>B.</b> equals the change in aggregate savings</div>
+            <div class="opt"><b>C.</b> requires no calibration</div>
+            <div class="opt"><b>D.</b> translates an abstract change in the value function into a plain "x% better off" number</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> CEV converts an opaque change in V into the percentage consumption boost that would make a household indifferent — interpretable and comparable across studies. It is not the savings change (B), is not the only computable quantity (A), and it relies on a calibrated, solved model (C).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Every computational study follows <b>pose → solve → calibrate → counterfactual</b>, kept as decoupled code stages.</li>
+            <li>A <b>dynamic program</b> is posed as a Bellman equation and solved by <b>value-function iteration</b>, which converges because the operator is a <b>contraction</b>.</li>
+            <li><b>Calibration</b> chooses parameters so model moments match data, with an <b>untargeted moment</b> as the real validation test.</li>
+            <li>A <b>counterfactual</b> changes one lever and re-solves; the baseline-vs-policy gap is a credible policy estimate, summarized as a <b>consumption-equivalent variation</b>.</li>
+            <li>The <b>capstone deliverable</b> is a reproducible repo plus a report stating a question, a method, and an answer.</li>
+        </ul>
+        <p class="next-up">Next up — the <b>Final Exam</b> (building): pose, solve, and interpret a small model end to end under time pressure, drawing on every week of the course.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-market-design-energy.html"><div class="dir">← Week 9</div><div class="ttl">Market Design &amp; Energy Economics</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Computational Econ</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

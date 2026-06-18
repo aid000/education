@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C2 · Lecture 9 — Chaos: The Double Pendulum &amp; Lorenz System</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C2 ODEs &amp; Dynamics</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Chaos: The Double Pendulum &amp; Lorenz System</h1>
+        <p class="sub">Two systems with the same rules and the same equations, started a hair apart, drift into utterly different futures — that is chaos, and it is everywhere.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define <em>deterministic chaos</em> and explain sensitive dependence on initial conditions.</li>
+            <li>Describe the double pendulum as a simple mechanical system that is nonetheless chaotic.</li>
+            <li>Write down the Lorenz system and explain what its <em>strange attractor</em> is and is not.</li>
+            <li>Define the <em>Lyapunov exponent</em> and use it to quantify how fast nearby trajectories separate.</li>
+            <li>Integrate a chaotic ODE in SciPy and measure its largest Lyapunov exponent numerically.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>Deterministic Chaos &amp; Sensitive Dependence</h2>
+        <p>Through eight weeks of this course we trusted a comforting idea: give a differential equation an initial condition, and its future is fixed. The flow is <strong>deterministic</strong> — no randomness, no dice. <em>Chaos</em> does not break this. A chaotic system is fully deterministic. What it adds is a vicious sensitivity: two starts that differ by one part in a billion produce trajectories that, after a while, look completely unrelated.</p>
+        <p>The signature is <strong>exponential</strong> separation. Let two nearby trajectories start a tiny distance &delta;<sub>0</sub> apart. In a chaotic regime their separation grows like:</p>
+        <div class="eq">&delta;(t) &asymp; &delta;<sub>0</sub> · e<sup>&lambda;t</sup><small>&lambda; &gt; 0 is the largest Lyapunov exponent. Positive &lambda; is the mathematical fingerprint of chaos.</small></div>
+        <p>Contrast this with a stable, non-chaotic system, where nearby starts stay nearby (separation grows at most linearly, &delta; &prop; t) or even shrink toward a common path (&lambda; &lt; 0). The exponential blow-up is what makes long-term prediction impossible in practice: every measurement has finite precision, and that initial uncertainty is amplified by e<sup>&lambda;t</sup> until it fills the whole accessible region.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Drop two identical leaves into a smooth stream side by side and they float downstream together — that is a stable, predictable flow. Drop them just above a rocky rapid and watch: a sliver of difference in where they land sends one into an eddy and the other over the falls. The water obeys the same fluid equations for both leaves; nothing is random. The rapid just <strong>amplifies</strong> microscopic differences explosively. Chaos is a rocky rapid in the equations themselves.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Chaotic does <strong>not</strong> mean random, and it does <strong>not</strong> mean noisy. The same initial condition always yields the exact same trajectory. The catch is that you can never specify the initial condition <em>exactly</em>, and the tiny unavoidable error grows exponentially. "Deterministic" and "unpredictable" are not contradictions here — they coexist.</div>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>The Double Pendulum: Chaos from Two Rods</h2>
+        <p>You do not need a complicated system to find chaos. Hang one pendulum from the end of another — two rods, two masses, gravity — and you have a system whose equations a first-year student can write down, yet whose motion is chaotic for all but the smallest swings.</p>
+        <p>The state needs four numbers: the two angles &theta;<sub>1</sub>, &theta;<sub>2</sub> and their angular velocities. The equations of motion (from the Lagrangian we built in earlier weeks) are coupled and strongly nonlinear because of the sin and cos of the angle <em>difference</em>:</p>
+        <div class="eq">state = (&theta;<sub>1</sub>, &omega;<sub>1</sub>, &theta;<sub>2</sub>, &omega;<sub>2</sub>),&nbsp;&nbsp; d&theta;<sub>i</sub>/dt = &omega;<sub>i</sub><small>The angular accelerations d&omega;<sub>i</sub>/dt depend on sin(&theta;<sub>1</sub> &minus; &theta;<sub>2</sub>), the coupling that breeds chaos.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 420 240" role="img" aria-label="Double pendulum schematic: a pivot at top, a first rod to mass one, a second rod to mass two, with two slightly different starting angles drawn to show divergence">
+                <!-- ceiling -->
+                <line x1="60" y1="34" x2="360" y2="34" stroke="#a3a8c8" stroke-width="2"/>
+                <line x1="70" y1="34" x2="62" y2="26" stroke="#a3a8c8" stroke-width="1"/>
+                <line x1="90" y1="34" x2="82" y2="26" stroke="#a3a8c8" stroke-width="1"/>
+                <line x1="110" y1="34" x2="102" y2="26" stroke="#a3a8c8" stroke-width="1"/>
+                <circle cx="210" cy="34" r="4" fill="#a5b4fc"/>
+                <text x="210" y="22" fill="#a5b4fc" font-size="11" text-anchor="middle">pivot</text>
+                <!-- trajectory A (solid, accent) -->
+                <line x1="210" y1="34" x2="150" y2="110" stroke="#818cf8" stroke-width="3"/>
+                <circle cx="150" cy="110" r="11" fill="#818cf8"/>
+                <line x1="150" y1="110" x2="200" y2="190" stroke="#818cf8" stroke-width="3"/>
+                <circle cx="200" cy="190" r="13" fill="#818cf8"/>
+                <text x="120" y="108" fill="#a5b4fc" font-size="11" text-anchor="middle">m1</text>
+                <text x="226" y="196" fill="#a5b4fc" font-size="11" text-anchor="middle">m2</text>
+                <!-- trajectory B (dashed amber, tiny offset start) -->
+                <line x1="210" y1="34" x2="156" y2="112" stroke="#fbbf24" stroke-width="2" stroke-dasharray="5 4"/>
+                <circle cx="156" cy="112" r="6" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <line x1="156" y1="112" x2="248" y2="168" stroke="#fbbf24" stroke-width="2" stroke-dasharray="5 4"/>
+                <circle cx="248" cy="168" r="7" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <!-- angle labels -->
+                <text x="232" y="78" fill="#34d399" font-size="12">theta1</text>
+                <text x="178" y="150" fill="#34d399" font-size="12">theta2</text>
+                <!-- legend -->
+                <rect x="300" y="200" width="18" height="3" fill="#818cf8"/>
+                <text x="324" y="206" fill="#a3a8c8" font-size="10">start A</text>
+                <rect x="300" y="216" width="18" height="3" fill="#fbbf24"/>
+                <text x="324" y="222" fill="#a3a8c8" font-size="10">start B (+0.01 rad)</text>
+            </svg>
+            <figcaption>A double pendulum has four state variables (&theta;<sub>1</sub>, &omega;<sub>1</sub>, &theta;<sub>2</sub>, &omega;<sub>2</sub>). Two starts differing by only 0.01 rad in &theta;<sub>2</sub> (solid vs dashed) trace nearly the same path for a moment, then peel apart — the second mass swings to wholly different positions within a few seconds.</figcaption>
+        </figure>
+        <p>For tiny swings the double pendulum is well-behaved: it reduces to two coupled harmonic oscillators (normal modes, from Week 6). But push the amplitude up and the nonlinearity dominates. The energy is conserved (no friction), so the motion is not random — yet it is unpredictable in detail. This is the cleanest mechanical demonstration of chaos you can build on a tabletop.</p>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>The Lorenz System &amp; Its Strange Attractor</h2>
+        <p>In 1963 a meteorologist studying a drastically simplified model of atmospheric convection wrote down three coupled ODEs and stumbled into the modern theory of chaos. The <strong>Lorenz system</strong> is the most famous chaotic system in science:</p>
+        <div class="eq">dx/dt = &sigma;(y &minus; x)<br>dy/dt = x(&rho; &minus; z) &minus; y<br>dz/dt = xy &minus; &beta;z<small>Classic chaotic parameters: &sigma; = 10, &rho; = 28, &beta; = 8/3. Here x, y, z are convection-roll variables, not spatial coordinates.</small></div>
+        <p>The remarkable thing is what the trajectory does. It never settles to a fixed point, never repeats a periodic loop, yet it never flies off to infinity either. Instead it wanders forever on a bounded, intricately folded surface — the famous two-lobed "butterfly." This object is a <strong>strange attractor</strong>: an attractor (nearby trajectories are drawn onto it) that is <em>strange</em> because it has a fractal, non-integer dimension and any two points on it separate exponentially.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 440 280" role="img" aria-label="The Lorenz strange attractor projected onto the x-z plane, showing the two-lobed butterfly shape with two spiral wings around two unstable foci">
+                <line x1="40" y1="248" x2="410" y2="248" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="30" x2="60" y2="248" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="400" y="266" fill="#a3a8c8" font-size="11">x</text>
+                <text x="40" y="26" fill="#a3a8c8" font-size="11">z</text>
+                <!-- left wing spiral -->
+                <path d="M170,150 C120,120 110,90 150,80 C195,68 210,110 175,128 C150,140 140,118 160,108 C172,102 178,114 168,120"
+                      fill="none" stroke="#60a5fa" stroke-width="1.6"/>
+                <!-- right wing spiral -->
+                <path d="M250,150 C300,120 312,90 272,80 C228,68 212,110 247,128 C272,140 282,118 262,108 C250,102 244,114 254,120"
+                      fill="none" stroke="#c084fc" stroke-width="1.6"/>
+                <!-- crossover connecting the two wings -->
+                <path d="M170,150 C195,170 225,170 250,150" fill="none" stroke="#818cf8" stroke-width="1.6"/>
+                <path d="M175,128 C200,150 222,150 247,128" fill="none" stroke="#818cf8" stroke-width="1.6"/>
+                <!-- two unstable foci -->
+                <circle cx="160" cy="110" r="3" fill="#fbbf24"/>
+                <circle cx="262" cy="110" r="3" fill="#fbbf24"/>
+                <text x="120" y="70" fill="#60a5fa" font-size="11">left lobe</text>
+                <text x="300" y="70" fill="#c084fc" font-size="11">right lobe</text>
+                <text x="160" y="100" fill="#fbbf24" font-size="9" text-anchor="middle">C-</text>
+                <text x="262" y="100" fill="#fbbf24" font-size="9" text-anchor="middle">C+</text>
+                <text x="225" y="200" fill="#a3a8c8" font-size="10" text-anchor="middle">trajectory never repeats, never escapes</text>
+            </svg>
+            <figcaption>The Lorenz attractor projected onto the x-z plane (&sigma;=10, &rho;=28, &beta;=8/3). The path spirals out around one unstable focus (C-), flips to the other lobe around C+, and back — forever, without ever crossing itself or closing into a loop. It is bounded yet aperiodic: a strange attractor.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>The x, y, z of the Lorenz system are <strong>not</strong> physical positions in space, and the butterfly is not a picture of fluid. They are abstract amplitudes of convection modes plotted in a state space (phase space). Likewise, the "butterfly effect" name is a happy coincidence with the attractor's shape — it actually refers to sensitive dependence (a butterfly's wingbeat altering a distant storm), not to the drawing.</div>
+    </section>
+
+    <!-- 9.4 -->
+    <section class="lec">
+        <h2><span class="n">9.4</span>The Lyapunov Exponent: Measuring Chaos</h2>
+        <p>"Sensitive dependence" is a feeling; the <strong>Lyapunov exponent</strong> &lambda; turns it into a number. Take the separation law from 9.1, &delta;(t) &asymp; &delta;<sub>0</sub> e<sup>&lambda;t</sup>, take logs, and solve for the rate:</p>
+        <div class="eq">&lambda; = lim<sub>t&rarr;&infin;</sub> (1/t) · ln( &delta;(t) / &delta;<sub>0</sub> )<small>The largest Lyapunov exponent: the long-time average exponential rate at which infinitesimally close trajectories separate.</small></div>
+        <p>The <em>sign</em> of the largest &lambda; classifies the dynamics. &lambda; &lt; 0: trajectories converge to a stable fixed point or limit cycle (predictable). &lambda; = 0: marginal, as on a conservative periodic orbit. <strong>&lambda; &gt; 0: chaos.</strong> For the Lorenz system with the classic parameters, &lambda; &asymp; 0.906 (per unit time). Its reciprocal is the <strong>Lyapunov time</strong> &tau; &asymp; 1/0.906 &asymp; 1.1 — the timescale on which prediction degrades.</p>
+        <p>This is brutally practical. To keep prediction error below 1, an initial error &delta;<sub>0</sub> survives only until &delta;<sub>0</sub>e<sup>&lambda;t</sup> &asymp; 1, i.e. for a time t &asymp; (1/&lambda;)·ln(1/&delta;<sub>0</sub>). Notice the logarithm: improving your measurements by a factor of 1000 (three decimal digits) buys you only ln(1000) &asymp; 6.9 extra Lyapunov times. This is exactly why weather forecasts are useless beyond a couple of weeks no matter how good the sensors get.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of &lambda; as the "interest rate on ignorance." Your initial uncertainty is the principal &delta;<sub>0</sub>; chaos compounds it continuously at rate &lambda;. A bigger &lambda; means your tiny debt of ignorance balloons faster. And because growth is exponential (compound, not simple interest), pouring in more precision only delays the inevitable by a <em>logarithmic</em> amount.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — how long can you predict the Lorenz system?</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">You know the Lorenz state to a relative precision of &delta;<sub>0</sub> = 10<sup>&minus;6</sup> (six good digits). The largest Lyapunov exponent is &lambda; &asymp; 0.906 per time unit. About how long until your prediction error grows to order 1 (totally wrong)? What if you improve precision to &delta;<sub>0</sub> = 10<sup>&minus;9</sup>?</p>
+        <ol>
+            <li><strong>Set up the threshold:</strong> prediction fails when &delta;(t) = &delta;<sub>0</sub>e<sup>&lambda;t</sup> &asymp; 1.</li>
+            <li><strong>Solve for t:</strong> e<sup>&lambda;t</sup> = 1/&delta;<sub>0</sub>, so t = (1/&lambda;)·ln(1/&delta;<sub>0</sub>).</li>
+            <li><strong>Plug in &delta;<sub>0</sub> = 10<sup>&minus;6</sup>:</strong> ln(10<sup>6</sup>) = 6·ln 10 &asymp; 6·2.303 = 13.8. Then t &asymp; 13.8 / 0.906 &asymp; <strong>15.2 time units</strong> (about 14 Lyapunov times).</li>
+            <li><strong>Now &delta;<sub>0</sub> = 10<sup>&minus;9</sup>:</strong> ln(10<sup>9</sup>) = 9·2.303 = 20.7, so t &asymp; 20.7 / 0.906 &asymp; <strong>22.9 time units</strong>.</li>
+            <li><strong>Takeaway:</strong> a thousand-fold improvement in precision (6 &rarr; 9 digits) extended the useful horizon from ~15 to ~23 units — a gain of only ln(1000)/&lambda; &asymp; 7.6 units. Exponential error growth makes the prediction horizon crawl logarithmically with effort. That is the hard wall chaos puts on forecasting.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: integrate Lorenz and measure &lambda;</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the same free Python + NumPy/SciPy/Matplotlib stack from <strong>Week 1</strong> (the one-time install <code>details</code> lives in Lecture 1). No new tools are needed — <code>solve_ivp</code> from Week 3 does all the integrating.</p>
+        <p style="font-size:.9rem; color:var(--text2);">First integrate two Lorenz trajectories whose starts differ by 10<sup>&minus;9</sup>, plot the attractor, and watch the separation grow exponentially. Then fit a line to ln(separation) versus time — its slope is the largest Lyapunov exponent.</p>
+        <pre><span class="c"># lorenz_chaos.py — Lecture 9</span>
+import numpy as np
+from scipy.integrate import solve_ivp
+
+sigma, rho, beta = 10.0, 28.0, 8.0/3.0
+
+def lorenz(t, s):
+    x, y, z = s
+    return [sigma*(y - x), x*(rho - z) - y, x*y - beta*z]
+
+t_span = (0.0, 40.0)
+t_eval = np.linspace(*t_span, 8000)
+s0 = [1.0, 1.0, 1.0]
+s1 = [1.0 + 1e-9, 1.0, 1.0]              <span class="c"># start 1e-9 apart</span>
+
+<span class="c"># tight tolerances so the chaos is real, not solver noise</span>
+a = solve_ivp(lorenz, t_span, s0, t_eval=t_eval, rtol=1e-10, atol=1e-12)
+b = solve_ivp(lorenz, t_span, s1, t_eval=t_eval, rtol=1e-10, atol=1e-12)
+
+sep = np.linalg.norm(a.y - b.y, axis=0)  <span class="c"># distance vs time</span>
+
+<span class="c"># fit ln(sep) ~ lambda*t over the exponential-growth window</span>
+mask = (a.t &gt; 2) &amp; (sep &lt; 1.0)            <span class="c"># before saturation</span>
+lam = np.polyfit(a.t[mask], np.log(sep[mask]), 1)[0]
+print(f"largest Lyapunov exponent ~ {lam:.3f}")   <span class="c"># ~0.9</span>
+
+<span class="c"># optional: plot the attractor (x-z projection) and sep(t) on a log axis</span>
+import matplotlib.pyplot as plt
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+ax1.plot(a.y[0], a.y[2], lw=0.4); ax1.set_xlabel("x"); ax1.set_ylabel("z")
+ax2.semilogy(a.t, sep); ax2.set_xlabel("t"); ax2.set_ylabel("separation")
+plt.tight_layout(); plt.show()</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Try it: change <code>s1</code>'s offset to 10<sup>&minus;3</sup> and watch the separation saturate sooner (it starts closer to 1). The fitted slope &lambda; should stay the same — it is a property of the <em>attractor</em>, not of your starting gap. Then loosen <code>rtol</code> to 1e-3 and see the two trajectories diverge from <em>solver error</em> alone: a cautionary tale about chaos and tolerances.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Chaos reframes everything that follows. <strong>Week 10</strong>'s capstone fuses this lecture with last week's N-body dynamics: gravitational few-body systems are chaotic, so the Solar System itself has a finite Lyapunov time of a few million years. In <strong>Course 4 (PDEs)</strong>, turbulent fluid flow is chaos with infinitely many coupled modes, and the Lorenz system is its three-mode toy. In the <strong>Quant track</strong>, distinguishing genuine deterministic chaos from random noise in a time series is a live problem, and Lyapunov-style estimates are part of the toolkit. The deepest lesson — <em>deterministic does not mean predictable</em> — recurs whenever you model a real nonlinear system, from heartbeats to lasers to climate.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="box analogy">
+        <span class="lbl">💬 Discussion</span>
+        <p style="margin:0 0 8px;">If the double pendulum and the Lorenz system are perfectly deterministic — same equations, same start, same future every time — then in what concrete sense are they "unpredictable"? Is the unpredictability a fact about <em>the system</em>, or a fact about <em>us</em> (our instruments, our computers, our knowledge)? Use the Lyapunov exponent in your answer, and say what would have to be true for chaos to be "predictable in principle."</p>
+        <details>
+            <summary>Show a model response</summary>
+            <p style="font-size:.9rem; color:var(--text2); margin-top:10px;"><strong>Model response.</strong> The unpredictability is not in the equations — the flow is a deterministic map from state to future, so in a mathematical idealization with an <em>exactly</em> specified real-valued initial condition the trajectory is unique and "predictable in principle." The unpredictability is a fact about the interface between the system and us. Two things conspire. First, we can only ever know the initial state to finite precision &delta;<sub>0</sub> (no instrument gives infinitely many digits). Second, the system has a positive Lyapunov exponent &lambda;, so that uncertainty grows as &delta;<sub>0</sub>e<sup>&lambda;t</sup>. Prediction stays useful only for t &asymp; (1/&lambda;)ln(1/&delta;<sub>0</sub>), which grows merely logarithmically with our precision — so no realistic instrument upgrade buys meaningful forecast horizon. For chaos to be "predictable in principle" you would need either &lambda; &le; 0 (then it is not chaotic) or an exactly specified initial condition with infinite precision <em>and</em> exact arithmetic (no round-off, per Lecture 1) — both physically impossible. So chaos sits in a strange place: ontologically deterministic, epistemically unpredictable. The system is honest; our knowledge is finite.</p>
+            <p style="font-size:.88rem; color:var(--green); margin-top:10px;"><strong>✓ Self-check rubric.</strong> A strong answer (1) distinguishes the deterministic equations from finite-precision knowledge; (2) invokes &lambda; &gt; 0 and the exponential growth of error; (3) notes the prediction horizon scales only as ln(1/&delta;<sub>0</sub>); and (4) concludes that "predictable in principle" requires infinite precision and exact arithmetic, which are unphysical. Bonus: connect round-off (Lecture 1) as a second, computational source of the same divergence.</p>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The defining mathematical signature of deterministic chaos is…</div>
+            <div class="opt"><b>A.</b> a positive largest Lyapunov exponent (nearby trajectories separate exponentially)</div>
+            <div class="opt"><b>B.</b> random forcing terms added to the equations</div>
+            <div class="opt"><b>C.</b> trajectories that always diverge to infinity</div>
+            <div class="opt"><b>D.</b> energy that is not conserved</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Chaos is &lambda; &gt; 0 with bounded, aperiodic motion. (B) is wrong — chaos has no randomness; the equations are deterministic. (C) is wrong — chaotic trajectories stay bounded on an attractor. (D) is wrong — the double pendulum is chaotic yet conserves energy.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why is the long-term behavior of a double pendulum impossible to predict in practice?</div>
+            <div class="opt"><b>A.</b> friction makes the motion irreversible</div>
+            <div class="opt"><b>B.</b> any tiny error in the initial angles grows exponentially in time</div>
+            <div class="opt"><b>C.</b> the equations of motion are unknown</div>
+            <div class="opt"><b>D.</b> the motion is genuinely random at the microscopic level</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Sensitive dependence: &delta;(t) &asymp; &delta;<sub>0</sub>e<sup>&lambda;t</sup>. (A) is wrong — chaos appears even with no friction. (C) is wrong — the equations are known exactly (Lagrangian). (D) is wrong — it is deterministic, not random.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The Lorenz "butterfly" is best described as…</div>
+            <div class="opt"><b>A.</b> a periodic orbit the trajectory repeats every cycle</div>
+            <div class="opt"><b>B.</b> a snapshot of the fluid velocity field in real space</div>
+            <div class="opt"><b>C.</b> a strange attractor: a bounded, aperiodic, fractal set in state space</div>
+            <div class="opt"><b>D.</b> a single stable fixed point the system settles to</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> It is an attractor (nearby paths are drawn onto it) that is fractal and aperiodic. (A) is wrong — it never exactly repeats. (B) is wrong — x,y,z are convection-mode amplitudes, not spatial positions. (D) is wrong — the foci are unstable; the system never settles.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> You know a chaotic system's state to precision &delta;<sub>0</sub> and its largest Lyapunov exponent is &lambda;. The useful prediction horizon scales roughly as…</div>
+            <div class="opt"><b>A.</b> proportional to 1/&delta;<sub>0</sub> (linear in precision)</div>
+            <div class="opt"><b>B.</b> proportional to &lambda; (bigger &lambda; means longer horizon)</div>
+            <div class="opt"><b>C.</b> independent of both &delta;<sub>0</sub> and &lambda;</div>
+            <div class="opt"><b>D.</b> (1/&lambda;)·ln(1/&delta;<sub>0</sub>) — logarithmic in precision</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Setting &delta;<sub>0</sub>e<sup>&lambda;t</sup> &asymp; 1 gives t &asymp; (1/&lambda;)ln(1/&delta;<sub>0</sub>). (A) is far too optimistic — the dependence is logarithmic, not linear. (B) has it backwards — larger &lambda; shortens the horizon. (C) is wrong — both clearly matter.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> When numerically estimating &lambda; from two trajectories that start very close, why do we fit ln(separation) vs. time only over an intermediate window?</div>
+            <div class="opt"><b>A.</b> because separation grows exponentially forever and never saturates</div>
+            <div class="opt"><b>B.</b> early on the transient hasn't settled, and late on the separation saturates at the attractor's size</div>
+            <div class="opt"><b>C.</b> because solver round-off makes the early data the only reliable part</div>
+            <div class="opt"><b>D.</b> because the Lyapunov exponent is only defined for periodic orbits</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The clean exponential e<sup>&lambda;t</sup> regime is in the middle: after transients die out and before the separation reaches the attractor's diameter and flattens. (A) is wrong — it does saturate (bounded attractor). (C) is wrong — round-off is a danger throughout, not a reason to trust early data. (D) is wrong — &lambda; is defined precisely for aperiodic chaotic motion.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Deterministic chaos</b> is fully deterministic yet unpredictable: nearby trajectories separate as &delta;<sub>0</sub>e<sup>&lambda;t</sup>.</li>
+            <li>The <b>double pendulum</b> — two rods, four state variables, conserved energy — is chaotic for all but tiny swings.</li>
+            <li>The <b>Lorenz system</b> traces a bounded, aperiodic <b>strange attractor</b> (the butterfly) in state space, not real space.</li>
+            <li>The <b>Lyapunov exponent</b> &lambda; quantifies chaos: &lambda; &gt; 0 means chaos, and 1/&lambda; is the Lyapunov time.</li>
+            <li>Prediction horizon grows only as <b>(1/&lambda;)ln(1/&delta;<sub>0</sub>)</b> — logarithmically — so more precision buys little time.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10 Capstone: bring N-body dynamics and chaos together — integrate a gravitational few-body system, watch it diverge, and measure its Lyapunov time.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-nbody-orbits.html"><div class="dir">← Week 8</div><div class="ttl">N-Body Dynamics &amp; Orbits</div></a>
+        <a class="next" href="l10-capstone-nbody-chaos.html"><div class="dir">Week 10 →</div><div class="ttl">Capstone: N-Body / Chaos</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 ODEs &amp; Dynamics</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

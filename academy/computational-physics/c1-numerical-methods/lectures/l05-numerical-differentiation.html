@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C1 · Lecture 5 — Numerical Differentiation &amp; Finite Differences</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C1 Numerical Methods</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Numerical Differentiation &amp; Finite Differences</h1>
+        <p class="sub">A derivative is a limit no computer can take — so we sneak up on it with finite steps, and the art is choosing a step neither too big nor too small.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Derive the forward, backward, and central finite-difference formulas from a Taylor expansion.</li>
+            <li>State each formula's truncation order and explain why the central difference is one order more accurate.</li>
+            <li>Build a second-derivative stencil and use it on real applications.</li>
+            <li>Explain the truncation-vs-round-off trade-off and estimate the optimal step size for each scheme.</li>
+            <li>Use Richardson extrapolation to boost accuracy, and compute velocity and acceleration from sampled position data with NumPy.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>The Derivative as a Limit We Can't Take</h2>
+        <p>The calculus definition of a derivative is a limit: f′(x) = lim<sub>h→0</sub> [f(x+h) − f(x)] / h. A computer cannot take a limit — it can only plug in a small but <em>finite</em> step h. The simplest choice just drops the limit symbol:</p>
+        <div class="eq">f′(x) ≈ [f(x+h) − f(x)] / h&nbsp;&nbsp;<span style="color:var(--text2)">(forward difference)</span><small>Slope of the secant line through (x, f(x)) and (x+h, f(x+h)).</small></div>
+        <p>How wrong is this? Expand f(x+h) in a <strong>Taylor series</strong> about x:</p>
+        <div class="eq">f(x+h) = f(x) + h·f′(x) + (h²/2)·f″(x) + (h³/6)·f‴(x) + …</div>
+        <p>Solve for f′(x) and the leading leftover term is (h/2)·f″(x). So the forward difference carries an error proportional to <strong>h</strong> — it is <span class="key">first order</span>, written O(h). A <strong>backward difference</strong> [f(x) − f(x−h)] / h is also first order. Both lean to one side of x, and that lopsidedness is exactly what costs them accuracy.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Estimating a hiker's speed from a GPS track: the forward difference asks "where will they be one second from now?" and the backward difference asks "where were they one second ago." Either is biased if the hiker is speeding up. Averaging the two — "where were they a second ago and a second from now?" — cancels that bias. That average is the <strong>central difference</strong>, and it is the hero of this lecture.</div>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>The Central Difference and Higher Derivatives</h2>
+        <p>Write the Taylor expansion both forward and backward and subtract them. The even-power terms (the f″ term) cancel, leaving only odd powers:</p>
+        <div class="eq">f(x+h) − f(x−h) = 2h·f′(x) + (h³/3)·f‴(x) + …</div>
+        <p>Divide by 2h and the leading error term is now (h²/6)·f‴(x). The <strong>central difference</strong> is therefore <span class="key">second order</span>, O(h²):</p>
+        <div class="eq">f′(x) ≈ [f(x+h) − f(x−h)] / (2h)&nbsp;&nbsp;<span style="color:var(--text2)">error ~ h²</span><small>One extra function value buys a whole extra order of accuracy — for the same number of evaluations as a forward+backward pair.</small></div>
+        <p>If instead we <em>add</em> the forward and backward expansions, the f′ terms cancel and the f″ term survives. Solving gives the workhorse <strong>second-derivative stencil</strong>:</p>
+        <div class="eq">f″(x) ≈ [f(x+h) − 2·f(x) + f(x−h)] / h²&nbsp;&nbsp;<span style="color:var(--text2)">error ~ h²</span><small>The three weights (1, −2, 1) are the discrete Laplacian — the engine of every diffusion, wave, and Schrodinger PDE solver.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 420 250" role="img" aria-label="A smooth curve f(x) with three secant lines through the point x: a forward secant to x+h, a backward secant to x minus h, and a central secant from x minus h to x plus h. The central secant is nearly parallel to the true tangent at x.">
+                <!-- axes -->
+                <line x1="40" y1="210" x2="400" y2="210" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="40" y1="30" x2="40" y2="210" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="392" y="228" fill="#a3a8c8" font-size="11">x</text>
+                <text x="20" y="40" fill="#a3a8c8" font-size="11">f</text>
+                <!-- curve: a rising convex arc -->
+                <path d="M60,195 Q160,150 230,110 T390,45" fill="none" stroke="#a5b4fc" stroke-width="2.5"/>
+                <!-- sample x-positions: x-h=130, x=230, x+h=330 -->
+                <!-- points on curve (approx y from the path) -->
+                <circle cx="130" cy="158" r="4" fill="#60a5fa"/>
+                <circle cx="230" cy="110" r="4" fill="#34d399"/>
+                <circle cx="330" cy="69" r="4" fill="#fbbf24"/>
+                <!-- forward secant x to x+h (amber) -->
+                <line x1="230" y1="110" x2="330" y2="69" stroke="#fbbf24" stroke-width="1.6"/>
+                <!-- backward secant x-h to x (blue) -->
+                <line x1="130" y1="158" x2="230" y2="110" stroke="#60a5fa" stroke-width="1.6"/>
+                <!-- central secant x-h to x+h (violet, slightly extended) -->
+                <line x1="118" y1="170" x2="342" y2="57" stroke="#c084fc" stroke-width="2" stroke-dasharray="6 4"/>
+                <!-- vertical guides -->
+                <line x1="130" y1="158" x2="130" y2="210" stroke="#2a3052" stroke-width="1"/>
+                <line x1="230" y1="110" x2="230" y2="210" stroke="#2a3052" stroke-width="1"/>
+                <line x1="330" y1="69" x2="330" y2="210" stroke="#2a3052" stroke-width="1"/>
+                <!-- axis labels for the three points -->
+                <text x="130" y="225" fill="#60a5fa" font-size="11" text-anchor="middle">x-h</text>
+                <text x="230" y="225" fill="#34d399" font-size="11" text-anchor="middle">x</text>
+                <text x="330" y="225" fill="#fbbf24" font-size="11" text-anchor="middle">x+h</text>
+                <!-- legend -->
+                <text x="250" y="150" fill="#fbbf24" font-size="11">forward</text>
+                <text x="60" y="120" fill="#60a5fa" font-size="11">backward</text>
+                <text x="300" y="40" fill="#c084fc" font-size="11">central (best)</text>
+            </svg>
+            <figcaption>Three secant slopes through x. The forward (amber) and backward (blue) secants each lean to one side; the central secant (violet, x-h to x+h) tracks the true tangent at x far more closely — that is the gain from O(h) to O(h&sup2;).</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Forgetting the factor of <strong>2</strong> in the central-difference denominator. The points are <code>x+h</code> and <code>x-h</code>, a distance <strong>2h</strong> apart, so you must divide by <code>2*h</code>, not <code>h</code>. Dividing by <code>h</code> gives an answer that is exactly twice too large and no warning is raised.</div>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>The Optimal Step Size — Truncation Meets Round-off</h2>
+        <p>It is tempting to make h microscopically small. But (as in Lecture 1) the numerator subtracts two nearly-equal numbers, and that <strong>catastrophic cancellation</strong> injects round-off noise of size ~ε·|f| / h. Two errors fight for the central difference:</p>
+        <div class="eq">E(h) ≈ (h²/6)·|f‴|&nbsp; + &nbsp;ε·|f| / h<small>First term = truncation (falls like h²). Second term = round-off from cancellation (grows like 1/h).</small></div>
+        <p>Minimize the sum by setting dE/dh = 0. The truncation term falls but the round-off term rises, so the total bottoms out at a finite step:</p>
+        <div class="eq">h* ~ ε<sup>1/3</sup> ≈ 6 × 10<sup>−6</sup>&nbsp;&nbsp; with min error ~ ε<sup>2/3</sup> ≈ 4 × 10<sup>−11</sup><small>The central difference keeps ~11 digits at its best; the forward difference (Lecture 1) bottoms out near h ~ sqrt(eps) keeping only ~8.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 400 230" role="img" aria-label="Log-log plot of central-difference error versus step size. Truncation error falls like h squared as h shrinks; round-off rises like one over h; the total error forms a V with a minimum near h equal to the cube root of machine epsilon.">
+                <line x1="50" y1="185" x2="378" y2="185" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="28" x2="50" y2="185" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="300" y="205" fill="#a3a8c8" font-size="11">smaller h -></text>
+                <text x="62" y="205" fill="#a3a8c8" font-size="11">larger h</text>
+                <text x="18" y="42" fill="#a3a8c8" font-size="11">error</text>
+                <text x="14" y="120" fill="#a3a8c8" font-size="10" transform="rotate(-90 14 120)">(log)</text>
+                <!-- truncation asymptote: steeper (h^2), falls to the right -->
+                <line x1="66" y1="52" x2="214" y2="155" stroke="#60a5fa" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <text x="84" y="64" fill="#60a5fa" font-size="11">truncation ~ h^2</text>
+                <!-- round-off asymptote: rises to the right -->
+                <line x1="214" y1="155" x2="362" y2="60" stroke="#fbbf24" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <text x="262" y="64" fill="#fbbf24" font-size="11">round-off ~ eps/h</text>
+                <!-- total error V (solid) -->
+                <path d="M66,48 Q160,155 214,155 Q270,155 362,56" fill="none" stroke="#818cf8" stroke-width="2.5"/>
+                <circle cx="214" cy="155" r="3.5" fill="#a5b4fc"/>
+                <line x1="214" y1="155" x2="214" y2="185" stroke="#a5b4fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="214" y="178" fill="#a5b4fc" font-size="11" text-anchor="middle">h* ~ eps^(1/3)</text>
+            </svg>
+            <figcaption>Total error of a central-difference derivative versus step size on log-log axes. The minimum sits near h &asymp; &epsilon;<sup>1/3</sup> &asymp; 10<sup>&minus;6</sup>, with best error ~&epsilon;<sup>2/3</sup> &asymp; 10<sup>&minus;11</sup> &mdash; better than the forward difference because truncation now falls like h&sup2;.</figcaption>
+        </figure>
+        <h3>Richardson extrapolation — a free order boost</h3>
+        <p>If the central difference has error E(h) = a·h² + b·h⁴ + …, we can compute it at h and at h/2 and combine them to <em>cancel</em> the leading h² term. Let D(h) be the central-difference estimate:</p>
+        <div class="eq">D<sub>better</sub> = [4·D(h/2) − D(h)] / 3&nbsp;&nbsp;<span style="color:var(--text2)">error ~ h⁴</span><small>This is Richardson extrapolation: two cheap O(h&sup2;) estimates combine into one O(h&#8308;) estimate. Same idea upgrades the trapezoidal rule into Romberg integration next week.</small></div>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>Velocity and Acceleration from Position Data</h2>
+        <p>Experiments and simulations rarely hand you a formula — they hand you a <strong>table</strong> of positions sampled at times t<sub>0</sub>, t<sub>1</sub>, …, spaced by Δt. Finite differences turn that table into velocity and acceleration, the bread and butter of mechanics, tracking, and motion analysis:</p>
+        <div class="eq">v<sub>i</sub> ≈ (x<sub>i+1</sub> − x<sub>i−1</sub>) / (2Δt)&nbsp;&nbsp;&nbsp; a<sub>i</sub> ≈ (x<sub>i+1</sub> − 2x<sub>i</sub> + x<sub>i−1</sub>) / Δt²<small>Central velocity and the second-derivative stencil for acceleration, both O(Δt²) at interior points.</small></div>
+        <p>At the <strong>endpoints</strong> you have no neighbor on one side, so a central formula is impossible — you fall back to a one-sided (forward or backward) difference there. This is exactly what NumPy's <code>gradient</code> does automatically: central in the interior, one-sided at the edges.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Differentiating <strong>noisy</strong> measured data directly. Differentiation amplifies high-frequency noise: a tiny wiggle of amplitude δ at spacing Δt becomes a velocity error ~ δ/Δt and an acceleration error ~ δ/Δt², which explodes as Δt shrinks. With real sensor data, <em>smooth or fit first</em> (e.g. a Savitzky-Golay filter or a spline), then differentiate.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — forward vs central on a known function</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Estimate f′(1) for f(x) = e<sup>x</sup> using h = 0.1. The exact value is e<sup>1</sup> = 2.71828. Compare forward and central differences, then check the error orders.</p>
+        <ol>
+            <li><strong>Function values:</strong> f(0.9) = e<sup>0.9</sup> = 2.45960, f(1.0) = 2.71828, f(1.1) = e<sup>1.1</sup> = 3.00417.</li>
+            <li><strong>Forward difference:</strong> [f(1.1) − f(1.0)] / 0.1 = (3.00417 − 2.71828)/0.1 = 0.28589/0.1 = <strong>2.8589</strong>. Error = 2.8589 − 2.71828 = <strong>+0.1406</strong>.</li>
+            <li><strong>Central difference:</strong> [f(1.1) − f(0.9)] / (2·0.1) = (3.00417 − 2.45960)/0.2 = 0.54457/0.2 = <strong>2.72285</strong>. Error = 2.72285 − 2.71828 = <strong>+0.00457</strong>.</li>
+            <li><strong>Order check:</strong> the central error (0.0046) is about 30× smaller than the forward error (0.14). Predicted: forward ≈ (h/2)·f″ = 0.05·2.718 = 0.136 ✓; central ≈ (h²/6)·f‴ = (0.01/6)·2.718 = 0.0045 ✓ — both match.</li>
+            <li><strong>Takeaway:</strong> for the <em>same</em> step, the central difference is dramatically more accurate. Halving h to 0.05 would cut the forward error in half but the central error by a factor of four.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: differentiate a noisy trajectory</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free Python + NumPy / SciPy / Matplotlib stack handles everything here. If you have not set it up yet, the one-time install lives in the <strong>Week 1</strong> lecture. We will use <code>np.gradient</code> (central in the interior, one-sided at the edges) and <code>scipy.signal.savgol_filter</code> to tame measurement noise before differentiating.</p>
+        <pre><span class="c"># numerical_diff.py — Lecture 5</span>
+import numpy as np
+from scipy.signal import savgol_filter
+
+<span class="c"># Synthetic "measured" vertical motion: x(t) = 5t - 4.9 t^2, plus noise</span>
+t  = np.linspace(0.0, 1.0, 101)
+dt = t[1] - t[0]
+x_true = 5.0*t - 4.9*t**2
+rng = np.random.default_rng(0)
+x_meas = x_true + rng.normal(0, 0.01, t.size)   <span class="c"># 1 cm sensor noise</span>
+
+<span class="c"># 1) Naive central difference on raw data -> velocity, then acceleration</span>
+v_raw = np.gradient(x_meas, dt)                  <span class="c"># O(dt^2) interior, one-sided edges</span>
+a_raw = np.gradient(v_raw, dt)                   <span class="c"># noise BLOWS UP here</span>
+
+<span class="c"># 2) Smooth first, then differentiate -> clean acceleration ~ -9.8</span>
+x_smooth = savgol_filter(x_meas, window_length=21, polyorder=3)
+v = np.gradient(x_smooth, dt)
+a = np.gradient(v, dt)
+
+print(f"raw    accel (mean of interior): {a_raw[10:-10].mean():.2f} m/s^2")
+print(f"smooth accel (mean of interior): {a[10:-10].mean():.2f} m/s^2")
+<span class="c"># raw ~ wildly noisy; smoothed ~ -9.8  (the true 2 * -4.9)</span>
+</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Then add a Richardson step on a clean function: compute the central difference of <code>np.sin</code> at x=1 with h and h/2, combine as <code>(4*D_half - D)/3</code>, and watch the error drop from ~10⁻³ (h²) to ~10⁻⁶ (h⁴). Predict the new error before you print it.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The (1, −2, 1) second-derivative stencil you built here is the single most reused object in computational physics. Next week (Lecture 6) the same Taylor-series bookkeeping gives the trapezoidal and Simpson <em>integration</em> rules, and Richardson extrapolation reappears as Romberg integration. In Course 2 these stencils discretize the time derivative in ODE solvers; in Course 4 the spatial stencil becomes the discrete Laplacian that powers heat, wave, and Schrodinger PDE solvers on a grid; and the truncation-vs-round-off trade-off you optimized today reappears every time you set a step size or grid spacing across the Quantum, Plasma, and Quant tracks. Master finite differences and you have the alphabet of the entire field.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The central difference [f(x+h) − f(x−h)] / (2h) has a truncation error of order…</div>
+            <div class="opt"><b>A.</b> O(h²)</div>
+            <div class="opt"><b>B.</b> O(h)</div>
+            <div class="opt"><b>C.</b> O(h³)</div>
+            <div class="opt"><b>D.</b> O(1), independent of h</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Subtracting the forward and backward Taylor expansions cancels the f″ term, leaving a leading error ∝ h², so it is second order. O(h) (B) is the forward/backward difference; O(h³) (C) and O(1) (D) are simply wrong for this stencil.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why is the central difference generally more accurate than the forward difference for the same step h?</div>
+            <div class="opt"><b>A.</b> It uses fewer function evaluations</div>
+            <div class="opt"><b>B.</b> Its symmetry cancels the leading (even-order) error term, raising the order from h to h²</div>
+            <div class="opt"><b>C.</b> It is immune to round-off error</div>
+            <div class="opt"><b>D.</b> It does not require the function to be differentiable</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The symmetric stencil cancels the f″ term, so the error drops from O(h) to O(h²). It actually uses the <em>same</em> number of evaluations as a forward+backward pair (A is false); it still suffers round-off (C is false); and it still needs a smooth function (D is false).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> As you make h smaller and smaller for a central-difference derivative, the total error will…</div>
+            <div class="opt"><b>A.</b> decrease toward zero without limit</div>
+            <div class="opt"><b>B.</b> stay constant</div>
+            <div class="opt"><b>C.</b> fall until round-off (cancellation) dominates near h ~ ε^(1/3), then rise</div>
+            <div class="opt"><b>D.</b> increase monotonically from the start</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Truncation falls like h² but round-off from cancellation grows like ε/h, so the total bottoms out near h ~ ε<sup>1/3</sup> ≈ 10⁻⁶ and then rises. It never reaches zero (A), is not constant (B), and improves before it worsens, so it is not monotonic (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The stencil [f(x+h) − 2f(x) + f(x−h)] / h² approximates which quantity?</div>
+            <div class="opt"><b>A.</b> the first derivative f′(x)</div>
+            <div class="opt"><b>B.</b> the integral of f over [x−h, x+h]</div>
+            <div class="opt"><b>C.</b> the average value of f</div>
+            <div class="opt"><b>D.</b> the second derivative f″(x), to O(h²)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Adding the forward and backward Taylor expansions cancels f′ and isolates f″; dividing by h² gives the second derivative with O(h²) error. The first derivative (A) uses a different stencil; (B) and (C) are integration/averaging, not differentiation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You compute a central difference at step h and at step h/2, giving D(h) and D(h/2). Richardson extrapolation combines them as…</div>
+            <div class="opt"><b>A.</b> [D(h) + D(h/2)] / 2, giving the simple average</div>
+            <div class="opt"><b>B.</b> [4·D(h/2) − D(h)] / 3, cancelling the h² term to reach O(h⁴)</div>
+            <div class="opt"><b>C.</b> D(h/2) − D(h), the raw difference</div>
+            <div class="opt"><b>D.</b> [D(h) − 4·D(h/2)] / 3, which lowers the order</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Since error ∝ h², halving h cuts it by 4; the weights 4 and −1 (over 3) cancel that leading term, yielding O(h⁴). A plain average (A) keeps the h² error; the raw difference (C) is just an error estimate, not an improved value; and (D) has the sign flipped and would not cancel the term.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Derivatives become <b>finite differences</b>: forward and backward are O(h); the symmetric <b>central</b> difference is O(h²).</li>
+            <li>The Taylor series both <b>derives</b> each formula and <b>predicts</b> its truncation order and constant.</li>
+            <li>The <b>second-derivative stencil</b> (1, −2, 1)/h² — the discrete Laplacian behind every diffusion and wave solver.</li>
+            <li>The <b>truncation–round-off trade-off</b> gives an optimal step h ~ ε<sup>1/3</sup>, and <b>Richardson extrapolation</b> lifts O(h²) to O(h⁴) for free.</li>
+            <li>How to get <b>velocity and acceleration</b> from sampled data with <code>np.gradient</code> — and why you must smooth noisy data first.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: turning the same Taylor bookkeeping into <b>integration</b> — the trapezoidal and Simpson rules, and Richardson reborn as Romberg.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-polynomial-interpolation.html"><div class="dir">← Week 4</div><div class="ttl">Polynomial Interpolation</div></a>
+        <a class="next" href="l06-integration-trapezoidal-simpson.html"><div class="dir">Week 6 →</div><div class="ttl">Integration I — Trapezoidal &amp; Simpson</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Numerical Methods</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

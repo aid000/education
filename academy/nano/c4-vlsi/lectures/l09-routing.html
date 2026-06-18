@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Lecture 9 — Routing &amp; Optimization</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; } .objectives li { font-size: .92rem; margin-bottom: 5px; }
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; } .key { color: var(--accent2); font-weight: 600; }
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; } .worked li { margin-bottom: 6px; }
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; } .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; } .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .quiz { margin: 48px 0 24px; } .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; } .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); } .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; } .q details .ans { color: var(--green); font-weight: 700; }
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08121a; border-color: var(--accent); } .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); } .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); } .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; } .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; } .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; } .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .data-note { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; } .lec-nav a.next { text-align: right; }
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C4 VLSI</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Routing &amp; Optimization</h1>
+        <p class="sub">Wiring up the placed cells through the metal layers — and why it's one of the hardest steps.</p>
+    </div>
+</header>
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain how routing connects placed cells, and the split between global and detailed routing.</li>
+            <li>Describe routing congestion and how adding metal layers (at a cost) relieves it.</li>
+            <li>Identify signal-integrity issues fixed at the route stage: antenna effects, crosstalk, and IR drop.</li>
+            <li>Explain why wire RC delay matters and how timing-driven routing prioritizes critical nets.</li>
+            <li>Justify why modern stacks alternate preferred routing directions per metal layer.</li>
+        </ul>
+    </div>
+
+    <section class="lec">
+        <h2><span class="n">9.1</span>Connecting the Cells</h2>
+        <p>After placement fixes <em>where</em> each standard cell sits, <strong>routing</strong> draws the actual wires that connect them through the chip's stack of <strong>metal layers</strong>. It happens in two stages. <span class="key">Global routing</span> plans coarse regions and corridors — it decides roughly which channels each net should travel through, balancing the demand across the die. Then <span class="key">detailed routing</span> commits each net to exact <strong>tracks</strong> and layers, dropping vias where a net needs to change layers, all while obeying the foundry's design rules.</p>
+        <p>The split is a divide-and-conquer move: planning corridors first keeps the enormous problem tractable, and only afterward does the router sweat the exact geometry. A net that looks fine in the coarse plan can still fail detailed routing if its corridor is too crowded — which is why the two stages feed back on each other.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 480 220" role="img" aria-label="Global routing as coarse regions and corridors on the left versus detailed routing resolved into exact tracks on the right">
+                <text x="120" y="22" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">Global routing</text>
+                <text x="120" y="38" fill="#94a8bc" font-size="10" text-anchor="middle">coarse corridors</text>
+                <!-- global: grid of routing regions -->
+                <rect x="30" y="50" width="180" height="150" fill="none" stroke="#243648" stroke-width="1.2"/>
+                <line x1="90" y1="50" x2="90" y2="200" stroke="#243648" stroke-width="1"/>
+                <line x1="150" y1="50" x2="150" y2="200" stroke="#243648" stroke-width="1"/>
+                <line x1="30" y1="100" x2="210" y2="100" stroke="#243648" stroke-width="1"/>
+                <line x1="30" y1="150" x2="210" y2="150" stroke="#243648" stroke-width="1"/>
+                <!-- two cells -->
+                <rect x="44" y="62" width="30" height="22" fill="#1c2c3e" stroke="#34d399" stroke-width="1.4"/>
+                <text x="59" y="77" fill="#6ee7b7" font-size="9" text-anchor="middle">A</text>
+                <rect x="166" y="166" width="30" height="22" fill="#1c2c3e" stroke="#34d399" stroke-width="1.4"/>
+                <text x="181" y="181" fill="#6ee7b7" font-size="9" text-anchor="middle">B</text>
+                <!-- coarse corridor path through region centers -->
+                <path d="M74,73 L120,75 L120,125 L181,125 L181,166" fill="none" stroke="#fbbf24" stroke-width="2.4" stroke-dasharray="6 4"/>
+                <text x="120" y="214" fill="#94a8bc" font-size="9" text-anchor="middle">routing regions</text>
+                <!-- arrow -->
+                <line x1="226" y1="125" x2="262" y2="125" stroke="#94a8bc" stroke-width="1.6"/>
+                <path d="M262,125 l-8,-4 l0,8 z" fill="#94a8bc"/>
+                <text x="244" y="118" fill="#94a8bc" font-size="10" text-anchor="middle">refine</text>
+                <!-- detailed -->
+                <text x="370" y="22" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">Detailed routing</text>
+                <text x="370" y="38" fill="#94a8bc" font-size="10" text-anchor="middle">exact tracks + vias</text>
+                <rect x="280" y="50" width="180" height="150" fill="none" stroke="#243648" stroke-width="1.2"/>
+                <!-- routing tracks (faint) -->
+                <line x1="280" y1="70" x2="460" y2="70" stroke="#243648" stroke-width="0.8"/>
+                <line x1="280" y1="90" x2="460" y2="90" stroke="#243648" stroke-width="0.8"/>
+                <line x1="280" y1="110" x2="460" y2="110" stroke="#243648" stroke-width="0.8"/>
+                <line x1="280" y1="130" x2="460" y2="130" stroke="#243648" stroke-width="0.8"/>
+                <line x1="280" y1="150" x2="460" y2="150" stroke="#243648" stroke-width="0.8"/>
+                <line x1="280" y1="170" x2="460" y2="170" stroke="#243648" stroke-width="0.8"/>
+                <!-- cells -->
+                <rect x="294" y="62" width="30" height="22" fill="#1c2c3e" stroke="#34d399" stroke-width="1.4"/>
+                <text x="309" y="77" fill="#6ee7b7" font-size="9" text-anchor="middle">A</text>
+                <rect x="416" y="166" width="30" height="22" fill="#1c2c3e" stroke="#34d399" stroke-width="1.4"/>
+                <text x="431" y="181" fill="#6ee7b7" font-size="9" text-anchor="middle">B</text>
+                <!-- exact routed net on tracks with vias -->
+                <path d="M324,73 L370,73 L370,150 L431,150 L431,166" fill="none" stroke="#22d3ee" stroke-width="2.4"/>
+                <circle cx="370" cy="73" r="3.4" fill="#fbbf24"/>
+                <circle cx="370" cy="150" r="3.4" fill="#fbbf24"/>
+                <circle cx="431" cy="150" r="3.4" fill="#fbbf24"/>
+                <text x="395" y="200" fill="#94a8bc" font-size="9" text-anchor="middle">● via</text>
+            </svg>
+            <figcaption>Global routing lays out coarse corridors through routing regions (left); detailed routing then snaps the same connection onto exact tracks and metal layers, dropping vias where the net turns or changes layer.</figcaption>
+        </figure>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">9.2</span>Congestion &amp; Layers</h2>
+        <p>Each routing layer offers only a <strong>finite number of tracks</strong>, and many nets want to pass through the same region. When demand exceeds capacity you get <span class="key">congestion</span> — the router runs out of legal places to put wires, and some nets cannot be completed. Congestion is local: a single hot spot can stall an otherwise easy design.</p>
+        <p>The classic relief valve is to add more <strong>metal layers</strong>. Modern processes stack a dozen or more layers, each adding routing capacity. But every layer means extra masks and process steps — it <strong>costs money</strong>. The cheaper lever is a better <strong>placement</strong>: routability depends heavily on where the cells sit, because placement sets how much wire demand lands in each region. A bad placement crowds connected cells together and makes routing hard or impossible no matter how clever the router is.</p>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">9.3</span>Integrity at the Route Stage</h2>
+        <p>Real wires misbehave, and several physical effects are resolved precisely when the routing is drawn:</p>
+        <ul style="margin-left:20px; font-size:.95rem; margin-bottom:14px;">
+            <li><strong>Antenna effect</strong> — long metal segments connected to a gate during fabrication can collect charge and damage the thin gate oxide. The router fixes this by adding jumpers to higher layers or inserting antenna diodes.</li>
+            <li><strong>Crosstalk</strong> — a switching wire couples capacitively into its neighbors, injecting noise or delay. The router adds spacing or shielding between sensitive, parallel wires.</li>
+            <li><strong>IR drop</strong> — current flowing through the resistive power grid causes the local supply voltage to sag (V = I·R). A weak grid slows or corrupts the cells it feeds.</li>
+        </ul>
+        <p>On top of these, <strong>long wires</strong> are not left bare: the tool inserts <span class="key">buffers / repeaters</span> along them to restore signal strength and keep delay in check.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 230" role="img" aria-label="Multi-layer routing with metal-1 horizontal, metal-2 vertical, connected by vias on a small grid">
+                <text x="210" y="20" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">Alternating layer directions</text>
+                <!-- metal-1 horizontal wires (green) -->
+                <line x1="50" y1="70" x2="370" y2="70" stroke="#34d399" stroke-width="3"/>
+                <line x1="50" y1="130" x2="370" y2="130" stroke="#34d399" stroke-width="3"/>
+                <line x1="50" y1="190" x2="370" y2="190" stroke="#34d399" stroke-width="3"/>
+                <!-- metal-2 vertical wires (cyan) -->
+                <line x1="120" y1="50" x2="120" y2="210" stroke="#22d3ee" stroke-width="3"/>
+                <line x1="210" y1="50" x2="210" y2="210" stroke="#22d3ee" stroke-width="3"/>
+                <line x1="300" y1="50" x2="300" y2="210" stroke="#22d3ee" stroke-width="3"/>
+                <!-- vias at selected intersections -->
+                <circle cx="120" cy="70" r="4.5" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <circle cx="210" cy="130" r="4.5" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <circle cx="300" cy="190" r="4.5" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <circle cx="120" cy="190" r="4.5" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <!-- legend -->
+                <line x1="60" y1="218" x2="84" y2="218" stroke="#34d399" stroke-width="3"/>
+                <text x="90" y="222" fill="#6ee7b7" font-size="10">metal-1 (horizontal)</text>
+                <line x1="218" y1="218" x2="218" y2="206" stroke="#22d3ee" stroke-width="3"/>
+                <text x="226" y="222" fill="#67e8f9" font-size="10">metal-2 (vertical)</text>
+                <circle cx="350" cy="218" r="4.5" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <text x="360" y="222" fill="#fbbf24" font-size="10">via</text>
+            </svg>
+            <figcaption>Two metal layers with alternating preferred directions: metal-1 runs horizontally, metal-2 vertically. Wires on different layers cross at right angles and only connect where a via (yellow) is deliberately placed.</figcaption>
+        </figure>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">9.4</span>Timing-Driven Optimization</h2>
+        <p>Routing is not just connectivity — it sets <strong>delay</strong>. Each wire has resistance and capacitance, and its <strong>RC delay</strong> adds directly to a path's timing. So the router is <span class="key">timing-driven</span>: it identifies the <strong>critical nets</strong> (those on the tightest paths) and gives them the shortest, widest, least-congested routes, even at the expense of non-critical nets.</p>
+        <div class="eq">delay ≈ R<sub>wire</sub> · C<sub>wire</sub><small>and both R and C grow with wire length → long nets are slow</small></div>
+        <p>To hit timing, the tool inserts <strong>buffers</strong> on long or heavily loaded nets and may resize cells. Whatever violations remain after the main route are cleaned up with targeted <span class="key">engineering change orders (ECOs)</span> — small, localized edits to the netlist and routing that fix the last failing paths without re-running the whole flow.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Routing is <strong>city traffic planning</strong>. Global routing lays out the highway corridors — the broad routes traffic should take across town — while detailed routing assigns each car to an exact lane. <em>Congestion</em> is gridlock: it happens when too many cars (wires) all want the same road (track) at once, and no amount of clever driving gets them through a road that's simply too small.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Routing is <strong>not</strong> a clean-up afterthought. Wire RC delay can <em>dominate</em> a path's timing at advanced nodes, and a bad placement can make routing outright impossible through congestion. Adding metal layers helps but costs real money. And antenna effects, crosstalk, and IR drop are genuine physical problems that are diagnosed and fixed right here at the route stage — not waved away.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Why do modern metal stacks alternate the preferred routing direction on each layer? Work through what happens if they didn't.</p>
+        <ol>
+            <li><strong>Same direction, one layer:</strong> if every wire on a layer ran horizontally, two horizontal nets that need to occupy the same row would <em>collide</em> — there's no way to pass them without one blocking the other.</li>
+            <li><strong>Alternate the next layer:</strong> make metal-1 run mostly horizontal and metal-2 mostly vertical. Now a horizontal net on metal-1 and a vertical net on metal-2 cross at a <strong>right angle</strong> — they share a point in the 2-D picture but live on different layers, so they don't touch.</li>
+            <li><strong>Connect only on purpose:</strong> the two layers join <em>only</em> where the router drops a <strong>via</strong>. Crossings without a via are harmless; connections happen only where intended.</li>
+            <li><strong>Why it scales:</strong> alternating directions lets each layer carry a dense set of parallel wires while the next layer carries the orthogonal traffic, multiplying usable capacity — which is exactly why real stacks alternate preferred directions layer by layer.</li>
+            <li><strong>Recall (C3):</strong> wire delay grows roughly with <strong>length²</strong>, so long nets are slow. That's why the tool <strong>buffers</strong> long nets to break them into shorter, faster RC segments.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: route a design and inspect congestion</h3>
+        <p>Run the routing step of an OpenLane flow on a placed design, then read the congestion / DRC report it produces and view the final routed layout in KLayout.</p>
+        <pre><span class="c"># inside an OpenLane flow, run the routing stage</span>
+flow.tcl -design spm -from routing -to routing -tag myrun
+
+<span class="c"># inspect the global-route congestion + DRC reports</span>
+less designs/spm/runs/myrun/reports/routing/*congestion*
+less designs/spm/runs/myrun/reports/routing/*drc*
+
+<span class="c"># open the routed layout (GDS/DEF) to see the metal layers + vias</span>
+klayout designs/spm/runs/myrun/results/routing/spm.def</pre>
+        <p>Look for: congestion hot spots (regions over 100% track demand), any remaining DRC violations, and — in KLayout — the alternating horizontal/vertical metal layers stitched together by vias.</p>
+    </div>
+
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Routing proceeds as…</div>
+            <div class="opt"><b>A.</b> detailed routing first, then global routing</div>
+            <div class="opt"><b>B.</b> global routing (plan corridors), then detailed routing (exact tracks)</div>
+            <div class="opt"><b>C.</b> a single pass that does everything at once</div>
+            <div class="opt"><b>D.</b> before placement, then placement adjusts</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Global routing plans coarse corridors/regions, then detailed routing commits nets to exact tracks and layers with vias.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Routing congestion happens when…</div>
+            <div class="opt"><b>A.</b> the clock is too slow</div>
+            <div class="opt"><b>B.</b> too many wires compete for the limited routing tracks</div>
+            <div class="opt"><b>C.</b> there are too few transistors</div>
+            <div class="opt"><b>D.</b> the die is too large</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Each layer has a finite number of tracks; when nets demand more capacity than a region has, the router can't place them all — that's congestion.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Adding more metal layers…</div>
+            <div class="opt"><b>A.</b> slows the clock</div>
+            <div class="opt"><b>B.</b> removes the need for vias</div>
+            <div class="opt"><b>C.</b> relieves congestion (but adds cost)</div>
+            <div class="opt"><b>D.</b> increases congestion</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Extra layers add routing capacity and relieve congestion, but each layer means more masks and process steps — it costs money.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q4.</span> At advanced nodes, interconnect (wire) delay…</div>
+            <div class="opt"><b>A.</b> is always negligible</div>
+            <div class="opt"><b>B.</b> only affects power</div>
+            <div class="opt"><b>C.</b> can dominate gate delay</div>
+            <div class="opt"><b>D.</b> disappears with scaling</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Wire RC delay can dominate a path's timing at advanced nodes, which is why routing is timing-driven and critical nets get the best routes.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Long signal wires are sped up by…</div>
+            <div class="opt"><b>A.</b> removing them</div>
+            <div class="opt"><b>B.</b> inserting buffers/repeaters</div>
+            <div class="opt"><b>C.</b> adding more logic</div>
+            <div class="opt"><b>D.</b> lowering the voltage</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Buffers/repeaters break a long, slow RC wire into shorter segments, restoring signal strength and cutting delay.</p></details>
+        </div>
+    </div>
+
+    <!-- DISCUSSION 3 -->
+    <div class="discussion">
+        <div class="disc-head"><span class="wkbadge">Discussion 3 · Week 9</span><h2>💬 Discuss &amp; get feedback</h2></div>
+        <div class="disc-item" data-disc="c4-l9-d3">
+            <p class="disc-prompt" id="prompt-c4l9">Place-and-route is highly automated, yet routing remains one of the hardest steps and can make or break a chip's timing — and even its feasibility. Why is routing so hard, and why can a logically correct netlist still fail because of it?</p>
+            <textarea id="ans-c4l9" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta"><span class="saved-note" id="saved-c4l9">Not saved yet</span><span class="toast" id="toast-c4l9"></span></div>
+            <div class="disc-model" id="model-c4l9" hidden>
+                <h4>Model response</h4>
+                <p>Routing must connect millions of nets through a <strong>finite number of metal tracks</strong> without overlaps, while obeying design rules, meeting timing (wire RC delay), and avoiding congestion — an enormous <strong>combinatorial optimization</strong> with many competing constraints. There's no clean closed-form answer; the router juggles all of these at once, which is why it's one of the slowest, most skill-intensive steps in the flow.</p>
+                <p>Even a perfectly correct netlist can fail <strong>physically</strong>: a placement that clusters connected cells creates local congestion where no legal routes exist; long nets can blow the timing budget because their RC delay grows faster than linearly with length; and the power grid or signal-integrity limits (IR drop, crosstalk, antenna rules) may be unsatisfiable as drawn. So <strong>logical correctness does not guarantee physical feasibility</strong> — placement and routing determine whether the design actually "closes," which is why they dominate turnaround time and skill.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Routing is a huge combinatorial problem (limited tracks + DRC + timing)</li>
+                    <li>Congestion and/or wire RC delay can make a correct netlist fail</li>
+                    <li>Logical correctness ≠ physical feasibility — placement/routing decide whether it closes</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="data-note">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty. The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Routing connects placed cells through the metal layers in two stages: <b>global</b> (coarse corridors) then <b>detailed</b> (exact tracks + vias).</li>
+            <li><b>Congestion</b> arises when nets demand more than the finite routing tracks; more <b>metal layers</b> relieve it but cost money, and routability depends heavily on placement.</li>
+            <li>The route stage fixes real physical issues: <b>antenna</b> effects, <b>crosstalk</b>, and <b>IR drop</b>, and inserts buffers/repeaters on long wires.</li>
+            <li>Routing is <b>timing-driven</b>: wire RC delay matters, critical nets get the best routes, buffers are inserted, and <b>ECOs</b> fix the last violations.</li>
+            <li>Modern stacks <b>alternate preferred directions</b> per layer so wires cross at right angles and connect only through deliberate vias.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10: Verification &amp; Signoff — proving the finished layout is correct and manufacturable before tape-out.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l08-physical-design.html"><div class="dir">← Week 8</div><div class="ttl">Physical Design Basics</div></a>
+        <a href="l10-verification-signoff.html" class="next"><div class="dir">Week 10 →</div><div class="ttl">Verification &amp; Signoff</div></a>
+    </div>
+</div>
+<footer>
+    <p><a href="../index.html">← C4 VLSI</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => { const h = document.documentElement; bar.style.width = (h.scrollTop)/(h.scrollHeight - h.clientHeight)*100 + '%'; });
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my VLSI / digital-design tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\nMY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) { const t = item.querySelector('.toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500); }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.')); }
+        else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) { const item = btn.closest('.disc-item'); const full = buildPrompt(item); copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.'); window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener'); }
+    function copyForAI(btn) { const item = btn.closest('.disc-item'); copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.'); }
+    function toggleModel(btn) { const m = btn.closest('.disc-item').querySelector('.disc-model'); if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; } else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; } }
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => { localStorage.setItem(key, t.value); if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet'; });
+    });
+</script>
+</body>
+</html>

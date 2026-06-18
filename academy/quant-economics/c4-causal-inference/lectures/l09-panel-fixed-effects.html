@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C4 · Lecture 9 — Panel Methods &amp; Fixed Effects</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C4 Causal Inference</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Panel Methods &amp; Fixed Effects</h1>
+        <p class="sub">When you can't measure the confounder, sometimes you can subtract it away — by watching the same units change over time.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain what panel (longitudinal) data is and how it differs from a cross-section or a single time series.</li>
+            <li>Define entity fixed effects and time fixed effects, and say exactly which confounders each one absorbs.</li>
+            <li>Derive the within transformation and show why it sweeps out every time-invariant unobserved confounder.</li>
+            <li>Set up a two-way fixed-effects model and state the assumption it still relies on.</li>
+            <li>Explain why standard errors must be clustered, and estimate a fixed-effects model with <code>linearmodels</code>.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>What Is Panel Data?</h2>
+        <p>Up to now most of our data has been a <strong>cross-section</strong>: one snapshot of many units (people, firms, states) at a single moment. The trouble is that units differ in ways we can't see — a state's political culture, a worker's grit, a firm's management quality. If those hidden traits also drive the outcome, our regression coefficient is contaminated by <strong>omitted-variable bias</strong>.</p>
+        <p><strong>Panel data</strong> (also called longitudinal data) fixes part of this by following the <em>same</em> units across <em>multiple</em> time periods. We index every observation twice: by entity <span class="key">i</span> and by time <span class="key">t</span>.</p>
+        <div class="eq">y(i,t) = b1 * x(i,t) + a(i) + lambda(t) + u(i,t)<small>y for entity i in period t depends on regressor x, an entity-specific term a(i), a time-specific term lambda(t), and idiosyncratic noise u(i,t).</small></div>
+        <p>The magic is in the <span class="key">a(i)</span> term. It is a fixed, unknown number for each entity — a bundle of <em>everything stable</em> about that unit that we never measured. Because we observe each entity more than once, we can let the data hold <span class="key">a(i)</span> constant and look only at how an entity's outcome moves <em>relative to its own average</em>. That is the entire idea of fixed effects.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 520 300" role="img" aria-label="Three states tracked over five years. Each has its own scattered points and a fitted line; the lines have similar slope but different heights, illustrating entity fixed effects as different intercepts.">
+                <!-- axes -->
+                <line x1="60" y1="250" x2="490" y2="250" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="40" x2="60" y2="250" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="275" y="285" fill="#93a8c8" font-size="12" text-anchor="middle">Policy intensity x (within-state)</text>
+                <text x="24" y="145" fill="#93a8c8" font-size="12" text-anchor="middle" transform="rotate(-90 24 145)">Outcome y</text>
+                <!-- state A high intercept -->
+                <line x1="80" y1="90" x2="470" y2="60" stroke="#60a5fa" stroke-width="2"/>
+                <circle cx="120" cy="92" r="4" fill="#60a5fa"/>
+                <circle cx="210" cy="80" r="4" fill="#60a5fa"/>
+                <circle cx="300" cy="78" r="4" fill="#60a5fa"/>
+                <circle cx="390" cy="66" r="4" fill="#60a5fa"/>
+                <text x="478" y="58" fill="#60a5fa" font-size="11">State A</text>
+                <!-- state B middle intercept -->
+                <line x1="80" y1="160" x2="470" y2="130" stroke="#34d399" stroke-width="2"/>
+                <circle cx="120" cy="158" r="4" fill="#34d399"/>
+                <circle cx="210" cy="152" r="4" fill="#34d399"/>
+                <circle cx="300" cy="142" r="4" fill="#34d399"/>
+                <circle cx="390" cy="138" r="4" fill="#34d399"/>
+                <text x="478" y="128" fill="#34d399" font-size="11">State B</text>
+                <!-- state C low intercept -->
+                <line x1="80" y1="225" x2="470" y2="198" stroke="#a78bfa" stroke-width="2"/>
+                <circle cx="120" cy="224" r="4" fill="#a78bfa"/>
+                <circle cx="210" cy="216" r="4" fill="#a78bfa"/>
+                <circle cx="300" cy="208" r="4" fill="#a78bfa"/>
+                <circle cx="390" cy="202" r="4" fill="#a78bfa"/>
+                <text x="478" y="196" fill="#a78bfa" font-size="11">State C</text>
+            </svg>
+            <figcaption>Panel data: each state has its own height (intercept a(i)) reflecting unmeasured stable traits, but the slope b1 — the causal effect of x — is shared. Fixed effects estimate that common slope by comparing each state only to itself over time.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>Entity Fixed Effects &amp; the Within Transformation</h2>
+        <p>How do we make <span class="key">a(i)</span> disappear without ever measuring it? We exploit a small algebraic trick. First, average the model over time <em>within each entity</em>. Let an overbar denote an entity's average across its periods:</p>
+        <div class="eq">ybar(i) = b1 * xbar(i) + a(i) + lambdabar + ubar(i)<small>The entity average. Crucially a(i) is constant over time, so its average is just a(i) itself.</small></div>
+        <p>Now <strong>subtract</strong> this entity average from the original equation, period by period. This is the <strong>within transformation</strong> (also called demeaning):</p>
+        <div class="eq">y(i,t) - ybar(i) = b1 * ( x(i,t) - xbar(i) ) + ( u(i,t) - ubar(i) )<small>The a(i) terms cancel exactly: a(i) - a(i) = 0. The fixed effect is gone.</small></div>
+        <p>Look at what happened: <span class="key">a(i)</span> canceled itself out. Every time-invariant trait of the entity — measured or not, known or unknown — drops out of the equation. We are now regressing each entity's <em>deviations from its own mean</em> of y on its deviations from its own mean of x. Running OLS on these demeaned variables gives the <strong>fixed-effects (within) estimator</strong> of b1.</p>
+        <p>An equivalent route is the <strong>least-squares dummy variable (LSDV)</strong> approach: include one dummy variable per entity. With <em>n</em> entities that is <em>n</em> intercepts, and the slope you get on x is numerically identical to the within estimator. Demeaning is just the computationally cheap way to do the same thing.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of weighing yourself on a scale that is permanently miscalibrated — it always reads 3 kg too high. You can never learn the calibration error, but you can still measure how much weight you <em>gained or lost</em> this month: the constant +3 cancels when you subtract last month's reading from this month's. Each entity's fixed effect is that personal "miscalibration," and the within transformation is the before-minus-after subtraction that erases it.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Fixed effects only kill confounders that are <strong>constant over time</strong>. They do <em>nothing</em> about a confounder that itself changes over the panel — for example, a state simultaneously raising its minimum wage <em>and</em> launching a job-training program in the same years. Such time-varying confounders pass straight through the demeaning. "I used fixed effects, so I've handled confounding" is false: you've handled only the time-invariant part.</div>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>Time Fixed Effects &amp; Two-Way Fixed Effects</h2>
+        <p>Entity fixed effects absorb everything stable about a unit. But there are also shocks that hit <em>every</em> unit in the same period — a national recession, a federal tax change, a pandemic. Those are captured by the time term <span class="key">lambda(t)</span>: a separate intercept for each period, common to all entities.</p>
+        <p>Including <em>both</em> sets of dummies gives the <strong>two-way fixed-effects (TWFE)</strong> model — by far the most common workhorse in applied policy work:</p>
+        <div class="eq">y(i,t) = b1 * x(i,t) + a(i) + lambda(t) + u(i,t)<small>Entity effects a(i) absorb time-invariant cross-unit differences; time effects lambda(t) absorb common shocks each period.</small></div>
+        <p>Intuitively, TWFE asks: after stripping out each unit's baseline level <em>and</em> the average movement common to all units in each year, does an entity's <em>extra</em> change in x line up with an <em>extra</em> change in y? It compares units that changed their policy to units that didn't, in the same years. This is exactly the engine behind the difference-in-differences designs you will formalize next term.</p>
+        <p>The identifying assumption is <strong>strict exogeneity</strong> of x conditional on the fixed effects: once a(i) and lambda(t) are removed, the remaining variation in x must be uncorrelated with the idiosyncratic error u(i,t). Equivalently, treatment timing must not be driven by unit-specific shocks to the outcome.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 520 280" role="img" aria-label="Two panels side by side. Left: raw outcomes for a treated and a control state diverge but both also trend up. Right: after removing the common time effect, the treated state's extra jump at the policy year stands out.">
+                <!-- LEFT panel: raw -->
+                <text x="135" y="28" fill="#93c5fd" font-size="12" text-anchor="middle">Raw outcomes</text>
+                <line x1="40" y1="230" x2="240" y2="230" stroke="#93a8c8" stroke-width="1.3"/>
+                <line x1="40" y1="50" x2="40" y2="230" stroke="#93a8c8" stroke-width="1.3"/>
+                <!-- control raw -->
+                <polyline points="55,200 105,185 155,168 205,152" fill="none" stroke="#a78bfa" stroke-width="2"/>
+                <!-- treated raw -->
+                <polyline points="55,175 105,158 155,118 205,95" fill="none" stroke="#34d399" stroke-width="2"/>
+                <line x1="130" y1="50" x2="130" y2="230" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4 3"/>
+                <text x="130" y="245" fill="#fbbf24" font-size="9.5" text-anchor="middle">policy</text>
+                <text x="210" y="92" fill="#34d399" font-size="10">treated</text>
+                <text x="210" y="150" fill="#a78bfa" font-size="10">control</text>
+                <!-- RIGHT panel: after removing time effect -->
+                <text x="390" y="28" fill="#93c5fd" font-size="12" text-anchor="middle">After time FE removed</text>
+                <line x1="295" y1="230" x2="495" y2="230" stroke="#93a8c8" stroke-width="1.3"/>
+                <line x1="295" y1="50" x2="295" y2="230" stroke="#93a8c8" stroke-width="1.3"/>
+                <!-- control flat at zero deviation -->
+                <polyline points="310,165 360,165 410,165 460,165" fill="none" stroke="#a78bfa" stroke-width="2"/>
+                <!-- treated jumps at policy -->
+                <polyline points="310,165 385,165 435,118 460,108" fill="none" stroke="#34d399" stroke-width="2"/>
+                <line x1="385" y1="50" x2="385" y2="230" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4 3"/>
+                <text x="385" y="245" fill="#fbbf24" font-size="9.5" text-anchor="middle">policy</text>
+                <text x="430" y="98" fill="#34d399" font-size="10">treated</text>
+                <text x="430" y="178" fill="#a78bfa" font-size="10">control</text>
+            </svg>
+            <figcaption>Left: both states trend upward, so a raw comparison is misleading. Right: time fixed effects subtract the common trend (control flattens to its baseline); the treated state's residual jump at the policy year is the fixed-effects estimate of the effect.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 9.4 -->
+    <section class="lec">
+        <h2><span class="n">9.4</span>Why Standard Errors Must Be Clustered</h2>
+        <p>Estimating b1 is only half the job; we also need an honest measure of its uncertainty. Default OLS standard errors assume every observation's error is independent. In a panel that is almost never true: an entity's shocks are <strong>correlated over time</strong>. A state that runs hot one year tends to run hot the next; the u(i,t) within an entity move together.</p>
+        <p>If you ignore this serial correlation, your standard errors are far too small, your t-statistics are inflated, and you will declare effects "significant" that are pure noise. The fix is to <strong>cluster</strong> the standard errors by entity — allowing arbitrary correlation of errors <em>within</em> each cluster while assuming independence <em>across</em> clusters:</p>
+        <div class="eq">Var_hat( b1 ) = ( X'X )^(-1) [ sum over clusters g of  Xg' ug_hat ug_hat' Xg ] ( X'X )^(-1)<small>The cluster-robust ("sandwich") variance: it sums the outer products of residuals within each cluster g rather than treating every row as independent.</small></div>
+        <p>The number of clusters matters: clustered standard errors are justified by having <em>many</em> clusters. With only a handful of entities (say, a dozen states), the cluster correction itself becomes unreliable and special small-sample adjustments are needed. As a rule of thumb, cluster at the level at which treatment is assigned — usually the entity.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Adding entity fixed effects does <strong>not</strong> automatically fix your standard errors. The fixed effects address bias in the <em>point estimate</em>; clustering addresses correlation in the <em>errors</em>. These are two separate problems. A textbook error is to report a fixed-effects coefficient with default (non-clustered) standard errors — the estimate may be fine while the inference is badly overconfident.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — demeaning a two-period panel by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Two cities, two years. We study whether a transit-subsidy intensity x raises ridership y. City A has a high baseline (busy transit culture); City B has a low baseline. Raw data:</p>
+        <ul style="margin:0 0 12px 20px; font-size:.92rem;">
+            <li>City A: year 1 (x=2, y=20), year 2 (x=4, y=26).</li>
+            <li>City B: year 1 (x=1, y=8), year 2 (x=3, y=14).</li>
+        </ul>
+        <ol>
+            <li><strong>A naive pooled comparison is biased:</strong> City A has both higher x and higher y largely because of its unmeasured transit culture a(A). Comparing A to B confounds the subsidy effect with the culture gap.</li>
+            <li><strong>Compute entity means.</strong> City A: xbar = (2+4)/2 = 3, ybar = (20+26)/2 = 23. City B: xbar = (1+3)/2 = 2, ybar = (8+14)/2 = 11.</li>
+            <li><strong>Demean each observation.</strong> City A yr1: (x−3, y−23) = (−1, −3); yr2: (1, 3). City B yr1: (x−2, y−11) = (−1, −3); yr2: (1, 3).</li>
+            <li><strong>Run OLS on the demeaned points.</strong> Every point satisfies (demeaned y) = 3 × (demeaned x): the slope is <strong>b1 = 3</strong>. Each extra unit of subsidy intensity adds 3 units of ridership.</li>
+            <li><strong>The fixed effects canceled.</strong> The huge level gap (City A averages 23 vs City B's 11) vanished in step 3 — both cities' demeaned points landed on the same line. That gap was a(A) − a(B), the time-invariant confounder, and the within transformation erased it.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: fixed effects with <code>linearmodels</code></h3>
+        <p style="font-size:.9rem; color:var(--text2);">We continue with the free course stack — Python + pandas + NumPy + statsmodels — and add <code>linearmodels</code>, whose <code>PanelOLS</code> makes entity and time effects (and clustered SEs) one-liners. <strong>Reuse your Week 1–2 environment</strong>; you only need the small install note below for this one new package.</p>
+        <details class="install">
+            <summary>⬇ Add linearmodels to your existing environment (one new package)</summary>
+            <p>With your course virtual environment active, install just the panel package:</p>
+            <pre>pip install linearmodels</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import linearmodels; print(linearmodels.__version__)"</code> — a version number means you're set.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">Below we build a small simulated panel where the true effect of x is 3 and each entity has its own hidden level. We then estimate it three ways and compare. A real study would load public state-year data instead, but the API is identical.</p>
+        <pre><span class="c"># panel_fixed_effects.py — Lecture 9</span>
+import numpy as np, pandas as pd
+from linearmodels.panel import PanelOLS, PooledOLS
+
+rng = np.random.default_rng(9)
+n_ent, n_yr = 50, 6
+ent = np.repeat(np.arange(n_ent), n_yr)
+yr  = np.tile(np.arange(n_yr), n_ent)
+
+alpha = np.repeat(rng.normal(0, 5, n_ent), n_yr)   <span class="c"># hidden entity level a(i)</span>
+x = rng.normal(0, 1, n_ent*n_yr) + 0.4*alpha       <span class="c"># x correlated with a(i) -> confounding</span>
+y = 3.0*x + alpha + rng.normal(0, 1, n_ent*n_yr)   <span class="c"># true effect b1 = 3</span>
+
+df = pd.DataFrame({"entity": ent, "year": yr, "x": x, "y": y})
+df = df.set_index(["entity", "year"])              <span class="c"># MultiIndex: (entity, time)</span>
+
+<span class="c"># 1) Pooled OLS ignores a(i) -> biased upward</span>
+print(PooledOLS(df.y, df[["x"]].assign(const=1)).fit().params["x"])
+
+<span class="c"># 2) Entity fixed effects, clustered by entity</span>
+fe = PanelOLS(df.y, df[["x"]], entity_effects=True)
+print(fe.fit(cov_type="clustered", cluster_entity=True).params["x"])
+
+<span class="c"># 3) Two-way fixed effects (entity + time), clustered</span>
+twfe = PanelOLS(df.y, df[["x"]], entity_effects=True, time_effects=True)
+res = twfe.fit(cov_type="clustered", cluster_entity=True)
+print(res.summary)</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Pooled OLS returns a slope well above 3 (the entity confounder leaks in), while both fixed-effects estimates recover roughly 3. Notice <code>cluster_entity=True</code> — without it the standard errors would be too small. Swap in real public panel data, set the index to (entity, time), and the workflow is unchanged.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Two-way fixed effects is the bridge to <strong>difference-in-differences</strong>, where a sharp policy switch lets us interpret the residual jump as a treatment effect — and to the modern literature warning that TWFE can mislead when treatment rolls out at <em>different times</em> across units (staggered adoption). You'll put fixed effects, clustering, and an event-study plot together in <strong>Week 10's capstone</strong>, building one end-to-end causal policy study. The same panel machinery reappears in the Quant Finance track for firm-and-time effects in asset-pricing factor regressions.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#1a162e,#231a3a); border-color:#3a2f60;">
+        <h3 style="color:var(--violet);">💬 Discussion</h3>
+        <p>A team evaluates a state job-training program using a two-way fixed-effects regression of employment on a "program active" indicator, with state and year effects and standard errors clustered by state. The coefficient is positive and significant. A reviewer objects: "Fixed effects don't make this causal." <strong>Is the reviewer right? What specific threat survives the fixed effects here, and what would you check or add to take the objection seriously?</strong></p>
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer; color:var(--accent2); font-weight:600; font-size:.88rem;">Show a model response</summary>
+            <div style="font-size:.88rem; color:#cdd0ee; margin-top:10px;">
+                <p style="margin-bottom:10px;">The reviewer is partly right. State fixed effects remove every <em>time-invariant</em> difference between states (a permanently strong economy, stable political culture), and year fixed effects remove shocks common to all states in a given year (a national recession). What they do <strong>not</strong> remove is a <em>time-varying, state-specific</em> confounder — and that is exactly the worry for a program that states choose to launch. If a state adopted the training program precisely <em>because</em> its labor market was already starting to recover, that recovery — not the program — drives the employment gain. This is reverse-causal selection on trends, and it passes straight through both sets of fixed effects.</p>
+                <p style="margin-bottom:10px;">To take the objection seriously I would: (1) run an <strong>event study</strong> — plot the estimated effect in each period relative to adoption and check that pre-adoption coefficients are flat and near zero, which tests the parallel-trends assumption directly; (2) add state-specific linear time trends as a robustness check and see whether the effect survives; (3) confirm standard errors are clustered by state and worry about the <em>number</em> of clusters (a handful of states needs small-sample adjustments); and (4) if adoption is staggered across years, use a heterogeneity-robust diff-in-diff estimator rather than plain TWFE, since the simple two-way specification can be biased under staggered timing.</p>
+                <p style="margin:0; padding-top:8px; border-top:1px dashed #3a2f60;"><strong>✓ Self-check rubric:</strong> A strong answer (1) states clearly that fixed effects remove only time-invariant (entity) and common-time confounders; (2) names a concrete <em>time-varying, unit-specific</em> threat such as selection on pre-trends / endogenous policy timing; and (3) proposes at least one concrete diagnostic — an event study / parallel-trends check, unit-specific trends, or a staggered-adoption-robust estimator. Bonus: mentions the number-of-clusters caveat for inference.</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> What does the within (demeaning) transformation accomplish in a fixed-effects model?</div>
+            <div class="opt"><b>A.</b> It removes any confounder that is constant over time for each entity</div>
+            <div class="opt"><b>B.</b> It removes all measurement error in the outcome</div>
+            <div class="opt"><b>C.</b> It makes the regressor uncorrelated with itself</div>
+            <div class="opt"><b>D.</b> It guarantees the estimate is causal</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Subtracting each entity's own mean cancels a(i), so every time-invariant trait drops out. B is wrong — demeaning does nothing to measurement error. C is meaningless. D is false: time-varying confounders survive, so causality is not guaranteed.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Which confounder does an <em>entity</em> fixed effect fail to control for?</div>
+            <div class="opt"><b>A.</b> A state's permanent geography</div>
+            <div class="opt"><b>B.</b> A firm's stable management culture</div>
+            <div class="opt"><b>C.</b> A worker's fixed innate ability</div>
+            <div class="opt"><b>D.</b> A time-varying local economic boom that coincides with the policy</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Entity effects absorb only things that are constant over time (A, B, C are all time-invariant). A confounder that <em>changes</em> over the panel — like an economic boom arriving with the policy — passes straight through demeaning.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A two-way fixed-effects model adds, beyond entity effects, a separate intercept for each…</div>
+            <div class="opt"><b>A.</b> regressor</div>
+            <div class="opt"><b>B.</b> time period, capturing shocks common to all entities that period</div>
+            <div class="opt"><b>C.</b> outcome category</div>
+            <div class="opt"><b>D.</b> standard-error cluster</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Time fixed effects are one intercept per period, absorbing shocks (recessions, national policy) hitting every unit at once. A and C misdescribe the model; D confuses inference (clustering) with the regression specification.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why should standard errors in a panel regression usually be clustered by entity?</div>
+            <div class="opt"><b>A.</b> Clustering removes omitted-variable bias from the coefficient</div>
+            <div class="opt"><b>B.</b> Clustering increases the point estimate</div>
+            <div class="opt"><b>C.</b> An entity's errors are correlated over time, so default SEs are too small</div>
+            <div class="opt"><b>D.</b> It is required for the model to converge</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Serial correlation within an entity violates the independence assumption; ignoring it makes default SEs too small and t-stats inflated. A confuses inference with bias (fixed effects, not clustering, address bias); B and D are simply false.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the worked example, City A averaged y = 23 and City B averaged y = 11, yet the estimated effect of x was the same b1 = 3 for both. Why did the large level gap not bias the estimate?</div>
+            <div class="opt"><b>A.</b> Because the cities had the same number of observations</div>
+            <div class="opt"><b>B.</b> The within transformation subtracted each city's own mean, removing the level gap a(A) − a(B)</div>
+            <div class="opt"><b>C.</b> Because y was measured without error</div>
+            <div class="opt"><b>D.</b> Because time fixed effects absorbed the gap</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Demeaning within each city erased its baseline level — the time-invariant confounder — leaving only within-city variation. A is irrelevant to the bias; C is unrelated; D is wrong because the gap is an <em>entity</em>-level difference, handled by entity (not time) demeaning.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined <b>panel data</b> — the same entities observed over multiple periods, indexed by (i, t).</li>
+            <li>Derived the <b>within transformation</b> and saw it cancel every time-invariant unobserved confounder a(i).</li>
+            <li>Distinguished <b>entity fixed effects</b> (cross-unit differences) from <b>time fixed effects</b> (common shocks), combined in <b>two-way fixed effects</b>.</li>
+            <li>Understood that fixed effects fix <b>bias</b> while <b>clustered standard errors</b> fix correlated-error inference — two separate jobs.</li>
+            <li>Estimated pooled, entity-FE, and two-way-FE models with <b>linearmodels</b>' <code>PanelOLS</code>, clustering by entity.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10: the capstone. You'll assemble fixed effects, parallel-trends checks, an event-study plot, and clustered inference into one complete causal policy study, start to finish.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-regression-discontinuity.html"><div class="dir">← Week 8</div><div class="ttl">Regression Discontinuity</div></a>
+        <a class="next" href="l10-capstone-policy-study.html"><div class="dir">Week 10 →</div><div class="ttl">Capstone: A Causal Policy Study</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Causal Inference</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C5 · Lecture 9 — Optimal Quoting &amp; Inventory Control</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C5 Risk &amp; MM</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Optimal Quoting &amp; Inventory Control</h1>
+        <p class="sub">A market maker who never adjusts for the position piling up on the books is a casino that forgot to set a house edge — here is how to quote so inventory drifts safely back to zero.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why a market maker's quotes must depend on current <em>inventory</em>, not just the mid-price.</li>
+            <li>Skew bid/ask quotes to mean-revert a long or short position back toward flat.</li>
+            <li>Define the <strong>reservation price</strong> and show how it shifts away from the mid as inventory grows.</li>
+            <li>Derive how the optimal half-spread widens with risk aversion γ, volatility σ, and remaining time T − t.</li>
+            <li>Connect the pieces into a generic continuous-time optimal market-making model and simulate it in Python.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>Why Inventory Changes the Quote</h2>
+        <p>In Week 8 a market maker posted a symmetric bid and ask around the mid-price and collected the spread on each round-trip. That works in a frictionless thought-experiment, but it ignores the single largest risk in the business: <strong>inventory</strong>. Every fill leaves you holding a position. Buy when someone sells to you, and you accumulate a long book; the moment the market gaps down, that inventory is a loss, not a fee earned.</p>
+        <p>The core tension is this. A market maker earns money from the <span class="key">spread</span> — a steady stream of small edges — but is exposed to <span class="key">inventory risk</span>, the chance that the price moves against the position accumulated while providing liquidity. The spread income is roughly linear in how much you trade; the inventory risk grows with the <em>variance</em> of what you are holding. Quoting symmetrically lets inventory wander, and a wandering inventory has a variance that grows without bound over time.</p>
+        <p>The fix is to make quotes <strong>inventory-aware</strong>. If you are already long, you should be less eager to buy more and more eager to sell — so you raise both your bid and your ask, making your sells more attractive and your buys less so. If you are short, you do the reverse. The quote is no longer pinned to the mid; it is pinned to a price that <em>accounts for the position you are carrying</em>.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a grocer with a fridge full of milk nearing its sell-by date. They don't keep pricing milk at the "fair" shelf price — they mark it down to clear the shelf, accepting a thinner margin to avoid the bigger loss of spoilage. A market maker carrying a large long inventory does the same: shade prices to encourage the market to take the position off their hands before the next adverse move "spoils" it.</div>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>The Reservation Price: Quoting Around Where You'd Be Indifferent</h2>
+        <p>The central idea of optimal quoting is the <strong>reservation price</strong> r — the price at which the maker is <em>indifferent</em> between holding their current inventory and trading one more unit. It is the maker's own private "fair value," adjusted for the risk of the position they already carry. Quotes get centered on r, not on the public mid s.</p>
+        <p>With inventory q (positive = long, negative = short), risk aversion γ, return volatility σ, and time remaining T − t until the end of the trading horizon, the reservation price is the mid shifted by an inventory-risk penalty:</p>
+        <div class="eq">r(s, q, t) = s − q · γ · σ² · (T − t)<small>Long inventory (q &gt; 0) pulls r <em>below</em> the mid; short inventory (q &lt; 0) pushes it <em>above</em>. The pull scales with γ, σ², and the time left to be exposed.</small></div>
+        <p>Read the sign carefully. If you are long (q &gt; 0), r sits below the mid, so when you quote symmetrically <em>around r</em>, both your bid and your ask end up lower than they would around the mid — your ask becomes a more attractive sell, helping you offload the long. The size of the shift grows with how risk-averse you are (γ), how volatile the asset is (σ²), and how much time you still have to be caught holding it (T − t). As the horizon closes, T − t → 0 and the skew vanishes: there is no future left in which the inventory can hurt you.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The reservation price is <em>not</em> your forecast of where the price is going. It contains no alpha or directional view. A long position lowering r does not mean you predict the price will fall — it means you are willing to <em>sell cheaper</em> to shed risk you'd rather not hold. Confusing inventory skew with a price forecast leads to chasing the market and doubling down on losers.</div>
+    </section>
+
+    <!-- FIGURE 1 -->
+    <figure class="fig">
+        <svg viewBox="0 0 420 230" role="img" aria-label="A price axis showing the mid price in the center, with the reservation price shifted below the mid when inventory is long and above the mid when inventory is short, and bid-ask quotes bracketing the reservation price">
+            <!-- vertical price scale -->
+            <line x1="210" y1="20" x2="210" y2="205" stroke="#bcae8c" stroke-width="1.5"/>
+            <text x="210" y="16" fill="#bcae8c" font-size="10" text-anchor="middle">price</text>
+            <!-- mid line -->
+            <line x1="120" y1="112" x2="300" y2="112" stroke="#fbbf24" stroke-width="2"/>
+            <text x="312" y="116" fill="#fcd34d" font-size="11" text-anchor="start">mid s</text>
+
+            <!-- LEFT: long inventory, r below mid -->
+            <text x="78" y="40" fill="#bcae8c" font-size="11" text-anchor="middle">long book (q &gt; 0)</text>
+            <line x1="40" y1="150" x2="160" y2="150" stroke="#34d399" stroke-width="2" stroke-dasharray="4 3"/>
+            <text x="36" y="154" fill="#6ee7b7" font-size="10" text-anchor="end">r</text>
+            <!-- bid/ask around r (left) -->
+            <line x1="60" y1="168" x2="140" y2="168" stroke="#60a5fa" stroke-width="1.6"/>
+            <text x="100" y="183" fill="#93c5fd" font-size="9.5" text-anchor="middle">bid</text>
+            <line x1="60" y1="132" x2="140" y2="132" stroke="#a78bfa" stroke-width="1.6"/>
+            <text x="100" y="128" fill="#c4b5fd" font-size="9.5" text-anchor="middle">ask (more eager to sell)</text>
+            <!-- shift arrow -->
+            <line x1="170" y1="112" x2="170" y2="150" stroke="#34d399" stroke-width="1.4"/>
+            <path d="M170,150 L166,142 L174,142 Z" fill="#34d399"/>
+
+            <!-- RIGHT: short inventory, r above mid -->
+            <text x="345" y="40" fill="#bcae8c" font-size="11" text-anchor="middle">short book (q &lt; 0)</text>
+            <line x1="285" y1="74" x2="405" y2="74" stroke="#34d399" stroke-width="2" stroke-dasharray="4 3"/>
+            <text x="409" y="78" fill="#6ee7b7" font-size="10" text-anchor="start">r</text>
+            <!-- bid/ask around r (right) -->
+            <line x1="305" y1="92" x2="385" y2="92" stroke="#60a5fa" stroke-width="1.6"/>
+            <text x="345" y="106" fill="#93c5fd" font-size="9.5" text-anchor="middle">bid (more eager to buy)</text>
+            <line x1="305" y1="56" x2="385" y2="56" stroke="#a78bfa" stroke-width="1.6"/>
+            <text x="345" y="52" fill="#c4b5fd" font-size="9.5" text-anchor="middle">ask</text>
+            <!-- shift arrow -->
+            <line x1="250" y1="112" x2="250" y2="74" stroke="#34d399" stroke-width="1.4"/>
+            <path d="M250,74 L246,82 L254,82 Z" fill="#34d399"/>
+        </svg>
+        <figcaption>The reservation price r (green dashed) sits below the mid when the book is long and above it when short. Quotes (blue bid, violet ask) bracket r rather than the mid, automatically making it easier to trade in the direction that flattens inventory.</figcaption>
+    </figure>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>The Optimal Spread: How Wide to Quote</h2>
+        <p>Centering quotes on r tells you <em>where</em> to put them; it does not tell you <em>how far apart</em>. That is the job of the optimal spread. Two forces pull in opposite directions. A <strong>wider</strong> spread earns more per fill but gets fewer fills. A <strong>tighter</strong> spread wins more volume but at razor-thin margins. The optimal half-spread balances the expected profit per trade against the rate at which orders arrive.</p>
+        <p>Order arrival is the missing ingredient. Quote a distance δ away from the reference price and the probability of getting filled falls off as you move away. A standard model uses an exponentially decaying fill intensity, λ(δ) = A·e<sup>−κδ</sup>: post closer to the touch (small δ) and fills rain in; post far away (large δ) and they dry up. The parameter κ measures how quickly liquidity-takers walk away as you widen.</p>
+        <p>Solving the trade-off — maximize spread capture minus inventory risk, subject to that arrival rate — gives an optimal total spread that is the sum of an <span class="key">inventory-risk term</span> and a <span class="key">market-structure term</span>:</p>
+        <div class="eq">spread<sub>opt</sub> = γ · σ² · (T − t) &nbsp;+&nbsp; (2 / γ) · ln(1 + γ / κ)<small>First term: charge more when risk aversion γ, volatility σ², or remaining exposure (T − t) is high. Second term: charge more when takers are price-insensitive (small κ) and less when γ is large relative to κ.</small></div>
+        <p>The first term is the same γσ²(T−t) that appeared in the reservation price — it is the price of carrying risk through time. The second term is set by the shape of the order flow: if liquidity-takers tolerate wide quotes (small κ), you can afford to charge more. Quotes are then placed at r ± spread/2, so the bid is r − spread/2 and the ask is r + spread/2.</p>
+        <p>Notice the two levers act on different things. The reservation-price skew (§9.2) decides which side of the mid your quotes lean toward — it manages <em>direction</em>. The spread width decides how aggressive you are overall — it manages <em>volume versus margin</em>. Together they fully specify the bid and the ask at every instant.</p>
+    </section>
+
+    <!-- FIGURE 2 -->
+    <figure class="fig">
+        <svg viewBox="0 0 420 220" role="img" aria-label="A line chart with remaining time on the horizontal axis decreasing to the right and optimal half-spread on the vertical axis, showing the spread shrinking toward a positive floor as time runs out, with a higher curve for higher volatility">
+            <!-- axes -->
+            <line x1="50" y1="180" x2="395" y2="180" stroke="#bcae8c" stroke-width="1.5"/>
+            <line x1="50" y1="180" x2="50" y2="25" stroke="#bcae8c" stroke-width="1.5"/>
+            <text x="222" y="206" fill="#bcae8c" font-size="10" text-anchor="middle">time remaining T − t  (runs out →)</text>
+            <text x="20" y="100" fill="#bcae8c" font-size="10" text-anchor="middle" transform="rotate(-90 20 100)">half-spread δ</text>
+            <!-- start (left, full time) end (right, t=T) -->
+            <text x="50" y="195" fill="#8a7a52" font-size="9" text-anchor="middle">start</text>
+            <text x="395" y="195" fill="#8a7a52" font-size="9" text-anchor="middle">close</text>
+            <!-- floor (market-structure term) -->
+            <line x1="50" y1="150" x2="395" y2="150" stroke="#3a3119" stroke-width="1" stroke-dasharray="4 3"/>
+            <text x="388" y="145" fill="#8a7a52" font-size="9" text-anchor="end">structure floor (1/γ)·ln(1+γ/κ)</text>
+            <!-- high-vol curve (declines from high to floor) -->
+            <path d="M50,45 C150,70 250,120 320,148 C350,150 380,150 395,150" fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+            <text x="120" y="50" fill="#fcd34d" font-size="10" text-anchor="start">high σ</text>
+            <!-- low-vol curve -->
+            <path d="M50,100 C150,118 250,140 320,150 C350,150 380,150 395,150" fill="none" stroke="#60a5fa" stroke-width="2.2"/>
+            <text x="120" y="112" fill="#93c5fd" font-size="10" text-anchor="start">low σ</text>
+        </svg>
+        <figcaption>The optimal half-spread over the trading day. The inventory-risk term γσ²(T−t)/2 shrinks as the close approaches, so quotes tighten toward a positive floor set by market structure (κ). Higher volatility (gold) lifts the whole curve above the low-volatility case (blue).</figcaption>
+    </figure>
+
+    <!-- 9.4 -->
+    <section class="lec">
+        <h2><span class="n">9.4</span>A Generic Optimal Market-Making Model</h2>
+        <p>Put the pieces together and you have a complete continuous-time recipe — the canonical inventory-control model studied across the quantitative-finance literature. The maker watches the mid-price s<sub>t</sub> evolve as a random walk (Brownian motion, from Course 1), tracks inventory q<sub>t</sub> as fills arrive according to the intensity λ(δ), and at every instant solves for the quote pair that maximizes expected terminal wealth penalized for inventory risk.</p>
+        <p>The objective is a mean–variance-style utility on terminal P&amp;L: maximize expected wealth minus a risk penalty proportional to the variance contributed by holding inventory. The control variables are the two quote distances, on the bid and the ask side. The solution is exactly the two rules we built:</p>
+        <div class="eq">bid<sub>t</sub> = r<sub>t</sub> − spread<sub>opt</sub>/2 &nbsp;&nbsp;&nbsp; ask<sub>t</sub> = r<sub>t</sub> + spread<sub>opt</sub>/2<small>with r<sub>t</sub> = s<sub>t</sub> − q<sub>t</sub> γ σ² (T−t) and spread<sub>opt</sub> = γσ²(T−t) + (2/γ) ln(1 + γ/κ).</small></div>
+        <h3>Controlling the variance of inventory</h3>
+        <p>The reason this works is that the inventory skew creates <strong>mean reversion</strong> in q<sub>t</sub>. When q drifts positive, r drops, the ask becomes more attractive, sells outpace buys, and q is pulled back toward zero — and symmetrically when q goes negative. A symmetric quoter's inventory follows an unbounded random walk whose variance grows linearly with time; the inventory-aware quoter's position behaves like a mean-reverting process whose variance stays <em>bounded</em>. Bounding the variance of inventory is the whole point: it caps the worst-case loss from an adverse price move.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A symmetric quoter steers like a car with the wheel locked straight — fine on a straight road, but any bump sends it drifting off course with no correction. The inventory skew is power steering that constantly nudges the wheel back toward center. The car still wanders with the bumps, but it never drives off the road, because every deviation generates a restoring push proportional to how far off-center it has gone.</div>
+        <p>The single knob that tunes the whole system is <strong>risk aversion γ</strong>. Crank γ up and both the skew and the spread widen: inventory snaps back to zero hard and quotes are defensive, sacrificing volume for safety. Dial γ toward zero and the maker becomes a pure spread-harvester, quoting tight and symmetric and letting inventory run — maximal volume, maximal risk. Choosing γ is choosing where to sit on that spectrum.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — quoting a long book mid-session</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">You make markets in a stock. The mid is s = 100.00. Per-step volatility σ = 0.20 (price units), risk aversion γ = 0.5, fill-decay κ = 1.5, and you are <strong>long q = 3</strong> units with a fraction (T − t) = 0.4 of the session left. Compute the reservation price, the optimal spread, and your two quotes.</p>
+        <ol>
+            <li><strong>Inventory-risk unit:</strong> γσ²(T−t) = 0.5 · (0.20)² · 0.4 = 0.5 · 0.04 · 0.4 = <strong>0.008</strong>.</li>
+            <li><strong>Reservation price:</strong> r = s − q·γσ²(T−t) = 100.00 − 3 · 0.008 = 100.00 − 0.024 = <strong>99.976</strong>. Long inventory pulls r below the mid, as expected.</li>
+            <li><strong>Optimal spread:</strong> spread = γσ²(T−t) + (2/γ)·ln(1 + γ/κ) = 0.008 + (2/0.5)·ln(1 + 0.5/1.5) = 0.008 + 4·ln(1.3333) = 0.008 + 4·0.28768 = 0.008 + 1.1507 ≈ <strong>1.159</strong>.</li>
+            <li><strong>Place the quotes:</strong> half-spread = 1.159 / 2 ≈ 0.579. Bid = r − 0.579 = 99.976 − 0.579 = <strong>99.397</strong>; ask = r + 0.579 = 99.976 + 0.579 = <strong>100.555</strong>.</li>
+            <li><strong>Read the result:</strong> both quotes sit below where a symmetric quoter (centered on 100.00) would place them — the bid is 0.603 below the mid while the ask is only 0.555 above it. The ask is the more competitive of the two relative to the mid, so it is more likely to fill, selling off the long position and pulling q back toward zero.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate an inventory-aware quoter</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1 environment (NumPy + Matplotlib — the install block lives in <a href="../../c1-probability-stochastic/lectures/l01-probability-expectation.html" style="color:var(--accent2);">Course 1, Lecture 1</a>). We simulate a mid-price as a random walk, post inventory-skewed quotes, fill them with an exponential arrival model, and compare the inventory path against a naive symmetric quoter.</p>
+        <pre><span class="c"># optimal_quoting.py — Lecture 9</span>
+import numpy as np
+
+rng = np.random.default_rng(9)
+T, steps = 1.0, 1000
+dt   = T / steps
+sigma_step = 0.20            <span class="c"># vol per sqrt(dt) of the mid</span>
+gamma, kappa, A = 0.5, 1.5, 140.0
+
+def simulate(skew):
+    s, q, cash = 100.0, 0.0, 0.0
+    inv = np.empty(steps)
+    for i in range(steps):
+        t_left = T - i * dt
+        <span class="c"># reservation price (no skew -> symmetric quoter)</span>
+        r = s - (q * gamma * sigma_step**2 * t_left if skew else 0.0)
+        spread = gamma * sigma_step**2 * t_left + (2/gamma) * np.log(1 + gamma/kappa)
+        bid, ask = r - spread/2, r + spread/2
+        <span class="c"># fill probabilities fall off as quotes move from the mid</span>
+        p_buy  = A * np.exp(-kappa * (s - bid)) * dt   <span class="c"># someone sells to us</span>
+        p_sell = A * np.exp(-kappa * (ask - s)) * dt   <span class="c"># someone buys from us</span>
+        if rng.random() < p_buy:  q += 1; cash -= bid
+        if rng.random() < p_sell: q -= 1; cash += ask
+        s += sigma_step * np.sqrt(dt) * rng.standard_normal()  <span class="c"># mid random walk</span>
+        inv[i] = q
+    pnl = cash + q * s          <span class="c"># mark remaining inventory to market</span>
+    return inv, pnl
+
+inv_skew, pnl_skew = simulate(skew=True)
+inv_sym,  pnl_sym  = simulate(skew=False)
+print("skewed  : final PnL %.2f, inventory std %.2f" % (pnl_skew, inv_skew.std()))
+print("symmetric: final PnL %.2f, inventory std %.2f" % (pnl_sym,  inv_sym.std()))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Across many seeds the skewed quoter shows a markedly <em>smaller inventory standard deviation</em> — its position hugs zero while the symmetric quoter's wanders — and a steadier P&amp;L with far thinner tails. You are not earning more on average per trade; you are removing the inventory-driven variance that occasionally produces a catastrophic day. Try sweeping <code>gamma</code> from 0.1 to 2.0 and plotting inventory-std against mean P&amp;L to see the risk–reward frontier directly.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>This lecture's continuous-time control problem is your first taste of <strong>stochastic optimal control</strong> — choosing actions through time to steer a random system, the same machinery behind optimal execution (splitting a large order to minimize market impact) and dynamic hedging. Next week's <strong>Market-Making Capstone</strong> ties §9.1–9.4 into a full backtested strategy with adverse-selection and impact effects layered on. Looking further, the reservation-price skew generalizes to <em>multi-asset</em> inventory control, where the risk penalty becomes the portfolio covariance Σ from the Markowitz machinery in Lecture 5 — and the γ knob you tuned here is the same risk-aversion dial that runs through every risk model in this course.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#1a1322,#221528);border-color:#4a3a66;">
+        <h3>💬 Discussion</h3>
+        <p style="color:#e0d4f5;">It is the final 30 minutes of the trading session and you are sitting on a large long inventory you have not been able to clear. The model says r drops toward the mid and the spread tightens as T − t → 0, telling you to quote more aggressively to flatten before the close. But a piece of news just hit and volatility is spiking. <strong>How should the conflict between "flatten before the close" and "volatility is rising" resolve in your quotes — and what does it reveal about the model's blind spots?</strong> Argue a position.</p>
+        <details style="margin-top:14px;">
+            <summary style="cursor:pointer;color:var(--violet);font-weight:600;font-size:.9rem;">Show a model response</summary>
+            <div style="margin-top:12px;font-size:.9rem;color:#cdc0e6;">
+                <p style="margin-bottom:10px;">The two effects push the spread in opposite directions and you must weigh them rather than trust either term alone. The closing-time effect (T − t → 0) shrinks the inventory-risk term and tightens the spread; the volatility spike inflates σ² and widens it. In the model these multiply inside the <em>same</em> γσ²(T−t) term, so the net effect on the <em>spread</em> depends on which moves faster — and a genuine vol spike usually dominates a small T − t, so the spread should actually <em>widen</em>, not tighten.</p>
+                <p style="margin-bottom:10px;">But the more important point is what to do with the <em>skew</em>, which is separate from the spread. The long inventory still needs to come down, and an aggressive ask (low relative to the mid) is the right tool to attract sellers-to-you off the book — the skew should stay strong. The resolution: keep, or even increase, the inventory skew to keep flattening, while <em>widening the overall spread</em> so you are not handing out free options into a volatile, possibly adversely-selected market. You flatten by leaning your quotes, not by quoting tight.</p>
+                <p style="margin-bottom:10px;">The blind spots this exposes: (1) the model treats σ as a known constant, but real volatility is stochastic and clusters — a single constant σ cannot represent "calm then sudden spike"; (2) it ignores <strong>adverse selection</strong> — right after news, the counterparties hitting your quotes are likelier to be informed, so naive fills are toxic; (3) it has no notion of a hard end-of-day risk limit, only a smooth penalty, so it may not flatten urgently enough when a real position cap looms.</p>
+                <p style="font-size:.85rem;color:var(--violet);"><strong>✓ Self-check rubric:</strong> A strong answer (1) distinguishes the <em>skew</em> decision from the <em>spread-width</em> decision rather than treating "quote aggressively" as one knob; (2) recognizes that a vol spike widens the spread while still keeping the inventory skew to flatten; and (3) names at least one structural blind spot — constant/known σ, adverse selection, or the absence of a hard risk limit.</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A market maker is currently <strong>long</strong> inventory (q &gt; 0). Relative to the mid-price, the reservation price r is…</div>
+            <div class="opt"><b>A.</b> above the mid, so the maker quotes a higher bid to buy more</div>
+            <div class="opt"><b>B.</b> below the mid, biasing quotes so the ask is more likely to fill and reduce the long</div>
+            <div class="opt"><b>C.</b> exactly at the mid, because r ignores inventory</div>
+            <div class="opt"><b>D.</b> below the mid because the maker forecasts the price will fall</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> With q &gt; 0 the term −q·γσ²(T−t) is negative, pulling r below the mid; quoting around r makes the ask more competitive so the long gets sold off. A and C have the sign/dependence wrong. D is the classic trap: the skew is risk management, not a price forecast — r has no directional view in it.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> As the end of the trading session approaches (T − t → 0), the inventory-risk part of the optimal spread…</div>
+            <div class="opt"><b>A.</b> grows without bound</div>
+            <div class="opt"><b>B.</b> stays constant</div>
+            <div class="opt"><b>C.</b> shrinks toward zero, leaving only the market-structure floor</div>
+            <div class="opt"><b>D.</b> becomes negative</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The term γσ²(T−t) → 0 as T − t → 0, so the spread relaxes toward the structural floor (2/γ)ln(1+γ/κ) > 0. A and B contradict the (T−t) factor. D is impossible: a spread is a non-negative quantity and the floor term is strictly positive.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Which change makes the optimal spread <strong>wider</strong>?</div>
+            <div class="opt"><b>A.</b> Lower volatility σ</div>
+            <div class="opt"><b>B.</b> Lower risk aversion γ</div>
+            <div class="opt"><b>C.</b> Inventory already at exactly zero</div>
+            <div class="opt"><b>D.</b> A longer time remaining T − t with higher risk aversion γ</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The inventory-risk term γσ²(T−t) rises with both γ and the time remaining, widening the spread. Lower σ (A) and lower γ (B) shrink it. The spread width does not depend on the current inventory level (C) — inventory drives the <em>skew</em> of the quotes, not their <em>width</em>.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> What is the main benefit of skewing quotes to mean-revert inventory toward zero, compared with a symmetric quoter?</div>
+            <div class="opt"><b>A.</b> It guarantees a profit on every single round-trip trade</div>
+            <div class="opt"><b>B.</b> It keeps the <em>variance of inventory bounded</em> instead of growing without limit over time</div>
+            <div class="opt"><b>C.</b> It eliminates the bid–ask spread entirely</div>
+            <div class="opt"><b>D.</b> It lets the maker forecast the direction of the mid-price</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The skew turns inventory into a mean-reverting process with bounded variance, capping worst-case inventory loss; a symmetric quoter's inventory random-walks and its variance grows linearly with time. A is false (no strategy guarantees per-trade profit). C is false — the spread is the maker's revenue, never eliminated. D confuses inventory control with forecasting.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the fill-intensity model λ(δ) = A·e<sup>−κδ</sup>, what does a <strong>larger</strong> κ mean for how the maker should quote?</div>
+            <div class="opt"><b>A.</b> Takers walk away quickly as quotes widen, so the maker should keep the structure component of the spread tighter</div>
+            <div class="opt"><b>B.</b> Fills are independent of quote distance, so quote width is irrelevant</div>
+            <div class="opt"><b>C.</b> The maker should always quote at the maximum possible distance</div>
+            <div class="opt"><b>D.</b> Volatility no longer affects the spread</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A larger κ means fill probability decays faster as δ grows — takers are price-sensitive — so widening costs a lot of volume; the structure term (2/γ)ln(1+γ/κ) shrinks as κ rises, telling the maker to quote tighter. B contradicts the exponential dependence. C ignores that wide quotes barely fill when κ is large. D is wrong — the γσ²(T−t) volatility term is unaffected by κ and still matters.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A market maker faces a tension between <b>spread income</b> (linear in volume) and <b>inventory risk</b> (grows with the variance of the position), so quotes must be <b>inventory-aware</b>.</li>
+            <li>The <b>reservation price</b> r = s − q·γσ²(T−t) shifts below the mid when long and above when short, skewing quotes to flatten inventory — it carries <b>no directional forecast</b>.</li>
+            <li>The <b>optimal spread</b> = γσ²(T−t) + (2/γ)ln(1+γ/κ) widens with risk aversion, volatility, and remaining time, and tightens toward a structural floor as the close nears.</li>
+            <li>Skewing quotes makes inventory <b>mean-revert</b>, keeping its <b>variance bounded</b> instead of letting it random-walk — capping worst-case loss.</li>
+            <li>A generic continuous-time model combines a random-walk mid, exponential fill intensity, and a mean–variance objective; <b>risk aversion γ</b> is the single dial trading volume against safety.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10: the <b>Market-Making Capstone</b> — assembling quoting, inventory control, adverse selection, and impact into a full backtested strategy.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-market-making-basics.html"><div class="dir">← Week 8</div><div class="ttl">Market-Making Basics</div></a>
+        <a class="next" href="l10-market-making-capstone.html"><div class="dir">Week 10 →</div><div class="ttl">Market-Making Capstone</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Risk &amp; MM</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

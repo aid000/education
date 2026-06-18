@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C1 · Lecture 2 — Dominance &amp; Iterated Elimination</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C1 Game Theory</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Dominance &amp; Iterated Elimination</h1>
+        <p class="sub">If a strategy is never your best move, throw it away — then watch the game shrink, one ruled-out choice at a time, until the rational answer is all that's left.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Distinguish <strong>strictly</strong> from <strong>weakly</strong> dominated strategies and write each definition formally.</li>
+            <li>Explain from first principles why a rational player never plays a strictly dominated strategy.</li>
+            <li>Run <strong>iterated elimination of strictly dominated strategies (IESDS)</strong> on a payoff matrix.</li>
+            <li>State why IESDS is <strong>order-independent</strong> for strict dominance — but not for weak dominance.</li>
+            <li>Connect surviving strategies to <strong>rationalizability</strong> and use elimination to locate Nash equilibria, then verify with nashpy.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>What It Means to Be Dominated</h2>
+        <p>In Lecture 1 a <em>dominant</em> strategy was one you'd always want to play. Now flip it around: a <strong>dominated</strong> strategy is one you'd never want to play, because some other strategy does at least as well — and sometimes better — against everything the opponent might do. Spotting these is the cheapest tool in game theory: you don't need to find the equilibrium, you just delete the choices a rational player would never touch.</p>
+        <p>Let player <em>i</em> choose strategy <em>s</em> while everyone else plays the profile <em>s</em><sub>-i</sub>, giving payoff <em>u</em><sub>i</sub>(<em>s</em>, <em>s</em><sub>-i</sub>). Strategy <em>s</em> is <strong>strictly dominated</strong> by an alternative <em>s'</em> when:</p>
+        <div class="eq">u_i(s', s_-i) &gt; u_i(s, s_-i)&nbsp;&nbsp;for EVERY s_-i<small>s' pays strictly more than s against every possible choice of the opponents — s is strictly dominated.</small></div>
+        <p>The keyword is <strong>every</strong>. It is not enough for <em>s'</em> to win on average or in the likely case; it must win in <em>all</em> columns. That strong requirement is exactly what makes the conclusion airtight — a rational, payoff-maximizing player can rule out <em>s</em> without knowing anything about what the opponent will do. No beliefs, no probabilities, no equilibrium needed: a strictly dominated strategy is simply garbage.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of two commuting routes where one is faster <strong>no matter the traffic</strong> — rain or shine, rush hour or midnight, Route A always beats Route B by some margin. You don't need a weather forecast to delete Route B; it loses in every state of the world. A strictly dominated strategy is the route you can cross off your map before you even check the conditions.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Strict vs Weak Dominance</h2>
+        <p>The dangerous cousin of strict dominance is <strong>weak dominance</strong>. Strategy <em>s</em> is weakly dominated by <em>s'</em> when <em>s'</em> does <em>at least as well</em> everywhere, and <em>strictly</em> better in at least one case:</p>
+        <div class="eq">u_i(s', s_-i) &gt;= u_i(s, s_-i)&nbsp;for all s_-i,&nbsp;&nbsp;and&nbsp;&gt; for at least one s_-i<small>Weak dominance: s' never does worse, and sometimes does better. The ties are what make it slippery.</small></div>
+        <p>The difference looks small but matters enormously. With <strong>strict</strong> dominance, a rational player <em>certainly</em> abandons <em>s</em> — there is never any reason to keep it. With <strong>weak</strong> dominance, <em>s</em> sometimes ties <em>s'</em>, so a player who happens to expect the opponent to play one of those tying columns is not strictly hurt by keeping <em>s</em>. That single "tie" is why weak dominance behaves badly under iteration, as we'll see in 2.4.</p>
+        <p>In practice: use strict dominance to delete with confidence; treat weak dominance as a softer hint that can throw away genuine equilibria if you lean on it too hard.</p>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Iterated Elimination (IESDS)</h2>
+        <p>One deletion rarely solves a game. The power comes from <strong>iteration</strong>: delete a dominated strategy, and the smaller game may reveal a <em>new</em> strategy that is dominated only now that an opponent's option is gone. Repeat until nothing more can be removed. This is <strong>iterated elimination of strictly dominated strategies (IESDS)</strong>.</p>
+        <p>The logic chains together cleanly: I am rational, so I drop my dominated strategy. I also know <em>you</em> are rational, so you drop yours. I know that you know that I'm rational, and so on. Each layer of "common knowledge of rationality" justifies one more round of deletion.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 520 230" role="img" aria-label="Three-stage iterated elimination. The full 3x3 grid loses a dominated row, then a dominated column, leaving a single surviving cell.">
+                <!-- Stage 1: full 3x3 -->
+                <text x="80" y="22" fill="#93c5fd" font-size="12" text-anchor="middle">Round 0: full game</text>
+                <g stroke="#1f2f4a" stroke-width="1.5" fill="#101829">
+                    <rect x="20" y="40" width="40" height="40"/><rect x="60" y="40" width="40" height="40"/><rect x="100" y="40" width="40" height="40"/>
+                    <rect x="20" y="80" width="40" height="40"/><rect x="60" y="80" width="40" height="40"/><rect x="100" y="80" width="40" height="40"/>
+                    <rect x="20" y="120" width="40" height="40"/><rect x="60" y="120" width="40" height="40"/><rect x="100" y="120" width="40" height="40"/>
+                </g>
+                <!-- dominated bottom row crossed out -->
+                <line x1="20" y1="160" x2="140" y2="120" stroke="#fbbf24" stroke-width="2.5"/>
+                <text x="80" y="190" fill="#fbbf24" font-size="10" text-anchor="middle">delete dominated row</text>
+
+                <!-- arrow 1 -->
+                <line x1="158" y1="90" x2="198" y2="90" stroke="#60a5fa" stroke-width="2"/>
+                <polygon points="198,84 210,90 198,96" fill="#60a5fa"/>
+
+                <!-- Stage 2: 2x3 -->
+                <text x="270" y="22" fill="#93c5fd" font-size="12" text-anchor="middle">Round 1: 2 x 3</text>
+                <g stroke="#1f2f4a" stroke-width="1.5" fill="#101829">
+                    <rect x="230" y="40" width="40" height="40"/><rect x="270" y="40" width="40" height="40"/><rect x="310" y="40" width="40" height="40"/>
+                    <rect x="230" y="80" width="40" height="40"/><rect x="270" y="80" width="40" height="40"/><rect x="310" y="80" width="40" height="40"/>
+                </g>
+                <!-- dominated right column crossed out -->
+                <line x1="310" y1="40" x2="350" y2="120" stroke="#fbbf24" stroke-width="2.5"/>
+                <text x="290" y="150" fill="#fbbf24" font-size="10" text-anchor="middle">delete dominated column</text>
+
+                <!-- arrow 2 -->
+                <line x1="368" y1="80" x2="408" y2="80" stroke="#60a5fa" stroke-width="2"/>
+                <polygon points="408,74 420,80 408,86" fill="#60a5fa"/>
+
+                <!-- Stage 3: surviving cell -->
+                <text x="470" y="22" fill="#34d399" font-size="12" text-anchor="middle">Survivor</text>
+                <rect x="450" y="40" width="40" height="40" stroke="#34d399" stroke-width="2.5" fill="#16213a"/>
+                <text x="470" y="65" fill="#34d399" font-size="13" text-anchor="middle" font-family="monospace">NE</text>
+                <text x="470" y="105" fill="#93a8c8" font-size="10" text-anchor="middle">unique</text>
+                <text x="470" y="120" fill="#93a8c8" font-size="10" text-anchor="middle">prediction</text>
+            </svg>
+            <figcaption>IESDS in action: each round crosses out a strictly dominated row or column. When the process bottoms out at one cell, that surviving profile is the unique Nash equilibrium. Games solvable down to one cell this way are called <em>dominance-solvable</em>.</figcaption>
+        </figure>
+        <p>Three facts make IESDS safe and useful: (1) a strictly dominated strategy is <em>never</em> part of any Nash equilibrium, so deleting it throws away nothing real; (2) every Nash equilibrium of the original game survives all the way to the end; and (3) if the game collapses to a single cell, that cell <em>must</em> be the unique Nash equilibrium.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Deleting a strategy because it's dominated <strong>in some columns</strong> is wrong — that throws away strategies that are perfectly good best responses elsewhere. Strict dominance requires the alternative to win in <em>every</em> column. If you can find even one opponent choice where <em>s</em> ties or beats <em>s'</em>, then <em>s</em> is <strong>not</strong> strictly dominated by <em>s'</em> and you may not delete it.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Order-Independence &amp; Rationalizability</h2>
+        <p>A natural worry: if there are several dominated strategies, does the <em>order</em> in which I delete them change the answer? For <strong>strict</strong> dominance the answer is a reassuring <strong>no</strong> — the final surviving set is the same regardless of the order you eliminate in. The reason is structural: if <em>s</em> is strictly dominated in the full game, it stays strictly dominated in any subgame you reach by deleting <em>other</em> strategies, because removing columns can only remove constraints, never reverse a strict inequality.</p>
+        <div class="eq">Strict dominance &rarr; order-independent (unique survivor set)<small>You can eliminate strictly dominated strategies in any sequence and reach the same reduced game.</small></div>
+        <p>For <strong>weak</strong> dominance this breaks. Deleting a weakly dominated strategy can erase a column that was the very reason <em>another</em> strategy looked weakly dominated — so different orders give different survivors, and you can accidentally delete a real Nash equilibrium. This is the single most important caveat in the topic, and the reason theorists default to strict dominance.</p>
+        <p>The strategies that survive IESDS have a name: they are (closely related to) the <strong>rationalizable</strong> strategies. Informally, a strategy is rationalizable if it is a best response to <em>some</em> reasonable belief about the opponents, where those beliefs themselves only put weight on rationalizable strategies. Rationalizability is the largest set of choices consistent with common knowledge of rationality — it never assumes players coordinate on an equilibrium, only that nobody plays something indefensible.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Rationalizability is like a debate where every claim must be backed up: a strategy "survives" only if you can give a story — a belief about the opponent — under which it's your best move, <strong>and</strong> that belief must itself be defensible by the same standard. Nash equilibrium demands more (the beliefs must be <em>correct</em>); rationalizability just demands that you never play something you couldn't justify to anyone.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — solve a game by IESDS</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Row picks U, M, or D; Column picks L, C, or R. Payoffs (Row, Column):</p>
+        <pre>          L         C         R
+   U   (4, 3)    (5, 1)    (6, 2)
+   M   (2, 1)    (8, 4)    (3, 6)
+   D   (3, 0)    (9, 6)    (2, 8)</pre>
+        <ol>
+            <li><strong>Check Column's strategy C vs R.</strong> Column's payoffs — C: (1, 4, 6); R: (2, 6, 8). For every row, R &gt; C (2&gt;1, 6&gt;4, 8&gt;6). So <strong>C is strictly dominated by R</strong> for Column. Delete column C.</li>
+            <li><strong>Now compare Row's M vs U in the reduced 3&times;2 game</strong> (columns L, R only). Row M: (2, 3); Row U: (4, 6). U beats M in both (4&gt;2, 6&gt;3). So <strong>M is strictly dominated by U.</strong> Delete row M.</li>
+            <li><strong>Compare Row's D vs U</strong> (columns L, R). Row D: (3, 2); Row U: (4, 6). U beats D in both (4&gt;3, 6&gt;2). So <strong>D is strictly dominated by U.</strong> Delete row D. Only row U remains.</li>
+            <li><strong>Column now chooses between L and R given Row = U.</strong> Column gets 3 from L vs 2 from R. So Column plays <strong>L</strong>.</li>
+            <li><strong>Survivor: (U, L) = (4, 3).</strong> The game is dominance-solvable, so (U, L) is the unique Nash equilibrium — confirm by noting U is Row's best response to L, and L is Column's best response to U.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: automate the elimination in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We continue with the free QuantEcon stack plus <code>nashpy</code>. If you set this up in Week 1 you can skip the install block; otherwise run it once below.</p>
+        <details class="install">
+            <summary>⬇ Install Python + QuantEcon + nashpy (one-time setup)</summary>
+            <p>With Python 3 installed, create an environment and install the stack:</p>
+            <pre>python3 -m venv econ-env
+source econ-env/bin/activate       <span class="c"># macOS / Linux</span>
+econ-env\Scripts\activate          <span class="c"># Windows (PowerShell)</span>
+pip install quantecon nashpy numpy matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import nashpy, quantecon; print('ok')"</code> — printing <code>ok</code> means you're set.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">We'll write a tiny strict-dominance reducer for the row player, then let nashpy confirm the equilibrium of the worked example. Rows are (U, M, D); columns are (L, C, R).</p>
+        <pre><span class="c"># iesds.py — Lecture 2</span>
+import numpy as np
+import nashpy as nash
+
+<span class="c"># Row payoffs A, Column payoffs B. Order: rows U,M,D | cols L,C,R</span>
+A = np.array([[4, 5, 6],
+              [2, 8, 3],
+              [3, 9, 2]])
+B = np.array([[3, 1, 2],
+              [1, 4, 6],
+              [0, 6, 8]])
+
+def strictly_dominated_rows(M):
+    <span class="c"># return indices of rows strictly dominated by another row</span>
+    dom = []
+    for i in range(M.shape[0]):
+        for k in range(M.shape[0]):
+            if k != i and np.all(M[k] &gt; M[i]):
+                dom.append(i); break
+    return dom
+
+print("Row strictly-dominated indices:", strictly_dominated_rows(A))
+<span class="c"># Column dominance: compare COLUMNS of B, so transpose it</span>
+print("Col strictly-dominated indices:", strictly_dominated_rows(B.T))
+
+<span class="c"># Let nashpy enumerate the equilibrium of the full game</span>
+game = nash.Game(A, B)
+for eq in game.support_enumeration():
+    print(eq)              <span class="c"># ([1,0,0],[1,0,0]) -> Row U, Column L</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The reducer flags column C (index 1) as strictly dominated, kicking off the chain that leaves (U, L); nashpy independently returns the same pure equilibrium. Try editing <code>A</code> and <code>B</code> so that <em>no</em> strategy is strictly dominated — you'll see the reducer return an empty list, a reminder that dominance only solves <em>some</em> games.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Dominance is the warm-up. Many real games — including the oligopoly models in Week 7 — have <em>no</em> dominated strategies at all, so we'll need the heavier machinery of <strong>mixed strategies</strong> (Week 3), where players randomize and we hunt for equilibria in probabilities rather than pure choices. Iterated reasoning also reappears in <strong>extensive-form games</strong> as backward induction, and the "everyone shaves toward the rational answer" logic powers the famous beauty-contest and Cournot adjustment stories. In the Quant Finance track, the same elimination-of-indefensible-actions idea underlies how traders prune strategies that can never be optimal before committing capital.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Strategy <em>s</em> is <strong>strictly dominated</strong> by <em>s'</em> when <em>s'</em> pays more than <em>s</em>…</div>
+            <div class="opt"><b>A.</b> against every possible choice of the opponents</div>
+            <div class="opt"><b>B.</b> on average across the opponents' choices</div>
+            <div class="opt"><b>C.</b> against at least one choice of the opponents</div>
+            <div class="opt"><b>D.</b> only when the opponents are also rational</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Strict dominance requires <em>s'</em> &gt; <em>s</em> in <strong>every</strong> column. "On average" (B) or "at least one" (C) is far too weak and would delete good strategies; rationality of opponents (D) isn't part of the definition of dominance itself.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> What separates <strong>weak</strong> dominance from <strong>strict</strong> dominance?</div>
+            <div class="opt"><b>A.</b> Weak dominance requires a strictly higher payoff in every column</div>
+            <div class="opt"><b>B.</b> Under weak dominance <em>s'</em> is never worse and sometimes strictly better, allowing ties</div>
+            <div class="opt"><b>C.</b> Weak dominance only applies to the column player</div>
+            <div class="opt"><b>D.</b> Weak dominance guarantees a unique Nash equilibrium</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Weak dominance allows ties (&ge; everywhere, &gt; somewhere). A is the definition of <em>strict</em> dominance; dominance applies to both players (C); and weak dominance gives no uniqueness guarantee — it can even destroy equilibria (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Why is it safe to delete a <strong>strictly</strong> dominated strategy when hunting for Nash equilibria?</div>
+            <div class="opt"><b>A.</b> Because it lowers the total payoff of the game</div>
+            <div class="opt"><b>B.</b> Because deleting it always produces a single surviving cell</div>
+            <div class="opt"><b>C.</b> Because a strictly dominated strategy is never part of any Nash equilibrium</div>
+            <div class="opt"><b>D.</b> Because it is the same as a mixed strategy</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> No Nash equilibrium ever uses a strictly dominated strategy, so removing it loses no equilibria. Deletion doesn't always reduce to one cell (B) — only dominance-solvable games do — and A and D are unrelated.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Iterated elimination of <strong>strictly</strong> dominated strategies is <em>order-independent</em>. This means…</div>
+            <div class="opt"><b>A.</b> the surviving set of strategies is the same no matter the sequence of deletions</div>
+            <div class="opt"><b>B.</b> you must always delete rows before columns</div>
+            <div class="opt"><b>C.</b> the order changes the answer, so you must try all orders</div>
+            <div class="opt"><b>D.</b> it only works in symmetric games</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Strict dominance is preserved as columns are removed, so any deletion order yields the identical reduced game. There's no required row-then-column rule (B); order does <em>not</em> change the answer (C); and symmetry is irrelevant (D). Note this fails for <em>weak</em> dominance.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A strategy is <strong>rationalizable</strong> if it…</div>
+            <div class="opt"><b>A.</b> is dominated by every other strategy</div>
+            <div class="opt"><b>B.</b> maximizes the combined payoff of both players</div>
+            <div class="opt"><b>C.</b> is chosen with positive probability in every game</div>
+            <div class="opt"><b>D.</b> is a best response to some belief that itself puts weight only on rationalizable strategies</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Rationalizability is exactly "defensible as a best response under beliefs that are themselves defensible." A describes the opposite (a dominated strategy); B is joint efficiency, not individual rationality; C is simply false — many strategies are never used.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined a <b>strictly dominated</b> strategy: beaten by an alternative in <b>every</b> opponent column — so a rational player never plays it.</li>
+            <li>Separated <b>strict</b> from <b>weak</b> dominance, and saw why the ties in weak dominance make it dangerous.</li>
+            <li>Ran <b>IESDS</b> to shrink a game and located its unique Nash equilibrium in a dominance-solvable example.</li>
+            <li>Learned that strict-dominance elimination is <b>order-independent</b>, while weak-dominance elimination is not.</li>
+            <li>Tied surviving strategies to <b>rationalizability</b> and confirmed the result in Python with a reducer and <b>nashpy</b>.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: <b>mixed strategies</b> — what to do when no pure strategy is dominated and the only stable play is to randomize.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-games-and-nash.html"><div class="dir">← Week 1</div><div class="ttl">Games, Strategies &amp; Nash Equilibrium</div></a>
+        <a class="next" href="l03-mixed-strategies.html"><div class="dir">Week 3 →</div><div class="ttl">Mixed Strategies</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Game Theory</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

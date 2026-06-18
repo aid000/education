@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C4 · Lecture 3 — The Diffusion (Heat) Equation: Explicit Scheme</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3</span>
+        <h1>The Diffusion (Heat) Equation — Explicit Scheme</h1>
+        <p class="sub">Heat doesn't decide where to go — every point just keeps nudging toward the average of its neighbors, and that single rule is enough to make a hot spot melt away into a smooth glow.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the 1D heat (diffusion) equation and explain what each term means physically.</li>
+            <li>Derive the explicit forward-time centered-space (FTCS) update from finite differences.</li>
+            <li>See how FTCS makes each grid point relax toward a weighted average of its neighbors, smoothing gradients.</li>
+            <li>Identify the diffusion number r = αΔt/Δx² as the single dial that controls a step.</li>
+            <li>Implement a 1D heat solver in NumPy and watch a hot spot spread and flatten over time.</li>
+        </ul>
+    </div>
+
+    <!-- 3.1 -->
+    <section class="lec">
+        <h2><span class="n">3.1</span>What the Heat Equation Actually Says</h2>
+        <p>Drop a spoon into hot soup and the handle slowly warms; pour cream into coffee and the swirl blurs out. These are the same process — <strong>diffusion</strong> — and they obey one of the most important partial differential equations in all of physics, the <strong>heat (diffusion) equation</strong>. In one spatial dimension, with temperature u(x, t):</p>
+        <div class="eq">∂u/∂t = α · ∂²u/∂x²<small>The rate of change in time equals the thermal diffusivity α times the spatial curvature of the temperature profile.</small></div>
+        <p>Read it slowly. The left side, ∂u/∂t, is how fast the temperature at a point is changing. The right side, ∂²u/∂x², is the <strong>curvature</strong> of the temperature profile — the second spatial derivative. The constant α &gt; 0 (the <strong>thermal diffusivity</strong>, units m²/s) sets the timescale.</p>
+        <p>The deep insight is in the sign of the curvature. Where the profile is concave-up (a cold dip, curvature positive), ∂u/∂t is positive and the point warms. Where it is concave-down (a hot bump, curvature negative), the point cools. In both cases the point is being pulled <em>toward the trend of its surroundings</em>. Nothing in the equation points heat in a direction; the flow is entirely a consequence of curvature.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Picture a row of people each holding a thermometer, told to constantly adjust their reading toward the average of their two neighbors. Nobody knows the global picture — each only watches the two people beside them. Yet a sharp spike of "hot" people in the middle will inexorably bleed outward and flatten. The heat equation is exactly this local averaging rule, taken to a continuous limit.</div>
+    </section>
+
+    <!-- 3.2 -->
+    <section class="lec">
+        <h2><span class="n">3.2</span>Discretizing in Space and Time: the FTCS Update</h2>
+        <p>We can't store a continuous u(x, t) on a computer, so (as in Week 2) we lay down a grid: positions x<sub>i</sub> = i·Δx and times t<sup>n</sup> = n·Δt. Write u<sub>i</sub><sup>n</sup> for the temperature at node i and time level n. Now replace each derivative with a finite difference.</p>
+        <p>For the time derivative we use a <strong>forward</strong> difference (we only know the present, and want the future):</p>
+        <div class="eq">∂u/∂t ≈ (u<sub>i</sub><sup>n+1</sup> − u<sub>i</sub><sup>n</sup>) / Δt<small>Forward in time: the unknown future value appears alone on the left — this is what makes the scheme explicit.</small></div>
+        <p>For the spatial second derivative we use the <strong>centered</strong> three-point stencil from Week 2:</p>
+        <div class="eq">∂²u/∂x² ≈ (u<sub>i+1</sub><sup>n</sup> − 2u<sub>i</sub><sup>n</sup> + u<sub>i-1</sub><sup>n</sup>) / Δx²<small>Centered in space: it measures how far node i sits below the average of its two neighbors — exactly a discrete curvature.</small></div>
+        <p>Substituting both into ∂u/∂t = α ∂²u/∂x² and solving for the only future quantity, u<sub>i</sub><sup>n+1</sup>, gives the <strong>forward-time centered-space (FTCS)</strong> update. Defining the dimensionless <strong>diffusion number</strong> r = αΔt/Δx²:</p>
+        <div class="eq">u<sub>i</sub><sup>n+1</sup> = u<sub>i</sub><sup>n</sup> + r · (u<sub>i+1</sub><sup>n</sup> − 2u<sub>i</sub><sup>n</sup> + u<sub>i-1</sub><sup>n</sup>)<small>r = α·Δt/Δx². Every new value is computed only from old (time-level n) values — no system to solve.</small></div>
+        <p>This is called <strong>explicit</strong> because each new value u<sub>i</sub><sup>n+1</sup> is written down directly from values you already have. There is no linear system to invert (that comes in a later lecture with implicit methods). You just sweep the grid once per time step.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 200" role="img" aria-label="FTCS stencil: three points at time level n (left, center, right) feed into one point at time level n plus 1 directly above the center">
+                <!-- time level labels -->
+                <text x="20" y="150" fill="#a3a8c8" font-size="11">level n</text>
+                <text x="20" y="55" fill="#a3a8c8" font-size="11">level n+1</text>
+                <!-- bottom row (level n): three nodes -->
+                <line x1="80" y1="145" x2="300" y2="145" stroke="#2a3052" stroke-width="1.5"/>
+                <circle cx="100" cy="145" r="9" fill="rgba(96,165,250,.4)" stroke="#60a5fa" stroke-width="1.5"/>
+                <circle cx="190" cy="145" r="9" fill="rgba(129,140,248,.4)" stroke="#818cf8" stroke-width="1.5"/>
+                <circle cx="280" cy="145" r="9" fill="rgba(96,165,250,.4)" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="100" y="170" fill="#60a5fa" font-size="11" text-anchor="middle">i-1</text>
+                <text x="190" y="170" fill="#818cf8" font-size="11" text-anchor="middle">i</text>
+                <text x="280" y="170" fill="#60a5fa" font-size="11" text-anchor="middle">i+1</text>
+                <!-- top node (level n+1) -->
+                <circle cx="190" cy="55" r="9" fill="rgba(52,211,153,.4)" stroke="#34d399" stroke-width="1.5"/>
+                <text x="190" y="38" fill="#34d399" font-size="11" text-anchor="middle">i (new)</text>
+                <!-- arrows from the three old nodes to the new node -->
+                <line x1="104" y1="137" x2="184" y2="64" stroke="#a5b4fc" stroke-width="1.4"/>
+                <line x1="190" y1="135" x2="190" y2="66" stroke="#a5b4fc" stroke-width="1.4"/>
+                <line x1="276" y1="137" x2="196" y2="64" stroke="#a5b4fc" stroke-width="1.4"/>
+                <!-- weights -->
+                <text x="128" y="100" fill="#a3a8c8" font-size="10" text-anchor="middle">r</text>
+                <text x="205" y="105" fill="#a3a8c8" font-size="10" text-anchor="middle">1-2r</text>
+                <text x="252" y="100" fill="#a3a8c8" font-size="10" text-anchor="middle">r</text>
+            </svg>
+            <figcaption>The FTCS stencil. The new value at node <em>i</em> is a weighted blend of the three old neighbors: weight (1 &minus; 2r) on itself and r on each side. It only ever looks one step into the past.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 3.3 -->
+    <section class="lec">
+        <h2><span class="n">3.3</span>Why Gradients Smooth Out: Relaxing Toward the Average</h2>
+        <p>The FTCS update hides a beautiful interpretation. Rearrange it by grouping the coefficients of each old value:</p>
+        <div class="eq">u<sub>i</sub><sup>n+1</sup> = (1 − 2r)·u<sub>i</sub><sup>n</sup> + r·u<sub>i+1</sub><sup>n</sup> + r·u<sub>i-1</sub><sup>n</sup><small>A weighted average: keep a fraction of yourself, take a fraction r from each neighbor.</small></div>
+        <p>The three weights sum to (1 − 2r) + r + r = 1, so the new value is a genuine <strong>weighted average</strong> of the point and its two neighbors. Notice the special case r = ½: the center weight vanishes and the point becomes the <em>exact</em> average ½(u<sub>i+1</sub> + u<sub>i-1</sub>) of its neighbors — it forgets its own value entirely.</p>
+        <p>Averaging is a smoothing operation. A sharp spike, which is far from the average of its neighbors, gets knocked down hard on the next step; a flat region, already equal to its neighborhood average, barely changes. Step after step, the bumps are sanded away and the profile relaxes toward something smooth. In frequency terms (a preview of the stability lecture), high-frequency wiggles are damped fastest — diffusion is a low-pass filter.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The averaging picture only holds when all three weights are non-negative. If r &gt; ½ the center weight (1 &minus; 2r) goes <strong>negative</strong>, so a hot point overshoots into being colder than both neighbors — an unphysical oscillation that grows each step until the solution blows up. Choosing Δt too large for your Δx is the single most common way an explicit heat solver explodes. The exact threshold r ≤ ½ is the CFL-type stability condition we prove next week; for now, treat r ≤ ½ as a hard rule.</div>
+    </section>
+
+    <!-- 3.4 -->
+    <section class="lec">
+        <h2><span class="n">3.4</span>Boundary &amp; Initial Conditions Make It a Real Problem</h2>
+        <p>The PDE alone is not enough — it describes the rule, not the situation. To pin down a unique solution we need an <strong>initial condition</strong> u(x, 0) (the starting temperature everywhere) and <strong>boundary conditions</strong> at the two ends of the rod for all time. Two common types:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Dirichlet</strong> — the value is fixed: e.g. the ends held at u = 0 (clamped to an ice bath). In code, you simply never update u[0] and u[-1].</li>
+            <li><strong>Neumann</strong> — the flux (derivative) is fixed: e.g. ∂u/∂x = 0 means an insulated end, no heat leaving. In code, you mirror the neighbor: u[0] = u[1].</li>
+        </ul>
+        <p>For a classic test, start with all the heat concentrated in the middle of a rod whose ends are held at zero. The interior averaging spreads the spike both ways; the fixed-zero ends drain heat out; and eventually the whole rod cools to zero. The total heat (the integral of u) decays — which is exactly what the physics demands and a good sanity check on your code.</p>
+        <div class="eq">∫ u(x, t) dx&nbsp;&nbsp;decreases with t under Dirichlet ends; stays constant under insulated (Neumann) ends<small>Conservation check: insulated boundaries trap heat (sum of u constant); clamped boundaries let it escape.</small></div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — one FTCS step by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A rod is sampled at 5 nodes (i = 0..4) with Δx = 0.1 m, diffusivity α = 0.01 m²/s. The ends (i = 0 and i = 4) are held at 0. The current interior values are u₁ = 0, u₂ = 100, u₃ = 0 (a hot spike in the middle). Take Δt = 0.25 s and advance one step.</p>
+        <ol>
+            <li><strong>Diffusion number:</strong> r = αΔt/Δx² = (0.01 · 0.25) / (0.1)² = 0.0025 / 0.01 = <strong>0.25</strong>. Since r = 0.25 ≤ 0.5, the step is stable.</li>
+            <li><strong>Update node 1</strong> (neighbors u₀ = 0, u₂ = 100): u₁ⁿ⁺¹ = u₁ + r(u₂ − 2u₁ + u₀) = 0 + 0.25(100 − 0 + 0) = <strong>25</strong>.</li>
+            <li><strong>Update node 2</strong> (neighbors u₁ = 0, u₃ = 0): u₂ⁿ⁺¹ = 100 + 0.25(0 − 200 + 0) = 100 − 50 = <strong>50</strong>.</li>
+            <li><strong>Update node 3</strong> (neighbors u₂ = 100, u₄ = 0): by symmetry with node 1, = 0 + 0.25(0 − 0 + 100) = <strong>25</strong>.</li>
+            <li><strong>Read the result:</strong> the spike (0, 100, 0) became (25, 50, 25). The peak dropped by half and the heat spilled into the neighbors — the bump is already shorter and wider. The interior sum is unchanged this step (25+50+25 = 100), but the cold ends u₀ = u₄ = 0 now sit beside warm nodes, so on the <em>next</em> step heat leaks out through them and the rod steadily cools. Smoothing is visible after a single step.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: watch a hot spot spread</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Everything runs on the free Python + NumPy + Matplotlib stack you installed in <strong>Week 1</strong> (see the install <code>details</code> in Lecture 1 of C1 if you need it again). No new tools are required for this lecture.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">We put a hot spike in the middle of a rod with ice-bath (Dirichlet zero) ends and march FTCS forward. NumPy lets us update the whole interior in one vectorized line — no Python loop over space.</p>
+        <pre><span class="c"># heat_ftcs.py — Lecture 3: explicit 1D heat equation</span>
+import numpy as np
+import matplotlib.pyplot as plt
+
+<span class="c"># --- grid &amp; physics ---</span>
+L      = 1.0                 <span class="c"># rod length (m)</span>
+nx     = 101                 <span class="c"># number of nodes</span>
+dx     = L / (nx - 1)
+alpha  = 1.0e-2              <span class="c"># thermal diffusivity (m^2/s)</span>
+
+r      = 0.4                 <span class="c"># diffusion number r = alpha*dt/dx^2  (MUST be &lt;= 0.5)</span>
+dt     = r * dx**2 / alpha   <span class="c"># pick dt to hit that r</span>
+nsteps = 4000
+
+<span class="c"># --- initial condition: a hot spike in the middle, ends at 0 ---</span>
+x = np.linspace(0, L, nx)
+u = np.zeros(nx)
+u[(x &gt; 0.45) &amp; (x &lt; 0.55)] = 100.0   <span class="c"># a hot block</span>
+
+snapshots = {}
+for n in range(nsteps + 1):
+    if n in (0, 100, 500, 2000, 4000):
+        snapshots[n] = u.copy()
+    <span class="c"># vectorized FTCS update of the INTERIOR nodes (1..nx-2)</span>
+    u[1:-1] = u[1:-1] + r * (u[2:] - 2*u[1:-1] + u[:-2])
+    <span class="c"># Dirichlet ends stay 0 automatically (we never touch u[0], u[-1])</span>
+
+for n, snap in snapshots.items():
+    plt.plot(x, snap, label=f"step {n}")
+plt.xlabel("x (m)"); plt.ylabel("temperature"); plt.legend(); plt.show()
+
+print("total heat at start:", snapshots[0].sum())
+print("total heat at end:  ", u.sum())   <span class="c"># smaller — leaked out the cold ends</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Run it: the sharp block sags into a smooth bell that widens and shrinks, and the printed total heat decays. Now set <code>r = 0.6</code> and rerun — within a few dozen steps you'll see a jagged saw-tooth erupt and the values explode to <code>nan</code>. That instability is exactly what next week's CFL condition explains.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>FTCS is your first PDE marcher, and its limit — the r ≤ ½ ceiling — is the headline of <strong>next week's lecture on the CFL condition</strong>, where we prove the threshold with von Neumann stability analysis. To escape the punishing Δt ~ Δx² cost, <strong>implicit schemes (Crank–Nicolson)</strong> later in this course solve a tridiagonal system each step and stay stable for any Δt. The same averaging-of-neighbors idea generalizes to 2D and 3D fields (heat sinks on a chip, temperature in the ground) and, with a sign change, to the time-dependent <strong>Schrödinger equation</strong> in the Quantum track and to <strong>option-pricing PDEs</strong> in the Quant track. Master the explicit heat solver and you have the template for nearly every field simulation that follows.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#10231f,#13302a); border-color:#1f5a48;">
+        <h3 style="color:var(--green);">💬 Discussion</h3>
+        <p style="color:#cdeee0;">The explicit FTCS scheme is the simplest possible PDE solver and it works beautifully — until it doesn't. Its stability ceiling, r ≤ ½, means r = αΔt/Δx², so if you <strong>halve Δx</strong> to get a finer, more accurate picture, the largest stable Δt drops by a factor of <em>four</em>, and you need four times as many steps to reach the same final time — eight times the total work. <strong>When is explicit FTCS still the right tool despite this cost, and when should you reach for an implicit method instead?</strong> Argue using a concrete scenario (think about how fine your grid is, how long you must simulate, and whether you care about the fast transient or only the slow steady state).</p>
+        <details style="margin-top:14px;">
+            <summary style="cursor:pointer; color:var(--green); font-weight:600; font-size:.9rem;">Show a model response</summary>
+            <div style="margin-top:12px; font-size:.9rem; color:#cdeee0;">
+                <p style="margin-bottom:10px;">FTCS shines when the grid is <strong>coarse-to-moderate</strong> and you genuinely care about the <strong>fast transient</strong> — the early spreading of a hot spot. On a coarse grid Δx is not tiny, so the stable Δt is not punishingly small, and resolving the rapid early dynamics already forces small time steps anyway. In that regime FTCS is cheap, trivial to code, and embarrassingly parallel (each node only reads its neighbors), so it maps perfectly onto vectorized NumPy or a GPU.</p>
+                <p style="margin-bottom:10px;">Reach for an <strong>implicit method (Crank–Nicolson / backward Euler)</strong> when the grid is <strong>fine</strong> and you mostly want the <strong>long-time or steady-state</strong> answer. There the Δt ~ Δx² ceiling crushes you: a 10× finer grid means a 100× smaller stable Δt and 1000× more total work to reach a fixed final time. Implicit schemes are unconditionally stable, so you can take large time steps sized by <em>accuracy</em>, not stability, and solve a cheap tridiagonal system each step — far less total work despite the per-step cost. The trade-off is the local averaging rule: explicit looks only at the past (one matrix-free sweep), implicit couples all unknowns at the new time level (one linear solve).</p>
+                <p style="color:#9fd9c2;"><strong>✓ Self-check rubric — a strong answer should:</strong> (1) tie the cost back to r = αΔt/Δx² and the r ≤ ½ ceiling; (2) explain the Δt ~ Δx² scaling and its total-work blow-up on fine grids; (3) name an implicit scheme as the unconditionally-stable alternative; (4) connect the choice to whether you need the fast transient or the slow steady state; (5) mention a concrete trade-off (matrix-free sweep vs. a linear solve per step).</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In the heat equation ∂u/∂t = α ∂²u/∂x², the right-hand side ∂²u/∂x² physically represents…</div>
+            <div class="opt"><b>A.</b> the slope (first derivative) of the temperature profile</div>
+            <div class="opt"><b>B.</b> the curvature of the profile — how far a point sits below the average of its neighbors</div>
+            <div class="opt"><b>C.</b> the total heat stored in the rod</div>
+            <div class="opt"><b>D.</b> the speed at which a heat wave travels</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The second spatial derivative is the curvature; discretized, it measures how far a node lies below its neighbors' average, which drives the relaxation. The slope (A) is the first derivative and does not appear. (C) is the integral of u, and (D) misreads diffusion as wave propagation — diffusion has no fixed signal speed.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The FTCS scheme is called "explicit" because…</div>
+            <div class="opt"><b>A.</b> it uses the exact analytic solution</div>
+            <div class="opt"><b>B.</b> it is second-order accurate in time</div>
+            <div class="opt"><b>C.</b> each new value is written directly from known old (time-level n) values, with no system to solve</div>
+            <div class="opt"><b>D.</b> it can use any time step without going unstable</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> "Explicit" means the future value is given by an explicit formula in already-known quantities — no linear solve. (A) is false (it's an approximation). (B) is false — FTCS is only first-order in time. (D) describes <em>implicit</em> schemes; explicit FTCS is conditionally stable (r ≤ ½).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Writing the FTCS update as a weighted average u<sub>i</sub><sup>n+1</sup> = (1−2r)u<sub>i</sub> + r·u<sub>i+1</sub> + r·u<sub>i-1</sub>, what is special about r = ½?</div>
+            <div class="opt"><b>A.</b> the point keeps its own value and ignores its neighbors</div>
+            <div class="opt"><b>B.</b> the scheme becomes implicit</div>
+            <div class="opt"><b>C.</b> the new value becomes the exact average of the two neighbors, forgetting its own value</div>
+            <div class="opt"><b>D.</b> diffusivity α drops out of the problem</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> At r = ½ the center weight (1−2r) is zero, so u<sub>i</sub><sup>n+1</sup> = ½(u<sub>i+1</sub> + u<sub>i-1</sub>). (A) is the opposite. The scheme is still explicit (B false), and α is baked into r so it hasn't vanished (D false). r = ½ is also the stability ceiling.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A rod has Δx = 0.1 m and α = 0.01 m²/s. What is the largest stable time step Δt for explicit FTCS?</div>
+            <div class="opt"><b>A.</b> Δt = 0.5 s (using r = ½)</div>
+            <div class="opt"><b>B.</b> Δt = 5 s</div>
+            <div class="opt"><b>C.</b> Δt = 0.05 s</div>
+            <div class="opt"><b>D.</b> any Δt is fine</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Stability needs r = αΔt/Δx² ≤ ½, so Δt ≤ ½·Δx²/α = 0.5·(0.01)/(0.01) = 0.5 s. (B) gives r = 5 (blows up); (C) is stable but not the <em>largest</em> (r = 0.05); (D) is wrong — explicit FTCS is only conditionally stable.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You run FTCS with r = 0.7 and the solution erupts into a growing saw-tooth of alternating signs. The cause is…</div>
+            <div class="opt"><b>A.</b> a bug — FTCS is always stable, so the code must be wrong</div>
+            <div class="opt"><b>B.</b> round-off error from machine epsilon</div>
+            <div class="opt"><b>C.</b> the boundary conditions were set to Neumann instead of Dirichlet</div>
+            <div class="opt"><b>D.</b> r &gt; ½ makes the self-weight (1−2r) negative, so points overshoot their neighbors and high-frequency modes grow</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> For r &gt; ½ the center weight goes negative and the averaging becomes an amplification of the highest-frequency (alternating) mode — the classic FTCS instability. It is not a code bug (A) — the math itself is unstable here. It is far too large to be round-off (B), and the boundary type (C) does not cause this blow-up.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>heat equation</b> ∂u/∂t = α ∂²u/∂x² says each point changes in proportion to its local <b>curvature</b> — pulled toward its neighbors' trend.</li>
+            <li>The <b>FTCS update</b> u<sub>i</sub><sup>n+1</sup> = u<sub>i</sub> + r(u<sub>i+1</sub> − 2u<sub>i</sub> + u<sub>i-1</sub>) comes from a forward time + centered space difference, with <b>r = αΔt/Δx²</b>.</li>
+            <li>FTCS is a <b>weighted average</b> of a point and its neighbors, so gradients <b>smooth out</b> and high-frequency wiggles damp fastest.</li>
+            <li>The scheme is <b>explicit</b> (no system to solve) but only <b>conditionally stable</b>: r ≤ ½, or the self-weight goes negative and it explodes.</li>
+            <li>You need an <b>initial condition</b> plus <b>boundary conditions</b> (Dirichlet vs Neumann), and you watched a NumPy hot spot spread, flatten, and leak heat out the cold ends.</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: Stability &amp; the CFL condition — we prove the r ≤ ½ ceiling with von Neumann analysis and learn why every explicit scheme has a speed limit.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l02-finite-differences-grid.html"><div class="dir">← Week 2</div><div class="ttl">Finite Differences on a Grid</div></a>
+        <a class="next" href="l04-cfl-stability.html"><div class="dir">Week 4 →</div><div class="ttl">Stability &amp; the CFL Condition</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

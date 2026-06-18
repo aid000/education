@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C2 · Lecture 10 — Market Microstructure &amp; Statistical Signals</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C2 Time Series</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Market Microstructure &amp; Statistical Signals</h1>
+        <p class="sub">Zoom all the way in to where prices are actually born — the order book — then learn to mine that raw noise for a faint statistical edge without fooling yourself.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Describe the limit order book, the bid–ask spread, and how a market price is really two prices.</li>
+            <li>Explain bid–ask bounce and why it injects spurious negative autocorrelation into tick-level returns.</li>
+            <li>Turn a raw time series into a candidate trading <em>signal</em> and measure its information coefficient and signal-to-noise.</li>
+            <li>Diagnose the multiple-testing / overfitting trap and apply guardrails (out-of-sample, Bonferroni, deflated metrics).</li>
+            <li>Frame the capstone volatility-and-signal study and connect it forward to the Algorithmic Trading course.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>Inside the Price: the Order Book &amp; the Spread</h2>
+        <p>For nine weeks we treated "the price" as a single number arriving once per day. Zoom in to the millisecond scale and that fiction dissolves. At any instant there is no single price — there is a <strong>limit order book</strong>: a queue of resting buy orders (<span class="key">bids</span>) below a queue of resting sell orders (<span class="key">asks</span>, or offers). The highest bid and the lowest ask are the <strong>best bid</strong> and <strong>best ask</strong>; the gap between them is the <strong>bid–ask spread</strong>.</p>
+        <div class="eq">spread = ask − bid &nbsp;&nbsp;&nbsp; mid = (ask + bid) / 2<small>The mid-price is the usual "fair" reference; the spread is the round-trip cost of demanding immediacy.</small></div>
+        <p>If you want to buy <em>right now</em> you cross the spread and pay the ask; to sell now you hit the bid. You therefore pay the spread on every impatient round trip. The spread is the market-maker's compensation for two risks: holding inventory, and trading against someone who knows more than they do (<span class="key">adverse selection</span>). A single recorded transaction — a <strong>tick</strong> — carries a price, a size, and a timestamp; a stream of ticks is the rawest data a quant ever sees.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The order book is a <strong>staircase of supply and demand</strong>. Bids are steps going down on the left, asks are steps going up on the right, and the spread is the empty landing in the middle where no one has yet agreed to trade. A big market order is someone sprinting across the landing and climbing several steps at once — that's why large trades "walk the book" and move the price.</div>
+        <figure class="fig">
+            <svg viewBox="0 0 420 240" role="img" aria-label="A limit order book shown as bars: green bid volume on the left rising toward the center, blue ask volume on the right rising toward the center, with a gap in the middle labeled spread and the mid-price marked">
+                <!-- baseline -->
+                <line x1="30" y1="200" x2="400" y2="200" stroke="#bcae8c" stroke-width="1.5"/>
+                <text x="30" y="222" fill="#bcae8c" font-size="10">price →</text>
+                <text x="14" y="40" fill="#bcae8c" font-size="10">size</text>
+                <!-- BID side (green), best bid nearest center -->
+                <g fill="rgba(52,211,153,.55)" stroke="#34d399" stroke-width="1">
+                    <rect x="40"  y="150" width="26" height="50"/>
+                    <rect x="70"  y="130" width="26" height="70"/>
+                    <rect x="100" y="115" width="26" height="85"/>
+                    <rect x="130" y="95"  width="26" height="105"/>
+                    <rect x="160" y="80"  width="26" height="120"/>
+                </g>
+                <text x="173" y="72" fill="#6ee7b7" font-size="10" text-anchor="middle">best bid</text>
+                <!-- ASK side (blue), best ask nearest center -->
+                <g fill="rgba(96,165,250,.55)" stroke="#60a5fa" stroke-width="1">
+                    <rect x="234" y="80"  width="26" height="120"/>
+                    <rect x="264" y="98"  width="26" height="102"/>
+                    <rect x="294" y="118" width="26" height="82"/>
+                    <rect x="324" y="134" width="26" height="66"/>
+                    <rect x="354" y="152" width="26" height="48"/>
+                </g>
+                <text x="247" y="72" fill="#93c5fd" font-size="10" text-anchor="middle">best ask</text>
+                <!-- spread gap markers -->
+                <line x1="186" y1="62" x2="186" y2="200" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <line x1="234" y1="62" x2="234" y2="200" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <line x1="186" y1="50" x2="234" y2="50" stroke="#fbbf24" stroke-width="1.4"/>
+                <text x="210" y="44" fill="#fcd34d" font-size="11" text-anchor="middle">spread</text>
+                <!-- mid -->
+                <line x1="210" y1="200" x2="210" y2="214" stroke="#fcd34d" stroke-width="1.6"/>
+                <text x="210" y="232" fill="#fcd34d" font-size="10" text-anchor="middle">mid</text>
+            </svg>
+            <figcaption>The limit order book. Resting bids (green) sit below the mid; resting asks (blue) sit above it. The best bid and best ask bracket an empty gap — the spread — and their average is the mid-price. Deeper levels hold more size, so large orders "walk up the book."</figcaption>
+        </figure>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Bid–Ask Bounce: Noise That Looks Like Signal</h2>
+        <p>Microstructure does not just add detail — it actively <em>contaminates</em> the statistics you learned to compute. The cleanest example is <strong>bid–ask bounce</strong>. Suppose the true (mid) price is dead flat, but trades arrive randomly as buyer-initiated (printing at the ask) or seller-initiated (printing at the bid). The <em>transaction</em> price then ricochets between bid and ask even though nothing fundamental moved.</p>
+        <p>That bounce stamps a tell-tale pattern onto tick returns: a print at the ask is likely followed by one at the bid, and vice-versa, so successive transaction-price changes are <strong>negatively correlated</strong>. Recall the autocorrelation tools from Weeks 3–4 — bounce manufactures a spurious negative lag-1 autocorrelation out of thin air.</p>
+        <div class="eq">Cov(Δp<sub>t</sub>, Δp<sub>t−1</sub>) = −s²/4 &nbsp;⟹&nbsp; Var(Δp) = σ²<sub>mid</sub> + s²/2<small>Roll's model: with half-spread s/2 and a flat mid, transaction-price changes have lag-1 autocovariance −s²/4. This both biases autocorrelation negative and <em>inflates</em> measured volatility.</small></div>
+        <p>Two practical consequences. First, an analyst who measures volatility from raw trade prices will <em>over</em>-state it, because the bounce adds variance that is not real price movement. Second, the negative autocorrelation is not a tradable mean-reversion signal — you cannot harvest it, because capturing it would require paying the very spread that creates it. The classic fix is to work with the <strong>mid-price</strong> (or quote mid-points) rather than trade prices, which removes most of the bounce.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Seeing strong negative lag-1 autocorrelation in high-frequency <em>trade</em> prices and declaring "the asset mean-reverts — free money!" It is almost always bid–ask bounce, an artifact of <em>which side</em> traded, not of price direction. Re-run the analysis on mid-prices: the phantom signal usually vanishes, and with it the imaginary profit.</div>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>From Data to Signal: Information Coefficient &amp; Signal-to-Noise</h2>
+        <p>A <strong>signal</strong> (or alpha) is any number computed from information available <em>at time t</em> that you hope predicts the <em>future</em> return r<sub>t+1</sub>. A momentum score, an order-book imbalance, a volatility regime flag — all are signals. The honest question is never "does it correlate?" but "<strong>how much</strong>, and is that more than luck?"</p>
+        <p>The standard yardstick is the <strong>information coefficient</strong> (IC): the correlation between the signal at time t and the realized forward return. The catch is that for any real predictor in liquid markets the IC is <em>tiny</em> — a single name's daily IC of 0.03–0.05 is already good. Predictive power lives in the third decimal place, swamped by noise.</p>
+        <div class="eq">IC = corr(signal<sub>t</sub>, r<sub>t+1</sub>) &nbsp;&nbsp;&nbsp; Sharpe ≈ IC · √(breadth · periods/yr)<small>The "fundamental law": a small edge (IC) compounds into a usable Sharpe ratio only by spreading it across many independent bets (breadth).</small></div>
+        <p>This is why <strong>signal-to-noise</strong> framing matters. A return is (predictable part) + (noise). If the predictable part has standard deviation σ<sub>s</sub> and the noise has σ<sub>n</sub>, the achievable IC is roughly σ<sub>s</sub>/√(σ<sub>s</sub>²+σ<sub>n</sub>²). In equities the noise dominates so heavily that a 4% IC is a triumph — and crucially, an edge that small needs a <em>lot</em> of independent observations before you can even prove it exists. That sample-size requirement is the bridge to the next section.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Hunting for a signal in returns is like listening for one whispered word in a stadium roar. You cannot hear it in a single clip. But average thousands of synchronized recordings (many days, many names) and the random roar cancels while the whisper reinforces — the √n averaging from Week 2's CLT, now doing the work of separating alpha from noise.</div>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>The Overfitting Trap &amp; Framing the Capstone</h2>
+        <p>If the edge is that small, the danger is obvious: test enough strategies and one will look brilliant <em>by chance alone</em>. This is the <strong>multiple-testing</strong> problem, and it is the single most expensive mistake in quantitative trading. A backtest is a hypothesis test, and running many of them silently inflates your false-discovery rate.</p>
+        <p>Concretely: at a 5% significance level, one in twenty random useless strategies will pass. Try 100 random rules on the same history and you <em>expect</em> roughly five "winners" that mean nothing. The more parameters you tune and the more variants you try, the more the in-sample Sharpe overstates the truth.</p>
+        <div class="eq">E[max of N null Sharpes] grows with √(2 ln N)&nbsp;&nbsp;⟹&nbsp;&nbsp;t<sub>required</sub> ↑ as you test more<small>The best of N pure-noise backtests looks good purely from selection; the Bonferroni fix scales the required threshold up with the number of trials.</small></div>
+        <p>The guardrails are not exotic: (1) hold out a genuine <strong>out-of-sample</strong> period you touch exactly once; (2) penalize for the number of trials (Bonferroni, or a "deflated" Sharpe that discounts for how many strategies you searched); (3) prefer signals with an <em>economic reason</em> to exist over ones found by blind search; (4) demand robustness across names, regimes, and reasonable parameter ranges rather than a single knife-edge setting.</p>
+        <p>This is exactly the spirit of your <strong>capstone, due this week</strong>: a volatility-and-signal study. You will estimate volatility cleanly (mind the bounce of §10.2), construct one candidate signal, measure its IC honestly, and — most important — report it <em>out-of-sample</em> with an explicit count of how many variants you tried. A modest, honestly-measured edge beats a spectacular overfit one every time.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>"My backtest Sharpe is 3.0!" — after quietly trying 50 parameter settings and reporting only the best. That is selection bias, not skill. The headline number must come from data the strategy has <em>never seen</em>, and the threshold to call it real must rise with the number of things you tested.</div>
+        <figure class="fig">
+            <svg viewBox="0 0 420 240" role="img" aria-label="Two curves: an in-sample backtest Sharpe rising with the number of strategies tried, and an out-of-sample Sharpe staying flat near zero, illustrating overfitting from multiple testing">
+                <!-- axes -->
+                <line x1="50" y1="190" x2="400" y2="190" stroke="#bcae8c" stroke-width="1.5"/>
+                <line x1="50" y1="30"  x2="50"  y2="190" stroke="#bcae8c" stroke-width="1.5"/>
+                <text x="225" y="218" fill="#bcae8c" font-size="10" text-anchor="middle">number of strategies tried →</text>
+                <text x="22" y="42" fill="#bcae8c" font-size="10">Sharpe</text>
+                <!-- zero baseline label -->
+                <line x1="50" y1="160" x2="400" y2="160" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="44" y="164" fill="#bcae8c" font-size="9" text-anchor="end">0</text>
+                <!-- in-sample best-of-N curve (rises like sqrt(ln N)) -->
+                <path d="M50,158 L110,120 L170,98 L230,82 L290,70 L350,61 L400,55"
+                      fill="none" stroke="#fbbf24" stroke-width="2.4"/>
+                <text x="350" y="46" fill="#fcd34d" font-size="10" text-anchor="middle">in-sample (best of N)</text>
+                <!-- out-of-sample flat-ish curve near zero -->
+                <path d="M50,158 L110,156 L170,159 L230,157 L290,160 L350,158 L400,159"
+                      fill="none" stroke="#34d399" stroke-width="2.4"/>
+                <text x="318" y="177" fill="#6ee7b7" font-size="10" text-anchor="middle">out-of-sample (truth)</text>
+            </svg>
+            <figcaption>Overfitting from multiple testing. The in-sample Sharpe of the best-of-N strategies (gold) climbs as you search more — pure selection on noise. The out-of-sample Sharpe (green) of those same "winners" stays pinned near zero. The gap is the overfit you must subtract.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — Roll's spread estimate &amp; an honest IC</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">From a tick tape you measure the lag-1 autocovariance of transaction-price changes as −0.25 (in cents²). Separately, a momentum signal tested on 2,000 daily observations shows an IC of 0.045. Estimate the effective spread, and decide whether the IC is statistically real.</p>
+        <ol>
+            <li><strong>Recover the spread (Roll's model):</strong> the model says Cov(Δp<sub>t</sub>, Δp<sub>t−1</sub>) = −s²/4. So s = 2·√(−Cov) = 2·√0.25 = <strong>2·0.5 = 1.0 cent</strong>. The implied round-trip cost is one cent.</li>
+            <li><strong>Why the sign matters:</strong> the autocovariance had to be <em>negative</em> for Roll's model to apply — that negativity <em>is</em> the bid–ask bounce. A positive value would mean the model doesn't fit.</li>
+            <li><strong>Standard error of the IC:</strong> for n observations, an IC's standard error is ≈ 1/√n = 1/√2000 ≈ <strong>0.0224</strong>.</li>
+            <li><strong>t-statistic:</strong> t = IC / SE = 0.045 / 0.0224 ≈ <strong>2.01</strong>. On its own that just clears the usual ~2.0 bar — barely "significant" at 5%.</li>
+            <li><strong>The multiple-testing reality check:</strong> if you reached this signal after trying, say, 20 variants, the Bonferroni-adjusted bar is not t≈2 but closer to t≈2.9 (for 0.05/20). At t = 2.01 the "edge" <strong>fails</strong> the honest threshold — it is plausibly one of the lucky-noise winners from §10.4.</li>
+            <li><strong>Verdict:</strong> report the spread of 1 cent with confidence; treat the IC as <em>unproven</em> until it survives out-of-sample and a trial-count penalty. This is precisely the discipline the capstone grades you on.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: spread, bounce, and an out-of-sample IC</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the course stack — pandas, NumPy, yfinance, statsmodels (install block is in the <a href="l09-cointegration-leadlag.html" style="color:var(--accent2);">earlier Week-1/2 lectures</a> if you skipped it). Daily bars hide the order book, so we'll (a) estimate an effective spread Roll-style from autocovariance, then (b) build a momentum signal and score its IC <em>in-sample vs out-of-sample</em> to feel the overfitting gap first-hand.</p>
+        <pre><span class="c"># microstructure_signal.py — Lecture 10</span>
+import numpy as np, pandas as pd, yfinance as yf
+
+px = yf.download("SPY", start="2015-01-01", end="2024-01-01")["Close"].dropna()
+ret = np.log(px).diff().dropna()                 <span class="c"># daily log returns</span>
+
+<span class="c"># (a) Roll's effective-spread estimate from lag-1 autocovariance of price changes</span>
+dp   = px.diff().dropna()
+cov1 = dp.cov(dp.shift(1).reindex(dp.index))     <span class="c"># lag-1 autocovariance</span>
+spread = 2*np.sqrt(-cov1) if cov1 < 0 else np.nan
+print("lag-1 autocov:", round(cov1, 4), " Roll spread est:", round(spread, 4))
+
+<span class="c"># (b) a momentum signal: sign of trailing 10-day return predicts next day?</span>
+sig  = np.sign(ret.rolling(10).sum()).shift(1)   <span class="c"># known at t, predicts r_t</span>
+df   = pd.concat([sig, ret], axis=1).dropna()
+df.columns = ["sig", "fwd"]
+
+split  = len(df)//2                              <span class="c"># honest holdout</span>
+ic_in  = df.iloc[:split]["sig"].corr(df.iloc[:split]["fwd"])
+ic_out = df.iloc[split:]["sig"].corr(df.iloc[split:]["fwd"])
+print("IC in-sample :", round(ic_in, 4))
+print("IC out-sample:", round(ic_out, 4))        <span class="c"># usually much smaller / flips sign</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Two lessons fall straight out. The Roll spread will be a few cents — a real, mechanical cost the bounce reveals. And the in-sample IC will look more flattering than the out-of-sample one; if you loop over many lookback windows and keep only the best in-sample IC, the out-of-sample number collapses — overfitting, live. That gap is the capstone's whole point.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>This lecture is the seam between <em>understanding data</em> and <em>acting on it</em>. Everything you measured here — the spread you must pay, the bounce you must clean, the tiny IC you must defend against luck — becomes a live constraint in the next course, <strong>Algorithmic Trading</strong>. There you'll turn signals into orders: sizing positions (Kelly and risk parity from the portfolio course), modeling how your own orders move the book (market impact), choosing limit vs market orders, and backtesting with the multiple-testing discipline baked in. The honest IC you report in this week's capstone is the seed of every strategy you'll build next.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The bid–ask spread is best described as…</div>
+            <div class="opt"><b>A.</b> the difference between today's and yesterday's closing price</div>
+            <div class="opt"><b>B.</b> the gap between the best ask and the best bid — the cost of demanding immediacy</div>
+            <div class="opt"><b>C.</b> the standard deviation of intraday returns</div>
+            <div class="opt"><b>D.</b> the difference between the open and the close</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The spread is ask − bid: what an impatient round-trip trader pays. (A) and (D) are price <em>changes</em> over time, not the instantaneous quote gap; (C) is volatility, a separate concept.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> You observe strong <em>negative</em> lag-1 autocorrelation in high-frequency transaction prices. The most likely explanation is…</div>
+            <div class="opt"><b>A.</b> a genuine, tradable mean-reversion edge</div>
+            <div class="opt"><b>B.</b> a data error that should be deleted</div>
+            <div class="opt"><b>C.</b> bid–ask bounce — trades alternating between bid and ask around a flat mid</div>
+            <div class="opt"><b>D.</b> the central limit theorem at work</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Bounce makes prints ricochet between bid and ask, producing spurious negative autocorrelation. It is not tradable (A) — capturing it means paying the spread that causes it. It's a real microstructure effect, not bad data (B), and unrelated to the CLT (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Measuring volatility from raw <em>trade</em> prices instead of mid-prices tends to…</div>
+            <div class="opt"><b>A.</b> overstate volatility, because the bounce adds variance that isn't real price movement</div>
+            <div class="opt"><b>B.</b> understate volatility, because trades happen less often than quotes</div>
+            <div class="opt"><b>C.</b> have no effect on the estimate</div>
+            <div class="opt"><b>D.</b> make the returns perfectly normal</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Roll's model gives Var(Δp) = σ²<sub>mid</sub> + s²/2: the bounce inflates measured variance. It does not shrink it (B), it is not negligible (C), and it has nothing to do with normality (D). Working with mid-prices removes most of the bias.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A realistic daily information coefficient (IC) for a single equity signal, and why it still matters, is closest to…</div>
+            <div class="opt"><b>A.</b> 0.9 — signals must explain most of returns to be useful</div>
+            <div class="opt"><b>B.</b> exactly 0 — no signal ever predicts returns</div>
+            <div class="opt"><b>C.</b> 0.04 — tiny, but it compounds into a usable Sharpe across many independent bets</div>
+            <div class="opt"><b>D.</b> 0.5 — half the variance is predictable</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Real ICs in liquid markets are a few percent; the fundamental law (Sharpe ≈ IC·√breadth) turns that small edge into profit via many bets. 0.9 and 0.5 (A, D) are wildly unrealistic; (B) is too defeatist — small but nonzero edges exist.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You tried 40 strategy variants and reported only the one with the best in-sample Sharpe of 2.8. The right way to judge whether it is real is to…</div>
+            <div class="opt"><b>A.</b> trust it — a Sharpe of 2.8 is high enough to be obviously real</div>
+            <div class="opt"><b>B.</b> try 40 more variants to find an even better one</div>
+            <div class="opt"><b>C.</b> add more parameters until the in-sample Sharpe exceeds 4</div>
+            <div class="opt"><b>D.</b> raise the significance bar for the number of trials and confirm it on untouched out-of-sample data</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> With 40 trials, selection inflates the best in-sample number; the threshold must rise (Bonferroni / deflated Sharpe) and the verdict must come from data the strategy never saw. (A) ignores selection bias; (B) and (C) make the overfitting strictly worse.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Opened up "the price" into a <b>limit order book</b> — best bid, best ask, mid, and the <b>spread</b> as the cost of immediacy.</li>
+            <li>Diagnosed <b>bid–ask bounce</b>: spurious negative autocorrelation and inflated volatility (Roll: Var = σ²<sub>mid</sub> + s²/2), cured by using mid-prices.</li>
+            <li>Defined a <b>signal</b>, measured its <b>information coefficient</b>, and saw that real edges are tiny but compound via <b>breadth</b>.</li>
+            <li>Named the <b>multiple-testing / overfitting</b> trap and its guardrails — out-of-sample, Bonferroni/deflated metrics, and economic priors.</li>
+            <li>Framed the <b>capstone</b>: estimate volatility cleanly, build one signal, and report its IC <b>out-of-sample</b> with the trial count disclosed.</li>
+        </ul>
+        <p class="next-up">Next up — the <b>Final Exam</b> (in preparation) consolidates the whole time-series course, and the <b>Algorithmic Trading</b> course turns these signals into live orders, sizing, and impact-aware backtests.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-cointegration-leadlag.html"><div class="dir">← Week 9</div><div class="ttl">Correlation, Cointegration &amp; Lead-Lag</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Time Series</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

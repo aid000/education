@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Lecture 10 — Signoff &amp; DFM</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; } .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; } .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; } .objectives ul { margin-left: 18px; } .objectives li { font-size: .92rem; margin-bottom: 5px; }
+        section.lec { margin: 40px 0; } section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; } section.lec p { margin-bottom: 14px; font-size: .96rem; } section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; } strong { color: #fff; } .key { color: var(--accent2); font-weight: 600; }
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; } .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); } .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; } .box.analogy .lbl { color: var(--blue); }
+        .fig { margin: 22px 0; text-align: center; } .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; } .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; } .worked li { margin-bottom: 6px; }
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; } .hands h3 { color: var(--green); margin-top: 0; } .hands p { font-size: .9rem; color: var(--text2); } .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; } pre .c { color: #6b8299; }
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; } .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; } .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; } .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; } .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .finish { background: linear-gradient(135deg, #11302a, #0d3a33); border: 1px solid #1f6f5c; border-radius: 14px; padding: 22px; margin: 28px 0; }
+        .finish h3 { font-size: 1.1rem; margin-bottom: 8px; } .finish p { font-size: .9rem; color: #a7e8d8; margin-bottom: 8px; } .finish a { color: var(--accent2); font-weight: 600; }
+        .quiz { margin: 48px 0 24px; } .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; } .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; } .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; } .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); } .q .opt b { color: var(--text); } .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; } .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; } .q details .ans { color: var(--green); font-weight: 700; }
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; } .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); } .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; } .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; } .lec-nav a.next { text-align: right; }
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); } footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C5 Physical Design</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Signoff &amp; DFM</h1>
+        <p class="sub">The final inspection before tape-out — proving the layout is correct, manufacturable, and high-yield.</p>
+    </div>
+</header>
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Run physical signoff — the final DRC, LVS, and PEX on the complete layout.</li>
+            <li>Explain DFM and how it goes beyond pass/fail DRC to raise yield (via doubling, fill, spreading, OPC).</li>
+            <li>Describe the reliability checks: antenna diodes, electromigration/IR signoff, and latch-up rules.</li>
+            <li>Walk the full tape-out checklist and know when the GDSII can be released.</li>
+            <li>See how C2 → C3 → C4 → C5 combine into a complete chip.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>Physical Signoff</h2>
+        <p>Once the layout is complete, <strong>physical signoff</strong> is the last gate before tape-out — three checks run on the <em>final</em> database, with no further hand-edits expected:</p>
+        <div class="eq">DRC &nbsp;·&nbsp; LVS &nbsp;·&nbsp; PEX<small>geometry rules &nbsp;·&nbsp; layout matches netlist &nbsp;·&nbsp; extract real parasitics</small></div>
+        <p><span class="key">DRC</span> (design rule check) verifies the geometry obeys the foundry's rules — minimum widths, spacings, enclosures. <span class="key">LVS</span> (layout-versus-schematic) confirms the drawn polygons connect into exactly the netlist you intended — no shorts, opens, or stray devices. <span class="key">PEX</span> (parasitic extraction) pulls the <em>real</em> resistance and capacitance out of the finished interconnect so that final timing is signed off on actual silicon parasitics, not estimates.</p>
+        <p>PEX is the bridge from "the layout looks right" to "the layout will <em>run</em> at speed": the extracted RC feeds the last static-timing run that closes the design.</p>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>DFM — Design for Manufacturability</h2>
+        <p>Passing DRC means the layout is <em>legal</em>. <strong>DFM</strong> (design for manufacturability) goes <em>beyond</em> pass/fail rules to proactively raise <span class="key">yield</span> — the fraction of fabricated dies that actually work. A layout can be 100% DRC-clean and still yield poorly; DFM closes that gap.</p>
+        <h3>Common DFM moves</h3>
+        <p>Tools (or the engineer) apply optimizations wherever there is room:</p>
+        <div class="eq">via doubling &nbsp;·&nbsp; wire spreading &nbsp;·&nbsp; metal fill &nbsp;·&nbsp; OPC awareness</div>
+        <p><strong>Via doubling</strong> adds a redundant via in parallel so a single via defect doesn't open the net. <strong>Wire spreading</strong> nudges nets apart where space allows, reducing bridging defects and coupling. <strong>Metal fill</strong> drops in dummy metal to keep density uniform for planar CMP. <strong>OPC awareness</strong> (optical proximity correction) means drawing shapes the lithography can actually print at scale. None of these are required by DRC — they are insurance for yield.</p>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Reliability Checks</h2>
+        <p>Beyond "works on day one," signoff also proves the chip <em>keeps</em> working. Three reliability checks matter:</p>
+        <h3>Antenna effect</h3>
+        <p>During fabrication, long metal traces connected to a thin gate can collect charge and damage the gate oxide. The fix is an <span class="key">antenna diode</span> that bleeds the charge to substrate, or breaking the net up a metal layer.</p>
+        <h3>Electromigration &amp; IR drop</h3>
+        <p><span class="key">Electromigration (EM)</span> signoff checks that no wire carries enough current density to slowly erode itself over years. <span class="key">IR drop</span> signoff confirms the power grid delivers voltage without sagging too far under load. EM/IR are signed off together on the final layout.</p>
+        <h3>Latch-up</h3>
+        <p><span class="key">Latch-up</span> rules enforce well/substrate tap spacing and guard rings so the parasitic CMOS thyristor never triggers into a destructive short.</p>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>The Tape-Out Checklist</h2>
+        <p>Tape-out — releasing the <span class="key">GDSII</span> to the foundry — happens only when <em>every</em> signoff item is green:</p>
+        <figure class="fig">
+            <svg viewBox="0 0 760 130" role="img" aria-label="Tape-out signoff chain: DRC then LVS then PEX then Timing MCMM then IR slash EM then Antenna then DFM then Tape-out, each connected by arrows">
+                <defs><marker id="aR" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#22d3ee"/></marker></defs>
+                <!-- boxes -->
+                <g font-size="12" text-anchor="middle">
+                    <rect x="14" y="48" width="70" height="34" rx="7" fill="#1c2c3e" stroke="#243648"/><text x="49" y="70" fill="#67e8f9">DRC</text>
+                    <rect x="104" y="48" width="70" height="34" rx="7" fill="#1c2c3e" stroke="#243648"/><text x="139" y="70" fill="#67e8f9">LVS</text>
+                    <rect x="194" y="48" width="70" height="34" rx="7" fill="#1c2c3e" stroke="#243648"/><text x="229" y="70" fill="#67e8f9">PEX</text>
+                    <rect x="284" y="40" width="92" height="50" rx="7" fill="#1c2c3e" stroke="#243648"/><text x="330" y="62" fill="#67e8f9">Timing</text><text x="330" y="78" fill="#94a8bc" font-size="10">(MCMM)</text>
+                    <rect x="396" y="48" width="70" height="34" rx="7" fill="#1c2c3e" stroke="#243648"/><text x="431" y="70" fill="#67e8f9">IR/EM</text>
+                    <rect x="486" y="40" width="80" height="50" rx="7" fill="#1c2c3e" stroke="#243648"/><text x="526" y="62" fill="#67e8f9">Antenna</text><text x="526" y="78" fill="#94a8bc" font-size="10">fixed</text>
+                    <rect x="586" y="48" width="62" height="34" rx="7" fill="#1c2c3e" stroke="#243648"/><text x="617" y="70" fill="#67e8f9">DFM</text>
+                    <rect x="668" y="40" width="80" height="50" rx="9" fill="#11302a" stroke="#1f6f5c"/><text x="708" y="62" fill="#34d399">Tape-out</text><text x="708" y="78" fill="#a7e8d8" font-size="10">GDSII</text>
+                </g>
+                <!-- arrows -->
+                <g stroke="#22d3ee" stroke-width="2">
+                    <line x1="86" y1="65" x2="100" y2="65" marker-end="url(#aR)"/>
+                    <line x1="176" y1="65" x2="190" y2="65" marker-end="url(#aR)"/>
+                    <line x1="266" y1="65" x2="280" y2="65" marker-end="url(#aR)"/>
+                    <line x1="378" y1="65" x2="392" y2="65" marker-end="url(#aR)"/>
+                    <line x1="468" y1="65" x2="482" y2="65" marker-end="url(#aR)"/>
+                    <line x1="568" y1="65" x2="582" y2="65" marker-end="url(#aR)"/>
+                    <line x1="650" y1="65" x2="664" y2="65" marker-end="url(#aR)"/>
+                </g>
+                <text x="380" y="22" fill="#94a8bc" font-size="12" text-anchor="middle">every item green → release the GDSII</text>
+            </svg>
+            <figcaption>The signoff chain: DRC → LVS → PEX → Timing (MCMM) → IR/EM → Antenna → DFM → Tape-out. Tape-out only happens when the whole chain is clean.</figcaption>
+        </figure>
+        <p>That checklist closes not just this lecture but the whole Nano path. <strong>Fabrication (C2)</strong> built the devices, <strong>architecture (C3)</strong> defined what to build, <strong>VLSI (C4)</strong> turned RTL into a gate-level netlist, and <strong>physical design (C5)</strong> placed, routed, optimized, and now signs off that netlist into a manufacturable layout. Together they build a complete chip.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Signoff &amp; DFM is the final safety-and-quality inspection before mass production. DRC and LVS say <em>"it's legal and it matches the plan"</em>; DFM adds <em>"and it'll come off the line with high yield, not just barely pass."</em> Only when both are satisfied do you green-light the factory — that green light is tape-out.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>DFM goes <strong>beyond</strong> passing DRC — it proactively raises yield (via doubling, metal fill, wire spreading), it isn't just a stricter DRC. <strong>PEX</strong> extracts the real parasitics needed for final timing, not a geometry or connectivity check. And tape-out requires the <strong>whole checklist</strong> green (DRC, LVS, timing, IR/EM, antenna, DFM) — not just a clean DRC.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Via doubling for yield. Suppose a single via has a probability <em>p</em> = 0.1% of being defective (open). What happens to the open-connection probability when DFM replaces it with a redundant double via?</p>
+        <ol>
+            <li><strong>Single via:</strong> the connection opens if that one via fails — probability <strong>p = 0.001</strong> (0.1%).</li>
+            <li><strong>Double (redundant) via:</strong> the connection opens only if <em>both</em> vias fail. Assuming independent defects, that's p² = (0.001)² = <strong>0.000001</strong> (0.0001%).</li>
+            <li><strong>Gain:</strong> the open probability drops by a factor of ~1/p = <strong>1000×</strong> — roughly the square of a single via's failure rate, at negligible extra area.</li>
+            <li><strong>Why DFM does it everywhere:</strong> that's an enormous yield/reliability win for almost no cost, so tools double vias wherever there's room.</li>
+        </ol>
+    </div>
+
+    <figure class="fig">
+        <svg viewBox="0 0 560 230" role="img" aria-label="DFM via doubling example: on the left a single via between two metal layers, on the right a redundant double via">
+            <!-- left: single via -->
+            <g text-anchor="middle">
+                <text x="140" y="28" fill="#e8f0f8" font-size="13" font-weight="700">Single via</text>
+                <rect x="60" y="50" width="160" height="26" rx="4" fill="#1c2c3e" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="140" y="68" fill="#60a5fa" font-size="11">Metal 2</text>
+                <rect x="60" y="150" width="160" height="26" rx="4" fill="#1c2c3e" stroke="#a78bfa" stroke-width="1.5"/>
+                <text x="140" y="168" fill="#a78bfa" font-size="11">Metal 1</text>
+                <rect x="128" y="76" width="24" height="74" fill="#243648" stroke="#67e8f9" stroke-width="1.5"/>
+                <text x="140" y="118" fill="#67e8f9" font-size="10">via</text>
+                <text x="140" y="205" fill="#fbbf24" font-size="11">opens if 1 via fails (p)</text>
+            </g>
+            <!-- right: double via -->
+            <g text-anchor="middle">
+                <text x="420" y="28" fill="#e8f0f8" font-size="13" font-weight="700">Redundant double via</text>
+                <rect x="340" y="50" width="160" height="26" rx="4" fill="#1c2c3e" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="420" y="68" fill="#60a5fa" font-size="11">Metal 2</text>
+                <rect x="340" y="150" width="160" height="26" rx="4" fill="#1c2c3e" stroke="#a78bfa" stroke-width="1.5"/>
+                <text x="420" y="168" fill="#a78bfa" font-size="11">Metal 1</text>
+                <rect x="376" y="76" width="24" height="74" fill="#243648" stroke="#67e8f9" stroke-width="1.5"/>
+                <rect x="440" y="76" width="24" height="74" fill="#243648" stroke="#67e8f9" stroke-width="1.5"/>
+                <text x="420" y="205" fill="#34d399" font-size="11">opens only if both fail (≈ p²)</text>
+            </g>
+        </svg>
+        <figcaption>DFM via doubling: replacing one via with two in parallel means both must fail to open the net, cutting the open probability from p to roughly p² for negligible area cost.</figcaption>
+    </figure>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: run final DRC + LVS signoff in OpenLane</h3>
+        <p>Take your routed-and-optimized project block all the way to a clean signoff. OpenLane runs Magic for DRC and Netgen for LVS at the end of the flow — confirm both report zero violations.</p>
+        <pre><span class="c">* Final signoff on your project block — Lecture 10</span>
+make mount
+flow.tcl -design my_block -tag signoff   <span class="c">; runs through to DRC/LVS</span>
+
+<span class="c"># inspect the signoff reports</span>
+cat runs/signoff/reports/signoff/*-drc.rpt   <span class="c">; expect: COUNT: 0</span>
+cat runs/signoff/reports/signoff/*-lvs.rpt   <span class="c">; expect: Circuits match uniquely</span></pre>
+        <p>Confirm a <strong>clean DRC</strong> (zero violations) and a <strong>matching LVS</strong> (layout = netlist). That clean result is your block's signoff — the same gate a real tape-out has to pass.</p>
+    </div>
+
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+        <div class="q">
+            <div class="qn"><span>Q1.</span> PEX (parasitic extraction)…</div>
+            <div class="opt"><b>A.</b> extracts the real RC parasitics for final signoff timing</div>
+            <div class="opt"><b>B.</b> checks the geometry rules</div>
+            <div class="opt"><b>C.</b> matches layout to schematic</div>
+            <div class="opt"><b>D.</b> places the cells</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> PEX pulls the real resistance and capacitance out of the finished layout so final timing is signed off on actual parasitics. (Geometry is DRC, connectivity is LVS.)</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q2.</span> DFM (design for manufacturability)…</div>
+            <div class="opt"><b>A.</b> is the same as DRC</div>
+            <div class="opt"><b>B.</b> goes beyond passing DRC to improve yield</div>
+            <div class="opt"><b>C.</b> is a timing check</div>
+            <div class="opt"><b>D.</b> replaces LVS</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A layout can be DRC-clean yet yield poorly; DFM (via doubling, fill, spreading, OPC) proactively raises yield beyond mere pass/fail.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Via doubling (redundant vias)…</div>
+            <div class="opt"><b>A.</b> increases IR drop</div>
+            <div class="opt"><b>B.</b> slows the chip</div>
+            <div class="opt"><b>C.</b> improves yield/reliability because both vias must fail to open the connection</div>
+            <div class="opt"><b>D.</b> is a logic change</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> With two vias in parallel the net opens only if both fail, so the open probability drops to roughly p² — a large reliability gain at negligible area.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Metal fill is added to…</div>
+            <div class="opt"><b>A.</b> meet density rules for uniform manufacturing (e.g. CMP planarity)</div>
+            <div class="opt"><b>B.</b> carry signal current</div>
+            <div class="opt"><b>C.</b> store charge</div>
+            <div class="opt"><b>D.</b> fix timing</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Dummy metal fill keeps metal density uniform so chemical-mechanical polishing (CMP) stays planar; the fill is not connected to signals.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Tape-out requires…</div>
+            <div class="opt"><b>A.</b> only LVS</div>
+            <div class="opt"><b>B.</b> only a clean DRC</div>
+            <div class="opt"><b>C.</b> only timing closure</div>
+            <div class="opt"><b>D.</b> the full signoff checklist green (DRC/LVS/timing/IR/EM/antenna/DFM)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Releasing the GDSII requires every signoff item green — DRC, LVS, timing (MCMM), IR/EM, antennas, and DFM — not just one clean check.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Physical signoff</b> is the final DRC (geometry), LVS (layout = netlist), and <b>PEX</b> (real RC for final timing) on the complete layout.</li>
+            <li><b>DFM</b> goes beyond pass/fail DRC to raise yield — via doubling, wire spreading, metal fill, and OPC awareness.</li>
+            <li><b>Reliability checks</b>: antenna diodes, electromigration/IR signoff, and latch-up rules.</li>
+            <li>The <b>tape-out checklist</b> must be all green before releasing the GDSII.</li>
+            <li>Via doubling cuts a net's open probability from p to ≈ p² for negligible area — why DFM doubles vias everywhere.</li>
+        </ul>
+        <p class="next-up">That completes the full chip-design path: circuits → fabrication → architecture → VLSI → physical design. You can take a design from idea to a signed-off, manufacturable layout. 🎉</p>
+    </div>
+
+    <div class="finish">
+        <h3>🏁 Course complete — and Nano specialization complete!</h3>
+        <p><b>Final project due this week:</b> submit your project block taken end-to-end through floorplan → place → CTS → route → optimize, with a full signoff report (clean DRC/LVS, timing closed, IR/EM ok, antennas fixed, DFM applied).</p>
+        <p>Then take the comprehensive <a href="../exam/final-exam.html">Final Exam →</a> for C5 Physical Design.</p>
+        <p>Finishing C1–C5 means you've completed a complete, internship-ready chip-design path — from charge and Ohm's law all the way to a tape-out-ready GDSII. 🎉</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l09-eco-flows.html"><div class="dir">← Week 9</div><div class="ttl">ECO Flows</div></a>
+        <a href="../exam/final-exam.html" class="next"><div class="dir">Finish →</div><div class="ttl">Final Exam</div></a>
+    </div>
+</div>
+<footer>
+    <p><a href="../index.html">← C5 Physical Design</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => { const h = document.documentElement; bar.style.width = (h.scrollTop)/(h.scrollHeight - h.clientHeight)*100 + '%'; });
+</script>
+</body>
+</html>

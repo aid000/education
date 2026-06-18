@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern AI C3 · Lecture 2 — How Models Learn: Tokens, Training &amp; Prediction</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Intro</a> / <a href="../index.html">C3 Modern AI — From Impossible to Agentic</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>How Models Learn — Tokens, Training &amp; Prediction</h1>
+        <p class="sub">A frontier model is, underneath, a machine that does one thing astonishingly well: guess the next token. Everything else emerges from that.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain what a <strong>token</strong> is and how text becomes a sequence of numbers a model can process.</li>
+            <li>Describe an <strong>embedding</strong> — a learned vector that places meaning in geometric space.</li>
+            <li>State the core training task: <strong>next-token prediction</strong>, and how it is scored and improved.</li>
+            <li>Distinguish the three stages of building a model: <strong>pretraining → fine-tuning → RLHF</strong>.</li>
+            <li>Give an intuitive reason <strong>why</strong> a next-token predictor generalizes to tasks no one programmed.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>From Text to Tokens: the Model's Alphabet</h2>
+        <p>A language model never sees letters or words directly. Text is first chopped into <strong>tokens</strong> — chunks that are usually a common word, a word-piece, or a few characters. A rough rule of thumb (English): about <span class="key">1 token ≈ 4 characters ≈ ¾ of a word</span>, so a token count is a little larger than a word count. Each distinct token in the model's fixed <strong>vocabulary</strong> (often tens of thousands of entries) is assigned an integer ID.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 150" role="img" aria-label="Tokenization: the sentence 'Models predict the next token' is split into colored token chunks, each mapped to an integer ID below it">
+                <text x="200" y="24" fill="#a3a8c8" font-size="11" text-anchor="middle">"Models predict the next token."</text>
+                <g font-size="11" text-anchor="middle">
+                    <rect x="20"  y="44" width="58" height="30" rx="5" fill="rgba(167,139,250,.30)" stroke="#a78bfa"/>
+                    <text x="49"  y="63" fill="#e9ebf8">Models</text>
+                    <text x="49"  y="92" fill="#c4b5fd">5012</text>
+                    <rect x="84"  y="44" width="62" height="30" rx="5" fill="rgba(96,165,250,.30)" stroke="#60a5fa"/>
+                    <text x="115" y="63" fill="#e9ebf8">predict</text>
+                    <text x="115" y="92" fill="#c4b5fd">9134</text>
+                    <rect x="152" y="44" width="40" height="30" rx="5" fill="rgba(52,211,153,.30)" stroke="#34d399"/>
+                    <text x="172" y="63" fill="#e9ebf8">the</text>
+                    <text x="172" y="92" fill="#c4b5fd">262</text>
+                    <rect x="198" y="44" width="46" height="30" rx="5" fill="rgba(251,191,36,.30)" stroke="#fbbf24"/>
+                    <text x="221" y="63" fill="#e9ebf8">next</text>
+                    <text x="221" y="92" fill="#c4b5fd">1306</text>
+                    <rect x="250" y="44" width="58" height="30" rx="5" fill="rgba(192,132,252,.30)" stroke="#c084fc"/>
+                    <text x="279" y="63" fill="#e9ebf8">token</text>
+                    <text x="279" y="92" fill="#c4b5fd">11241</text>
+                    <rect x="314" y="44" width="26" height="30" rx="5" fill="rgba(163,168,200,.25)" stroke="#a3a8c8"/>
+                    <text x="327" y="63" fill="#e9ebf8">.</text>
+                    <text x="327" y="92" fill="#c4b5fd">13</text>
+                </g>
+                <text x="200" y="120" fill="#a3a8c8" font-size="10" text-anchor="middle">tokens → integer IDs (the model only ever sees the numbers)</text>
+                <text x="200" y="138" fill="#6670a0" font-size="9" text-anchor="middle">IDs shown are illustrative; real vocabularies differ per model</text>
+            </svg>
+            <figcaption>Tokenization turns text into a sequence of integer IDs from a fixed vocabulary. Rare words split into several tokens; common words are a single token.</figcaption>
+        </figure>
+        <p>Why not just use words, or just characters? Words make the vocabulary explode (and fail on anything unseen); single characters make sequences very long and force the model to relearn spelling constantly. <strong>Sub-word</strong> tokenization is the practical middle ground — it can spell out any string yet keeps common words compact.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>"One word = one token" is <strong>not</strong> reliable. Numbers, code, emoji, and non-English text often use several tokens each. This is why the same idea can cost more tokens in one language than another, and why a model may miscount letters in a word — it never saw the letters, only the chunk. When you hear about a context window of, say, "200K tokens," that is tokens, not words — divide by roughly 0.75 to estimate words.</p></div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Embeddings: Turning IDs into Meaning</h2>
+        <p>An integer ID like <code>11241</code> carries no meaning — <code>11241</code> isn't "more" than <code>262</code>. So the first thing the model does is look each ID up in a giant table and replace it with a learned vector of numbers called an <strong>embedding</strong>. An embedding is a point in a high-dimensional space (hundreds to thousands of dimensions), and crucially the <em>geometry is learned</em>: tokens used in similar ways end up near each other.</p>
+        <div class="eq">token ID  →  embedding vector  ∈  ℝ<sup>d</sup><small>d is the model's embedding dimension. "king" and "queen" land near each other; "king" and "banana" land far apart.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="A 2D embedding space scatter plot. Royalty words king and queen sit near each other top-right; fruit words apple and banana cluster bottom-left; the arrow from king to queen mirrors the arrow from man to woman">
+                <line x1="40" y1="190" x2="360" y2="190" stroke="#a3a8c8" stroke-width="1.2"/>
+                <line x1="40" y1="30" x2="40" y2="190" stroke="#a3a8c8" stroke-width="1.2"/>
+                <text x="200" y="208" fill="#a3a8c8" font-size="10" text-anchor="middle">meaning dimension 1</text>
+                <text x="22" y="110" fill="#a3a8c8" font-size="10" text-anchor="middle" transform="rotate(-90 22 110)">meaning dimension 2</text>
+                <!-- royalty cluster -->
+                <circle cx="270" cy="70" r="5" fill="#a78bfa"/><text x="280" y="68" fill="#c4b5fd" font-size="11">king</text>
+                <circle cx="300" cy="100" r="5" fill="#a78bfa"/><text x="310" y="98" fill="#c4b5fd" font-size="11">queen</text>
+                <!-- gender pair lower -->
+                <circle cx="200" cy="120" r="5" fill="#60a5fa"/><text x="150" y="118" fill="#60a5fa" font-size="11">man</text>
+                <circle cx="230" cy="150" r="5" fill="#60a5fa"/><text x="238" y="166" fill="#60a5fa" font-size="11">woman</text>
+                <!-- fruit cluster -->
+                <circle cx="90" cy="160" r="5" fill="#34d399"/><text x="60" y="178" fill="#34d399" font-size="11">apple</text>
+                <circle cx="120" cy="140" r="5" fill="#34d399"/><text x="128" y="138" fill="#34d399" font-size="11">banana</text>
+                <!-- parallel arrows -->
+                <line x1="270" y1="70" x2="300" y2="100" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#ar)"/>
+                <line x1="200" y1="120" x2="230" y2="150" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#ar)"/>
+                <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#fbbf24"/></marker></defs>
+                <text x="200" y="48" fill="#fbbf24" font-size="9" text-anchor="middle">the "+ female" direction is roughly the same everywhere</text>
+            </svg>
+            <figcaption>A toy 2-D view of embedding space (real spaces have hundreds of dimensions). Similar tokens cluster, and consistent <em>directions</em> can encode relationships — the basis of how meaning becomes geometry.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of embeddings as a <strong>map of meaning</strong>. Just as a city's latitude/longitude place it near similar cities, an embedding places a token near tokens it behaves like. The model doesn't memorize definitions; it learns where each word "lives" so that nearby words can be substituted and relationships (king→queen mirrors man→woman) show up as the same direction on the map.</div>
+        <p>From there, the Transformer's <strong>attention</strong> mechanism (Week 1) lets each token's vector get updated by looking at the others around it, so the embedding for "bank" can shift toward "river" or "money" depending on context. The output is a context-aware vector for the last position — ready to make a prediction.</p>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>The Whole Game: Predict the Next Token</h2>
+        <p>Here is the single task the model is trained on. Given a sequence of tokens, output a <strong>probability for every token in the vocabulary</strong> being the next one. That's it. The final layer produces a score for each vocabulary entry; a <code>softmax</code> turns those scores into probabilities that sum to 1.</p>
+        <div class="eq">P(next = t | "The cat sat on the ___")<small>The model outputs a probability for every token; "mat" might get 0.31, "floor" 0.12, "roof" 0.04, and so on.</small></div>
+        <p>To <em>train</em> it, you take real text, hide the next token, ask the model to predict it, and measure how surprised it was by the true answer. That surprise is the <strong>loss</strong> (cross-entropy): low when the model gave the true token high probability, high when it didn't. Every parameter is then nudged by <strong>gradient descent</strong> to make the true token a little more likely next time. Repeat across trillions of tokens.</p>
+        <div class="eq">loss = − log P(true token)<small>Confident &amp; correct → loss near 0. Confident &amp; wrong → large loss. Training minimizes the average loss.</small></div>
+        <p>To <em>generate</em> text, you flip it around: predict the next token, append it, and feed the longer sequence back in to predict the one after that. This step-by-step append loop is called <strong>autoregressive</strong> generation. A <strong>temperature</strong> setting controls how adventurously it samples: near 0 it almost always takes the highest-probability token (focused, repetitive); higher values let lower-probability tokens through (more varied, more error-prone).</p>
+        <div class="box warn"><span class="lbl">Note — why it can "make things up"</span>The model optimizes for <em>plausible next tokens</em>, not for truth. A confident, fluent, completely wrong sentence has exactly the statistical shape of a correct one, so nothing in the basic objective forbids it. This is the root of <strong>hallucination</strong> — covered in depth in Week 9. Treat fluent output as a draft to verify, not as a citation.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Three Stages: Pretraining → Fine-Tuning → RLHF</h2>
+        <p>A useful assistant isn't built in one shot. It's grown in three stages, each changing what the model is good at:</p>
+        <h3>1 · Pretraining — learn the world from raw text</h3>
+        <p>The model does next-token prediction over an enormous, broad corpus (web text, books, code). This is by far the most compute-intensive stage and where almost all of the model's knowledge and language ability comes from. The result is a <strong>base model</strong>: fluent and knowledgeable, but it just continues text — ask it a question and it might continue with <em>more questions</em>.</p>
+        <h3>2 · Fine-tuning (instruction tuning) — learn to be helpful</h3>
+        <p>Continue training on a smaller, curated set of <strong>instruction → good-response</strong> examples. Same next-token mechanism, narrower data. Now the model learns the <em>format</em> of being an assistant: when given an instruction, produce a direct, helpful answer rather than rambling.</p>
+        <h3>3 · RLHF — learn human preferences</h3>
+        <p><strong>Reinforcement Learning from Human Feedback.</strong> Humans (and increasingly AI graders) rank competing responses; those rankings train a <em>reward model</em>, and the assistant is then optimized to produce responses the reward model scores highly. This is what makes outputs feel helpful, honest, and harmless — tone, refusals, and following nuanced preferences. (A related newer variant trains models to produce step-by-step <em>reasoning</em> before answering; more in Week 3.)</p>
+        <figure class="fig">
+            <svg viewBox="0 0 410 150" role="img" aria-label="Pipeline of three boxes left to right: Pretraining on huge raw text producing a base model, then Fine-tuning on instruction examples, then RLHF on human preferences, producing the assistant">
+                <g font-size="11" text-anchor="middle">
+                    <rect x="14"  y="40" width="110" height="56" rx="8" fill="rgba(167,139,250,.18)" stroke="#a78bfa"/>
+                    <text x="69" y="62" fill="#c4b5fd" font-weight="bold">Pretraining</text>
+                    <text x="69" y="78" fill="#a3a8c8" font-size="9">trillions of tokens</text>
+                    <text x="69" y="90" fill="#a3a8c8" font-size="9">→ base model</text>
+                    <rect x="146" y="40" width="110" height="56" rx="8" fill="rgba(96,165,250,.18)" stroke="#60a5fa"/>
+                    <text x="201" y="62" fill="#60a5fa" font-weight="bold">Fine-tuning</text>
+                    <text x="201" y="78" fill="#a3a8c8" font-size="9">instruction →</text>
+                    <text x="201" y="90" fill="#a3a8c8" font-size="9">response pairs</text>
+                    <rect x="278" y="40" width="110" height="56" rx="8" fill="rgba(52,211,153,.18)" stroke="#34d399"/>
+                    <text x="333" y="62" fill="#34d399" font-weight="bold">RLHF</text>
+                    <text x="333" y="78" fill="#a3a8c8" font-size="9">rank responses,</text>
+                    <text x="333" y="90" fill="#a3a8c8" font-size="9">reward preferences</text>
+                </g>
+                <line x1="124" y1="68" x2="146" y2="68" stroke="#a3a8c8" stroke-width="1.6" marker-end="url(#a2)"/>
+                <line x1="256" y1="68" x2="278" y2="68" stroke="#a3a8c8" stroke-width="1.6" marker-end="url(#a2)"/>
+                <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#a3a8c8"/></marker></defs>
+                <text x="69"  y="120" fill="#6670a0" font-size="9">most of the compute</text>
+                <text x="388" y="120" fill="#6670a0" font-size="9" text-anchor="end">most of the "personality"</text>
+                <text x="200" y="140" fill="#a3a8c8" font-size="10" text-anchor="middle">knowledge → helpfulness → alignment</text>
+            </svg>
+            <figcaption>The build pipeline. Knowledge is acquired in pretraining; helpfulness in fine-tuning; alignment to human preferences in RLHF. Each stage reuses the same next-token machinery on different data with different objectives.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 2.5 -->
+    <section class="lec">
+        <h2><span class="n">2.5</span>Why Does a Next-Token Predictor Generalize?</h2>
+        <p>It seems too simple. How can "guess the next token" produce something that translates, summarizes, codes, and reasons? The intuition: <strong>to predict the next token well across all of human text, you are forced to learn the structures behind the text.</strong></p>
+        <p>To finish "The capital of France is ___" you need facts. To finish "2 + 2 = ___" you need arithmetic. To finish a sentence in correct French you need grammar. To finish "Therefore, the murderer was ___" in a mystery you need to track plot and motive. The training objective never <em>names</em> these skills — but the only way to keep the loss low across billions of varied examples is to internalize them. Capabilities are a <strong>side effect</strong> of compression: squeezing the patterns of all that text into a fixed set of weights.</p>
+        <p>This also explains <strong>in-context learning</strong>: if you show the model a couple of examples in the prompt, it can often continue the pattern without any retraining — because "continue the established pattern" is exactly what a next-token predictor is built to do. It's why prompting (Weeks 4–5) works at all.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Imagine a student forced to predict the last word of every sentence in a vast library. To get good, they can't just memorize — there isn't room. They must compress: learn that physics passages obey physics, that dialogue follows characters, that lists stay parallel. The "skills" we admire in a model are the compression artifacts of a relentless fill-in-the-blank drill.</div>
+        <div class="box warn"><span class="lbl">Limit — generalization isn't understanding</span>Generalization is real but bounded. Models are strongest on patterns close to their training distribution and weakest on truly novel reasoning, fresh facts after their cutoff, and tasks needing reliable, verifiable truth. "It generalized" never means "it can't be wrong." Always pair capability claims with their limits — a habit we keep all course long.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — trace one prediction step</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Walk a single next-token step for the prompt <em>"The sky is"</em>, then estimate token usage. (Numbers are illustrative — the goal is the chain of reasoning, not exact values.)</p>
+        <ol>
+            <li><strong>Tokenize:</strong> "The sky is" → roughly 3 tokens: <code>The</code>, <code>&nbsp;sky</code>, <code>&nbsp;is</code> (the leading space is part of the token).</li>
+            <li><strong>Embed:</strong> each ID becomes a vector; attention lets "is" attend to "sky" and "The," producing one context-aware vector for the final position.</li>
+            <li><strong>Score the vocabulary:</strong> the output layer scores every token. Say <code>&nbsp;blue</code> → 0.46, <code>&nbsp;clear</code> → 0.11, <code>&nbsp;falling</code> → 0.05, …(thousands more, all summing to 1 after softmax).</li>
+            <li><strong>Sample:</strong> at temperature ≈ 0 the model emits <code>&nbsp;blue</code> (the top choice); at higher temperature it might pick <code>&nbsp;clear</code>. Append it → "The sky is blue".</li>
+            <li><strong>Repeat (autoregressive):</strong> feed "The sky is blue" back in to predict the next token, and so on until a stop token.</li>
+            <li><strong>Estimate usage:</strong> a 300-word reply ≈ 300 ÷ 0.75 ≈ <strong>400 tokens</strong>. Both your prompt and the reply count toward the context window and any usage limits.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: feel tokens, embeddings &amp; prediction</h3>
+        <p style="font-size:.9rem; color:var(--text2);">No new install needed — you'll use a free chatbot tier plus a short Python/Jupyter check. (Reminder: the one-time Python + Jupyter setup lives in Week 1.)</p>
+
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;"><strong>A. Probe a model about its own tokens (free tier of Claude, ChatGPT, or Grok).</strong> Paste each prompt and note what you observe:</p>
+        <ul style="margin:6px 0 0 20px; font-size:.9rem; color:var(--text2);">
+            <li>"How many letter <em>r</em>'s are in <em>strawberry</em>? Spell it out one letter at a time first." — note whether spelling it out helps. (It often does — it forces character-level work the tokenizer hid.)</li>
+            <li>"Give me 5 words close in meaning to <em>bank</em> (money sense), then 5 for <em>bank</em> (river sense)." — you're watching context steer the embedding.</li>
+            <li>Send the same creative prompt twice. Different each time? That's sampling above temperature 0.</li>
+        </ul>
+
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;"><strong>B. Count tokens locally (Jupyter).</strong> A tiny, offline-friendly check of the "~¾ word per token" rule using a common open tokenizer:</p>
+        <pre><span class="c"># tokens_demo.ipynb — Lecture 2  (pip install tiktoken, once)</span>
+import tiktoken
+enc = tiktoken.get_encoding("cl100k_base")   <span class="c"># a widely-used BPE tokenizer</span>
+
+for text in ["The sky is blue.",
+             "Tokenization",
+             "internationalization",
+             "🚀 café 2026"]:
+    ids = enc.encode(text)
+    print(f"{len(text.split()):>2} words | {len(ids):>2} tokens | {text!r}")
+    print("   ids:", ids)
+<span class="c"># Notice: long/rare words split into several tokens; emoji &amp; accents cost extra.</span>
+<span class="c"># Watch the words-to-tokens ratio hover near 0.75 for plain English.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);"><strong>Jupyter prompt log — keep a cell like this each lecture:</strong></p>
+        <pre><span class="c"># --- Prompt log: Lecture 2 ---</span>
+<span class="c"># Date: 2026-..  Model/tier used: ____</span>
+<span class="c"># Prompt 1 (strawberry r-count): observed = ____ ; correct? ____</span>
+<span class="c"># Prompt 2 (bank synonyms): did context change the list? ____</span>
+<span class="c"># Token check: longest word above used ___ tokens</span>
+<span class="c"># One thing that surprised me: ____</span></pre>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Everything downstream in this course rests on the machinery here. <strong>What models can do</strong> (Week 3) is the menu of skills that emerge from next-token prediction at scale. <strong>Prompting</strong> (Weeks 4–5) is the art of steering that predictor — few-shot examples exploit in-context learning; chain-of-thought asks it to spend tokens reasoning before answering. <strong>Agents</strong> (Weeks 6–7) wrap the same predictor in a loop with tools and memory so it can act, not just talk. And <strong>limits and hallucinations</strong> (Week 9) trace directly back to one fact from this lecture: the objective rewards plausibility, not truth.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">6 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A <em>token</em> in a language model is best described as…</div>
+            <div class="opt"><b>A.</b> always exactly one English word</div>
+            <div class="opt"><b>B.</b> a chunk of text (often a word-piece) mapped to an integer ID from a fixed vocabulary</div>
+            <div class="opt"><b>C.</b> a single character, always</div>
+            <div class="opt"><b>D.</b> the model's final answer</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Tokens are sub-word chunks (roughly ¾ of a word in English) each with an integer ID. They are neither strictly words (A) nor strictly characters (C).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> What is an <em>embedding</em>?</div>
+            <div class="opt"><b>A.</b> the loss value during training</div>
+            <div class="opt"><b>B.</b> the probability the model assigns to the next token</div>
+            <div class="opt"><b>C.</b> a learned vector that places a token in a high-dimensional "meaning space"</div>
+            <div class="opt"><b>D.</b> the temperature setting</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Each token ID is looked up as a learned vector; similar tokens land near each other, turning meaning into geometry. The ID itself carries no magnitude meaning.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The fundamental task a language model is trained on is to…</div>
+            <div class="opt"><b>A.</b> predict the probability of the next token given the preceding ones</div>
+            <div class="opt"><b>B.</b> look up answers in a stored database</div>
+            <div class="opt"><b>C.</b> translate every input into French</div>
+            <div class="opt"><b>D.</b> compress images</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Next-token prediction, scored by cross-entropy loss, is the whole training game. Other abilities emerge from doing it well, not from a database lookup (B).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Which stage gives a model most of its broad <em>knowledge</em>?</div>
+            <div class="opt"><b>A.</b> RLHF</div>
+            <div class="opt"><b>B.</b> instruction fine-tuning</div>
+            <div class="opt"><b>C.</b> the tokenizer</div>
+            <div class="opt"><b>D.</b> pretraining on a large, broad text corpus</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Pretraining is the compute-heavy stage where knowledge and language ability are acquired. Fine-tuning adds helpfulness; RLHF aligns to preferences.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> RLHF (Reinforcement Learning from Human Feedback) primarily…</div>
+            <div class="opt"><b>A.</b> teaches the model new factual knowledge from scratch</div>
+            <div class="opt"><b>B.</b> shapes responses toward human-preferred behavior (helpful, honest, harmless) using ranked feedback</div>
+            <div class="opt"><b>C.</b> shrinks the model's vocabulary</div>
+            <div class="opt"><b>D.</b> removes the need for tokens</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> RLHF trains a reward model from human (or AI) rankings and optimizes the assistant toward preferred responses — tone, refusals, following nuance — not bulk new knowledge.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q6.</span> A model can produce a fluent, confident statement that is simply false because…</div>
+            <div class="opt"><b>A.</b> it is deliberately lying</div>
+            <div class="opt"><b>B.</b> its training objective rewards <em>plausible</em> next tokens, not verified truth</div>
+            <div class="opt"><b>C.</b> the tokenizer is broken</div>
+            <div class="opt"><b>D.</b> embeddings cannot represent facts</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Plausible-looking wrong text has the same statistical shape as correct text, so the basic objective doesn't forbid it — the root of hallucination (Week 9). Always verify.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Tokens</b> are sub-word chunks (≈¾ word in English) turned into integer IDs from a fixed vocabulary.</li>
+            <li><b>Embeddings</b> are learned vectors placing tokens in a meaning space where geometry encodes similarity and relationships.</li>
+            <li>The core task is <b>next-token prediction</b>, scored by cross-entropy loss and run autoregressively (with temperature) to generate text.</li>
+            <li>Models are built in three stages: <b>pretraining</b> (knowledge) → <b>fine-tuning</b> (helpfulness) → <b>RLHF</b> (alignment).</li>
+            <li>They <b>generalize</b> because predicting all of human text forces compression of its underlying structures — but generalization is bounded, and plausibility ≠ truth.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: <b>What Frontier Models Can Do</b> — the menu of capabilities (and limits) that emerge from everything in this lecture.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-why-ai-works-now-compute-data.html"><div class="dir">← Previous</div><div class="ttl">Why AI Works Now — Compute, Data &amp; the Transformer</div></a>
+        <a class="next" href="l03-what-frontier-models-can-do.html"><div class="dir">Next →</div><div class="ttl">What Frontier Models Can Do</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Modern AI — From Impossible to Agentic</a> · <a href="../../index.html">Intro</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

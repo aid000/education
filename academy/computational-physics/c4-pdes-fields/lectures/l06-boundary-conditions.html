@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C4 · Lecture 6 — Boundary Conditions</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Boundary Conditions</h1>
+        <p class="sub">A PDE only knows what happens in the interior — it's the edges of your grid that decide whether the answer is a heat sink, a perfect insulator, or a wraparound universe.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the physical meaning of Dirichlet (fixed value) and Neumann (fixed flux) boundary conditions.</li>
+            <li>Implement Neumann conditions accurately using ghost points without losing the interior scheme's order.</li>
+            <li>Show how boundary conditions modify the rows of the update matrix in a discretized PDE.</li>
+            <li>Implement periodic boundaries and explain when a "wraparound" domain is the right model.</li>
+            <li>Verify boundary treatment in NumPy and recognize how a sloppy edge can destroy an accurate interior.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>The Boundary Is Half the Problem</h2>
+        <p>In Weeks 1–5 we learned to discretize the <em>interior</em> of a domain: replace the Laplacian with a finite-difference stencil, march forward in time, control stability with the CFL number. But a partial differential equation by itself is <strong>under-determined</strong>. The heat equation u<sub>t</sub> = α u<sub>xx</sub> has infinitely many solutions; choosing one requires telling the solver what happens at the <strong>edges of the grid</strong>.</p>
+        <p>Physically this makes sense. "How does this metal rod cool?" is unanswerable until you say what the ends do: are they clamped to ice water, wrapped in perfect insulation, or joined into a ring? Each answer is a different <strong>boundary condition (BC)</strong>, and each produces a completely different solution from the <em>same</em> interior equation.</p>
+        <p>The two most common BC types name <em>what</em> you specify on the boundary:</p>
+        <div class="eq">Dirichlet:&nbsp; u(boundary) = g&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Neumann:&nbsp; du/dn (boundary) = q<small>Dirichlet fixes the field value; Neumann fixes the normal derivative (the flux through the boundary).</small></div>
+        <p>A <strong>Dirichlet</strong> condition pins the value: the rod's end is held at 0 deg C. A <strong>Neumann</strong> condition pins the slope, i.e. the flux: an insulated end lets no heat through, so du/dx = 0 there. (A blend of the two, a·u + b·du/dn = c, is a <strong>Robin</strong> condition — convective cooling, for example — but we focus on the two pure types here.)</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the grid as a relay race where each interior point passes information to its neighbors. Dirichlet is a runner whose <strong>position</strong> is bolted to the ground — it never moves no matter what its neighbors do. Neumann controls the <strong>handoff rate</strong> at the end of the track: an insulated end (du/dn = 0) is a wall that bounces the baton straight back, sending no flux out of the domain.</div>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>Dirichlet Is Easy — Neumann Needs Ghost Points</h2>
+        <p>Imagine a 1-D grid of N+1 nodes, u<sub>0</sub>, u<sub>1</sub>, …, u<sub>N</sub>, with spacing h. A <strong>Dirichlet</strong> condition is almost trivial: just overwrite the boundary node with the prescribed value, u<sub>0</sub> = g, every step. The interior scheme only touches u<sub>1</sub>…u<sub>N-1</sub>, and the known u<sub>0</sub> feeds into the stencil for u<sub>1</sub> as a constant.</p>
+        <p><strong>Neumann</strong> is subtler. We must enforce a <em>derivative</em> at the edge, but at node 0 there is no point to the left to form a centered difference. The naive fix — a one-sided difference (u<sub>1</sub> − u<sub>0</sub>)/h = q — is only <strong>first-order accurate</strong>, and will quietly drag a beautiful second-order interior down to first order.</p>
+        <p>The clean trick is a <strong>ghost point</strong>: invent a fictitious node u<sub>-1</sub> just outside the domain. Now we can write a <em>centered</em> (second-order) approximation of the boundary derivative:</p>
+        <div class="eq">(u<sub>1</sub> - u<sub>-1</sub>) / (2h) = q&nbsp;&nbsp;==&gt;&nbsp;&nbsp; u<sub>-1</sub> = u<sub>1</sub> - 2 h q<small>For an insulated end q = 0, this gives u(-1) = u(1): the field mirrors across the boundary.</small></div>
+        <p>We substitute this expression for the ghost into the interior stencil applied <em>at the boundary node itself</em>. The ghost is never stored as an unknown — it is eliminated algebraically, leaving a modified equation for the real boundary node that is still second-order. For the insulated case (q = 0) the picture is a mirror: whatever sits at u<sub>1</sub> is reflected to the phantom u<sub>-1</sub>.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 200" role="img" aria-label="A 1-D grid with a ghost node to the left of the boundary; the ghost value mirrors the first interior node across the boundary for a zero-flux Neumann condition">
+                <line x1="40" y1="120" x2="400" y2="120" stroke="#2a3052" stroke-width="2"/>
+                <!-- ghost node -->
+                <circle cx="70" cy="120" r="9" fill="rgba(251,191,36,.25)" stroke="#fbbf24" stroke-width="1.8" stroke-dasharray="4 3"/>
+                <text x="70" y="148" fill="#fbbf24" font-size="12" text-anchor="middle">u(-1)</text>
+                <text x="70" y="165" fill="#a3a8c8" font-size="10" text-anchor="middle">ghost</text>
+                <!-- boundary node -->
+                <circle cx="140" cy="120" r="9" fill="rgba(129,140,248,.4)" stroke="#818cf8" stroke-width="1.8"/>
+                <text x="140" y="148" fill="#a5b4fc" font-size="12" text-anchor="middle">u(0)</text>
+                <text x="140" y="165" fill="#a3a8c8" font-size="10" text-anchor="middle">boundary</text>
+                <!-- interior nodes -->
+                <circle cx="210" cy="120" r="9" fill="rgba(52,211,153,.3)" stroke="#34d399" stroke-width="1.8"/>
+                <text x="210" y="148" fill="#34d399" font-size="12" text-anchor="middle">u(1)</text>
+                <circle cx="280" cy="120" r="9" fill="rgba(52,211,153,.3)" stroke="#34d399" stroke-width="1.8"/>
+                <text x="280" y="148" fill="#34d399" font-size="12" text-anchor="middle">u(2)</text>
+                <circle cx="350" cy="120" r="9" fill="rgba(52,211,153,.3)" stroke="#34d399" stroke-width="1.8"/>
+                <text x="350" y="148" fill="#34d399" font-size="12" text-anchor="middle">u(3)</text>
+                <!-- boundary line / mirror axis -->
+                <line x1="140" y1="40" x2="140" y2="100" stroke="#a5b4fc" stroke-width="1.4" stroke-dasharray="3 3"/>
+                <text x="140" y="34" fill="#a5b4fc" font-size="11" text-anchor="middle">x = 0</text>
+                <!-- mirror arc from u1 to ghost -->
+                <path d="M210,108 Q140,60 70,108" fill="none" stroke="#fbbf24" stroke-width="1.6"/>
+                <text x="140" y="78" fill="#fbbf24" font-size="11" text-anchor="middle">mirror: u(-1) = u(1)</text>
+            </svg>
+            <figcaption>Ghost-point construction for a zero-flux (insulated) Neumann boundary. The fictitious node u(-1) is set equal to the first interior node u(1), so the centered derivative at x = 0 vanishes and the stencil stays second-order.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Using the one-sided difference (u<sub>1</sub> - u<sub>0</sub>)/h = q for a Neumann condition. It "works" (the code runs) but it is only O(h) accurate. Bolted onto a second-order interior, the global error stalls at first order and your convergence study flatlines. Always use the ghost-point (centered) form, or a second-order one-sided formula, to preserve the interior's order.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>How Boundaries Enter the Update Matrix</h2>
+        <p>Most PDE solvers reduce to a matrix equation. An implicit step (Week 5) or a steady-state Poisson solve looks like <strong>A u = b</strong>, where A encodes the discrete Laplacian. The interior rows of A all look the same — the familiar tridiagonal [1, -2, 1]/h<sup>2</sup> stencil. The <strong>boundary rows are where the BCs live</strong>, and they look different.</p>
+        <p>For a steady 1-D diffusion problem -u<sub>xx</sub> = f on N+1 nodes, the interior row i is</p>
+        <div class="eq">(-u(i-1) + 2 u(i) - u(i+1)) / h^2 = f(i)<small>The standard second-difference stencil, valid for interior nodes i = 1 .. N-1.</small></div>
+        <p>A <strong>Dirichlet</strong> node is forced. Its matrix row becomes the identity row [0 … 1 … 0] with right-hand side equal to the prescribed value: row 0 reads u<sub>0</sub> = g. A <strong>Neumann</strong> node folds the ghost into the stencil. Substituting u<sub>-1</sub> = u<sub>1</sub> - 2hq into the boundary stencil collapses the two u<sub>1</sub> terms, giving a modified diagonal and a known term that moves to b:</p>
+        <div class="eq">(2 u(0) - 2 u(1)) / h^2 = f(0) + 2 q / h<small>The Neumann row: coefficient on u(1) doubles, and the flux q is absorbed into the right-hand side.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 500 260" role="img" aria-label="A 5 by 5 matrix A: the top row is a Dirichlet identity row, the bottom row is a modified Neumann row with a doubled off-diagonal, and the three middle rows are the standard tridiagonal stencil">
+                <text x="220" y="24" fill="#a5b4fc" font-size="13" text-anchor="middle">matrix A (rows = nodes 0..4)</text>
+                <!-- bracket left -->
+                <path d="M70,44 L62,44 L62,224 L70,224" fill="none" stroke="#a3a8c8" stroke-width="1.6"/>
+                <!-- bracket right -->
+                <path d="M370,44 L378,44 L378,224 L370,224" fill="none" stroke="#a3a8c8" stroke-width="1.6"/>
+                <!-- row 0 Dirichlet: 1 0 0 0 0 -->
+                <rect x="74" y="48" width="296" height="32" fill="rgba(129,140,248,.16)"/>
+                <text x="92" y="70" fill="#818cf8" font-size="14" text-anchor="middle">1</text>
+                <text x="150" y="70" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="220" y="70" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="290" y="70" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="348" y="70" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="406" y="70" fill="#818cf8" font-size="11" text-anchor="start">Dirichlet</text>
+                <!-- row 1 interior: -1 2 -1 0 0 -->
+                <text x="92" y="106" fill="#34d399" font-size="14" text-anchor="middle">-1</text>
+                <text x="150" y="106" fill="#34d399" font-size="14" text-anchor="middle">2</text>
+                <text x="220" y="106" fill="#34d399" font-size="14" text-anchor="middle">-1</text>
+                <text x="290" y="106" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="348" y="106" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <!-- row 2 interior: 0 -1 2 -1 0 -->
+                <text x="92" y="138" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="150" y="138" fill="#34d399" font-size="14" text-anchor="middle">-1</text>
+                <text x="220" y="138" fill="#34d399" font-size="14" text-anchor="middle">2</text>
+                <text x="290" y="138" fill="#34d399" font-size="14" text-anchor="middle">-1</text>
+                <text x="348" y="138" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="406" y="138" fill="#34d399" font-size="11" text-anchor="start">interior</text>
+                <!-- row 3 interior: 0 0 -1 2 -1 -->
+                <text x="92" y="170" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="150" y="170" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="220" y="170" fill="#34d399" font-size="14" text-anchor="middle">-1</text>
+                <text x="290" y="170" fill="#34d399" font-size="14" text-anchor="middle">2</text>
+                <text x="348" y="170" fill="#34d399" font-size="14" text-anchor="middle">-1</text>
+                <!-- row 4 Neumann: 0 0 0 -2 2 -->
+                <rect x="74" y="192" width="296" height="32" fill="rgba(251,191,36,.14)"/>
+                <text x="92" y="214" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="150" y="214" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="220" y="214" fill="#6670a0" font-size="14" text-anchor="middle">0</text>
+                <text x="290" y="214" fill="#fbbf24" font-size="14" text-anchor="middle">-2</text>
+                <text x="348" y="214" fill="#fbbf24" font-size="14" text-anchor="middle">2</text>
+                <text x="406" y="214" fill="#fbbf24" font-size="11" text-anchor="start">Neumann</text>
+            </svg>
+            <figcaption>The boundary conditions live in the first and last rows of A. The Dirichlet row is an identity row; the Neumann row has a doubled off-diagonal (-2) from folding in the ghost point. Interior rows carry the standard [-1, 2, -1] stencil.</figcaption>
+        </figure>
+        <p>This is why the slogan "the boundary is half the problem" is literal at the matrix level: get one boundary row wrong and you have solved a <em>different</em> linear system — often one that is singular (a pure-Neumann Poisson problem has no unique solution until you pin one value or fix the mean).</p>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>Periodic Boundaries: a Universe That Wraps Around</h2>
+        <p>Sometimes the right model has <em>no</em> physical edge. A wave on a ring, turbulence in a representative cube of fluid, or electron density in a crystal lattice all want the domain to repeat seamlessly. A <strong>periodic</strong> boundary condition glues the last node back to the first:</p>
+        <div class="eq">u(N) = u(0)&nbsp;&nbsp;and&nbsp;&nbsp; u(N+1) = u(1),&nbsp; u(-1) = u(N-1)<small>The grid becomes a loop: the neighbor "off the right edge" is the first interior node, and vice versa.</small></div>
+        <p>In code this is the cleanest BC of all — <code>np.roll</code> shifts the whole array and wraps automatically, so the same stencil applies everywhere with no special boundary rows. In the matrix picture, periodicity adds two <strong>corner entries</strong> to A (top-right and bottom-left), turning the tridiagonal matrix into a <em>circulant</em> one. Those corners are exactly why periodic problems are diagonalized by the discrete Fourier transform — the foundation of the spectral methods you will meet later.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A periodic domain is the classic arcade game where flying off the right edge brings you back on the left. There is no wall to bounce off and nothing leaks out; the "world" is a loop. Physically it is the honest choice when you simulate a small patch of something effectively infinite and uniform — you don't want artificial walls injecting reflections into your data.</div>
+        <p>Be careful counting nodes: with periodicity, u<sub>N</sub> and u<sub>0</sub> are the <em>same</em> point, so you store only N unique values, not N+1. Double-counting that shared node is a classic off-by-one bug that shifts your wave speed or leaks energy.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — assembling a mixed-BC Poisson system</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Solve -u<sub>xx</sub> = 0 on [0, 1] with 5 nodes (h = 0.25). Left end is Dirichlet u(0) = 100 (a hot clamp); right end is insulated, Neumann du/dx = 0 at x = 1. Find the steady temperature profile by hand.</p>
+        <ol>
+            <li><strong>Set up the grid:</strong> nodes at x = 0, 0.25, 0.5, 0.75, 1.0, values u<sub>0</sub>..u<sub>4</sub>, spacing h = 0.25.</li>
+            <li><strong>Left BC (Dirichlet):</strong> row 0 is the identity row, u<sub>0</sub> = 100.</li>
+            <li><strong>Interior rows (i = 1,2,3):</strong> -u(i-1) + 2u(i) - u(i+1) = 0 (since f = 0 and h<sup>2</sup> cancels).</li>
+            <li><strong>Right BC (Neumann, q = 0):</strong> ghost u<sub>5</sub> = u<sub>3</sub>. The stencil at node 4 is -u<sub>3</sub> + 2u<sub>4</sub> - u<sub>5</sub> = 0, and substituting the ghost gives <strong>2u<sub>4</sub> - 2u<sub>3</sub> = 0</strong>, i.e. u<sub>4</sub> = u<sub>3</sub>.</li>
+            <li><strong>Solve the chain:</strong> the interior equations say each value is the average of its neighbors, so u is linear; the insulated end forces zero slope. The only solution with u<sub>0</sub> = 100 and zero slope at the right is the <strong>flat profile u = 100 everywhere</strong>. Physically exact: with one end held hot and the other perfectly insulated and no source, heat fills the rod uniformly to 100 deg.</li>
+            <li><strong>Sanity check:</strong> swap the right BC to Dirichlet u<sub>4</sub> = 0 and the same system gives the straight line u(x) = 100(1 - x) — the classic conduction gradient. Same interior, different boundary, completely different field.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: three boundaries, one solver</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Uses the free Python + NumPy / Matplotlib stack from the <strong>Week 1/2 setup</strong> (the install <code>details</code> block lives in the early lectures) — no new tools needed here. We build the 1-D Poisson matrix and swap only the boundary rows to see Dirichlet, Neumann, and periodic in action.</p>
+        <pre><span class="c"># boundary_conditions.py — Lecture 6</span>
+import numpy as np
+
+N = 50                       <span class="c"># interior + boundary nodes</span>
+h = 1.0 / (N - 1)
+x = np.linspace(0.0, 1.0, N)
+f = np.zeros(N)              <span class="c"># source term (-u'' = f); zero here</span>
+
+<span class="c"># --- interior second-difference stencil [-1, 2, -1] ---</span>
+A = (np.diag(2*np.ones(N)) - np.diag(np.ones(N-1), 1)
+     - np.diag(np.ones(N-1), -1)) / h**2
+b = f.copy()
+
+<span class="c"># --- LEFT: Dirichlet u(0) = 100 (overwrite row 0) ---</span>
+A[0, :] = 0.0; A[0, 0] = 1.0; b[0] = 100.0
+
+<span class="c"># --- RIGHT: Neumann du/dx = 0 via ghost u[N] = u[N-2] ---</span>
+A[-1, :] = 0.0
+A[-1, -1] = 2.0 / h**2       <span class="c"># 2*u(N-1)</span>
+A[-1, -2] = -2.0 / h**2      <span class="c"># -2*u(N-2)  (ghost folded in)</span>
+b[-1] = f[-1] + 2.0 * 0.0 / h    <span class="c"># flux q = 0</span>
+
+u = np.linalg.solve(A, b)
+print("u[0], u[-1] =", u[0], u[-1])   <span class="c"># 100.0  100.0  (flat: insulated end)</span>
+
+<span class="c"># --- PERIODIC version: circulant matrix, no special rows ---</span>
+Ap = (np.diag(2*np.ones(N)) - np.diag(np.ones(N-1), 1)
+      - np.diag(np.ones(N-1), -1)) / h**2
+Ap[0, -1]  = -1.0 / h**2     <span class="c"># wrap left neighbor of node 0</span>
+Ap[-1, 0]  = -1.0 / h**2     <span class="c"># wrap right neighbor of node N-1</span>
+<span class="c"># (pure-periodic Poisson is singular -> pin the mean or add a source)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Try it: change the Neumann row to the naive one-sided form <code>A[-1,-1]=1/h; A[-1,-2]=-1/h</code> and run a convergence study against the exact solution. You will watch the global error drop from second order to first — the cost of a sloppy boundary.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Boundary conditions only get richer from here. Next week the wave equation needs <em>non-reflecting</em> (absorbing) boundaries so outgoing waves don't bounce back and contaminate the domain — the same idea behind the perfectly matched layers used in electromagnetics and seismic imaging. In 2-D and 3-D field solvers the boundary becomes a curve or surface, and the ghost-point idea generalizes to <em>immersed-boundary</em> and finite-volume flux methods. The circulant structure of periodic BCs is the doorway to <strong>spectral methods</strong> later in this course, where the discrete Fourier transform turns derivatives into multiplications. And in the Plasma and Quantum tracks, periodic boxes are the standard cell for simulating bulk matter.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#161a30,#1b2140);border-color:#2a3052;">
+        <h3 style="color:var(--accent2);">💬 Discussion</h3>
+        <p style="color:#cfd4ee;">A colleague is simulating heat in a long metal bar and reports: "My interior scheme is fully second-order — I verified it against an exact solution on an infinite domain — but on my finite bar the convergence study stubbornly shows first-order accuracy, and the temperature near the insulated right end is always a little off." Nothing in the interior loop has changed. <strong>What is the most likely cause, how would you confirm it, and what is the fix?</strong> More broadly: why can a boundary touched by only one or two grid points dominate the accuracy of a scheme that runs over thousands of interior points?</p>
+        <details>
+            <summary>Show a model response</summary>
+            <p style="color:#cfd4ee;font-size:.9rem;margin-top:10px;">The symptom — globally first-order convergence despite a verified second-order interior, with the largest error parked at the insulated (Neumann) end — points straight at the <strong>boundary discretization</strong>. The most likely cause is a <em>one-sided</em>, first-order approximation of the zero-flux condition: <code>(u[1]-u[0])/h = 0</code>. Even though it touches only one node, its O(h) error feeds into the solution every step and propagates inward, so the <em>global</em> error inherits the worst order anywhere in the domain — a scheme is only as accurate as its weakest piece.</p>
+            <p style="color:#cfd4ee;font-size:.9rem;">To confirm it: run a refinement study and tabulate the error ratio as h halves. A clean second-order method quarters the error (ratio ~4); first order only halves it (ratio ~2). Then plot the spatial error and check whether it is concentrated at the boundary node — if it is, the interior is exonerated. The fix is to enforce the Neumann condition with a <strong>centered, ghost-point</strong> form, u(-1) = u(1) - 2hq, folded into the boundary stencil (or a second-order one-sided formula). After the fix the ratio should snap back to ~4.</p>
+            <p style="color:#cfd4ee;font-size:.9rem;">Why a one- or two-node boundary can dominate: order of accuracy is a statement about the <em>maximum</em> error over the domain, and errors do not stay local — they diffuse/advect inward through the same stencil that couples the interior. A first-order leak at the edge therefore caps the whole solution at first order, no matter how fine and elegant the interior is.</p>
+            <p style="color:var(--green);font-size:.86rem;margin-top:10px;"><strong>✓ Self-check rubric:</strong> Did you (1) identify the boundary (not the interior) as the culprit and name the first-order one-sided BC; (2) propose a concrete confirmation — refinement ratio test and/or spatial error plot localized at the boundary; (3) give the second-order ghost-point fix; and (4) articulate that global order = worst local order because boundary error propagates inward? Four for four is a complete answer.</p>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A perfectly insulated end of a heat-conducting rod is modeled by which boundary condition?</div>
+            <div class="opt"><b>A.</b> Dirichlet, u = 0</div>
+            <div class="opt"><b>B.</b> Neumann, du/dn = 0 (zero flux)</div>
+            <div class="opt"><b>C.</b> Periodic, u(N) = u(0)</div>
+            <div class="opt"><b>D.</b> Robin, u + du/dn = 1</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Insulation means no heat flux crosses the end, so the normal derivative is zero — a homogeneous Neumann condition. A (Dirichlet) fixes a temperature, not a flux; C is a wraparound model with no real edge; D mixes value and flux (convective cooling), which an insulator does not.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why is a ghost point preferred over the one-sided difference (u<sub>1</sub> - u<sub>0</sub>)/h for a Neumann condition?</div>
+            <div class="opt"><b>A.</b> It uses less memory</div>
+            <div class="opt"><b>B.</b> It makes the matrix symmetric in every case</div>
+            <div class="opt"><b>C.</b> It gives a second-order (centered) boundary derivative, preserving the interior's order of accuracy</div>
+            <div class="opt"><b>D.</b> It is required for the scheme to be stable</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The one-sided form is only O(h); the ghost lets you write a centered O(h^2) derivative so the global order isn't dragged down. A is false (you eliminate the ghost algebraically — no extra storage); B is not generally true; D confuses accuracy with stability — the one-sided form can still be stable, just less accurate.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In the matrix A u = b for a steady diffusion problem, a Dirichlet node corresponds to which kind of row?</div>
+            <div class="opt"><b>A.</b> An identity row [0 ... 1 ... 0] with the prescribed value in b</div>
+            <div class="opt"><b>B.</b> A row with a doubled off-diagonal entry</div>
+            <div class="opt"><b>C.</b> A row with extra corner entries far from the diagonal</div>
+            <div class="opt"><b>D.</b> A row of all zeros</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Forcing u = g means the row simply reads u = g, i.e. a 1 on the diagonal and g in b. B describes the Neumann row (ghost folded in); C describes the periodic (circulant) corners; D would make the system singular.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Periodic boundary conditions turn the tridiagonal Laplacian matrix into a circulant matrix by…</div>
+            <div class="opt"><b>A.</b> setting the first and last rows to identity rows</div>
+            <div class="opt"><b>B.</b> adding nonzero entries in the top-right and bottom-left corners</div>
+            <div class="opt"><b>C.</b> doubling every diagonal entry</div>
+            <div class="opt"><b>D.</b> removing the off-diagonal entries</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Wrapping the grid into a loop means node 0's left neighbor is node N-1 and vice versa, placing entries in the two far corners (circulant structure — diagonalized by the DFT). A is Dirichlet; C and D would change the physics entirely and break the second-difference stencil.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A steady Poisson problem -u<sub>xx</sub> = f with Neumann conditions on <em>both</em> ends has what issue?</div>
+            <div class="opt"><b>A.</b> It always has a unique solution</div>
+            <div class="opt"><b>B.</b> It is unconditionally unstable</div>
+            <div class="opt"><b>C.</b> It cannot be written as a matrix system</div>
+            <div class="opt"><b>D.</b> The solution is non-unique (defined only up to an additive constant) unless you pin a value or fix the mean</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Only derivatives are constrained, so adding any constant to a solution gives another solution — the matrix is singular. You must anchor one value or fix the mean. A is the opposite of the truth; B confuses a steady solve with time stability; C is false — it is perfectly expressible as A u = b, just with a singular A.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A PDE is under-determined; <b>boundary conditions</b> select the unique physical solution from the same interior equation.</li>
+            <li><b>Dirichlet</b> fixes the value (just overwrite the node); <b>Neumann</b> fixes the flux and needs a <b>ghost point</b> for second-order accuracy.</li>
+            <li>Boundary conditions live in the <b>boundary rows of the update matrix</b>: an identity row (Dirichlet) or a folded-ghost row with a doubled off-diagonal (Neumann).</li>
+            <li><b>Periodic</b> boundaries wrap the domain into a loop, producing a <b>circulant</b> matrix and modeling effectively infinite, uniform media.</li>
+            <li>A sloppy boundary caps the <b>global order of accuracy</b> — the boundary really is half the problem.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: the wave equation — second-order in time, the leapfrog scheme, and the absorbing boundaries that keep outgoing waves from bouncing back.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-implicit-crank-nicolson.html"><div class="dir">← Week 5</div><div class="ttl">Implicit Methods &amp; Crank-Nicolson</div></a>
+        <a class="next" href="l07-wave-equation.html"><div class="dir">Week 7 →</div><div class="ttl">The Wave Equation</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

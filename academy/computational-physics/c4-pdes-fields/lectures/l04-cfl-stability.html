@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C4 · Lecture 4 — Stability &amp; the CFL Condition</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Stability &amp; the CFL Condition</h1>
+        <p class="sub">Take one time step too large and your simulation doesn't get slightly wrong — it detonates into a blizzard of NaNs. Here is exactly where that cliff edge is, and why it's there.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define numerical stability and distinguish it from accuracy and consistency.</li>
+            <li>Use von Neumann analysis at an intuitive level: track a single Fourier mode through one step and demand its amplification factor stay ≤ 1 in magnitude.</li>
+            <li>Derive and apply the diffusion stability limit dt ≤ dx²/(2&middot;alpha) for the explicit (FTCS) heat scheme.</li>
+            <li>Explain physically why an explicit scheme blows up when the step is too big — it overshoots faster than the physics can respond.</li>
+            <li>State the general CFL (Courant) condition and recognize how it constrains every explicit time-stepping PDE solver.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>What "Stability" Actually Means</h2>
+        <p>In Lecture 3 you built the explicit (FTCS) update for the 1-D heat equation u<sub>t</sub> = alpha&middot;u<sub>xx</sub>: at every grid point you nudge the temperature toward the average of its two neighbours. It worked beautifully — for small steps. Push the time step a little larger and the same code produces temperatures of <strong>+10<sup>40</sup></strong> next to <strong>−10<sup>40</sup></strong>, oscillating point to point, before collapsing to <code>NaN</code>. The physics says heat should smoothly diffuse; the code says the rod just exploded.</p>
+        <p>This is a <strong>stability</strong> failure, and it is a different beast from the errors of Lecture 1. Three properties live together:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Consistency</strong> — as dx, dt → 0 the discrete equation approaches the true PDE (the truncation error vanishes).</li>
+            <li><strong>Stability</strong> — round-off and small errors introduced at one step do not grow without bound as you march forward.</li>
+            <li><strong>Convergence</strong> — the numerical solution approaches the true solution as the grid is refined.</li>
+        </ul>
+        <p>The <strong>Lax Equivalence Theorem</strong> ties them together: for a consistent scheme applied to a well-posed linear problem, <em>stability is the necessary and sufficient condition for convergence</em>. In other words, a consistent scheme that is unstable will never converge no matter how fine the grid — so before trusting any explicit solver, you must know its stability limit.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Stability is like a microphone near its own speaker. If the loop gain is below 1, a stray pop fades away. Edge the gain past 1 and the faintest hiss feeds back on itself, doubling every cycle into a deafening shriek. A time-stepping scheme has exactly such a loop gain per step — the <strong>amplification factor</strong>. Keep its magnitude at or below 1 and errors die; let it exceed 1 and the tiniest round-off howls into a NaN.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>von Neumann Analysis: Watch One Wave</h2>
+        <p>How do we find that per-step gain without simulating? The trick, due to von Neumann, is to remember that the heat equation is <em>linear</em>: any error profile can be written as a sum of Fourier modes (sine/cosine waves), and each mode evolves independently. So we only need to track <strong>one</strong> generic wave and ask whether it grows or shrinks in a single step.</p>
+        <p>Write the error at grid point j as a spatial wave with wavenumber k and a per-step amplitude factor G:</p>
+        <div class="eq">e<sub>j</sub><sup>n</sup> = G<sup>n</sup> &middot; e<sup>(i&middot;k&middot;j&middot;dx)</sup><small>G is the amplification factor: the complex number multiplying the mode each time step. n is the step index, j the grid index.</small></div>
+        <p>Substitute this single mode into the FTCS update e<sub>j</sub><sup>n+1</sup> = e<sub>j</sub><sup>n</sup> + r&middot;(e<sub>j+1</sub><sup>n</sup> − 2e<sub>j</sub><sup>n</sup> + e<sub>j−1</sub><sup>n</sup>), where r = alpha&middot;dt/dx². The factors of e<sup>(i&middot;k&middot;j&middot;dx)</sup> cancel, and using e<sup>(i&middot;theta)</sup> + e<sup>(−i&middot;theta)</sup> = 2&middot;cos(theta) with the identity 1 − cos(theta) = 2&middot;sin²(theta/2), you get a clean real expression for G:</p>
+        <div class="eq">G = 1 − 4&middot;r&middot;sin²(k&middot;dx / 2)<small>r = alpha&middot;dt/dx² is the dimensionless "diffusion number." Every mode is multiplied by this G each step.</small></div>
+        <p>Stability demands |G| ≤ 1 for <em>every</em> wavenumber the grid can hold. Since 4&middot;r&middot;sin² is never negative, G is at most 1 (the harmless case). The danger is G dropping below −1, which happens for the worst-case mode where sin² = 1 (the shortest, most jagged wave, k&middot;dx = pi). Setting G ≥ −1 there gives the stability requirement directly.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Stability is <strong>not</strong> "G between 0 and 1." A negative G is perfectly fine as long as |G| ≤ 1 — it just means that mode flips sign each step while shrinking. The fatal case is |G| &gt; 1, which first occurs when G &lt; −1. Students who only check the smooth low-k modes (where G ≈ 1) miss the explosion entirely: it is always the <em>highest</em>-frequency, point-to-point sawtooth mode that goes unstable first. That is exactly why the blow-up looks like alternating +/− spikes.</div>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>The Diffusion Stability Limit</h2>
+        <p>Plug the worst case sin²(k&middot;dx/2) = 1 into G = 1 − 4&middot;r and require G ≥ −1:</p>
+        <div class="eq">1 − 4&middot;r ≥ −1&nbsp;&nbsp;⟹&nbsp;&nbsp; r ≤ 1/2&nbsp;&nbsp;⟹&nbsp;&nbsp; dt ≤ dx² / (2&middot;alpha)<small>The explicit-heat stability limit. r = alpha&middot;dt/dx² must not exceed 1/2.</small></div>
+        <p>This is the single most important inequality in explicit diffusion solvers. Read it carefully, because its scaling is brutal: the safe time step grows with <strong>dx², not dx</strong>. Refine your spatial grid by a factor of 2 for sharper resolution and the largest stable dt drops by a factor of <em>4</em>. Refine by 10 and dt drops by 100 — so a 10× finer grid costs 1000× more total work just to reach the same final time. This dx² penalty is precisely what motivates the implicit methods of Week 5, which carry no such limit.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 230" role="img" aria-label="Amplification factor G versus diffusion number r for the worst-case mode. G is a straight line G equals one minus four r, crossing G equals minus one at r equals one half. Stable region r at or below one half is shaded green, unstable region r above one half is shaded red.">
+                <!-- axes -->
+                <line x1="55" y1="40" x2="55" y2="200" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="55" y1="120" x2="400" y2="120" stroke="#a3a8c8" stroke-width="1.5"/>
+                <!-- axis labels -->
+                <text x="30" y="46" fill="#a3a8c8" font-size="11">G</text>
+                <text x="405" y="135" fill="#a3a8c8" font-size="11">r</text>
+                <text x="38" y="64" fill="#a3a8c8" font-size="10" text-anchor="end">+1</text>
+                <text x="38" y="124" fill="#a3a8c8" font-size="10" text-anchor="end">0</text>
+                <text x="38" y="184" fill="#a3a8c8" font-size="10" text-anchor="end">-1</text>
+                <!-- G=+1 and G=-1 reference lines -->
+                <line x1="55" y1="60" x2="400" y2="60" stroke="#2a3052" stroke-width="1" stroke-dasharray="3 3"/>
+                <line x1="55" y1="180" x2="400" y2="180" stroke="#2a3052" stroke-width="1" stroke-dasharray="3 3"/>
+                <!-- stable shading r in [0, 0.5] -> x in [55, 230] -->
+                <rect x="55" y="40" width="175" height="160" fill="rgba(52,211,153,.10)"/>
+                <!-- unstable shading r > 0.5 -->
+                <rect x="230" y="40" width="170" height="160" fill="rgba(248,113,113,.10)"/>
+                <!-- G = 1 - 4r : at r=0 -> y=60 ; at r=0.5 (x=230) -> y=180 ; at r=0.75 (x=317) -> y=240 (clip) -->
+                <!-- map r: x = 55 + 350*r ; r at x=400 is (400-55)/350 = 0.986; y = 120 - 60*G, G=1-4r -->
+                <!-- r=0:(55,60)  r=0.5:(230,180)  r=0.6071:(267.5,205.7) clip to y=200 -->
+                <line x1="55" y1="60" x2="262" y2="200" stroke="#818cf8" stroke-width="2.5"/>
+                <!-- crossing markers -->
+                <circle cx="230" cy="180" r="3.5" fill="#fbbf24"/>
+                <line x1="230" y1="180" x2="230" y2="120" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="230" y="115" fill="#fbbf24" font-size="10" text-anchor="middle">r = 1/2</text>
+                <!-- region labels -->
+                <text x="140" y="218" fill="#34d399" font-size="11" text-anchor="middle">stable: |G| &lt;= 1</text>
+                <text x="320" y="218" fill="#f87171" font-size="11" text-anchor="middle">unstable: G &lt; -1</text>
+                <text x="120" y="50" fill="#818cf8" font-size="10">G = 1 - 4r</text>
+            </svg>
+            <figcaption>The worst-case amplification factor G = 1 − 4r falls linearly with the diffusion number r. It stays inside the stable band |G| ≤ 1 until r = 1/2, where G hits −1. Beyond that the jagged mode grows every step — the simulation explodes.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>The General CFL (Courant) Condition</h2>
+        <p>The diffusion limit is one instance of a deeper principle. In 1928 Courant, Friedrichs, and Lewy asked a question about <em>advection</em> — equations like u<sub>t</sub> + c&middot;u<sub>x</sub> = 0 that transport a signal at physical speed c. Their answer, the <strong>CFL condition</strong>, is a statement about <em>information</em>, not algebra:</p>
+        <div class="eq">CFL number: C = c&middot;dt / dx ≤ 1<small>For an explicit advection scheme. In one step, the physical signal must not travel farther than one grid cell.</small></div>
+        <p>The idea is geometric. An explicit update for point j looks only at its immediate neighbours — its <strong>numerical domain of dependence</strong> is just the cells reachable in one step. But the true solution at that point depends on wherever the physical wave came from: its <strong>physical domain of dependence</strong>. If the wave travels more than one cell per step (C &gt; 1), the true answer depends on data the scheme never looked at. No correct scheme can be built from information it doesn't have — so it must be unstable. The CFL number C ≤ 1 simply says the numerical stencil must "outrun" the physics.</p>
+        <p>Every explicit PDE solver carries some version of this. For pure diffusion the relevant "speed" is set by alpha and the limit becomes the dt ≤ dx²/(2&middot;alpha) you just derived; for waves and advection it is the linear C = c&middot;dt/dx ≤ 1; for the full convection–diffusion equations of fluid dynamics, both limits apply at once and the stricter one wins. The common thread: <strong>an explicit step may never let physical information skip over a grid cell.</strong></p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Imagine reading a story by photographing one page at a time, one snapshot per second, and you may only glance at the page you photograph plus its two neighbours. If the plot races ahead three pages per second, your "neighbours-only" view can never reconstruct it — you're missing pages that mattered. The CFL condition is the rule "slow your photography until the story advances at most one page per snapshot." Beyond that, no amount of cleverness recovers what you didn't see.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — sizing dt for a cooling rod</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">You model heat diffusing along a 1 m copper-like rod with thermal diffusivity alpha = 1.0 &times; 10<sup>−4</sup> m²/s, using the explicit FTCS scheme on a grid of 101 points (so 100 intervals). You want to simulate 200 s of cooling. What time step is safe, and how many steps does that take?</p>
+        <ol>
+            <li><strong>Grid spacing:</strong> dx = L / (N−1) = 1.0 / 100 = <strong>0.01 m</strong> (so dx² = 1.0 &times; 10<sup>−4</sup> m²).</li>
+            <li><strong>Stability limit:</strong> dt ≤ dx² / (2&middot;alpha) = (1.0 &times; 10<sup>−4</sup>) / (2 &times; 1.0 &times; 10<sup>−4</sup>) = <strong>0.5 s</strong>.</li>
+            <li><strong>Choose with a safety margin:</strong> sitting exactly at r = 1/2 leaves the most jagged mode marginally stable (G = −1, it never decays). Pick r = 0.4, i.e. dt = 0.4 &times; 0.5 = <strong>0.2 s</strong>, so all modes strictly decay.</li>
+            <li><strong>Step count:</strong> steps = 200 s / 0.2 s = <strong>1000 steps</strong>. Manageable.</li>
+            <li><strong>The dx² sting:</strong> double the resolution to 201 points (dx = 0.005 m). Now dt ≤ dx²/(2&middot;alpha) = (2.5 &times; 10<sup>−5</sup>)/(2 &times; 10<sup>−4</sup>) = 0.125 s — a 4&times; smaller step. With r = 0.4 that's dt = 0.05 s and 200/0.05 = <strong>4000 steps</strong>, plus twice the points per step: roughly <strong>8&times; the work</strong> for 2&times; the resolution. This is why Week 5 turns to implicit methods.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: cross the stability cliff yourself</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This uses the same free Python + NumPy + Matplotlib stack you set up in <strong>Week 1</strong> (the one-time install <code>details</code> lives in Lecture 1) and the FTCS stepper from <strong>Week 3</strong>. No new tools needed today. We simply run the explicit heat solver twice — once just inside the stability limit, once just outside — and watch what r does.</p>
+        <pre><span class="c"># cfl_demo.py — Lecture 4: the stability cliff</span>
+import numpy as np
+
+L, N = 1.0, 101                 <span class="c"># 1 m rod, 101 points -> 100 intervals</span>
+alpha = 1.0e-4                  <span class="c"># thermal diffusivity (m^2/s)</span>
+dx = L / (N - 1)                <span class="c"># 0.01 m</span>
+dt_limit = dx**2 / (2*alpha)    <span class="c"># 0.5 s : the stability ceiling</span>
+
+def run(dt, nsteps):
+    r = alpha * dt / dx**2
+    u = np.zeros(N); u[N//2] = 1.0          <span class="c"># a hot spike in the middle</span>
+    for _ in range(nsteps):
+        u[1:-1] += r * (u[2:] - 2*u[1:-1] + u[:-2])   <span class="c"># FTCS, fixed ends</span>
+    return r, np.max(np.abs(u))
+
+<span class="c"># Stable: r = 0.4 &lt; 0.5  -> the spike smoothly spreads, amplitude shrinks</span>
+print("stable :", run(0.4*dt_limit, 400))   <span class="c"># r=0.40, max stays O(1)</span>
+
+<span class="c"># Unstable: r = 0.51 &gt; 0.5 -> jagged +/- modes double every few steps</span>
+print("unstable:", run(0.51/0.5*dt_limit, 400))  <span class="c"># r=0.51, max -&gt; inf / NaN</span>
+</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Run it: the stable case keeps a bounded, smooth profile; the unstable case overflows to <code>inf</code> within a few hundred steps. For a vivid picture, <code>import matplotlib.pyplot as plt</code> and plot <code>u</code> every 50 steps — the unstable run sprouts the alternating sawtooth spikes that von Neumann analysis predicted. Then sweep r from 0.45 to 0.55 in steps of 0.01 and find the exact crossing.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The dx² penalty you just met is the central pain of explicit diffusion, and <strong>Week 5</strong> removes it: implicit and Crank–Nicolson schemes are <em>unconditionally stable</em> — any dt is allowed — at the cost of solving a linear system each step (your Course-3 tridiagonal solver earns its keep here). The CFL idea then echoes through the whole specialization: wave and advection solvers later this course live or die by C = c&middot;dt/dx ≤ 1; computational fluid dynamics juggles the diffusion <em>and</em> advection limits together; and explicit Maxwell (FDTD) solvers in electromagnetics obey their own multidimensional CFL bound. <strong>Capstone milestone:</strong> this project checkpoint week, make your Week-3 heat solver <em>adaptive</em> — have it read alpha and dx, compute dt = 0.4&middot;dx²/(2&middot;alpha) automatically, and print the chosen r and step count. A solver that picks its own stable step is the first piece of professional-grade simulation code in your capstone.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> For the explicit (FTCS) heat scheme with diffusion number r = alpha&middot;dt/dx², the stability condition is…</div>
+            <div class="opt"><b>A.</b> r ≤ 1/2, i.e. dt ≤ dx² / (2&middot;alpha)</div>
+            <div class="opt"><b>B.</b> r ≤ 1, i.e. dt ≤ dx² / alpha</div>
+            <div class="opt"><b>C.</b> r ≤ 2, i.e. dt ≤ 2&middot;dx² / alpha</div>
+            <div class="opt"><b>D.</b> there is no limit — explicit schemes are always stable</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> von Neumann analysis gives G = 1 − 4r; requiring G ≥ −1 yields r ≤ 1/2, so dt ≤ dx²/(2&middot;alpha). B and C use the wrong threshold; D describes <em>implicit</em> schemes (Week 5), not explicit ones.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In von Neumann stability analysis, the amplification factor G is…</div>
+            <div class="opt"><b>A.</b> the total round-off error after all time steps</div>
+            <div class="opt"><b>B.</b> the factor by which a single Fourier mode is multiplied each time step</div>
+            <div class="opt"><b>C.</b> the ratio dt/dx</div>
+            <div class="opt"><b>D.</b> the order of convergence of the scheme</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> We insert one Fourier mode and ask by what complex factor G its amplitude is scaled per step; stability requires |G| ≤ 1. A confuses it with accumulated error; C is (related to) the CFL number; D is an accuracy measure, not a per-step gain.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> When an explicit heat solver goes unstable, the blow-up first appears as…</div>
+            <div class="opt"><b>A.</b> a slow, smooth drift of the whole profile upward</div>
+            <div class="opt"><b>B.</b> a uniform constant offset added everywhere</div>
+            <div class="opt"><b>C.</b> rapidly growing point-to-point (sawtooth) oscillations of alternating sign</div>
+            <div class="opt"><b>D.</b> the solution freezing and never changing</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The first mode to violate |G| ≤ 1 is the highest-frequency one (k&middot;dx = pi), where G goes below −1 — it flips sign and grows each step, producing alternating +/− spikes. A and B describe modes that stay stable; D is the opposite of a blow-up.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> You halve dx to get a finer spatial grid in an explicit diffusion solver. The largest stable time step dt…</div>
+            <div class="opt"><b>A.</b> stays the same</div>
+            <div class="opt"><b>B.</b> is halved</div>
+            <div class="opt"><b>C.</b> doubles</div>
+            <div class="opt"><b>D.</b> drops to one quarter, because the limit scales with dx²</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Since dt ≤ dx²/(2&middot;alpha), halving dx multiplies the limit by (1/2)² = 1/4. A and C ignore the squared dependence; B would be right only if the limit scaled with dx, which it does not.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The CFL condition C = c&middot;dt/dx ≤ 1 for explicit advection is fundamentally a statement that…</div>
+            <div class="opt"><b>A.</b> in one step the physical signal must not travel more than one grid cell — the numerical domain of dependence must contain the physical one</div>
+            <div class="opt"><b>B.</b> the time step must always equal the grid spacing</div>
+            <div class="opt"><b>C.</b> round-off error must be smaller than machine epsilon</div>
+            <div class="opt"><b>D.</b> the scheme must be at least second-order accurate</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> CFL is about information: an explicit stencil only sees nearby cells, so the physical signal may not outrun that reach (C ≤ 1). B over-restricts (C = 1 exactly is just the boundary); C is a round-off statement, unrelated; D confuses stability with accuracy.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Stability</b> means errors don't grow without bound per step; with consistency it gives convergence (<b>Lax Equivalence Theorem</b>).</li>
+            <li><b>von Neumann analysis</b>: track one Fourier mode and demand its amplification factor |G| ≤ 1; for FTCS, G = 1 − 4r.</li>
+            <li>The explicit-heat <b>stability limit dt ≤ dx²/(2&middot;alpha)</b>, set by the worst-case jagged mode where G = −1.</li>
+            <li>An explicit scheme blows up as growing <b>sawtooth oscillations</b>, and the <b>dx² scaling</b> punishes grid refinement brutally (2&times; finer → 4&times; smaller dt).</li>
+            <li>The general <b>CFL (Courant) condition</b> C = c&middot;dt/dx ≤ 1: information may not skip a grid cell in one explicit step.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: <b>Implicit Methods &amp; Crank–Nicolson</b>, which break the dt ≤ dx²/(2&middot;alpha) chain entirely with unconditional stability — at the price of solving a linear system every step.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-heat-equation-explicit.html"><div class="dir">← Week 3</div><div class="ttl">The Heat Equation (Explicit)</div></a>
+        <a class="next" href="l05-implicit-crank-nicolson.html"><div class="dir">Week 5 →</div><div class="ttl">Implicit Methods &amp; Crank-Nicolson</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

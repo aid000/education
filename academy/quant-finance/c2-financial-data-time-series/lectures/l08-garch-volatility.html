@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C2 · Lecture 8 — Volatility Modeling: ARCH &amp; GARCH</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C2 Time Series</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>Volatility Modeling: ARCH &amp; GARCH</h1>
+        <p class="sub">Returns are nearly impossible to predict — but their <em>turbulence</em> is not, and GARCH is the model that turns yesterday's storm into a forecast of tomorrow's risk.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why financial volatility is <em>time-varying</em> and clusters, and why a single constant σ is the wrong model.</li>
+            <li>State the ARCH(q) idea: today's conditional variance depends on the size of past shocks.</li>
+            <li>Write down the GARCH(1,1) recursion and read each of its three parameters (ω, α, β).</li>
+            <li>Show how α + β controls persistence and compute the long-run (unconditional) variance.</li>
+            <li>Fit a GARCH(1,1) in Python and produce a multi-day volatility forecast for risk and option pricing.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>Volatility Is Not Constant</h2>
+        <p>Through Weeks 5–7 we modeled the <strong>level</strong> of a series — random walks, AR and MA terms, ARIMA forecasts of the mean. But for an asset return the conditional mean is almost flat: tomorrow's expected return is roughly zero and stubbornly unpredictable. What <em>is</em> predictable is the <strong>spread</strong>. Calm weeks tend to follow calm weeks; once markets get violent they stay violent for a while. This is <span class="key">volatility clustering</span>, and it is one of the most robust empirical facts in all of finance.</p>
+        <p>A simple way to see it: plot daily returns. You do not see uniform noise — you see long stretches of small wiggles punctuated by bursts of large up-and-down swings huddled together. Statistically, the returns themselves are nearly uncorrelated, but their <em>squares</em> (a proxy for variance) are strongly autocorrelated. That single observation is the seed of every model in this lecture.</p>
+        <div class="eq">r<sub>t</sub> = μ + ε<sub>t</sub>,&nbsp;&nbsp; ε<sub>t</sub> = σ<sub>t</sub> z<sub>t</sub>,&nbsp;&nbsp; z<sub>t</sub> ~ iid Normal(0, 1)<small>The return is a constant mean plus a shock ε<sub>t</sub>. The shock is a fixed-shape noise z<sub>t</sub> scaled by a <em>time-varying</em> volatility σ<sub>t</sub>. All the action is in modeling σ<sub>t</sub>.</small></div>
+        <p>Here <strong>σ<sub>t</sub> is the conditional volatility</strong> — the standard deviation of the return <em>given everything we knew up to yesterday</em>. It is a number that changes every day. The whole game is to write a sensible rule for how σ<sub>t</sub> evolves.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Volatility is the weather, not the climate. The long-run average temperature of a city (the <em>unconditional</em> variance) is a fixed climate fact. But whether <em>tomorrow</em> is stormy depends heavily on whether <em>today</em> was stormy — storms cluster. A constant-σ model is like quoting the annual average temperature when someone asks if they need an umbrella this afternoon.</div>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>The ARCH Idea: Variance Has Memory</h2>
+        <p>The breakthrough was to let the conditional variance depend on recent <em>shocks</em>. An <strong>ARCH(q)</strong> model — Autoregressive Conditional Heteroskedasticity — says today's variance is a base level plus a weighted sum of the last q squared shocks:</p>
+        <div class="eq">σ<sub>t</sub><sup>2</sup> = ω + α<sub>1</sub> ε<sub>t−1</sub><sup>2</sup> + α<sub>2</sub> ε<sub>t−2</sub><sup>2</sup> + … + α<sub>q</sub> ε<sub>t−q</sub><sup>2</sup><small>ω &gt; 0 is a floor; each α<sub>i</sub> ≥ 0 says "a big shock i days ago raises today's variance." A large ε<sub>t−1</sub><sup>2</sup> mechanically forces a large σ<sub>t</sub><sup>2</sup>.</small></div>
+        <p>Decode the jargon: <span class="key">heteroskedasticity</span> just means "non-constant variance," and <span class="key">conditional</span> means "given the past." The model is autoregressive in the squared shocks — a big move yesterday feeds directly into a bigger expected move today. That is exactly the clustering we saw in §8.1, now written as an equation.</p>
+        <p>ARCH works, but in practice it needs a <em>long</em> lag q (often 5–10 or more) to match how slowly real volatility decays, and every extra lag is another parameter to estimate. That fragility is what motivated the more economical model in the next section.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>ARCH models the variance of the <strong>shock</strong> ε<sub>t</sub>, not the return level r<sub>t</sub> directly. The shocks themselves stay (nearly) unforecastable and zero-mean — ARCH never claims to predict <em>direction</em>. Confusing "I can forecast volatility" with "I can forecast returns" is the fastest way to blow up a trading account.</div>
+    </section>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>GARCH(1,1): The Workhorse</h2>
+        <p>The <strong>GARCH(1,1)</strong> model (Generalized ARCH) adds one elegant term: today's variance also depends on <em>yesterday's variance</em>. That single feedback term lets one lag do the work of many ARCH lags, because each day's variance already summarizes the entire past:</p>
+        <div class="eq">σ<sub>t</sub><sup>2</sup> = ω + α ε<sub>t−1</sub><sup>2</sup> + β σ<sub>t−1</sub><sup>2</sup><small>ω &gt; 0, α ≥ 0, β ≥ 0. The "(1,1)" means one lag of the squared shock (α) and one lag of the variance (β).</small></div>
+        <p>Read the three knobs physically:</p>
+        <table class="dist">
+            <thead><tr><th>Parameter</th><th>Name / role</th><th>Effect</th></tr></thead>
+            <tbody>
+                <tr><td><b>ω</b> (omega)</td><td>baseline / floor</td><td>sets the long-run level of variance; keeps σ² from ever hitting zero</td></tr>
+                <tr><td><b>α</b> (alpha)</td><td>reaction / news</td><td>how violently variance jumps after a fresh shock (the "ARCH" effect)</td></tr>
+                <tr><td><b>β</b> (beta)</td><td>persistence / memory</td><td>how long a burst of volatility lingers (the "GARCH" feedback)</td></tr>
+            </tbody>
+        </table>
+        <p>The sum <span class="key">α + β</span> is the <strong>persistence</strong>. As long as α + β &lt; 1, shocks fade and the variance is mean-reverting — it always drifts back toward a constant long-run level. Setting σ<sub>t</sub><sup>2</sup> = σ<sub>t−1</sub><sup>2</sup> = σ̄² and solving gives the <strong>unconditional (long-run) variance</strong>:</p>
+        <div class="eq">σ̄<sup>2</sup> = ω / (1 − α − β)<small>This only exists when α + β &lt; 1. The closer α + β is to 1, the slower the mean reversion and the longer volatility shocks persist. Typical daily equity estimates put α + β near 0.95–0.99.</small></div>
+        <p>You can rewrite GARCH(1,1) to make the mean reversion explicit. Deviations of today's variance from the long-run level are a weighted echo of yesterday's deviations, decaying geometrically at rate (α + β):</p>
+        <div class="eq">σ<sub>t</sub><sup>2</sup> − σ̄<sup>2</sup> = α(ε<sub>t−1</sub><sup>2</sup> − σ̄<sup>2</sup>) + β(σ<sub>t−1</sub><sup>2</sup> − σ̄<sup>2</sup>)<small>The variance is always being pulled back toward σ̄²; the pull is weaker (slower) the closer α + β is to 1.</small></div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 460 220" role="img" aria-label="A returns series at top showing two clusters of large swings, and below it a conditional volatility sigma-t curve that rises during each cluster and decays back toward a dashed long-run level between them">
+            <!-- top panel: returns -->
+            <text x="14" y="20" fill="#bcae8c" font-size="11">returns r_t</text>
+            <line x1="40" y1="60" x2="440" y2="60" stroke="#3a3119" stroke-width="1"/>
+            <!-- calm region small spikes -->
+            <g stroke="#60a5fa" stroke-width="1.4">
+                <line x1="52" y1="60" x2="52" y2="53"/>
+                <line x1="62" y1="60" x2="62" y2="66"/>
+                <line x1="72" y1="60" x2="72" y2="55"/>
+                <line x1="82" y1="60" x2="82" y2="64"/>
+                <line x1="92" y1="60" x2="92" y2="57"/>
+                <line x1="102" y1="60" x2="102" y2="63"/>
+            </g>
+            <!-- cluster 1 big spikes -->
+            <g stroke="#fbbf24" stroke-width="1.6">
+                <line x1="120" y1="60" x2="120" y2="32"/>
+                <line x1="130" y1="60" x2="130" y2="88"/>
+                <line x1="140" y1="60" x2="140" y2="30"/>
+                <line x1="150" y1="60" x2="150" y2="90"/>
+                <line x1="160" y1="60" x2="160" y2="38"/>
+                <line x1="170" y1="60" x2="170" y2="82"/>
+            </g>
+            <!-- calm region 2 -->
+            <g stroke="#60a5fa" stroke-width="1.4">
+                <line x1="190" y1="60" x2="190" y2="55"/>
+                <line x1="200" y1="60" x2="200" y2="64"/>
+                <line x1="210" y1="60" x2="210" y2="56"/>
+                <line x1="220" y1="60" x2="220" y2="63"/>
+                <line x1="230" y1="60" x2="230" y2="57"/>
+                <line x1="240" y1="60" x2="240" y2="62"/>
+                <line x1="250" y1="60" x2="250" y2="56"/>
+                <line x1="260" y1="60" x2="260" y2="64"/>
+            </g>
+            <!-- cluster 2 big spikes -->
+            <g stroke="#fbbf24" stroke-width="1.6">
+                <line x1="280" y1="60" x2="280" y2="34"/>
+                <line x1="290" y1="60" x2="290" y2="86"/>
+                <line x1="300" y1="60" x2="300" y2="32"/>
+                <line x1="310" y1="60" x2="310" y2="88"/>
+                <line x1="320" y1="60" x2="320" y2="40"/>
+            </g>
+            <!-- calm tail -->
+            <g stroke="#60a5fa" stroke-width="1.4">
+                <line x1="345" y1="60" x2="345" y2="56"/>
+                <line x1="360" y1="60" x2="360" y2="63"/>
+                <line x1="375" y1="60" x2="375" y2="57"/>
+                <line x1="390" y1="60" x2="390" y2="62"/>
+                <line x1="405" y1="60" x2="405" y2="57"/>
+                <line x1="420" y1="60" x2="420" y2="62"/>
+            </g>
+            <!-- bottom panel: sigma_t -->
+            <text x="14" y="135" fill="#bcae8c" font-size="11">σ_t</text>
+            <line x1="40" y1="200" x2="440" y2="200" stroke="#bcae8c" stroke-width="1.3"/>
+            <!-- long-run level dashed -->
+            <line x1="40" y1="180" x2="440" y2="180" stroke="#34d399" stroke-width="1" stroke-dasharray="4 4"/>
+            <text x="436" y="175" fill="#6ee7b7" font-size="9.5" text-anchor="end">σ̄ (long-run)</text>
+            <!-- sigma curve: low, spike up at cluster1, decay, spike at cluster2, decay -->
+            <path d="M40,180 L100,180 C112,178 116,150 130,130 C150,108 168,112 175,118 C200,150 230,176 270,178 C278,176 286,150 300,128 C316,110 332,118 340,126 C370,160 410,178 440,180"
+                  fill="none" stroke="#fbbf24" stroke-width="2.4"/>
+            <text x="148" y="102" fill="#fcd34d" font-size="9.5" text-anchor="middle">jump</text>
+            <text x="225" y="166" fill="#fcd34d" font-size="9.5" text-anchor="middle">decay</text>
+        </svg>
+        <figcaption>Volatility clustering captured by GARCH. Bursts of large returns (gold, top) drive the conditional volatility σ<sub>t</sub> (bottom) sharply up; in calm stretches σ<sub>t</sub> decays geometrically back toward its long-run level σ̄ (dashed green). The reaction term α produces the jumps; the persistence term β produces the slow decay.</figcaption>
+    </figure>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>Fitting GARCH &amp; Forecasting Volatility</h2>
+        <p>GARCH parameters are estimated by <strong>maximum likelihood</strong>. The likelihood is built by assuming each shock ε<sub>t</sub> is Normal(0, σ<sub>t</sub><sup>2</sup>), where σ<sub>t</sub><sup>2</sup> is itself produced recursively from the parameters and the data. The optimizer searches over (ω, α, β) for the values that make the observed return series most probable. You never do this by hand — a library does it — but knowing it is MLE tells you why you need a few hundred observations and why the estimates carry standard errors.</p>
+        <h3>Forecasting forward</h3>
+        <p>Once fitted, GARCH gives a clean multi-step forecast. The one-step-ahead variance is known the moment today closes, because ε<sub>t</sub> and σ<sub>t</sub> are observed. Beyond that, you replace the unknown future squared shock with its expectation (which equals the variance), and the forecast decays geometrically toward the long-run level:</p>
+        <div class="eq">E[σ<sub>t+h</sub><sup>2</sup>] = σ̄<sup>2</sup> + (α + β)<sup>h−1</sup> (σ<sub>t+1</sub><sup>2</sup> − σ̄<sup>2</sup>)<small>Each step out, the gap to σ̄² shrinks by a factor (α + β). High persistence (α + β near 1) ⇒ the forecast stays elevated for many days after a shock.</small></div>
+        <h3>Why a risk desk cares</h3>
+        <p>Volatility forecasts are the raw material of risk management and pricing. A one-day <span class="key">Value-at-Risk</span> uses tomorrow's σ<sub>t+1</sub>: the 99% VaR of a return is roughly 2.33·σ<sub>t+1</sub> (the normal quantile). Scaling to an h-day horizon means summing forecast variances, <em>not</em> naively applying the √h rule — because GARCH says volatility is mean-reverting, the term structure of volatility flattens out. Option traders read the same forecasts as a model-based estimate of <strong>future realized volatility</strong>, which they compare against the implied volatility baked into option prices to decide whether options look cheap or expensive.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A GARCH forecast is a thermostat with momentum. After a heat spike (a shock) it predicts the room stays warm for a while, then drifts back to the set-point σ̄. The persistence α + β is how sluggish the thermostat is: near 1, the room cools agonizingly slowly; near 0, it snaps back to the set-point almost instantly.</div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 420 200" role="img" aria-label="A volatility forecast curve starting from an elevated post-shock level and decaying along a convex path back down toward a dashed horizontal long-run variance line as the forecast horizon increases">
+            <!-- axes -->
+            <line x1="48" y1="160" x2="400" y2="160" stroke="#bcae8c" stroke-width="1.3"/>
+            <line x1="48" y1="160" x2="48" y2="28" stroke="#bcae8c" stroke-width="1.3"/>
+            <text x="224" y="186" fill="#bcae8c" font-size="10" text-anchor="middle">forecast horizon  h (days)</text>
+            <text x="18" y="96" fill="#bcae8c" font-size="10" transform="rotate(-90 18 96)" text-anchor="middle">E[ σ²(t+h) ]</text>
+            <!-- long-run level dashed -->
+            <line x1="48" y1="138" x2="400" y2="138" stroke="#34d399" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <text x="396" y="151" fill="#6ee7b7" font-size="9.5" text-anchor="end">σ̄²  (long-run variance)</text>
+            <!-- elevated start marker -->
+            <circle cx="64" cy="50" r="3" fill="#fbbf24"/>
+            <text x="64" y="42" fill="#fcd34d" font-size="9.5" text-anchor="middle">post-shock</text>
+            <!-- decay curve from (64,50) convexly toward y=138 -->
+            <path d="M64,50 C124,98 184,124 244,132 C304,137 354,138 400,138"
+                  fill="none" stroke="#fbbf24" stroke-width="2.6"/>
+            <!-- decay factor annotation -->
+            <text x="158" y="84" fill="#bcae8c" font-size="9.5">decays by (α+β) each step</text>
+        </svg>
+        <figcaption>The GARCH volatility term structure. Starting from an elevated post-shock variance, the multi-step forecast E[σ²<sub>t+h</sub>] reverts geometrically toward the long-run variance σ̄² (dashed green). The decay rate per step is (α + β); high persistence keeps the curve elevated for longer.</figcaption>
+    </figure>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — a GARCH(1,1) variance update and forecast</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Suppose a fitted daily model has ω = 0.000002, α = 0.10, β = 0.88. Yesterday's variance was σ<sub>t</sub><sup>2</sup> = 0.0004 (so σ<sub>t</sub> = 2%/day) and today's shock was a large ε<sub>t</sub> = −3% = −0.03. Find the update, the long-run level, and the 5-day-ahead forecast.</p>
+        <ol>
+            <li><strong>Persistence:</strong> α + β = 0.10 + 0.88 = <strong>0.98</strong> &lt; 1, so the model is stationary (mean-reverting) — good.</li>
+            <li><strong>Long-run variance:</strong> σ̄² = ω / (1 − α − β) = 0.000002 / 0.02 = <strong>0.0001</strong>, i.e. σ̄ = 1%/day, annualizing to ≈ 1%·√252 ≈ 15.9%/yr.</li>
+            <li><strong>Update tomorrow's variance:</strong> σ<sub>t+1</sub><sup>2</sup> = ω + α·ε<sub>t</sub>² + β·σ<sub>t</sub>² = 0.000002 + 0.10·(0.0009) + 0.88·(0.0004) = 0.000002 + 0.00009 + 0.000352 = <strong>0.000444</strong>, so σ<sub>t+1</sub> ≈ <strong>2.11%/day</strong>. The −3% shock nudged forecast vol up from 2%.</li>
+            <li><strong>5-day forecast:</strong> E[σ²<sub>t+5</sub>] = σ̄² + (α+β)<sup>4</sup>·(σ<sub>t+1</sub>² − σ̄²) = 0.0001 + (0.98)<sup>4</sup>·(0.000444 − 0.0001). With 0.98⁴ ≈ 0.9224: = 0.0001 + 0.9224·0.000344 = 0.0001 + 0.000317 = <strong>0.000417</strong>, so σ<sub>t+5</sub> ≈ <strong>2.04%/day</strong>.</li>
+            <li><strong>Interpretation:</strong> volatility is still elevated five days out (2.04% vs the 1% long-run), reverting only slowly because α + β = 0.98 is high. A risk desk would set tomorrow's 99% one-day VaR ≈ 2.33·2.11% ≈ <strong>4.9%</strong> of position value.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: fit GARCH(1,1) and forecast</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1/2 environment (pandas + yfinance + NumPy + Matplotlib — the full install block lives in <a href="../../c1-probability-stochastic/lectures/l01-probability-expectation.html" style="color:var(--accent2);">Course&nbsp;1, Lecture&nbsp;1</a>). GARCH fitting needs one new package, the <code>arch</code> library, so we add a one-line install note for just that tool.</p>
+        <details class="install">
+            <summary>⬇ One new package: the <code>arch</code> library</summary>
+            <p>Activate your existing <code>quant-env</code>, then add the volatility-modeling package (statsmodels covers ARIMA, but the <code>arch</code> package is the standard for GARCH):</p>
+            <pre>pip install arch yfinance pandas matplotlib</pre>
+        </details>
+        <pre><span class="c"># garch_demo.py — Lecture 8</span>
+import numpy as np, yfinance as yf
+from arch import arch_model
+
+<span class="c"># 1. daily log-returns in PERCENT (arch is happier with %-scaled data)</span>
+px  = yf.download("SPY", start="2015-01-01", end="2024-01-01")["Close"]
+ret = 100 * np.log(px / px.shift(1)).dropna()
+
+<span class="c"># 2. fit a GARCH(1,1) with a constant mean and Normal shocks</span>
+am  = arch_model(ret, mean="Constant", vol="GARCH", p=1, q=1, dist="normal")
+res = am.fit(disp="off")
+print(res.params)            <span class="c"># omega, alpha[1], beta[1]</span>
+
+a, b = res.params["alpha[1]"], res.params["beta[1]"]
+print("persistence a+b :", a + b)                 <span class="c"># typically ~0.97-0.99</span>
+print("long-run daily vol %:",
+      np.sqrt(res.params["omega"] / (1 - a - b)))  <span class="c"># sigma-bar</span>
+
+<span class="c"># 3. forecast variance 10 trading days ahead</span>
+fc = res.forecast(horizon=10, reindex=False)
+print("10-day vol forecast %:", np.sqrt(fc.variance.values[-1]))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Read the output: <code>alpha[1]</code> (reaction) is usually small (~0.05–0.12) and <code>beta[1]</code> (persistence) large (~0.85–0.92), so α + β sits just under 1 — exactly the slow-decaying clustering we drew above. The 10-day forecast vector starts near the current elevated level and drifts toward the long-run vol. Swap <code>dist="t"</code> to use Student-t shocks for the fat tails real returns show.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>GARCH is the bridge between describing data (this course) and pricing and trading risk (the next ones). Next week (Week 9) we move from a single series' variance to <strong>relationships between series</strong> — cointegration and lead-lag — where GARCH-style conditional variance reappears in pairs-trading risk controls. In Course 3 the same forecasts feed <strong>option pricing</strong>: GARCH's estimate of future realized volatility is what you compare against the market's implied volatility, and continuous-time cousins (stochastic-volatility models such as Heston) generalize the GARCH idea into the Black–Scholes world. <strong>Capstone checkpoint (Week 8):</strong> wire your fitted GARCH(1,1) into your project pipeline so it ingests your chosen asset's returns and outputs a daily one-step volatility plus a 99% one-day VaR number — that risk module is a graded milestone you will extend in later weeks.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The empirical fact that motivates ARCH/GARCH — "calm periods follow calm periods, violent periods follow violent periods" — is called…</div>
+            <div class="opt"><b>A.</b> mean reversion of returns</div>
+            <div class="opt"><b>B.</b> volatility clustering</div>
+            <div class="opt"><b>C.</b> the random walk hypothesis</div>
+            <div class="opt"><b>D.</b> seasonality</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Volatility clustering is precisely the tendency of large (small) moves to be followed by large (small) moves. Mean reversion of returns (A) concerns the <em>level</em>, not its spread; the random walk hypothesis (C) is about unpredictable price levels; seasonality (D) is a fixed calendar pattern, not a variance-persistence effect.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In GARCH(1,1), σ<sub>t</sub><sup>2</sup> = ω + α ε<sub>t−1</sub><sup>2</sup> + β σ<sub>t−1</sub><sup>2</sup>, which term captures how <em>long</em> a volatility burst persists?</div>
+            <div class="opt"><b>A.</b> ω, the baseline floor</div>
+            <div class="opt"><b>B.</b> α, the reaction to the last shock</div>
+            <div class="opt"><b>C.</b> the noise z<sub>t</sub></div>
+            <div class="opt"><b>D.</b> β, the coefficient on the lagged variance</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> β feeds yesterday's variance into today's, so it is the memory/persistence term that makes a burst linger. ω (A) only sets the long-run level; α (B) governs the <em>size of the jump</em> after a fresh shock, not its duration; z<sub>t</sub> (C) is the standardized noise and carries no memory.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A fitted GARCH(1,1) has α = 0.08, β = 0.90, and ω = 0.000004. What is its long-run (unconditional) daily variance?</div>
+            <div class="opt"><b>A.</b> 0.0002</div>
+            <div class="opt"><b>B.</b> 0.000004</div>
+            <div class="opt"><b>C.</b> 0.00005</div>
+            <div class="opt"><b>D.</b> it does not exist</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> α + β = 0.98 &lt; 1, so σ̄² = ω/(1 − α − β) = 0.000004 / 0.02 = 0.0002. Choice B is just ω (forgetting the divisor); C uses the wrong divisor; D is wrong because α + β &lt; 1 guarantees the long-run variance exists.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> What does a GARCH model claim it can forecast?</div>
+            <div class="opt"><b>A.</b> Tomorrow's return direction (up or down)</div>
+            <div class="opt"><b>B.</b> Tomorrow's conditional variance (the size of the move), not its sign</div>
+            <div class="opt"><b>C.</b> The exact price level next week</div>
+            <div class="opt"><b>D.</b> The long-run mean return of the asset</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> GARCH models the conditional <em>variance</em> of the shock; it predicts how big the move will be, not which way. It explicitly does not forecast direction (A) or price level (C). The mean return (D) is handled by the separate mean equation (often just a constant), not the GARCH variance recursion.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Compared with ARCH(q), the key advantage of GARCH(1,1) is that…</div>
+            <div class="opt"><b>A.</b> one lag of past variance summarizes many past shocks, so it needs far fewer parameters</div>
+            <div class="opt"><b>B.</b> it can forecast the direction of returns, which ARCH cannot</div>
+            <div class="opt"><b>C.</b> it removes the need to assume any noise distribution</div>
+            <div class="opt"><b>D.</b> it guarantees α + β is always greater than 1</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The β·σ<sub>t−1</sub>² term recursively packs the whole shock history into one number, so GARCH(1,1) matches slow volatility decay with three parameters where ARCH would need many lags. B is false — neither model forecasts direction; C is false — you still assume a shock distribution (Normal or t) to build the likelihood; D is false and undesirable, since α + β &gt; 1 would make variance explode (non-stationary).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Financial volatility is <b>time-varying and clusters</b>: returns are nearly unpredictable but their squared shocks are autocorrelated, so a constant σ is the wrong model.</li>
+            <li>The <b>ARCH(q)</b> idea makes conditional variance a weighted sum of recent <b>squared shocks</b> — but needs many lags to fit real decay.</li>
+            <li><b>GARCH(1,1)</b>, σ<sub>t</sub>² = ω + α ε<sub>t−1</sub>² + β σ<sub>t−1</sub>², adds a lagged-variance feedback term; ω is the floor, α the reaction, β the persistence.</li>
+            <li><b>Persistence α + β</b> (&lt; 1 for stationarity) sets the decay rate; the long-run variance is <b>σ̄² = ω/(1 − α − β)</b>, and forecasts revert toward it geometrically.</li>
+            <li>Fit by <b>maximum likelihood</b> in the <code>arch</code> library and turn the σ<sub>t+1</sub> forecast into <b>VaR and option-pricing</b> inputs — your Week-8 capstone risk module.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: cointegration &amp; lead-lag — moving from one series' variance to <em>relationships between</em> series, the statistical backbone of pairs trading and statistical arbitrage.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-arima-forecasting.html"><div class="dir">← Week 7</div><div class="ttl">ARIMA &amp; Forecasting</div></a>
+        <a class="next" href="l09-cointegration-leadlag.html"><div class="dir">Week 9 →</div><div class="ttl">Cointegration &amp; Lead-Lag</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Time Series</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

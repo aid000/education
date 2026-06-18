@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics — Numerical Methods to Many-Body Simulation</title>
+    <style>
+        :root {
+            --bg: #0d0f1f;
+            --surface: #161a30;
+            --surface2: #1f2440;
+            --border: #2a3052;
+            --text: #e9ebf8;
+            --text2: #a3a8c8;
+            --accent: #818cf8;
+            --accent2: #a5b4fc;
+            --amber: #fbbf24;
+            --blue: #60a5fa;
+            --radius: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+        .hero { text-align: center; padding: 72px 24px 56px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); position: relative; overflow: hidden; }
+        .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(129,140,248,.18), transparent); pointer-events: none; }
+        .breadcrumb { font-size: .82rem; color: var(--text2); margin-bottom: 18px; position: relative; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .hero-badge { display: inline-block; background: rgba(129,140,248,.15); border: 1px solid rgba(129,140,248,.3); color: var(--accent2); padding: 6px 18px; border-radius: 100px; font-size: .8rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 20px; }
+        .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin-bottom: 16px; background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero p { font-size: 1.12rem; color: var(--text2); max-width: 700px; margin: 0 auto; }
+
+        .container { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
+        .section-title { font-size: 1.5rem; font-weight: 700; margin: 56px 0 8px; letter-spacing: -.01em; }
+        .section-sub { color: var(--text2); margin-bottom: 28px; font-size: .95rem; }
+
+        .rail { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 40px; font-size: .82rem; }
+        .rail .node { background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; padding: 6px 14px; font-weight: 600; }
+        .rail .arrow { color: var(--accent); font-weight: 700; }
+        .rail .par { color: var(--text2); font-size: .78rem; }
+
+        .cards { display: grid; grid-template-columns: 1fr; gap: 18px; margin-bottom: 48px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px 24px; position: relative; overflow: hidden; display: grid; grid-template-columns: 56px 1fr; gap: 20px; align-items: start; text-decoration: none; color: inherit; transition: transform .2s, border-color .2s, box-shadow .2s; }
+        .card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 12px 40px rgba(0,0,0,.4), 0 0 0 1px var(--accent); }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px; background: var(--accent); }
+        .course-num { font-size: 1.4rem; font-weight: 800; color: var(--accent); background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.25); border-radius: 12px; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
+        .course-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+        .course-title { font-size: 1.18rem; font-weight: 700; }
+        .course-meta { font-size: .76rem; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 10px; }
+        .course-desc { font-size: .88rem; color: var(--text2); line-height: 1.55; margin-bottom: 12px; }
+        .course-foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .tag { font-size: .7rem; padding: 3px 10px; border-radius: 100px; background: rgba(129,140,248,.08); color: var(--accent2); border: 1px solid rgba(129,140,248,.2); }
+        .proj { font-size: .78rem; color: var(--text); margin-top: 10px; }
+        .proj b { color: var(--amber); }
+        .status { position: absolute; top: 14px; right: 16px; font-size: .68rem; color: var(--accent2); background: rgba(129,140,248,.12); border: 1px solid rgba(129,140,248,.3); padding: 2px 10px; border-radius: 100px; }
+        .status.live { color: var(--blue); background: rgba(96,165,250,.12); border-color: rgba(96,165,250,.3); }
+
+        .sw-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 48px; font-size: .86rem; }
+        .sw-table thead { background: var(--surface2); }
+        .sw-table th { padding: 12px 16px; text-align: left; font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); border-bottom: 1px solid var(--border); }
+        .sw-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .sw-table tr:last-child td { border-bottom: none; }
+        .sw-table tr:hover td { background: rgba(129,140,248,.03); }
+        .sw-table code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); font-size: .82rem; }
+
+        .note { background: linear-gradient(135deg, #171b34, #1c2040); border: 1px solid #303768; border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+        .note h3 { font-size: 1.05rem; margin-bottom: 8px; }
+        .note p { color: #cfd3ee; font-size: .9rem; }
+        .note.warn { background: linear-gradient(135deg, #332a0e, #3a330d); border-color: #6b5b16; }
+        .note.warn p { color: #f0e1a7; }
+
+        footer { text-align: center; padding: 40px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        @media (max-width: 600px) { .card { grid-template-columns: 1fr; } .course-num { width: 48px; height: 48px; } }
+    </style>
+</head>
+<body>
+
+<section class="hero">
+    <div class="breadcrumb"><a href="../index.html">← The Academy</a> / Computational Physics</div>
+    <div class="hero-badge">Specialization · 5 Courses</div>
+    <h1>💻 Computational Physics</h1>
+    <p>Physics you build, not just derive. Numerical methods, ODEs and classical dynamics, eigenvalue problems and quantum systems, PDE field simulations, and Monte-Carlo statistical physics — every algorithm implemented from scratch in Python before reaching for a library. The computational spine that runs under the quantum, plasma, and quant tracks.</p>
+</section>
+
+<div class="container">
+
+<!-- ════════════════ PROGRESSION ════════════════ -->
+<h2 class="section-title">🧭 Course Progression</h2>
+<p class="section-sub">Take them in order — each course reuses the numerical machinery of the last on harder physics.</p>
+<div class="rail">
+    <span class="node">C1 Numerical Methods</span>
+    <span class="arrow">→</span>
+    <span class="node">C2 ODEs &amp; Dynamics</span>
+    <span class="arrow">→</span>
+    <span class="node">C3 Linear Algebra &amp; Quantum</span>
+    <span class="arrow">→</span>
+    <span class="node">C4 PDEs &amp; Fields</span>
+    <span class="arrow">→</span>
+    <span class="node">C5 Monte Carlo &amp; Stat Physics</span>
+</div>
+
+<!-- ════════════════ COURSE CARDS ════════════════ -->
+<h2 class="section-title">📚 Courses</h2>
+<p class="section-sub">Each course is 10 weekly lectures + weekly MCQ quizzes + one capstone project + a final exam.</p>
+
+<div class="cards">
+
+    <a href="c1-numerical-methods/index.html" class="card">
+        <span class="status live">C1 · L1 live</span>
+        <div class="course-num">1</div>
+        <div>
+            <div class="course-head"><span class="course-title">Numerical Methods for Physics</span></div>
+            <div class="course-meta">Prereq: AP Physics C + AP Calc BC + basic Python</div>
+            <div class="course-desc">Root finding (bisection, Newton, secant), polynomial interpolation, numerical integration (trapezoidal, Simpson, Gaussian quadrature), finite-difference derivatives, and floating-point error &amp; convergence — each algorithm coded by hand before using SciPy.</div>
+            <div class="proj"><b>Project:</b> high-precision physics integral (exact pendulum period vs small-angle) with full error &amp; convergence analysis</div>
+            <div class="course-foot"><span class="tag">NumPy / SciPy</span><span class="tag">Matplotlib</span></div>
+        </div>
+    </a>
+
+    <a href="c2-odes-dynamics/index.html" class="card">
+        <span class="status">Planned</span>
+        <div class="course-num">2</div>
+        <div>
+            <div class="course-head"><span class="course-title">ODEs &amp; Classical Dynamics</span></div>
+            <div class="course-meta">Prereq: C1</div>
+            <div class="course-desc">Initial-value problems, Euler (explicit/implicit), Runge–Kutta 4, adaptive step control, and symplectic integrators (Verlet/leapfrog). Applications: drag projectiles, N-body orbits, coupled oscillators, and deterministic chaos.</div>
+            <div class="proj"><b>Project:</b> N-body gravitational simulator, or a chaotic double pendulum with a Lyapunov-exponent estimate</div>
+            <div class="course-foot"><span class="tag">SciPy solve_ivp</span><span class="tag">own RK4 / Verlet</span><span class="tag">Numba (opt.)</span></div>
+        </div>
+    </a>
+
+    <a href="c3-linear-algebra-quantum/index.html" class="card">
+        <span class="status">Planned</span>
+        <div class="course-num">3</div>
+        <div>
+            <div class="course-head"><span class="course-title">Linear Algebra, Eigenvalues &amp; Quantum Systems</span></div>
+            <div class="course-meta">Prereq: C1 (C2 helpful)</div>
+            <div class="course-desc">Matrix operations, diagonalization, SVD, sparse matrices, power iteration, and Lanczos/ARPACK. Applications: normal modes of coupled springs, the 1D time-independent Schrödinger equation, and tight-binding models.</div>
+            <div class="proj"><b>Project:</b> solve the 1D Schrödinger equation for square / harmonic / double-well potentials — bound-state energies and wavefunctions</div>
+            <div class="course-foot"><span class="tag">NumPy.linalg</span><span class="tag">SciPy.sparse.linalg</span></div>
+        </div>
+    </a>
+
+    <a href="c4-pdes-fields/index.html" class="card">
+        <span class="status">Planned</span>
+        <div class="course-num">4</div>
+        <div>
+            <div class="course-head"><span class="course-title">PDEs &amp; Field Simulations</span></div>
+            <div class="course-meta">Prereq: C1 + C2</div>
+            <div class="course-desc">Finite-difference discretization of the heat, wave, and Poisson equations; stability (the CFL condition), boundary conditions, explicit/implicit schemes, and a first look at FDTD for electromagnetic waves.</div>
+            <div class="proj"><b>Project:</b> 2D heat diffusion with time-dependent boundaries, or 1D/2D FDTD EM-pulse propagation with energy-conservation checks</div>
+            <div class="course-foot"><span class="tag">NumPy</span><span class="tag">Numba (opt.)</span><span class="tag">Matplotlib animation</span></div>
+        </div>
+    </a>
+
+    <a href="c5-monte-carlo-stat/index.html" class="card">
+        <span class="status">Planned</span>
+        <div class="course-num">5</div>
+        <div>
+            <div class="course-head"><span class="course-title">Monte Carlo &amp; Statistical / Many-Body Physics</span></div>
+            <div class="course-meta">Prereq: C1 (C2 helpful)</div>
+            <div class="course-desc">Random-number generation, importance sampling, the Metropolis–Hastings algorithm, autocorrelation and error estimation. Applications: the 2D Ising model, Lennard-Jones molecular dynamics, and random-walk diffusion.</div>
+            <div class="proj"><b>Project:</b> full 2D Ising model across temperature (magnetization, susceptibility, specific heat), or a Lennard-Jones MD run with g(r) analysis</div>
+            <div class="course-foot"><span class="tag">NumPy.random</span><span class="tag">own Metropolis / velocity-Verlet</span></div>
+        </div>
+    </a>
+
+</div>
+
+<!-- ════════════════ SOFTWARE ════════════════ -->
+<h2 class="section-title">🧰 Software (all free / open-source)</h2>
+<p class="section-sub">A pure open-source Python stack — everything pip-installable, all on a standard laptop.</p>
+<table class="sw-table">
+    <thead><tr><th>Tool</th><th>Used in</th><th>Purpose</th></tr></thead>
+    <tbody>
+        <tr><td><code>Python / Jupyter</code></td><td>all</td><td>Notebooks: theory, code, validation, sensitivity studies</td></tr>
+        <tr><td><code>NumPy</code></td><td>all</td><td>Arrays &amp; hand-rolled numerical algorithms</td></tr>
+        <tr><td><code>SciPy</code></td><td>C1, C2, C3</td><td>optimize / integrate / sparse.linalg (after building your own)</td></tr>
+        <tr><td><code>Matplotlib</code></td><td>all</td><td>Plots, convergence studies, FuncAnimation live sims</td></tr>
+        <tr><td><code>Numba</code> (optional)</td><td>C2, C4, C5</td><td>JIT speed-ups for tight simulation loops</td></tr>
+    </tbody>
+</table>
+
+<!-- ════════════════ NOTES ════════════════ -->
+<div class="note">
+    <h3>🎯 Internship readiness</h3>
+    <p>This sequence mirrors a university computational-physics core — numerical analysis, computational mechanics, computational quantum mechanics, field/PDE simulation, and Monte-Carlo statistical physics. It builds the implement-from-scratch skill that simulation and research roles screen for, and the toolkit (Monte Carlo, eigenproblems, PDE solvers) feeds directly into the <a href="../quantum-computing/index.html">Quantum Computing</a>, <a href="../plasma-fusion/index.html">Plasma &amp; Fusion</a>, and <a href="../quant-finance/index.html">Quant Finance</a> tracks. Targets national-lab, quantum-computing-company, and tech simulation internships.</p>
+</div>
+
+<!-- ════════════════ BOOKS (OPTIONAL) ════════════════ -->
+<div class="note" style="background: var(--surface2); border-color: var(--border);">
+    <h3>📖 Books (optional)</h3>
+    <p style="color: var(--text2);">The courses are self-contained — lectures cover everything, no required textbook. For extra depth these pair well: Newman, <em>Computational Physics</em> (C1–C5, the closest match to this track); Press et al., <em>Numerical Recipes</em> (C1–C4, reference); Landau, Páez &amp; Bordeianu, <em>Computational Physics</em> (C2–C5).</p>
+</div>
+<div class="note warn">
+    <h3>⚠️ Philosophy: build first, then use the library</h3>
+    <p>Every core algorithm is implemented by hand before the SciPy version is introduced — that's deliberate. You'll validate your own RK4, Metropolis, and finite-difference solvers against analytic limits and against the library, which is exactly how you develop trustworthy numerical intuition. Numba is optional throughout (only for speed; never required to get correct results).</p>
+</div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← Back to The Academy</a></p>
+    <p style="margin-top:8px;">Computational Physics specialization · 5 courses · open-source, laptop-only · introductory level</p>
+</footer>
+
+</body>
+</html>

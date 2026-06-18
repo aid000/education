@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuclear Ops &amp; Safety C5 · Lecture 4 — Design-Basis Accidents &amp; the LOCA</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C5 Ops &amp; Safety</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Design-Basis Accidents &amp; the LOCA</h1>
+        <p class="sub">Engineers deliberately pick the worst plausible pipe break, then prove the plant survives it with margin to spare — and the loss-of-coolant accident is the benchmark every safety system must beat.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define a design-basis accident (DBA) and explain why a plant is licensed against a bounding set of postulated events.</li>
+            <li>Describe the loss-of-coolant accident (LOCA) and distinguish a large-break LOCA from a small-break LOCA.</li>
+            <li>Walk through the LOCA sequence — blowdown, refill, reflood — and the physics of each phase.</li>
+            <li>State the peak cladding temperature (PCT) acceptance limit and explain the failure mechanisms it guards against.</li>
+            <li>Connect design-basis analysis to the licensing case: bounding inputs, acceptance criteria, and safety margin.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>The Design-Basis Accident: Engineering Against the Worst Plausible Day</h2>
+        <p>You cannot prove a plant is safe against <em>every</em> conceivable failure — the list is infinite. So the discipline of nuclear safety does something cleverer: it defines a finite, carefully chosen set of <strong>design-basis accidents (DBAs)</strong>. These are postulated events — a major pipe rupture, a control-rod ejection, a steam-line break, a loss of offsite power — selected to <strong>bound</strong> entire families of more likely but less severe failures. If the plant rides out the bounding case with margin, every milder member of that family is covered automatically.</p>
+        <p>A DBA is not a prediction that the event <em>will</em> happen. It is a yardstick. The plant's safety systems — emergency core cooling, containment, the reactor protection system — are sized, qualified, and licensed precisely so that they perform their function during these postulated accidents. The whole regulatory bargain rests on this idea: pick the demanding cases, analyze them with conservative assumptions, and demonstrate the engineered safety features keep the public protected.</p>
+        <div class="eq">DBA set bounds the credible accident space<small>Each design-basis event is chosen so its consequences envelope a whole family of less-severe initiators.</small></div>
+        <p>Among all DBAs, one stands above the rest as the historical "maximum credible accident" for a water-cooled reactor: the sudden loss of the coolant that both cools the fuel and carries away its heat. That is the <strong>loss-of-coolant accident</strong>, and it is the design driver for the emergency core cooling system you will study next week.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of designing a bridge. You don't model every truck that will ever cross — you define a bounding "design load" heavier than any realistic traffic jam, then prove the bridge holds it with a safety factor. A design-basis accident is the reactor's design load: the deliberately demanding scenario the structure must survive so that all the everyday cases are trivially covered.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>The Loss-of-Coolant Accident: Large Break vs Small Break</h2>
+        <p>In a pressurized-water reactor the core sits in roughly 155&nbsp;bar of liquid water near 320&nbsp;°C. That pressurized water does two jobs at once: it <strong>moderates</strong> the neutrons and it <strong>removes the heat</strong> the fuel produces. A <strong>LOCA</strong> is any break in the reactor coolant pressure boundary that lets this inventory escape faster than normal makeup can replace it. Lose the water, and you lose your heat sink — even after the chain reaction shuts down, the fuel keeps generating <strong>decay heat</strong> from the radioactive fission products inside it.</p>
+        <p>Decay heat is the crux of the whole problem. Immediately after shutdown (scram) it is about <strong>6–7% of full thermal power</strong>, and it falls only slowly:</p>
+        <div class="eq">P_decay(t) / P_0  ~  0.066 * t^(-0.2)      (t in seconds, ~10 s to ~100 days)<small>Wigner-Way / ANS-style approximation: decay heat is ~6.6% at 1 s, ~1.4% at 1 hour. It NEVER reaches zero quickly.</small></div>
+        <p>LOCAs are classified by how fast the water leaves, which is set by the size of the break:</p>
+        <p><strong>Large-break LOCA (LBLOCA).</strong> A guillotine rupture of a large reactor coolant pipe — historically the double-ended break of the largest cold leg. The system depressurizes in <em>seconds</em>; coolant flashes to steam and blows out; the core can briefly uncover. This is the fast, violent, classic design-basis case.</p>
+        <p><strong>Small-break LOCA (SBLOCA).</strong> A smaller opening — a stuck-open valve, a cracked instrument line, a small pipe. Inventory leaks more slowly, the system stays at higher pressure longer, and the accident can play out over <em>tens of minutes to hours</em>. Counter-intuitively, small breaks are in some ways trickier: the slow uncovering and operator-system interactions caused the most consequential commercial accident in U.S. history.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> assume the largest break is always the most challenging for every parameter. A large break depressurizes so fast that low-pressure injection floods the core quickly. A small break can hold the system at a pressure too high for low-pressure pumps yet too low for the high-pressure system to keep up — leaving a window where the core uncovers slowly. "Bigger break = worse" is a real trap; the limiting break size must be <em>searched for</em>, not assumed.</div>
+    </section>
+
+    <!-- FIGURE 1: break spectrum -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 250" role="img" aria-label="Break spectrum: break area on the horizontal axis from small to large, with small-break LOCA on the left taking hours and large-break LOCA on the right taking seconds, and a limiting break size somewhere in the middle.">
+            <line x1="60" y1="200" x2="520" y2="200" stroke="#94b8a2" stroke-width="1.5"/>
+            <polygon points="520,200 510,195 510,205" fill="#94b8a2"/>
+            <text x="290" y="232" fill="#94b8a2" font-size="12" text-anchor="middle">Break area  (small  ->  large)</text>
+            <!-- SBLOCA region -->
+            <rect x="70" y="70" width="170" height="110" rx="8" fill="rgba(96,165,250,.12)" stroke="#60a5fa" stroke-width="1.5"/>
+            <text x="155" y="96" fill="#60a5fa" font-size="13" text-anchor="middle" font-weight="bold">Small-break LOCA</text>
+            <text x="155" y="118" fill="#94b8a2" font-size="11" text-anchor="middle">slow leak, high pressure</text>
+            <text x="155" y="136" fill="#94b8a2" font-size="11" text-anchor="middle">minutes to hours</text>
+            <text x="155" y="160" fill="#60a5fa" font-size="11" text-anchor="middle">HPI dominant</text>
+            <!-- LBLOCA region -->
+            <rect x="340" y="70" width="170" height="110" rx="8" fill="rgba(251,191,36,.12)" stroke="#fbbf24" stroke-width="1.5"/>
+            <text x="425" y="96" fill="#fbbf24" font-size="13" text-anchor="middle" font-weight="bold">Large-break LOCA</text>
+            <text x="425" y="118" fill="#f0e1a7" font-size="11" text-anchor="middle">fast blowdown</text>
+            <text x="425" y="136" fill="#f0e1a7" font-size="11" text-anchor="middle">seconds</text>
+            <text x="425" y="160" fill="#fbbf24" font-size="11" text-anchor="middle">LPI / accumulators</text>
+            <!-- limiting break marker -->
+            <line x1="290" y1="60" x2="290" y2="200" stroke="#34d399" stroke-width="2" stroke-dasharray="5 4"/>
+            <text x="290" y="52" fill="#34d399" font-size="11" text-anchor="middle">limiting break (search!)</text>
+        </svg>
+        <figcaption>The break spectrum. Small breaks (left) leak slowly and keep the system pressurized, so the high-pressure injection (HPI) system matters most; large breaks (right) blow down in seconds and rely on low-pressure injection (LPI) and accumulators. The most-limiting break size for cladding temperature lies somewhere between and must be found by analysis, not assumed.</figcaption>
+    </figure>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>The Accident Sequence: Blowdown, Refill, Reflood</h2>
+        <p>Picture a double-ended cold-leg guillotine break — the textbook LBLOCA. The accident unfolds in three physically distinct phases, each lasting from seconds to a couple of minutes.</p>
+        <h3>Phase 1 — Blowdown (0 to ~20 s)</h3>
+        <p>The instant the pipe severs, the 155-bar system finds itself open to a containment near atmospheric pressure. Water that was liquid only because it was pressurized suddenly <strong>flashes to steam</strong>. The mass flux out of the break is enormous and is governed by <strong>critical (choked) flow</strong>: once the flow chokes, the discharge rate depends on upstream conditions, not on how low containment pressure goes.</p>
+        <div class="eq">G_crit = mass flux at the break, set by upstream P and h (choked)<small>During blowdown the break behaves like a choked nozzle; coolant inventory can halve in just a few seconds.</small></div>
+        <p>As pressure crashes, the reactor scrams and the pumps coast down. Heat transfer from the fuel rods degrades catastrophically: the rods go through <strong>departure from nucleate boiling (DNB)</strong> and become blanketed in steam (film boiling). With the steam film insulating the cladding, the rod surface temperature climbs fast — this is when the first temperature excursion begins.</p>
+        <h3>Phase 2 — Refill (~20 to ~40 s)</h3>
+        <p>The lower plenum has emptied and the core is largely steam-cooled (poorly cooled). The emergency core cooling system has actuated: <strong>accumulators</strong> — passive tanks of borated water pressurized with nitrogen — dump their contents the moment system pressure falls below their set point, and the low-pressure injection pumps come up. Water begins refilling the lower plenum. The cladding is still heating during this gap; this is typically when <strong>peak cladding temperature</strong> is reached.</p>
+        <h3>Phase 3 — Reflood (~40 to ~200 s)</h3>
+        <p>Water rises back into the core from the bottom. A <strong>quench front</strong> sweeps upward, rewetting the rods and dropping their temperature steeply. Steam and entrained droplets cool the upper rods ahead of the front. Once the whole core is requenched and a stable cooling path to the ultimate heat sink is restored, the accident is arrested — long-term cooling then just has to remove the slowly decaying decay heat for days.</p>
+    </section>
+
+    <!-- FIGURE 2: PCT transient -->
+    <figure class="fig">
+        <svg viewBox="0 0 580 330" role="img" aria-label="Peak cladding temperature versus time during a large-break LOCA. Temperature rises during blowdown, has a small dip, rises to a peak during refill near 1100 C, then a quench front during reflood drops it sharply. A red dashed line marks the 1204 C acceptance limit well above the peak.">
+            <!-- axes -->
+            <line x1="64" y1="280" x2="540" y2="280" stroke="#94b8a2" stroke-width="1.5"/>
+            <line x1="64" y1="280" x2="64" y2="40" stroke="#94b8a2" stroke-width="1.5"/>
+            <text x="300" y="314" fill="#94b8a2" font-size="12" text-anchor="middle">Time after break  (seconds)</text>
+            <text x="22" y="160" fill="#94b8a2" font-size="12" text-anchor="middle" transform="rotate(-90 22 160)">Cladding temperature  (deg C)</text>
+            <!-- y ticks -->
+            <text x="56" y="244" fill="#94b8a2" font-size="10" text-anchor="end">400</text>
+            <text x="56" y="180" fill="#94b8a2" font-size="10" text-anchor="end">800</text>
+            <text x="56" y="116" fill="#94b8a2" font-size="10" text-anchor="end">1100</text>
+            <text x="56" y="78" fill="#94b8a2" font-size="10" text-anchor="end">1204</text>
+            <!-- x ticks -->
+            <text x="120" y="296" fill="#94b8a2" font-size="10" text-anchor="middle">20</text>
+            <text x="220" y="296" fill="#94b8a2" font-size="10" text-anchor="middle">40</text>
+            <text x="380" y="296" fill="#94b8a2" font-size="10" text-anchor="middle">120</text>
+            <text x="500" y="296" fill="#94b8a2" font-size="10" text-anchor="middle">200</text>
+            <!-- 1204 C limit line -->
+            <line x1="64" y1="78" x2="540" y2="78" stroke="#f87171" stroke-width="2" stroke-dasharray="6 4"/>
+            <text x="430" y="70" fill="#f87171" font-size="11" text-anchor="middle">1204 deg C  acceptance limit</text>
+            <!-- PCT curve: rise (blowdown) dip then peak (refill) then quench (reflood) -->
+            <path d="M 64,248 L 90,150 L 110,138 L 120,150 L 150,128 L 185,112 L 215,110 L 260,170 L 320,230 L 380,250 L 500,256"
+                  fill="none" stroke="#34d399" stroke-width="3"/>
+            <!-- peak marker -->
+            <circle cx="215" cy="110" r="4" fill="#fbbf24"/>
+            <text x="222" y="104" fill="#fbbf24" font-size="10" text-anchor="start">PCT ~ 1120 deg C</text>
+            <!-- phase labels -->
+            <text x="100" y="266" fill="#60a5fa" font-size="10" text-anchor="middle">blowdown</text>
+            <text x="170" y="266" fill="#60a5fa" font-size="10" text-anchor="middle">refill</text>
+            <text x="350" y="200" fill="#60a5fa" font-size="10" text-anchor="middle">reflood quench</text>
+            <!-- margin arrow -->
+            <line x1="215" y1="110" x2="215" y2="80" stroke="#a78bfa" stroke-width="1.5"/>
+            <text x="248" y="92" fill="#a78bfa" font-size="9" text-anchor="middle">margin</text>
+        </svg>
+        <figcaption>Cladding temperature during a large-break LOCA. The surface heats during blowdown as steam blanketing sets in, peaks during refill near 1120&nbsp;°C, then the reflood quench front sharply cools it. The licensing case must keep this peak below the <span style="color:#f87171">1204&nbsp;°C (2200&nbsp;°F)</span> acceptance limit — the gap between curve and limit is the safety margin.</figcaption>
+    </figure>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>The Peak Cladding Temperature Limit &amp; the Licensing Case</h2>
+        <p>The fuel's first physical barrier against releasing fission products is the thin <strong>zirconium-alloy cladding</strong> tube around each fuel pellet. Everything in a LOCA analysis ultimately serves one goal: keep that cladding intact and coolable. The single most famous acceptance criterion in reactor safety is the <strong>peak cladding temperature (PCT)</strong> limit:</p>
+        <div class="eq">PCT  <=  1204 deg C   (2200 deg F)<small>Plus companion limits: local cladding oxidation <= 17% of thickness, and core-wide hydrogen generation <= 1% of the hypothetical maximum.</small></div>
+        <p>Why 1204&nbsp;°C specifically? Two coupled threats sharpen above it. First, hot zirconium reacts with steam in a strongly <strong>exothermic</strong> oxidation reaction that <em>adds</em> heat and liberates hydrogen gas:</p>
+        <div class="eq">Zr + 2 H2O  ->  ZrO2 + 2 H2 + heat<small>The Baker-Just / Cathcart-Pawel rate accelerates sharply above ~1200 deg C — a runaway feedback that can self-heat the cladding.</small></div>
+        <p>Second, as the metal oxidizes and absorbs hydrogen it becomes <strong>embrittled</strong>; a brittle tube can shatter rather than deform during the thermal shock of reflood quench, fragmenting the geometry and blocking coolant. The 1204&nbsp;°C limit, the 17% oxidation limit, and the 1% hydrogen limit together keep the cladding ductile enough to stay <strong>coolable</strong> — the core may be damaged but it remains a coolable geometry.</p>
+        <p>Here is how this becomes a <strong>licensing case</strong>. The analyst feeds the accident model deliberately <strong>conservative inputs</strong>: assume the worst single failure of a safety train, assume offsite power is lost, bias the peaking factors and decay-heat curve high. The plant is licensed only if the calculated PCT, with all that pessimism stacked in, still sits below 1204&nbsp;°C. The distance between the calculated peak and the limit is the <strong>safety margin</strong> — and demonstrating that margin against the bounding DBA is, in essence, what an operating license certifies.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a fever limit. Doctors don't wait for a patient to be at death's door — they set an alarm temperature with margin to spare and intervene early. The 1204&nbsp;°C PCT limit is the cladding's fever line: well below where zirconium truly fails catastrophically, chosen so that even a worst-case stack of conservative assumptions keeps the fuel from crossing into brittle, uncoolable territory.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — does decay heat alone threaten the cladding?</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A PWR core operates at P&#8320; = 3000&nbsp;MW thermal. At the moment of a LOCA it scrams. Estimate (a) the decay-heat power 10&nbsp;s after shutdown, and (b) the adiabatic heat-up rate of the fuel if cooling were totally lost, given a core fuel + cladding heat capacity of C = 6.0&nbsp;&times;&nbsp;10&#8310;&nbsp;J/°C. This shows why even a brief uncovering matters.</p>
+        <ol>
+            <li><strong>Decay-heat fraction at t = 10 s:</strong> use P_decay/P&#8320; &approx; 0.066 &times; t^(&minus;0.2) = 0.066 &times; 10^(&minus;0.2) = 0.066 &times; 0.631 = <strong>0.0416</strong>, i.e. about 4.2% of full power.</li>
+            <li><strong>Decay-heat power:</strong> P_decay = 0.0416 &times; 3000&nbsp;MW &approx; <strong>125&nbsp;MW</strong> = 1.25 &times; 10&#8312;&nbsp;W. (That is still a small power plant's worth of heat, with the coolant gone.)</li>
+            <li><strong>Adiabatic heat-up rate:</strong> dT/dt = P_decay / C = (1.25 &times; 10&#8312;&nbsp;W) / (6.0 &times; 10&#8310;&nbsp;J/°C) &approx; <strong>21&nbsp;°C per second</strong>.</li>
+            <li><strong>Time to reach the limit:</strong> starting from a normal cladding temperature of ~350&nbsp;°C, the rise to 1204&nbsp;°C is &Delta;T &approx; 854&nbsp;°C, so t &approx; 854 / 21 &approx; <strong>41&nbsp;seconds</strong> of total uncovering.</li>
+            <li><strong>Interpretation:</strong> with <em>no</em> cooling at all you would approach the PCT limit in well under a minute — which is exactly why the emergency core cooling system must inject within seconds. (In reality steam cooling and reflood slow this, but the order of magnitude explains the urgency.)</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a lumped-node LOCA cladding model in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Full thermal-hydraulics codes like RELAP5-3D are license-gated, so this course models LOCA transients with the free Python stack — <code>NumPy</code> for arrays and <code>SciPy</code> for the ODE integrator. We build a single-node energy balance on the hottest fuel rod: decay heat in, convective cooling out, integrated through time. <strong>Setup:</strong> reuse the Week-1/Week-2 environment (the one-time install <code>conda install -c conda-forge numpy scipy matplotlib</code> lives in the Week-1 lecture) — SciPy is already in it, so nothing new to install here.</p>
+        <pre><span class="c"># loca_pct.py — Lecture 4: lumped cladding heat-up during a LOCA</span>
+import numpy as np
+from scipy.integrate import solve_ivp
+
+P0   = 3000e6        <span class="c"># full thermal power, W</span>
+C    = 6.0e6         <span class="c"># core fuel+clad heat capacity, J/degC</span>
+T_co = 320.0         <span class="c"># coolant/steam sink temperature, degC</span>
+
+def decay_heat(t):
+    <span class="c"># ANS-style: ~6.6% * t^-0.2, valid ~10 s to days</span>
+    return P0 * 0.066 * max(t, 1.0)**(-0.2)
+
+def h_cool(t):
+    <span class="c"># effective heat-transfer coeff (W/degC): poor during refill,</span>
+    <span class="c"># then ECCS reflood quench restores strong cooling at t=40 s</span>
+    return 3.0e3 if t < 40.0 else 6.0e5
+
+def dTdt(t, T):
+    q_in  = decay_heat(t)
+    q_out = h_cool(t) * (T[0] - T_co)
+    return [(q_in - q_out) / C]
+
+sol = solve_ivp(dTdt, [0, 200], [350.0], max_step=0.5, dense_output=True)
+PCT = sol.y[0].max()
+t_pct = sol.t[sol.y[0].argmax()]
+print(f"Peak cladding temp: {PCT:6.1f} degC  at t = {t_pct:4.1f} s")
+print("Below 1204 degC limit?", PCT &lt; 1204.0)
+
+<span class="c"># Try it: delay ECCS reflood (change 40.0 -> 60.0) and watch PCT climb</span>
+<span class="c"># past the limit — that is the safety-margin search in miniature.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">This toy model captures the essential story: decay heat drives the rod up, and whether you stay under 1204&nbsp;°C hinges on how fast the ECCS restores cooling. Sweep the reflood time to find the "limiting" delay — a stripped-down version of the break-spectrum search real analysts run in qualified codes.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have the benchmark accident; <strong>Week 5</strong> dissects the hardware that beats it — the <strong>emergency core cooling system (ECCS)</strong>: accumulators, high- and low-pressure injection, and the recirculation phase that keeps cooling for days. <strong>Week 6</strong> moves outward to containment, the last barrier holding the steam and hydrogen this lecture introduced. And because Week 5 is also a <strong>Project checkpoint</strong>: your capstone milestone is to extend today's lumped-node script into a multi-node ECCS model and produce your own PCT-versus-time plot with an explicit margin to 1204&nbsp;°C — the heart of a mini design-basis analysis you will carry through the rest of the course. Beyond C5, the severe-accident course picks up where the design basis ends: what happens when cooling is <em>not</em> restored in time.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> What is the primary purpose of defining a set of design-basis accidents?</div>
+            <div class="opt"><b>A.</b> To predict exactly which accident will occur during the plant's life</div>
+            <div class="opt"><b>B.</b> To pick bounding postulated events so the plant's safety systems can be sized and licensed against them</div>
+            <div class="opt"><b>C.</b> To eliminate the need for any emergency systems</div>
+            <div class="opt"><b>D.</b> To list every conceivable failure no matter how improbable</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A DBA is a bounding yardstick: cover the demanding cases and milder ones follow. (A) DBAs are not predictions. (C) They justify and size emergency systems, not remove them. (D) The set is deliberately finite and bounding, not exhaustive.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> During the blowdown phase of a large-break LOCA, the discharge rate at the break is governed mainly by…</div>
+            <div class="opt"><b>A.</b> the containment building's final pressure</div>
+            <div class="opt"><b>B.</b> the speed of the reactor scram</div>
+            <div class="opt"><b>C.</b> critical (choked) flow set by upstream conditions</div>
+            <div class="opt"><b>D.</b> the decay-heat level at that instant</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Once flow chokes, mass flux depends on upstream pressure and enthalpy, not downstream pressure. (A) is wrong precisely because choking decouples it from downstream conditions. (B) scram affects fission power, not break flow. (D) decay heat sets rod temperature, not break discharge rate.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Why can a small-break LOCA be more challenging than expected, despite leaking slowly?</div>
+            <div class="opt"><b>A.</b> It depressurizes faster than a large break</div>
+            <div class="opt"><b>B.</b> It can hold pressure too high for low-pressure injection yet too low for high-pressure makeup to keep up, slowly uncovering the core</div>
+            <div class="opt"><b>C.</b> It always releases more total radioactivity than a large break</div>
+            <div class="opt"><b>D.</b> It bypasses the need for any operator action</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The intermediate pressure window is the trap, and slow uncovering plus operator interaction made small breaks historically consequential. (A) is backwards — small breaks depressurize slowly. (C) total release is not generally larger. (D) small breaks often demand <em>more</em> operator attention.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The 1204&nbsp;°C peak cladding temperature limit is set primarily to prevent…</div>
+            <div class="opt"><b>A.</b> runaway zirconium-steam oxidation and cladding embrittlement that destroy a coolable geometry</div>
+            <div class="opt"><b>B.</b> the reactor restarting on its own</div>
+            <div class="opt"><b>C.</b> melting of the uranium dioxide fuel pellets</div>
+            <div class="opt"><b>D.</b> excessive electricity production</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Above ~1200&nbsp;°C the exothermic Zr + steam reaction accelerates, adding heat, making hydrogen, and embrittling the tube. (C) UO&#8322; melts far higher (~2800&nbsp;°C); the clad fails first. (B) PCT is unrelated to reactivity restart. (D) makes no physical sense.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the LOCA sequence for a large-break accident, peak cladding temperature is typically reached during which phase?</div>
+            <div class="opt"><b>A.</b> Long-term recirculation, days after the break</div>
+            <div class="opt"><b>B.</b> Before the pipe ever breaks, at normal full power</div>
+            <div class="opt"><b>C.</b> Only after the fuel has completely melted</div>
+            <div class="opt"><b>D.</b> The refill phase, just before the reflood quench front rewets the rods</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The core is poorly cooled (steam-blanketed) during refill, so temperature peaks just before reflood quenches it. (A) recirculation removes only slowly-decaying heat, well after the peak. (B) normal cladding runs ~350&nbsp;°C, far below the peak. (C) the limit exists precisely to prevent melting — the peak occurs in intact fuel.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A <b>design-basis accident</b> is a bounding postulated event the plant must survive with margin, licensing its safety systems by covering whole families of milder failures.</li>
+            <li>A <b>LOCA</b> drains the coolant/heat sink while <b>decay heat</b> keeps flowing; <b>large breaks</b> blow down in seconds, <b>small breaks</b> evolve over hours and can be deceptively limiting.</li>
+            <li>The accident runs through <b>blowdown, refill, and reflood</b>, with choked flow, steam blanketing (DNB), and an upward quench front each defining a phase.</li>
+            <li>The <b>peak cladding temperature limit (1204&nbsp;°C)</b>, plus oxidation and hydrogen limits, guards against runaway Zr-steam oxidation and embrittlement to keep a <b>coolable geometry</b>.</li>
+            <li>The <b>licensing case</b> stacks conservative inputs and proves the calculated PCT stays below the limit — the gap is the <b>safety margin</b> — and you built a lumped-node Python model of the heat-up.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: Emergency Core Cooling Systems (and a Project checkpoint). The accumulators, HPI, and LPI that beat the LOCA you just analyzed — plus your capstone milestone: turn today's script into a multi-node ECCS model with an explicit PCT margin.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-defense-in-depth.html"><div class="dir">← Week 3</div><div class="ttl">Defense-in-Depth</div></a>
+        <a class="next" href="l05-eccs.html"><div class="dir">Week 5 →</div><div class="ttl">Emergency Core Cooling Systems</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Ops &amp; Safety</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

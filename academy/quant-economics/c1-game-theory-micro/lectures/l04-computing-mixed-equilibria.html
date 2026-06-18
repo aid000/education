@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C1 · Lecture 4 — Computing Mixed-Strategy Equilibria</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C1 Game Theory</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Computing Mixed-Strategy Equilibria</h1>
+        <p class="sub">Last week we learned that randomizing can be optimal — this week we actually solve for the exact dice the rational player rolls.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Solve any 2×2 game for its mixed-strategy equilibrium using the <strong>indifference condition</strong>.</li>
+            <li>Draw and read the <strong>best-response correspondence</strong>, and locate equilibria as its intersections.</li>
+            <li>Use <strong>support enumeration</strong> to find equilibria in games larger than 2×2.</li>
+            <li>Compute equilibria in Python with <code>nashpy</code> and interpret the output.</li>
+            <li>Recognize and handle games with <strong>multiple equilibria</strong> (pure and mixed together).</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>The Indifference Trick</h2>
+        <p>Last week you saw <em>why</em> a player might randomize: in a game with no pure-strategy equilibrium (matching pennies, a penalty kick, a bluff), being predictable is fatal. But "randomize somehow" isn't an answer — we need the <strong>exact probabilities</strong>. The key insight is almost paradoxical:</p>
+        <div class="eq">If you mix between two strategies, both must give you the SAME expected payoff<small>Otherwise you'd shift all your weight onto the better one — and stop mixing. So a genuine mix requires indifference.</small></div>
+        <p>This flips the problem around. Your own probabilities don't make <em>you</em> indifferent — they make your <strong>opponent</strong> indifferent. You choose your mix so that the other player can't exploit you by leaning toward either of their options. Concretely, in a 2×2 game let the row player play Top with probability <span class="key">p</span> and the column player play Left with probability <span class="key">q</span>. To pin down <span class="key">q</span>, write the row player's expected payoff from Top and from Bottom as functions of <span class="key">q</span>, then set them equal:</p>
+        <div class="eq">E[Top](q) = E[Bottom](q)  ->  solve for q<br>E[Left](p) = E[Right](p)  ->  solve for p<small>Row's indifference equation pins down the COLUMN player's mix q; column's indifference pins down ROW's mix p.</small></div>
+        <p>Notice the cross-over: the row player's payoffs determine <span class="key">q</span> (the column player's mix), and the column player's payoffs determine <span class="key">p</span>. That cross-over is the single most important thing to internalize this week.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A good penalty taker doesn't aim left because left is "better" — if it were, the keeper would always dive left and stop it. The taker mixes precisely so the keeper is <strong>indifferent</strong> between diving left or right. The taker's randomization is engineered around the <em>keeper's</em> payoffs, not the taker's. That is the indifference trick in one sentence.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>The Best-Response Correspondence</h2>
+        <p>The indifference trick is algebra; the <strong>best-response correspondence</strong> is its picture. For each value of the opponent's mix, plot your own best response. In a 2×2 game both are functions on the unit square <span class="key">[0,1] × [0,1]</span>, and an equilibrium is any point where the two curves <strong>cross</strong>.</p>
+        <p>Take matching pennies, payoffs to the row player (column player gets the negative): matching gives row +1, mismatching gives row −1. Row plays Heads with probability <span class="key">p</span>, column plays Heads with probability <span class="key">q</span>. Row's best response as a function of <span class="key">q</span> is a step:</p>
+        <div class="eq">if q &gt; 1/2: row prefers Heads (p = 1)<br>if q &lt; 1/2: row prefers Tails (p = 0)<br>if q = 1/2: row is indifferent (any p works)<small>The vertical jump at q = 1/2 is exactly where mixing becomes rational — the correspondence is "set-valued" there.</small></div>
+        <p>Column, who wants to <em>mismatch</em>, has the mirror-image best response. The two step functions cross only at <span class="key">(p, q) = (1/2, 1/2)</span> — the unique mixed equilibrium. The figure below shows both correspondences on the unit square.</p>
+
+        <figure class="fig">
+            <svg viewBox="0 0 380 300" role="img" aria-label="Best-response correspondences for matching pennies on the unit square. Row's best response is a step that jumps from p=0 to p=1 at q=1/2; column's is a step that jumps at p=1/2. They intersect only at (1/2, 1/2).">
+                <!-- axes -->
+                <line x1="60" y1="250" x2="330" y2="250" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="250" x2="60" y2="40" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="195" y="285" fill="#93a8c8" font-size="12" text-anchor="middle">q = Pr(column plays Heads)</text>
+                <text x="22" y="145" fill="#93a8c8" font-size="12" text-anchor="middle" transform="rotate(-90 22 145)">p = Pr(row plays Heads)</text>
+                <!-- ticks -->
+                <text x="60" y="266" fill="#5f7191" font-size="10" text-anchor="middle">0</text>
+                <text x="195" y="266" fill="#5f7191" font-size="10" text-anchor="middle">1/2</text>
+                <text x="330" y="266" fill="#5f7191" font-size="10" text-anchor="middle">1</text>
+                <text x="50" y="254" fill="#5f7191" font-size="10" text-anchor="end">0</text>
+                <text x="50" y="149" fill="#5f7191" font-size="10" text-anchor="end">1/2</text>
+                <text x="50" y="44" fill="#5f7191" font-size="10" text-anchor="end">1</text>
+                <!-- gridline at q=1/2 and p=1/2 -->
+                <line x1="195" y1="250" x2="195" y2="40" stroke="#1f2f4a" stroke-width="1" stroke-dasharray="3 4"/>
+                <line x1="60" y1="145" x2="330" y2="145" stroke="#1f2f4a" stroke-width="1" stroke-dasharray="3 4"/>
+                <!-- ROW best response (accent blue): p=0 for q<1/2, vertical at q=1/2, p=1 for q>1/2 -->
+                <polyline points="60,250 195,250 195,40 330,40" fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+                <!-- COLUMN best response (green): wants to mismatch. p<1/2 -> column plays Heads (q=1); p>1/2 -> q=0; vertical at p=1/2 -->
+                <polyline points="60,40 60,40 195,40 195,250 330,250" fill="none" stroke="#34d399" stroke-width="2.5" stroke-dasharray="6 4"/>
+                <!-- equilibrium dot -->
+                <circle cx="195" cy="145" r="5.5" fill="#fbbf24" stroke="#0a0f1a" stroke-width="1.5"/>
+                <text x="205" y="135" fill="#fbbf24" font-size="11">(1/2, 1/2)</text>
+                <!-- legend -->
+                <line x1="225" y1="62" x2="252" y2="62" stroke="#60a5fa" stroke-width="2.5"/>
+                <text x="258" y="66" fill="#93c5fd" font-size="10">row BR</text>
+                <line x1="225" y1="80" x2="252" y2="80" stroke="#34d399" stroke-width="2.5" stroke-dasharray="6 4"/>
+                <text x="258" y="84" fill="#34d399" font-size="10">column BR</text>
+            </svg>
+            <figcaption>Best-response correspondences for matching pennies. Row's BR (solid blue) jumps from p = 0 to p = 1 at q = 1/2; column's BR (dashed green) jumps at p = 1/2. They meet at a single point, the amber dot (1/2, 1/2) — the unique mixed-strategy Nash equilibrium.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Support Enumeration for Larger Games</h2>
+        <p>The indifference trick scales, but in a game with more than two strategies per player we don't know <em>in advance</em> which strategies a player will actually use with positive probability. The set of strategies played with positive probability is called the <strong>support</strong>. <strong>Support enumeration</strong> is the brute-force-but-finite recipe behind <code>nashpy</code>:</p>
+        <ol style="margin:0 0 14px 22px; font-size:.94rem;">
+            <li>Guess a support for each player (a subset of their strategies).</li>
+            <li>Impose indifference across the strategies <em>inside</em> each support, and solve the resulting linear system for the probabilities.</li>
+            <li>Check the candidate is valid: all probabilities are non-negative and sum to 1, and no strategy <em>outside</em> the support would do strictly better.</li>
+            <li>Repeat over every pair of supports; keep all that pass.</li>
+        </ol>
+        <p>For an <span class="key">m × n</span> game there are <span class="key">(2<sup>m</sup>−1)(2<sup>n</sup>−1)</span> support pairs, so this is exhaustive but exponential — fine for the small games in this course, and the reason large games need cleverer solvers (the Lemke–Howson algorithm, also in <code>nashpy</code>).</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The indifference equations only hold across strategies <strong>inside the support</strong>. A frequent error is forcing a player to be indifferent across <em>all</em> their strategies — including ones they never play. In equilibrium an unused strategy must yield a payoff that is <em>less than or equal to</em> the support payoff, not equal to it. Skipping the step-3 "no outside strategy is better" check produces phantom equilibria that aren't real.</div>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>Games with Multiple Equilibria</h2>
+        <p>Many strategically interesting games have <strong>more than one</strong> equilibrium — and often a mix of pure and mixed ones. The classic case is a <strong>coordination game</strong> like Battle of the Sexes: two players prefer different things but both prefer being together to being apart.</p>
+        <div class="eq">Two pure equilibria (both coordinate) + one mixed equilibrium<small>A general result: a "generic" finite game has an ODD number of equilibria (the Oddness Theorem) — so two pure equilibria almost always come with a third, mixed one.</small></div>
+        <p>The mixed equilibrium is usually the worst of the three by expected payoff — players sometimes miscoordinate — yet it is the one selected when there's no way to signal or agree in advance. When a model has multiple equilibria, computation gives you the full menu; <strong>equilibrium selection</strong> (which one actually gets played) is a separate question driven by focal points, communication, or dynamics. For applications — say predicting whether two firms enter the same market — you must report all equilibria, not just your favorite.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of two friends whose phones die mid-call. Each can call back or wait. If both call, the line is busy; if both wait, silence forever. There are two good pure outcomes (one calls, one waits) and one tense mixed outcome where each randomizes and they sometimes both wait. Real life resolves it with a convention ("the one who called first calls back") — that convention is an equilibrium-selection device, not part of the payoff math.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — solve a 2×2 by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A penalty kicker chooses <strong>Left</strong> or <strong>Right</strong>; the keeper dives <strong>Left</strong> or <strong>Right</strong>. The kicker scores if they mismatch the keeper. Payoffs are (kicker, keeper). Kicker plays Left with probability <span class="key">p</span>; keeper dives Left with probability <span class="key">q</span>.</p>
+        <p style="font-size:.92rem; margin-bottom:10px;">Kicker payoffs: (L,L) = 0 · score-prob, kicker is stopped → 0; (L,R) = kicker scores → 1; (R,L) = 1; (R,R) = 0. Keeper gets the opposite: keeper saves (+1) when they match, 0 when they mismatch.</p>
+        <ol>
+            <li><strong>Find q (keeper's mix) from the KICKER's indifference.</strong> Kicker's expected payoff from Left = (keeper dives L) · 0 + (keeper dives R) · 1 = (1 − q). From Right = q · 1 + (1 − q) · 0 = q.</li>
+            <li>Set equal: <strong>1 − q = q  →  q = 1/2.</strong> The keeper dives Left half the time.</li>
+            <li><strong>Find p (kicker's mix) from the KEEPER's indifference.</strong> Keeper saves by matching: payoff from diving Left = p · 1 + (1 − p) · 0 = p. From diving Right = (1 − p) · 1 = 1 − p.</li>
+            <li>Set equal: <strong>p = 1 − p  →  p = 1/2.</strong> The kicker shoots Left half the time.</li>
+            <li><strong>Equilibrium:</strong> (p, q) = (1/2, 1/2). The kicker's scoring probability is 1/2 — and crucially, <em>neither side can do better by deviating</em>, because the other is perfectly balanced. If real keepers dive left 60% of the time, a kicker should shoot right more — exactly the kind of exploit sports analytics teams hunt for.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: support enumeration in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We reuse the same free QuantEcon + <code>nashpy</code> + NumPy stack from the <strong>Week 1 setup</strong> (the install <code>details</code> lives in Lecture 1). Nothing new to install this week. Below, <code>support_enumeration()</code> returns <em>every</em> equilibrium — pure and mixed — which is exactly why it's the right tool when a game may have several.</p>
+        <pre><span class="c"># battle_of_the_sexes.py — Lecture 4</span>
+import numpy as np
+import nashpy as nash
+
+<span class="c"># rows/cols = (Ballet, Boxing). Both prefer being together.</span>
+<span class="c"># Row (player A) likes Ballet; Column (player B) likes Boxing.</span>
+A = np.array([[3, 0],      <span class="c"># row player's payoffs</span>
+              [0, 2]])
+B = np.array([[2, 0],      <span class="c"># column player's payoffs</span>
+              [0, 3]])
+
+game = nash.Game(A, B)
+for eq in game.support_enumeration():
+    print(np.round(eq[0], 3), np.round(eq[1], 3))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Expected output — three equilibria:</p>
+        <pre>[1. 0.] [1. 0.]          <span class="c"># pure: both choose Ballet</span>
+[0. 1.] [0. 1.]          <span class="c"># pure: both choose Boxing</span>
+[0.6 0.4] [0.4 0.6]      <span class="c"># mixed: row plays Ballet 60%, column Boxing 60%</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Check the mixed numbers by hand with the indifference trick: row is indifferent when 3q = 2(1 − q), giving q = 0.4 for the column player's Ballet weight; symmetric algebra gives p = 0.6. The code agrees — confirm it, then swap in the matching-pennies payoffs and verify you recover the single (1/2, 1/2) equilibrium.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Mixed equilibria are continuous, so they make the cleanest bridge to the <em>continuous-action</em> games coming next: Cournot and Bertrand oligopoly (Week 7), where the "mix" becomes a smooth best-response function and equilibria are again curve intersections. Next week (Week 5) we add <strong>timing</strong> — sequential games and backward induction, where order of play can erase a mixed equilibrium entirely. <strong>Project checkpoint:</strong> by the end of this week your capstone repo should contain a reusable <code>solve_game(A, B)</code> function that wraps <code>nashpy.support_enumeration()</code> and prints every equilibrium with a label (pure vs. mixed) — you'll call it on every game in later weeks, including the auction and oligopoly models that close the course and feed directly into the Quant Finance track's market-making games.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In a 2×2 game, the row player's mixing probability <em>p</em> is pinned down by…</div>
+            <div class="opt"><b>A.</b> the row player's own indifference condition</div>
+            <div class="opt"><b>B.</b> the column player's indifference condition</div>
+            <div class="opt"><b>C.</b> maximizing the row player's payoff directly</div>
+            <div class="opt"><b>D.</b> the sum of both players' payoffs</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The cross-over rule: a player chooses their mix to make the <em>opponent</em> indifferent. So <em>p</em> comes from the column player's indifference equation, and <em>q</em> from the row player's. (A) reverses the cross-over; (C) would just push all weight to one pure strategy; (D) is an efficiency notion, irrelevant here.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why must both pure strategies in a mixed-strategy support yield equal expected payoff?</div>
+            <div class="opt"><b>A.</b> Because the game is symmetric</div>
+            <div class="opt"><b>B.</b> Because payoffs are always equal at any Nash equilibrium</div>
+            <div class="opt"><b>C.</b> Because if one paid more, the player would shift all weight to it and stop mixing</div>
+            <div class="opt"><b>D.</b> Because mixed strategies maximize total welfare</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A genuine mix requires indifference: any payoff gap would make the player abandon the worse action. (A) symmetry isn't required; (B) payoffs need not be equal across <em>players</em> or across unused strategies; (D) mixing has nothing to do with welfare.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> On the unit square, a mixed-strategy Nash equilibrium of a 2×2 game appears as…</div>
+            <div class="opt"><b>A.</b> the highest point of the row player's payoff curve</div>
+            <div class="opt"><b>B.</b> an intersection of the two players' best-response correspondences</div>
+            <div class="opt"><b>C.</b> the midpoint of the diagonal</div>
+            <div class="opt"><b>D.</b> any point on the boundary of the square</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Equilibria are exactly the points where each player is best-responding to the other — i.e., where the two BR correspondences cross. (A) ignores the opponent; (C) is only coincidentally true for symmetric games; (D) the boundary is just where pure best responses sit.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> When you guess a support and solve the indifference equations, what extra check keeps you from reporting a phantom equilibrium?</div>
+            <div class="opt"><b>A.</b> Confirm the payoff matrix is square</div>
+            <div class="opt"><b>B.</b> Confirm both players use the same support</div>
+            <div class="opt"><b>C.</b> Confirm the equilibrium is Pareto-efficient</div>
+            <div class="opt"><b>D.</b> Confirm probabilities are non-negative and no strategy outside the support pays strictly more</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> A valid candidate needs legal probabilities <em>and</em> no profitable deviation to an unused strategy. (A) games needn't be square; (B) supports can differ in size across players; (C) Nash equilibria are frequently inefficient (the prisoner's dilemma).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A coordination game like Battle of the Sexes has two pure equilibria. What does the Oddness Theorem lead you to expect?</div>
+            <div class="opt"><b>A.</b> A third equilibrium — typically a mixed one</div>
+            <div class="opt"><b>B.</b> Exactly two equilibria and no more</div>
+            <div class="opt"><b>C.</b> No equilibrium at all</div>
+            <div class="opt"><b>D.</b> Infinitely many equilibria</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Generic finite games have an odd number of equilibria, so two pure ones almost always come with a third mixed equilibrium — which <code>support_enumeration()</code> will list. (B) contradicts oddness; (C) every finite game has at least one equilibrium (Nash's theorem); (D) a continuum arises only in non-generic, knife-edge cases.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Solved 2×2 games for mixed equilibria with the <b>indifference condition</b> — your mix makes the <b>opponent</b> indifferent.</li>
+            <li>Read the <b>best-response correspondence</b> on the unit square and located equilibria at its <b>intersections</b>.</li>
+            <li>Used <b>support enumeration</b> — guess support, impose indifference, verify no outside deviation — to scale beyond 2×2.</li>
+            <li>Computed every equilibrium in Python with <b>nashpy</b>'s <code>support_enumeration()</code> and matched it to hand algebra.</li>
+            <li>Handled <b>multiple equilibria</b> via the Oddness Theorem, and started the <b>capstone</b> <code>solve_game(A, B)</code> wrapper.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: sequential games and backward induction, where the <em>order</em> of moves reshapes which equilibria survive.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-mixed-strategies.html"><div class="dir">← Week 3</div><div class="ttl">Mixed Strategies</div></a>
+        <a class="next" href="l05-sequential-games.html"><div class="dir">Week 5 →</div><div class="ttl">Sequential Games &amp; Backward Induction</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Game Theory</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

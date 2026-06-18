@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C5 · Lecture 10 — Capstone: 2D Ising or Lennard-Jones MD</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C5 Monte Carlo &amp; Stat</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Capstone: 2D Ising or Lennard-Jones MD</h1>
+        <p class="sub">Everything you built over nine weeks converges into one deliverable — a phase transition you locate yourself, with honest error bars you earned.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Frame a complete computational-physics study: simulate, measure, estimate error, and report a physical number.</li>
+            <li>Run a temperature sweep of the 2D Ising model to plot magnetization, susceptibility, and specific heat, and locate the critical temperature T<sub>c</sub>.</li>
+            <li>Run a Lennard-Jones molecular-dynamics simulation and compute the radial distribution function g(r) for a chosen phase.</li>
+            <li>Attach trustworthy error bars to every measured average using blocking analysis on correlated data.</li>
+            <li>Assemble and defend a reproducible capstone deliverable that ties the whole specialization together.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>The Capstone: From Algorithm to a Physical Number</h2>
+        <p>For nine weeks you built tools one at a time: pseudo-random numbers, Monte-Carlo integration with importance sampling, random walks and diffusion, Markov chains and detailed balance, the Metropolis-Hastings rule, the Ising model, autocorrelation and error estimation, and finally molecular dynamics with the Lennard-Jones potential. The capstone — <strong>due this week</strong> — is where those pieces stop being exercises and become a small piece of science. You pick <strong>one</strong> of two tracks and carry it all the way from code to a reported, error-barred result.</p>
+        <p><strong>Track A — 2D Ising.</strong> Sweep the temperature across the phase transition and measure how the magnetization, susceptibility, and specific heat behave. The deliverable is a located critical temperature T<sub>c</sub> with an uncertainty, compared to the exact Onsager value.</p>
+        <p><strong>Track B — Lennard-Jones MD.</strong> Integrate Newton's equations for a box of atoms interacting through the Lennard-Jones potential, equilibrate to a target temperature, and measure the <strong>radial distribution function</strong> g(r) — the fingerprint of solid, liquid, or gas structure.</p>
+        <p>Both tracks share the same intellectual spine, which is the real lesson of the specialization: a raw simulation produces a stream of correlated samples; turning that stream into a number with an honest <span class="key">±</span> is the work. A result without an error bar is not a measurement — it is a rumor.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the capstone like an experimental lab report. The simulation is your apparatus; equilibration is letting the apparatus warm up and settle; the production run is data-taking; and blocking analysis is the error analysis you would do on any real measurement. Nobody trusts a lab value quoted to six digits with no uncertainty — and nobody should trust a simulation number quoted that way either.</div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Track A: Locating T<sub>c</sub> in the 2D Ising Model</h2>
+        <p>Recall the 2D Ising model on an L x L lattice of spins s<sub>i</sub> = ±1 with nearest-neighbor coupling. In units where the coupling J = 1 and Boltzmann's constant k<sub>B</sub> = 1, the energy and magnetization per configuration are:</p>
+        <div class="eq">E = -&Sigma;<sub>&lt;ij&gt;</sub> s<sub>i</sub> s<sub>j</sub>&nbsp;&nbsp;&nbsp; M = &Sigma;<sub>i</sub> s<sub>i</sub><small>The sum &lt;ij&gt; runs over nearest-neighbor bonds (each counted once) on a periodic lattice.</small></div>
+        <p>You already wrote a Metropolis updater in Week 6. The capstone wraps it in a <strong>temperature sweep</strong>: for each T, equilibrate, then average. The order parameter is the mean absolute magnetization per spin, and the two response functions come straight from fluctuations of M and E — the fluctuation-dissipation relations:</p>
+        <div class="eq">&chi; = (1/N) (&lt;M<sup>2</sup>&gt; - &lt;|M|&gt;<sup>2</sup>) / T&nbsp;&nbsp;&nbsp; C = (1/N) (&lt;E<sup>2</sup>&gt; - &lt;E&gt;<sup>2</sup>) / T<sup>2</sup><small>Susceptibility chi and specific heat C, with N = L*L spins. Both are computed from variances, not derivatives.</small></div>
+        <p>As T rises through the critical point, the magnetization collapses from near 1 to near 0, while &chi; and C develop sharp peaks. On a finite lattice those peaks are rounded and shifted, but their location estimates T<sub>c</sub>. The exact answer, found by Onsager, is the benchmark you check against:</p>
+        <div class="eq">T<sub>c</sub> = 2 / ln(1 + &radic;2) &asymp; 2.269<small>The exact critical temperature of the 2D Ising model (J = 1, k_B = 1). Your peak should land near here and approach it as L grows.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 420 240" role="img" aria-label="Temperature sweep of the 2D Ising model: magnetization per spin falls from near one to near zero as temperature crosses Tc, while susceptibility rises to a sharp peak at Tc near 2.27">
+                <!-- axes -->
+                <line x1="50" y1="200" x2="400" y2="200" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="30" x2="50" y2="200" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="225" y="228" fill="#a3a8c8" font-size="11" text-anchor="middle">temperature T</text>
+                <text x="30" y="40" fill="#a3a8c8" font-size="11" text-anchor="middle">value</text>
+                <!-- Tc marker -->
+                <line x1="235" y1="30" x2="235" y2="200" stroke="#a5b4fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="235" y="216" fill="#a5b4fc" font-size="11" text-anchor="middle">Tc ~ 2.27</text>
+                <!-- magnetization curve: high at low T, drops near Tc -->
+                <path d="M60,52 L120,54 L170,60 L205,72 L228,100 L242,150 L270,182 L330,194 L395,197" fill="none" stroke="#34d399" stroke-width="2.5"/>
+                <text x="78" y="46" fill="#34d399" font-size="11">&lt;|M|&gt;/N</text>
+                <!-- susceptibility curve: peak at Tc -->
+                <path d="M60,196 L130,193 L180,186 L210,168 L228,120 L235,70 L243,118 L268,168 L320,188 L395,195" fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+                <text x="300" y="120" fill="#fbbf24" font-size="11">chi (susceptibility)</text>
+            </svg>
+            <figcaption>Sketch of the Ising temperature sweep. The magnetization per spin (green) collapses near T<sub>c</sub>; the susceptibility (amber) peaks there. The peak location, extrapolated in system size L, estimates the critical temperature ≈ 2.27.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Reporting the bare peak temperature on one small lattice as "T<sub>c</sub>." On a finite L x L lattice the peak is shifted by a finite-size correction that scales like 1/L. Run a couple of sizes (e.g. L = 16, 24, 32), note that the peak drifts toward 2.27 as L grows, and say so. Quoting 2.31 from L = 16 as "the" critical temperature without that caveat is the single most common capstone error.</div>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Track B: Structure from Lennard-Jones MD</h2>
+        <p>The Lennard-Jones potential from Week 9 models a simple atomic fluid. In reduced units (&sigma; = &epsilon; = 1) the pair energy and the force you integrate are:</p>
+        <div class="eq">U(r) = 4[(1/r)<sup>12</sup> - (1/r)<sup>6</sup>]&nbsp;&nbsp;&nbsp; F(r) = -dU/dr<small>Steep r^-12 repulsion (overlap), gentle r^-6 attraction (dispersion). Energy minimum at r ~ 1.122.</small></div>
+        <p>You integrate Newton's equations with the velocity-Verlet scheme, rescale velocities to hit a target temperature during equilibration, then take production data. The headline observable is the <strong>radial distribution function</strong> g(r): the probability of finding another atom a distance r away, relative to an ideal gas of the same density.</p>
+        <div class="eq">g(r) = (V / N<sup>2</sup>) &lt; &Sigma;<sub>i</sub> &Sigma;<sub>j&ne;i</sub> &delta;(r - r<sub>ij</sub>) &gt; / (4&pi; r<sup>2</sup>)<small>In practice: histogram all pair distances, then normalize by the ideal-gas shell count 4*pi*r^2*dr*(N/V).</small></div>
+        <p>The <em>shape</em> of g(r) is the structural fingerprint of the phase. A dilute gas gives g(r) &asymp; 1 with a single soft bump. A liquid gives a tall first peak near r &asymp; 1.1 (the contact shell), a second weaker peak, and decay to 1 — short-range order, no long-range order. A solid shows many sharp split peaks at the crystal-lattice distances.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 230" role="img" aria-label="Radial distribution function g of r for a Lennard-Jones liquid: zero for small r, a tall first peak near r equal to 1.1, a smaller second peak, then oscillations decaying to one">
+                <!-- axes -->
+                <line x1="50" y1="190" x2="400" y2="190" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="25" x2="50" y2="190" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="225" y="216" fill="#a3a8c8" font-size="11" text-anchor="middle">distance r (units of sigma)</text>
+                <text x="30" y="36" fill="#a3a8c8" font-size="11" text-anchor="middle">g(r)</text>
+                <!-- g=1 reference line -->
+                <line x1="50" y1="140" x2="400" y2="140" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 4"/>
+                <text x="360" y="135" fill="#60a5fa" font-size="10">g = 1</text>
+                <!-- g(r) curve: flat zero, then rise to tall peak ~r=1.1, dip, second peak, settle to 1 -->
+                <path d="M52,190 L92,190 L104,188 L114,150 L122,55 L132,110 L150,150 L170,128 L188,118 L205,130 L225,140 L255,136 L285,141 L320,139 L400,140" fill="none" stroke="#c084fc" stroke-width="2.5"/>
+                <!-- first peak marker -->
+                <line x1="122" y1="55" x2="122" y2="190" stroke="#c084fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="122" y="48" fill="#c084fc" font-size="11" text-anchor="middle">first shell</text>
+                <text x="122" y="204" fill="#a3a8c8" font-size="10" text-anchor="middle">~1.1</text>
+            </svg>
+            <figcaption>Radial distribution function g(r) of a Lennard-Jones liquid. The tall first peak near r ≈ 1.1&sigma; is the nearest-neighbor shell; oscillations decaying to 1 signal short-range order without long-range crystalline order.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>The Shared Spine: Error Bars from Blocking</h2>
+        <p>Whichever track you pick, the samples your simulation produces are <strong>correlated</strong> in time: successive Metropolis sweeps or MD steps are not independent draws. The naive standard error of the mean, &sigma;/&radic;N, badly <em>underestimates</em> the true uncertainty because the effective number of independent samples is N/(2&tau;<sub>int</sub>), where &tau;<sub>int</sub> is the integrated autocorrelation time from Week 7.</p>
+        <p>The <strong>blocking method</strong> (Flyvbjerg-Petersen) fixes this without ever computing &tau; directly. Group the time series into non-overlapping blocks of size b, average within each block, then estimate the error from the block averages — which become independent once b exceeds the correlation time:</p>
+        <div class="eq">SE(b) = &radic;( Var(block means) / (n<sub>b</sub> - 1) )&nbsp;&nbsp;&nbsp; n<sub>b</sub> = N / b<small>Repeatedly double b. The estimate SE(b) RISES then reaches a plateau; the plateau value is the true standard error.</small></div>
+        <p>The signature you look for is a <strong>plateau</strong>: as you double the block size, SE(b) climbs while blocks are still correlated, then flattens once blocks are effectively independent. The plateau height is your honest error bar. If SE(b) never flattens, your run is too short — collect more data.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Blocking is like polling. Asking the same person ten times in a row gives ten correlated answers that look like a tight, confident result — but it is really one opinion. Grouping (blocking) until each group is an independent "voter" reveals the true spread. The plateau is the point where each block has become a genuine independent voter.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Quoting &sigma;/&radic;N on the raw correlated samples. Near a phase transition autocorrelation time explodes (<em>critical slowing down</em>), so the raw formula can underestimate the true error by an order of magnitude — exactly where you most need a trustworthy bar. Always block, and always check that the plateau actually exists before trusting it.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — an honest error bar by blocking</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">An Ising run at T near T<sub>c</sub> gives N = 8000 measurements of |M|/N with sample mean 0.452 and sample standard deviation s = 0.180. The integrated autocorrelation time is &tau;<sub>int</sub> = 25 sweeps. What error bar should you report?</p>
+        <ol>
+            <li><strong>Naive standard error (wrong):</strong> s/&radic;N = 0.180/&radic;8000 = 0.180/89.4 &asymp; <strong>0.0020</strong>. This pretends all 8000 samples are independent.</li>
+            <li><strong>Effective sample count:</strong> N<sub>eff</sub> = N / (2&tau;<sub>int</sub>) = 8000 / (2·25) = 8000/50 = <strong>160</strong> independent samples — far fewer than 8000.</li>
+            <li><strong>Corrected standard error:</strong> s/&radic;N<sub>eff</sub> = 0.180/&radic;160 = 0.180/12.65 &asymp; <strong>0.0142</strong> — about 7x larger than the naive value (factor &radic;(2&tau;) = &radic;50 ≈ 7.07).</li>
+            <li><strong>Blocking check:</strong> a blocking analysis on the same series should plateau near 0.014, confirming the correction. If you had reported 0.452 ± 0.002, your stated precision would be 7x too optimistic.</li>
+            <li><strong>Report:</strong> &lt;|M|/N&gt; = 0.452 ± 0.014 at this temperature. That bar is what makes the susceptibility peak — and hence T<sub>c</sub> — defensible.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: the capstone driver and blocking</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Everything runs on the free Python + NumPy + Matplotlib stack you set up in Week 1 (with optional <code>Numba</code> for speed, introduced in Week 6 to accelerate the Ising sweeps). No new installs are needed for the capstone — reuse your <code>compphys-env</code> environment.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">Below is the spine common to both tracks: a temperature (or production) loop that collects a time series, plus the blocking routine that turns it into an error bar. Drop in your Week-6 Ising sweep or Week-9 Verlet/g(r) code where marked.</p>
+        <pre><span class="c"># capstone_blocking.py — Lecture 10 (works for both tracks)</span>
+import numpy as np
+
+def block_error(x):
+    <span class="c"># Flyvbjerg-Petersen blocking: returns SE estimates vs block size</span>
+    x = np.asarray(x, dtype=float)
+    ses = []
+    while len(x) >= 4:
+        n = len(x)
+        se = np.std(x, ddof=1) / np.sqrt(n)   <span class="c"># SE of current series</span>
+        ses.append(se)
+        x = (x[0:n-n%2:2] + x[1:n-n%2:2]) / 2 <span class="c"># pair-average -> halve length</span>
+    return np.array(ses)                       <span class="c"># look for the PLATEAU (the max-ish tail)</span>
+
+<span class="c"># --- TRACK A: Ising temperature sweep (uses your Week-6 metropolis_sweep) ---</span>
+def run_temperature(T, L=24, n_equil=2000, n_prod=8000):
+    spins = np.random.choice([-1, 1], size=(L, L))
+    for _ in range(n_equil):
+        metropolis_sweep(spins, T)             <span class="c"># discard: equilibration</span>
+    mags = np.empty(n_prod)
+    for k in range(n_prod):
+        metropolis_sweep(spins, T)
+        mags[k] = abs(spins.sum()) / spins.size
+    ses = block_error(mags)
+    return mags.mean(), ses.max()              <span class="c"># plateau ~ tail/max of SE curve</span>
+
+temps = np.linspace(1.6, 3.2, 17)
+for T in temps:
+    m, err = run_temperature(T)
+    print(f"T={T:.2f}  &lt;|m|&gt;={m:.3f} +/- {err:.3f}")
+<span class="c"># susceptibility/specific heat: collect M, M**2, E, E**2 the same way,</span>
+<span class="c"># then chi = (&lt;M^2&gt; - &lt;|M|&gt;^2)/(N*T),  C = (&lt;E^2&gt; - &lt;E&gt;^2)/(N*T**2)</span>
+<span class="c"># Tc ~ temperature of the susceptibility peak; repeat for L=16,24,32 and extrapolate.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">For <strong>Track B</strong>, replace <code>run_temperature</code> with your velocity-Verlet integrator: equilibrate with velocity rescaling, then histogram all pair distances each production step into <code>g(r)</code>, normalizing by the ideal-gas shell volume <code>4*pi*r**2*dr*(N/V)</code>. Feed the per-step potential energy through <code>block_error</code> for its error bar. Either way, the deliverable is a labeled plot with error bars and one reported physical number (T<sub>c</sub> or the first-peak position) compared to the known value.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>This capstone is a scale model of professional computational physics. The Ising sweep is the template for studying any phase transition — magnetism, superconductivity, and lattice gauge theory in the Quantum track all use Monte-Carlo sweeps with the same fluctuation-and-blocking machinery. The Lennard-Jones MD is the seed of materials and biomolecular simulation, where g(r) connects directly to experimental X-ray and neutron scattering structure factors. Critical slowing down motivates the cluster algorithms and Hamiltonian Monte Carlo used in the Quant and machine-learning tracks. And the error-budget mindset — never a number without an honest bar — is the through-line of the entire specialization, from floating-point error in Course 1 to statistical error here in Course 5. Finish the capstone and you have done, in miniature, what the field does for real.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In the 2D Ising capstone, how is the magnetic susceptibility &chi; computed at each temperature?</div>
+            <div class="opt"><b>A.</b> From the fluctuations (variance) of the magnetization, &chi; = (&lt;M²&gt; − &lt;|M|&gt;²)/(N·T)</div>
+            <div class="opt"><b>B.</b> By numerically differentiating &lt;|M|&gt; with respect to an applied field</div>
+            <div class="opt"><b>C.</b> As the mean energy divided by temperature</div>
+            <div class="opt"><b>D.</b> From the slope of g(r) at its first peak</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The fluctuation-dissipation relation gives &chi; from the variance of M — no applied field or differentiation needed (B is the harder, noisier route). C confuses it with energy; D is a Lennard-Jones quantity, not Ising.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why does the naive standard error &sigma;/&radic;N underestimate the true uncertainty of a Monte-Carlo average?</div>
+            <div class="opt"><b>A.</b> Because NumPy uses single precision by default</div>
+            <div class="opt"><b>B.</b> Because successive samples are correlated, so the effective sample count is N/(2&tau;<sub>int</sub>) &lt; N</div>
+            <div class="opt"><b>C.</b> Because the mean itself is biased</div>
+            <div class="opt"><b>D.</b> Because the random number generator repeats too soon</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Autocorrelation means there are fewer independent samples than N, so the true error is larger by &radic;(2&tau;<sub>int</sub>). NumPy uses double precision (A false); the sample mean is unbiased (C false); modern PRNG periods are astronomically long (D false).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In a blocking analysis, what feature of the SE-vs-block-size curve gives the correct error bar?</div>
+            <div class="opt"><b>A.</b> The value at block size 1</div>
+            <div class="opt"><b>B.</b> The minimum of the curve</div>
+            <div class="opt"><b>C.</b> The plateau the curve reaches once blocks are effectively independent</div>
+            <div class="opt"><b>D.</b> The point where the curve crosses zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> SE(b) rises as blocks grow and then plateaus once block size exceeds the correlation time; that plateau is the true error. Block size 1 (A) is the underestimate; the curve increases rather than dipping to a minimum (B); SE is positive and never crosses zero (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A Lennard-Jones MD run gives a g(r) with a tall first peak near r ≈ 1.1&sigma;, a smaller second peak, and oscillations decaying to 1. This indicates which phase?</div>
+            <div class="opt"><b>A.</b> An ideal gas with no structure</div>
+            <div class="opt"><b>B.</b> A liquid: short-range order, no long-range order</div>
+            <div class="opt"><b>C.</b> A perfect crystal with long-range order</div>
+            <div class="opt"><b>D.</b> A vacuum with no atoms</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A few decaying peaks settling to 1 is the signature of a liquid. An ideal gas gives g(r) ≈ 1 everywhere (A); a crystal shows many sharp split peaks that do not decay (C); D is nonsensical for a populated box.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You measure the Ising susceptibility peak at T ≈ 2.31 on an L = 16 lattice. Before quoting this as T<sub>c</sub>, what should you do?</div>
+            <div class="opt"><b>A.</b> Nothing — 2.31 is the final answer</div>
+            <div class="opt"><b>B.</b> Switch to single precision to sharpen the peak</div>
+            <div class="opt"><b>C.</b> Reduce the number of equilibration sweeps to zero</div>
+            <div class="opt"><b>D.</b> Repeat at larger L (e.g. 24, 32), note the peak drifts toward ≈ 2.27, and report the finite-size trend</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Finite-size effects shift the peak by ~1/L; extrapolating in L recovers the Onsager value 2.269. Precision (B) does not affect the physics; dropping equilibration (C) corrupts the averages with transient data; (A) ignores the finite-size systematic.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>capstone</b> carries one chosen track from raw simulation to a reported physical number with an honest error bar.</li>
+            <li><b>Track A (Ising):</b> a temperature sweep gives magnetization, and &chi; and C from <b>fluctuations</b>; the &chi; peak locates T<sub>c</sub> ≈ 2.269.</li>
+            <li><b>Track B (Lennard-Jones MD):</b> velocity-Verlet plus histogramming pair distances yields <b>g(r)</b>, the structural fingerprint of the phase.</li>
+            <li><b>Blocking analysis</b> turns correlated samples into a trustworthy error bar by finding the plateau in SE vs block size.</li>
+            <li>Watch out for <b>finite-size shifts</b> in T<sub>c</sub> and <b>critical slowing down</b> inflating autocorrelation near the transition.</li>
+        </ul>
+        <p class="next-up">Next up — the C5 Final Exam (currently being built) consolidates random number generation, Monte-Carlo integration, Markov chains, Metropolis, the Ising model, error estimation, and molecular dynamics into one assessment.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-molecular-dynamics-lj.html"><div class="dir">← Week 9</div><div class="ttl">Molecular Dynamics &amp; Lennard-Jones</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Monte Carlo &amp; Stat</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

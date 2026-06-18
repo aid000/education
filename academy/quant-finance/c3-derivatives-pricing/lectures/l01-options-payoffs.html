@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C3 · Lecture 1 — Options, Forwards &amp; Payoff Diagrams</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C3 Derivatives</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>Options, Forwards &amp; Payoff Diagrams</h1>
+        <p class="sub">A derivative is a bet whose value is borrowed from something else — and the shape of that bet, drawn at expiry, tells you everything about the risk you just bought.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define a <em>derivative</em> and explain why its value depends on an underlying asset.</li>
+            <li>Contrast a <em>forward/futures</em> (an obligation) with an <em>option</em> (a right), and write the payoff of each at expiry.</li>
+            <li>Distinguish <em>calls</em> from <em>puts</em> and <em>long</em> from <em>short</em> positions, and draw the four basic option payoff diagrams.</li>
+            <li>Separate an option's price into <em>intrinsic value</em> and <em>time value</em>, and classify moneyness as ITM / ATM / OTM.</li>
+            <li>Explain the three economic reasons options exist — leverage, hedging, and insurance — and plot a payoff in Matplotlib.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>What Is a Derivative?</h2>
+        <p>A <strong>derivative</strong> is a contract whose value is <em>derived</em> from the price of something else — the <span class="key">underlying</span>. The underlying can be a stock, an index, a barrel of oil, a bushel of wheat, an interest rate, or even another derivative. You never own the underlying directly; you own a claim whose payoff is a <em>function</em> of where the underlying ends up.</p>
+        <p>That single idea — "value borrowed from another asset" — is the whole of Course 3. Everything we build, from a simple forward to the Black–Scholes model, is just a different recipe for turning the uncertain future price of an underlying into a payoff today. The two great families are <strong>forwards/futures</strong> (a binding obligation to trade) and <strong>options</strong> (a right, but not an obligation, to trade).</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A derivative is like a <strong>weather bet on a farmer's harvest</strong>. You don't plant or harvest anything — you hold a slip of paper whose payout rises and falls with the rain. The harvest is the underlying; your slip is the derivative. Its value lives or dies on something you never physically touch.</div>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>Forwards: an Obligation to Trade</h2>
+        <p>A <strong>forward contract</strong> locks in today a price <span class="key">K</span> (the <em>delivery</em> or <em>strike</em> price) at which two parties must trade the underlying at a future date <span class="key">T</span>. Nothing changes hands now; at expiry the long side <em>must</em> buy at K and the short side <em>must</em> sell at K, whatever the market price S<sub>T</sub> turns out to be. A <strong>futures</strong> contract is the same idea, standardized and traded on an exchange with daily cash settlement.</p>
+        <p>The payoff of a <strong>long forward</strong> at expiry is simply the gap between the market price and the locked-in price:</p>
+        <div class="eq">Long forward payoff = S<sub>T</sub> − K<small>You pay K, receive something worth S<sub>T</sub>. The short side gets the mirror image, K − S<sub>T</sub>.</small></div>
+        <p>Notice the payoff is a <em>straight line</em> through the strike — it slopes up at 45° and can be deeply negative. A forward is <strong>symmetric</strong>: equal upside and downside. That symmetry is the key difference from options, which slice the line in half and keep only the favorable side.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>A forward is <strong>not free insurance</strong> — it is a two-sided obligation. If you are long a forward and the price collapses, you are still forced to buy at the high K and absorb the full loss S<sub>T</sub> − K. Unlike an option, you cannot simply walk away.</div>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>Options: Calls, Puts, Long &amp; Short</h2>
+        <p>An <strong>option</strong> gives its holder the <em>right, but not the obligation</em>, to trade the underlying at strike K on (or before) expiry T. Because a right is only ever exercised when it helps you, the payoff is <strong>kinked</strong>: it bends at the strike and never goes below zero for the holder. There are two flavors:</p>
+        <ul style="margin-left:20px; font-size:.96rem;">
+            <li style="margin-bottom:6px;">A <strong>call</strong> is the right to <em>buy</em> at K. You exercise when S<sub>T</sub> &gt; K (the asset is cheap relative to the market). Its holder profits when prices rise.</li>
+            <li style="margin-bottom:6px;">A <strong>put</strong> is the right to <em>sell</em> at K. You exercise when S<sub>T</sub> &lt; K (you can dump the asset above market). Its holder profits when prices fall.</li>
+        </ul>
+        <p>The buyer (the <strong>long</strong>) pays a <span class="key">premium</span> upfront for this right. The seller (the <strong>short</strong>, or "writer") collects the premium and takes on the obligation to deliver if the long exercises. The two payoffs at expiry, before premium, are:</p>
+        <div class="eq">Long call = max(S<sub>T</sub> − K, 0)&nbsp;&nbsp;&nbsp; Long put = max(K − S<sub>T</sub>, 0)<small>The "max(…, 0)" is the right to walk away: you never exercise into a loss.</small></div>
+        <p>The short positions are the exact negatives — <strong>short call = −max(S<sub>T</sub> − K, 0)</strong> and <strong>short put = −max(K − S<sub>T</sub>, 0)</strong>. A long's gain is the short's loss, dollar for dollar; options are a zero-sum transfer of risk. These four building blocks — long call, long put, short call, short put — combine into every options strategy in existence.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 440 250" role="img" aria-label="Four payoff diagrams at expiry: long call sloping up after the strike, long put sloping down toward the strike, short call sloping down after the strike, short put sloping up toward the strike">
+                <!-- LONG CALL (top-left) -->
+                <text x="115" y="20" fill="#fcd34d" font-size="11" text-anchor="middle">Long Call</text>
+                <line x1="40" y1="100" x2="200" y2="100" stroke="#bcae8c" stroke-width="1.2"/>
+                <line x1="120" y1="40" x2="120" y2="115" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <path d="M50,100 L120,100 L190,55" fill="none" stroke="#34d399" stroke-width="2.4"/>
+                <text x="120" y="128" fill="#bcae8c" font-size="9" text-anchor="middle">K</text>
+                <text x="195" y="100" fill="#bcae8c" font-size="9">S</text>
+                <!-- LONG PUT (top-right) -->
+                <text x="335" y="20" fill="#fcd34d" font-size="11" text-anchor="middle">Long Put</text>
+                <line x1="255" y1="100" x2="420" y2="100" stroke="#bcae8c" stroke-width="1.2"/>
+                <line x1="340" y1="40" x2="340" y2="115" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <path d="M270,55 L340,100 L410,100" fill="none" stroke="#34d399" stroke-width="2.4"/>
+                <text x="340" y="128" fill="#bcae8c" font-size="9" text-anchor="middle">K</text>
+                <text x="415" y="100" fill="#bcae8c" font-size="9">S</text>
+                <!-- SHORT CALL (bottom-left) -->
+                <text x="115" y="160" fill="#fcd34d" font-size="11" text-anchor="middle">Short Call</text>
+                <line x1="40" y1="180" x2="200" y2="180" stroke="#bcae8c" stroke-width="1.2"/>
+                <line x1="120" y1="170" x2="120" y2="240" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <path d="M50,180 L120,180 L190,225" fill="none" stroke="#f59e0b" stroke-width="2.4"/>
+                <text x="120" y="178" fill="#bcae8c" font-size="9" text-anchor="middle">K</text>
+                <text x="195" y="180" fill="#bcae8c" font-size="9">S</text>
+                <!-- SHORT PUT (bottom-right) -->
+                <text x="335" y="160" fill="#fcd34d" font-size="11" text-anchor="middle">Short Put</text>
+                <line x1="255" y1="180" x2="420" y2="180" stroke="#bcae8c" stroke-width="1.2"/>
+                <line x1="340" y1="170" x2="340" y2="240" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <path d="M270,225 L340,180 L410,180" fill="none" stroke="#f59e0b" stroke-width="2.4"/>
+                <text x="340" y="178" fill="#bcae8c" font-size="9" text-anchor="middle">K</text>
+                <text x="415" y="180" fill="#bcae8c" font-size="9">S</text>
+            </svg>
+            <figcaption>The four basic option payoffs at expiry (premium ignored). Long positions (green) are bounded below at zero; short positions (amber) are their mirror images, with capped gains and open-ended risk. Each line kinks exactly at the strike K.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>Payoff vs Profit, Moneyness &amp; Time Value</h2>
+        <p>The diagrams above show <strong>payoff</strong> — the value at expiry. To get <strong>profit</strong>, slide the whole curve <em>down</em> by the premium you paid (for a long) or <em>up</em> by the premium you collected (for a short). A long call only turns a real profit once S<sub>T</sub> clears K <em>plus</em> the premium; that point is the <span class="key">breakeven</span>.</p>
+        <div class="eq">Long-call profit = max(S<sub>T</sub> − K, 0) − premium&nbsp;&nbsp;&nbsp; Breakeven: S<sub>T</sub> = K + premium</div>
+        <p>An option's premium splits cleanly into two pieces. <strong>Intrinsic value</strong> is what the option would pay if expiry were right now — max(S − K, 0) for a call. <strong>Time value</strong> is everything left over, the extra you pay for the <em>chance</em> the price moves further your way before expiry:</p>
+        <div class="eq">Premium = Intrinsic value + Time value<small>Time value is always ≥ 0 and decays to zero at expiry — "theta," the bleed you'll meet in Week 6.</small></div>
+        <p><strong>Moneyness</strong> classifies where the spot sits relative to the strike. For a call:</p>
+        <table class="dist">
+            <thead><tr><th>Moneyness</th><th>Call condition</th><th>Put condition</th><th>Intrinsic value</th></tr></thead>
+            <tbody>
+                <tr><td><b>In-the-money (ITM)</b></td><td>S &gt; K</td><td>S &lt; K</td><td>positive</td></tr>
+                <tr><td><b>At-the-money (ATM)</b></td><td>S ≈ K</td><td>S ≈ K</td><td>≈ 0</td></tr>
+                <tr><td><b>Out-of-the-money (OTM)</b></td><td>S &lt; K</td><td>S &gt; K</td><td>0 (all time value)</td></tr>
+            </tbody>
+        </table>
+        <p>An OTM option has <em>zero</em> intrinsic value — every cent of its premium is time value, a pure bet that the price will travel into the money before the clock runs out.</p>
+        <h3>Why options exist: leverage, hedging, insurance</h3>
+        <p>Options are not just abstractions; markets created them to do three concrete jobs. <strong>Leverage:</strong> a cheap OTM call controls a large notional for a small premium, so a modest price move can multiply your stake many times (and can also vaporize it). <strong>Hedging:</strong> a producer who will sell oil next quarter buys puts to lock in a price floor, neutralizing downside while keeping upside. <strong>Insurance:</strong> a portfolio holder buys puts as a crash policy — the premium is the deductible, the payoff covers the loss. Same instrument, three motives.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 230" role="img" aria-label="A long call diagram showing both the payoff line and the profit line shifted down by the premium, with the breakeven point where the profit line crosses zero">
+                <!-- axes -->
+                <line x1="40" y1="160" x2="370" y2="160" stroke="#bcae8c" stroke-width="1.4"/>
+                <line x1="40" y1="30" x2="40" y2="195" stroke="#bcae8c" stroke-width="1.4"/>
+                <text x="20" y="42" fill="#bcae8c" font-size="10">$</text>
+                <text x="356" y="178" fill="#bcae8c" font-size="10">S<tspan dy="3" font-size="8">T</tspan></text>
+                <!-- strike + breakeven gridlines -->
+                <line x1="150" y1="60" x2="150" y2="185" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <line x1="225" y1="60" x2="225" y2="185" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="150" y="198" fill="#bcae8c" font-size="9.5" text-anchor="middle">K</text>
+                <text x="225" y="198" fill="#6ee7b7" font-size="9.5" text-anchor="middle">breakeven</text>
+                <!-- payoff line (green) -->
+                <path d="M55,160 L150,160 L350,80" fill="none" stroke="#34d399" stroke-width="2.4"/>
+                <text x="318" y="78" fill="#6ee7b7" font-size="10">payoff</text>
+                <!-- premium shift bracket -->
+                <line x1="150" y1="160" x2="150" y2="190" stroke="#60a5fa" stroke-width="1.2"/>
+                <!-- profit line (blue, shifted down by premium) -->
+                <path d="M55,190 L150,190 L350,110" fill="none" stroke="#60a5fa" stroke-width="2.4" stroke-dasharray="6 4"/>
+                <text x="318" y="120" fill="#93c5fd" font-size="10">profit</text>
+                <!-- premium label -->
+                <text x="100" y="183" fill="#93c5fd" font-size="9" text-anchor="middle">− premium</text>
+                <!-- breakeven dot -->
+                <circle cx="225" cy="160" r="3.2" fill="#fbbf24"/>
+            </svg>
+            <figcaption>Long-call payoff (solid green) vs profit (dashed blue). Subtracting the premium slides the curve down by a fixed amount; the profit line crosses zero at the breakeven S<sub>T</sub> = K + premium. Maximum loss is the premium; upside is unlimited.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — a long call, end to end</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A stock trades at S<sub>0</sub> = $100. You buy one 3-month call with strike K = $105 for a premium of $3 (one contract is on one share here, for clarity). Work out the moneyness, intrinsic/time value, breakeven, and the profit if the stock finishes at $112 or at $98.</p>
+        <ol>
+            <li><strong>Moneyness now:</strong> spot $100 is below strike $105, so the call is <strong>out-of-the-money</strong>.</li>
+            <li><strong>Intrinsic &amp; time value today:</strong> intrinsic = max(100 − 105, 0) = <strong>$0</strong>; so all $3 of premium is <strong>time value</strong> — a pure bet on the stock climbing past $105.</li>
+            <li><strong>Breakeven:</strong> you need the stock above K plus premium = 105 + 3 = <strong>$108</strong> at expiry to come out ahead.</li>
+            <li><strong>If S<sub>T</sub> = $112:</strong> payoff = max(112 − 105, 0) = $7; profit = 7 − 3 = <strong>+$4</strong>. The option is now ITM and you more than doubled the premium.</li>
+            <li><strong>If S<sub>T</sub> = $98:</strong> payoff = max(98 − 105, 0) = $0; profit = 0 − 3 = <strong>−$3</strong>. You walk away — the loss is capped at the premium no matter how far the stock falls.</li>
+            <li><strong>Leverage check:</strong> the stock rose 12% (100→112) but your $3 stake returned 133% — and a 2% <em>drop</em> would also have cost you the full premium. That asymmetry, paid for upfront, is the essence of an option.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: plot the four payoffs</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Python + NumPy + Matplotlib is the free stack for this course. <strong>Week 1 setup:</strong> install it once (below), then reuse it every lecture. We'll build payoff arrays with NumPy and draw them with Matplotlib — the exact diagrams from §1.3.</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + NumPy + SciPy + Matplotlib + Jupyter (one-time, Week 1 setup)</summary>
+            <p><strong>Get Python 3</strong> from <code>python.org</code> (macOS/Windows) or your package manager. Then create an isolated environment and install the stack:</p>
+            <pre>python3 -m venv quant-env
+<span class="c"># activate it:</span>
+source quant-env/bin/activate      <span class="c"># macOS / Linux</span>
+quant-env\Scripts\activate         <span class="c"># Windows (PowerShell)</span>
+pip install numpy scipy matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import numpy, scipy, matplotlib; print('ok')"</code> — printing <code>ok</code> means you're set. Launch notebooks anytime with <code>jupyter lab</code>.</p>
+        </details>
+        <pre><span class="c"># payoffs.py — Lecture 1</span>
+import numpy as np
+import matplotlib.pyplot as plt
+
+K       = 105.0          <span class="c"># strike</span>
+premium = 3.0            <span class="c"># cost of the long call / put</span>
+S = np.linspace(80, 130, 400)   <span class="c"># range of terminal prices S_T</span>
+
+long_call  = np.maximum(S - K, 0)          <span class="c"># right to buy at K</span>
+long_put   = np.maximum(K - S, 0)          <span class="c"># right to sell at K</span>
+short_call = -long_call                     <span class="c"># writer's mirror image</span>
+short_put  = -long_put
+
+call_profit = long_call - premium           <span class="c"># slide down by premium</span>
+breakeven   = K + premium                   <span class="c"># 108.0</span>
+
+print("breakeven        :", breakeven)
+print("profit at S=112  :", np.maximum(112 - K, 0) - premium)   <span class="c"># +4.0</span>
+print("profit at S=98   :", np.maximum(98  - K, 0) - premium)   <span class="c"># -3.0</span>
+
+for y, lbl in [(long_call,"long call"), (long_put,"long put"),
+               (short_call,"short call"), (short_put,"short put")]:
+    plt.plot(S, y, label=lbl)
+plt.axhline(0, color="grey", lw=.8); plt.axvline(K, ls="--", color="grey", lw=.8)
+plt.xlabel("terminal price $S_T$"); plt.ylabel("payoff"); plt.legend(); plt.show()</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The four lines reproduce the figure in §1.3: long call and long put bend upward away from zero, the shorts are their negatives. Change <code>K</code> and <code>premium</code> and re-plot <code>call_profit</code> — watch the breakeven slide right as the premium grows. Building strategies later is just <em>adding these arrays together</em>.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>These payoff diagrams are the alphabet of the whole course. Next week we ask the deeper question: <em>what is a fair premium?</em> The answer comes from <strong>no-arbitrage</strong> — the principle that you cannot make a riskless profit from nothing — which links calls, puts, and forwards through <strong>put–call parity</strong> (Week 2). From there we'll price options with a discrete <strong>binomial tree</strong> (Weeks 3–4) and then its continuous limit, the <strong>Black–Scholes</strong> model (Week 5), whose Brownian-motion engine you met back in Course 1. The "Greeks" (Week 6) measure how each premium reacts as the spot, volatility, and time move — and every one of them is a slope of the curves you just drew.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The single feature that most fundamentally separates an <em>option</em> from a <em>forward</em> is that the option…</div>
+            <div class="opt"><b>A.</b> always settles in cash rather than physical delivery</div>
+            <div class="opt"><b>B.</b> gives a right rather than imposing an obligation on its holder</div>
+            <div class="opt"><b>C.</b> can only be traded on an exchange</div>
+            <div class="opt"><b>D.</b> has no underlying asset</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> An option's holder may walk away; a forward binds both parties to trade. (A) settlement style varies for both and isn't the defining trait; (C) options trade both on exchanges and over-the-counter; (D) every derivative has an underlying.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A long call has strike K = $50 and the stock finishes at S<sub>T</sub> = $44. The payoff at expiry (ignoring premium) is…</div>
+            <div class="opt"><b>A.</b> −$6</div>
+            <div class="opt"><b>B.</b> $6</div>
+            <div class="opt"><b>C.</b> $0</div>
+            <div class="opt"><b>D.</b> $44</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A call pays max(S<sub>T</sub> − K, 0) = max(44 − 50, 0) = max(−6, 0) = 0. You simply don't exercise. (A) confuses payoff with the negative intrinsic of exercising into a loss — which you never do; (B) is the put's payoff here; (D) is the spot, not the payoff.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A call has strike $100, the stock trades at $93, and the call's premium is $2. Its intrinsic and time value are…</div>
+            <div class="opt"><b>A.</b> intrinsic $7, time value −$5</div>
+            <div class="opt"><b>B.</b> intrinsic $2, time value $0</div>
+            <div class="opt"><b>C.</b> intrinsic −$7, time value $9</div>
+            <div class="opt"><b>D.</b> intrinsic $0, time value $2</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The call is out-of-the-money (93 &lt; 100), so intrinsic = max(93 − 100, 0) = $0, and the entire $2 premium is time value. Intrinsic value can never be negative (A, C); (B) wrongly treats the whole premium as intrinsic.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A farmer who will sell a crop in three months buys put options on that crop. The economic role of these options is best described as…</div>
+            <div class="opt"><b>A.</b> hedging / insurance against a price fall, with upside preserved</div>
+            <div class="opt"><b>B.</b> maximizing leverage on a rising price</div>
+            <div class="opt"><b>C.</b> committing to sell at a fixed price no matter what</div>
+            <div class="opt"><b>D.</b> eliminating the need to ever deliver the crop</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Long puts set a price floor while leaving the farmer free to sell higher if prices rise — classic hedging/insurance. (B) describes a speculative long call, not a producer's hedge; (C) describes a forward, which removes the upside; (D) puts don't change the physical sale, only its price protection.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You write (sell) a call for a $4 premium, strike $60. At expiry the stock is at $75. Your profit on the short call is…</div>
+            <div class="opt"><b>A.</b> +$15</div>
+            <div class="opt"><b>B.</b> −$11</div>
+            <div class="opt"><b>C.</b> +$4</div>
+            <div class="opt"><b>D.</b> −$15</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The short call pays −max(75 − 60, 0) = −$15 at expiry; add the $4 premium collected: −15 + 4 = −$11. (A) ignores your obligation and the premium; (C) is the best case only when the call expires worthless (S<sub>T</sub> ≤ 60); (D) forgets the premium you kept.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A <b>derivative</b> takes its value from an underlying; the two families are <b>forwards/futures</b> (obligations) and <b>options</b> (rights).</li>
+            <li>A <b>long forward</b> pays the symmetric line S<sub>T</sub> − K, while options keep only the favorable side: <b>call</b> = max(S<sub>T</sub> − K, 0), <b>put</b> = max(K − S<sub>T</sub>, 0).</li>
+            <li>The <b>four basic positions</b> — long/short call and put — are mirror images, and combine into every options strategy.</li>
+            <li><b>Profit = payoff − premium</b>; premium splits into <b>intrinsic + time value</b>, and moneyness (<b>ITM/ATM/OTM</b>) says where spot sits versus strike.</li>
+            <li>Options exist for <b>leverage, hedging, and insurance</b> — and you plotted all four payoffs in NumPy + Matplotlib.</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: no-arbitrage pricing and put–call parity — the law that forces a fair premium and ties calls, puts, and forwards into one equation.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C3 Derivatives Syllabus</div></a>
+        <a class="next" href="l02-no-arbitrage-parity.html"><div class="dir">Week 2 →</div><div class="ttl">No-Arbitrage &amp; Put-Call Parity</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Derivatives</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

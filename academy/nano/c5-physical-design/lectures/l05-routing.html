@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Lecture 5 — Routing Fundamentals</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C5 Physical Design</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Routing Fundamentals</h1>
+        <p class="sub">Connecting millions of nets across the metal stack — DRC-clean, and without damaging the gates.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Describe the three-stage routing flow: global routing → track assignment → detailed routing.</li>
+            <li>Explain layer & track planning — preferred directions and track pitch on each metal layer.</li>
+            <li>Reserve upper, thicker metal layers for power and long global nets.</li>
+            <li>Explain antenna effects and fix them with antenna diodes or layer jumps.</li>
+            <li>Apply non-default rules (wider, shielded wires) to critical and clock nets.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>The Routing Problem at Scale</h2>
+        <p>After floorplanning and placement, every cell sits at a fixed location — but the cells are still electrically disconnected. <strong>Routing</strong> draws the physical wires that connect <em>millions of nets</em> across a stack of many metal layers. Trying to solve that all at once is intractable, so a router breaks the job into stages, each refining the one before:</p>
+        <div class="eq">global routing → track assignment → detailed routing</div>
+        <p><span class="key">Global routing</span> plans the corridors: it divides the chip into coarse tiles and decides, roughly, which regions and layers each net should pass through — without drawing exact geometry. <span class="key">Track assignment</span> then commits each net to specific routing tracks within those corridors. Finally, <span class="key">detailed routing</span> draws the exact, legal wires and vias — the output must be fully connected and <strong>DRC-clean</strong> (passing every Design Rule Check: spacing, width, via rules).</p>
+        <p>This staging keeps the problem tractable: global routing balances congestion across the whole die, while detailed routing only ever has to worry about a small, pre-zoned region at a time.</p>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>Layer & Track Planning</h2>
+        <p>The metal stack is not a free-for-all. Each layer has a <span class="key">preferred direction</span>, and the directions <strong>alternate</strong> from layer to layer — one layer runs horizontal, the next vertical, the next horizontal, and so on. A wire that needs to turn simply jumps to the neighboring layer through a <em>via</em>. This Manhattan, alternating-direction scheme keeps parallel wires from colliding and makes the routing grid predictable.</p>
+        <div class="eq">M1 horizontal · M2 vertical · M3 horizontal · M4 vertical …<small>Preferred directions alternate; a via connects a horizontal segment to a vertical one.</small></div>
+        <p>Within a layer, wires snap to evenly spaced <span class="key">tracks</span>; the spacing is the <em>track pitch</em>, set by the minimum wire width plus minimum spacing for that layer. Lower layers are thin and dense (lots of tightly pitched tracks for short local connections). The <strong>upper, thicker layers</strong> have a much wider pitch and lower resistance, so they are reserved for <strong>power distribution and long global nets</strong> that must cross large parts of the die with little delay.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 220" role="img" aria-label="Multi-layer routing grid: horizontal metal-1 wires and vertical metal-2 wires crossing at right angles, joined by vias at intersections">
+                <!-- metal-1 horizontal wires -->
+                <line x1="50" y1="60" x2="290" y2="60" stroke="#22d3ee" stroke-width="3"/>
+                <line x1="50" y1="110" x2="290" y2="110" stroke="#22d3ee" stroke-width="3"/>
+                <line x1="50" y1="160" x2="290" y2="160" stroke="#22d3ee" stroke-width="3"/>
+                <!-- metal-2 vertical wires -->
+                <line x1="100" y1="35" x2="100" y2="185" stroke="#a78bfa" stroke-width="3"/>
+                <line x1="170" y1="35" x2="170" y2="185" stroke="#a78bfa" stroke-width="3"/>
+                <line x1="240" y1="35" x2="240" y2="185" stroke="#a78bfa" stroke-width="3"/>
+                <!-- vias at selected intersections -->
+                <rect x="95" y="55" width="10" height="10" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <rect x="165" y="105" width="10" height="10" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <rect x="235" y="155" width="10" height="10" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <!-- labels -->
+                <text x="50" y="28" fill="#22d3ee" font-size="12">M1 — horizontal</text>
+                <text x="210" y="28" fill="#a78bfa" font-size="12">M2 — vertical</text>
+                <text x="50" y="208" fill="#fbbf24" font-size="11">▪ = via (connects M1 ↔ M2)</text>
+                <text x="305" y="64" fill="#94a8bc" font-size="10">track</text>
+                <text x="305" y="114" fill="#94a8bc" font-size="10">track</text>
+                <text x="305" y="164" fill="#94a8bc" font-size="10">track</text>
+            </svg>
+            <figcaption>Adjacent metal layers run in perpendicular preferred directions (M1 horizontal, M2 vertical). Vias join a horizontal segment to a vertical one wherever a net must turn.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>Antenna Effects & Fixes</h2>
+        <p>Routing geometry can create a <em>manufacturing</em> hazard. During fabrication, metal layers are built up and etched one at a time using charged plasma. A long stretch of exposed metal acts like an <strong>antenna</strong>: it collects charge from the plasma. If that metal is connected to a transistor's gate, the accumulated charge has nowhere to go and discharges through the ultra-thin <span class="key">gate oxide</span> — which can permanently damage or destroy the gate.</p>
+        <p>This is an <strong>antenna effect</strong>, and it is purely a fabrication-time problem (the finished, powered chip is fine). There are two standard fixes:</p>
+        <div class="eq">add an <span class="key">antenna diode</span> &nbsp;·&nbsp; or <span class="key">jump the net up</span> to a higher layer<small>The diode bleeds collected charge to the substrate; the layer jump breaks the long single-layer run.</small></div>
+        <p>An <strong>antenna diode</strong> is a small reverse-biased diode tied to the net; during fabrication it provides a safe leakage path that bleeds the collected charge to the substrate before it can damage the gate. Alternatively, the router can <strong>jump the net up</strong> to a higher metal layer partway along, so no single layer carries a dangerously long run of metal tied to the gate.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="Antenna effect and its fixes: a long metal wire connected to a gate collects charge; fixed by an antenna diode bleeding charge to the substrate, or by jumping the net to a higher layer">
+                <!-- the problem: long antenna to gate -->
+                <text x="20" y="28" fill="#fbbf24" font-size="12">Problem: long metal = antenna</text>
+                <line x1="20" y1="55" x2="160" y2="55" stroke="#22d3ee" stroke-width="3"/>
+                <text x="40" y="48" fill="#fbbf24" font-size="10">collected charge ⚡</text>
+                <!-- gate -->
+                <rect x="160" y="42" width="14" height="26" fill="#a78bfa"/>
+                <text x="178" y="60" fill="#a78bfa" font-size="11">gate oxide</text>
+                <text x="20" y="86" fill="#94a8bc" font-size="10">charge discharges through thin gate → damage</text>
+
+                <!-- fix 1: antenna diode -->
+                <text x="20" y="128" fill="#34d399" font-size="12">Fix 1: antenna diode</text>
+                <line x1="20" y1="152" x2="120" y2="152" stroke="#22d3ee" stroke-width="3"/>
+                <rect x="120" y="139" width="14" height="26" fill="#a78bfa"/>
+                <!-- diode tap going down to substrate -->
+                <line x1="70" y1="152" x2="70" y2="178" stroke="#34d399" stroke-width="2"/>
+                <polygon points="62,170 78,170 70,182" fill="#34d399"/>
+                <line x1="60" y1="182" x2="80" y2="182" stroke="#34d399" stroke-width="2"/>
+                <text x="88" y="180" fill="#34d399" font-size="10">diode → substrate</text>
+
+                <!-- fix 2: jump to higher layer -->
+                <text x="218" y="128" fill="#34d399" font-size="12">Fix 2: jump to higher layer</text>
+                <text x="218" y="142" fill="#a78bfa" font-size="10">higher layer = short M1 runs</text>
+                <line x1="210" y1="180" x2="250" y2="180" stroke="#22d3ee" stroke-width="3"/>
+                <rect x="247" y="175" width="9" height="9" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <line x1="252" y1="160" x2="310" y2="160" stroke="#a78bfa" stroke-width="3"/>
+                <line x1="252" y1="160" x2="252" y2="180" stroke="#94a8bc" stroke-width="2"/>
+                <rect x="308" y="175" width="9" height="9" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <line x1="312" y1="160" x2="312" y2="184" stroke="#94a8bc" stroke-width="2"/>
+                <line x1="310" y1="184" x2="345" y2="184" stroke="#22d3ee" stroke-width="3"/>
+                <rect x="345" y="171" width="13" height="24" fill="#a78bfa"/>
+            </svg>
+            <figcaption>A long metal run tied to a gate collects plasma charge during fabrication (left). Fix it by adding an antenna diode that bleeds the charge to the substrate, or by jumping part of the net to a higher layer so no single layer's run is too long.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Routing at scale is a multi-level highway network. <strong>Global routing</strong> zones the corridors (which regions and decks the traffic uses), <strong>track assignment</strong> picks the actual lanes, and <strong>detailed routing</strong> paves them legally so nothing crosses a double line. An <strong>antenna diode</strong> is like a grounding rod on a tall structure — it bleeds off dangerous charge that builds up during construction before it can do harm.</div>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>Special Routing</h2>
+        <p>Not every net is treated identically. The most timing- and noise-sensitive nets — the <strong>clock</strong> and other <strong>critical nets</strong> — are routed with <span class="key">non-default rules</span> (NDRs) instead of the standard width and spacing:</p>
+        <ul style="margin-left:18px; margin-bottom:14px; font-size:.96rem;">
+            <li style="margin-bottom:6px;"><strong>Wider wires</strong> lower the wire's resistance, reducing delay and making the net less sensitive to manufacturing variation.</li>
+            <li style="margin-bottom:6px;"><strong>Shielding</strong> places grounded (or supply-tied) neighbor wires on each side of the net. The quiet shields absorb capacitive coupling so a switching aggressor next door can't inject noise — protecting the net from <em>crosstalk</em>.</li>
+        </ul>
+        <p>These rules cost extra routing area, so they are applied selectively — exactly to the nets where delay and crosstalk matter most.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Routing is <strong>multi-stage</strong> — global routing → track assignment → detailed routing — and the detailed result must finish <strong>DRC-clean</strong>; it is not a single one-shot step or an approximate plan. <strong>Antenna violations are a fabrication/manufacturing issue</strong> (charge collected during etch damaging the gate oxide), <em>not</em> a logic bug — fix them with antenna diodes or layer jumps. And don't assume every net uses the default rules: <strong>critical and clock nets often need non-default (wider/shielded) routing</strong>.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A long net routed entirely on M1 connects to a small gate. The <strong>antenna ratio</strong> is roughly the connected metal area divided by the gate area. The process limit is, say, 400. The net's M1 segment has an area of 6.0 µm² and the gate it drives has an area of 0.01 µm². Is there a violation, and how do we fix it?</p>
+        <ol>
+            <li><strong>Antenna ratio:</strong> ratio ≈ (connected metal area) / (gate area) = 6.0 / 0.01 = <strong>600</strong>.</li>
+            <li><strong>Check the limit:</strong> 600 > 400 → the ratio exceeds the process limit, so this net would risk damaging the gate during fabrication — an <strong>antenna violation</strong>.</li>
+            <li><strong>Fix A — antenna diode:</strong> add a diode to the net so collected charge bleeds to the substrate. The diode caps the effective charge regardless of metal area, clearing the violation.</li>
+            <li><strong>Fix B — layer jump:</strong> route part of the run on a higher layer. If only ~2.0 µm² of metal stays on M1 connected to the gate before the jump, that layer's ratio is 2.0 / 0.01 = 200 &lt; 400 — <strong>clean</strong>. No single layer's metal area is too large for the gate it connects to.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: route the design and check the reports</h3>
+        <p>This is the <strong>Week-5 project checkpoint</strong> — your floorplan and placement should already be done. Now run <strong>detailed routing</strong> in OpenROAD, then inspect the DRC and antenna reports before viewing the routed layout in KLayout.</p>
+        <pre><span class="c"># OpenROAD: global + detailed routing, then sign-off checks</span>
+global_route
+detailed_route
+<span class="c"># write out the geometry and run the checks</span>
+check_antennas -report_file ant.rpt   <span class="c">; flag any antenna violations</span>
+report_design_area
+write_def routed.def</pre>
+        <p>Open <code>ant.rpt</code> — expect <em>zero</em> antenna violations (OpenROAD inserts diodes / jumps as needed). Confirm detailed routing reports <strong>0 DRC violations</strong> and is fully connected. Then load the design in KLayout (<code>klayout routed.def</code>) and zoom in: you should see alternating-direction metal layers joined by vias, with no opens or shorts.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Detailed routing must produce…</div>
+            <div class="opt"><b>A.</b> a DRC-clean, fully-connected layout</div>
+            <div class="opt"><b>B.</b> an approximate plan only</div>
+            <div class="opt"><b>C.</b> the floorplan</div>
+            <div class="opt"><b>D.</b> the netlist</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Detailed routing draws the exact, legal wires and vias — its output must be fully connected and pass every Design Rule Check (DRC-clean). The coarse plan comes earlier, in global routing.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Each metal layer has…</div>
+            <div class="opt"><b>A.</b> a fixed voltage</div>
+            <div class="opt"><b>B.</b> a preferred routing direction (alternating horizontal/vertical)</div>
+            <div class="opt"><b>C.</b> no direction</div>
+            <div class="opt"><b>D.</b> only diagonal wires</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Layers alternate preferred directions — one horizontal, the next vertical — and a via connects a segment on one layer to the perpendicular segment on the next. This keeps the routing grid predictable.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Antenna violations are caused by…</div>
+            <div class="opt"><b>A.</b> crosstalk between wires</div>
+            <div class="opt"><b>B.</b> IR drop</div>
+            <div class="opt"><b>C.</b> charge accumulating on long metal during fabrication, damaging gates</div>
+            <div class="opt"><b>D.</b> clock skew</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> During fabrication, a long exposed metal run collects plasma charge; if it's tied to a gate, that charge discharges through the thin gate oxide and can damage it. It's a manufacturing issue, not a logic or timing bug.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Antenna violations are fixed by…</div>
+            <div class="opt"><b>A.</b> widening the clock</div>
+            <div class="opt"><b>B.</b> lowering the voltage</div>
+            <div class="opt"><b>C.</b> adding decaps</div>
+            <div class="opt"><b>D.</b> adding antenna diodes or jumping the net to a higher layer</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> An antenna diode bleeds the collected charge to the substrate, or the router jumps part of the net to a higher layer so no single layer's metal run is too large for the gate it drives.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Critical and clock nets often use…</div>
+            <div class="opt"><b>A.</b> the thinnest possible wires</div>
+            <div class="opt"><b>B.</b> no vias</div>
+            <div class="opt"><b>C.</b> non-default rules (wider, shielded) routing</div>
+            <div class="opt"><b>D.</b> random tracks</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Timing- and noise-sensitive nets use non-default rules: wider wires to lower resistance and delay, and grounded shield neighbors to block crosstalk.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Routing is <b>multi-stage</b>: <b>global routing</b> plans corridors, <b>track assignment</b> picks tracks, and <b>detailed routing</b> draws exact, <b>DRC-clean</b> wires.</li>
+            <li>Each metal layer has a <b>preferred direction</b> that alternates horizontal/vertical, with a fixed <b>track pitch</b>; upper thicker layers carry power and long global nets.</li>
+            <li><b>Antenna effects</b> are a fabrication hazard — charge on long metal damages the gate oxide.</li>
+            <li>Fix antennas with <b>antenna diodes</b> (bleed charge) or by <b>jumping to a higher layer</b>.</li>
+            <li>Critical and clock nets use <b>non-default rules</b> — wider wires and shielding to control delay and crosstalk.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: Timing Signoff (STA) — verifying that every path meets its setup and hold constraints across the full routed design.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l04-clock-tree-synthesis.html"><div class="dir">← Lecture 4</div><div class="ttl">Clock Tree Synthesis</div></a>
+        <a href="l06-timing-signoff.html" class="next"><div class="dir">Lecture 6 →</div><div class="ttl">Timing Signoff (STA)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Physical Design</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C3 · Lecture 6 — Hypothesis Testing &amp; F-tests</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C3 Econometrics</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Hypothesis Testing &amp; F-tests</h1>
+        <p class="sub">Your regression handed you numbers — hypothesis testing tells you which of them you're actually allowed to believe.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Frame an economic claim as a null and alternative hypothesis about regression coefficients.</li>
+            <li>Run and interpret a t-test on a single coefficient, including one- vs. two-sided forms.</li>
+            <li>Build an F-test for the <em>joint</em> significance of several coefficients and compare nested models.</li>
+            <li>Distinguish R² from adjusted R², and explain why adding regressors never lowers R².</li>
+            <li>Read a p-value correctly — and explain what statistical significance does and does <em>not</em> mean.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Turning a Claim into a Testable Hypothesis</h2>
+        <p>Last week you learned that each OLS coefficient comes with a <strong>standard error</strong> — a measure of how much it would bounce around if you redrew the sample. A point estimate alone is never the end of the story: <span class="key">0.04</span> could be a genuine effect or pure sampling noise. <strong>Hypothesis testing</strong> is the disciplined way to decide between those two readings.</p>
+        <p>You start by writing down a <strong>null hypothesis</strong> H₀ — the boring, "nothing is going on" claim you'll try to overturn — and an <strong>alternative</strong> H₁ that you'd accept if the data make H₀ implausible. For a single coefficient β<sub>j</sub>, the workhorse null is "this variable has no effect":</p>
+        <div class="eq">H0:  beta_j = 0&nbsp;&nbsp;&nbsp;vs.&nbsp;&nbsp;&nbsp;H1:  beta_j != 0<small>The two-sided test. One-sided versions (beta_j &gt; 0 or beta_j &lt; 0) are used when theory predicts a direction.</small></div>
+        <p>The logic is that of <em>proof by contradiction under uncertainty</em>: we provisionally assume H₀ is true, ask how surprising our estimate would be in that world, and reject H₀ only if the estimate is too surprising to credit to chance. We never "prove" H₀ — we only fail to reject it.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Hypothesis testing is a courtroom. The null hypothesis is the defendant, <strong>presumed innocent</strong> ("the effect is zero"). The estimate and its standard error are the evidence. You convict — reject H₀ — only when the evidence is strong <em>beyond a reasonable doubt</em> (your significance level α). Failing to convict is not the same as proving innocence; it just means the evidence wasn't strong enough.</div>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>The t-test on a Single Coefficient</h2>
+        <p>To measure "how surprising" an estimate is under H₀, we standardize it. The <strong>t-statistic</strong> counts how many standard errors the estimate sits away from the null value:</p>
+        <div class="eq">t = ( beta_hat_j - beta_j0 ) / SE( beta_hat_j )<small>For the usual null beta_j0 = 0 this reduces to t = beta_hat_j / SE(beta_hat_j) — the coefficient divided by its standard error.</small></div>
+        <p>Under H₀ (and the classical assumptions), this statistic follows a <strong>t-distribution</strong> with <em>n − k − 1</em> degrees of freedom, where n is the sample size and k the number of slope coefficients. The t-distribution is bell-shaped like the normal but with fatter tails that shrink toward the normal as the sample grows.</p>
+        <p>We then compute a <strong>p-value</strong>: the probability, <em>if H₀ were true</em>, of seeing a t-statistic at least as extreme as the one we got. A small p-value means our data would be a rare fluke in the null world — so we doubt the null. We reject H₀ when p &lt; α, with α = 0.05 the default convention.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 480 250" role="img" aria-label="A bell-shaped t-distribution centered at zero. The two tails beyond plus and minus the critical value are shaded as rejection regions; the observed t-statistic falls in the right tail.">
+                <!-- axis -->
+                <line x1="40" y1="200" x2="450" y2="200" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="245" y="232" fill="#93a8c8" font-size="12" text-anchor="middle">t-statistic</text>
+                <!-- center line -->
+                <line x1="245" y1="200" x2="245" y2="60" stroke="#1f2f4a" stroke-width="1" stroke-dasharray="4 4"/>
+                <text x="245" y="216" fill="#93a8c8" font-size="11" text-anchor="middle">0</text>
+                <!-- bell curve as polyline -->
+                <path d="M40,198 C110,196 150,150 185,110 C210,80 230,62 245,62 C260,62 280,80 305,110 C340,150 380,196 450,198"
+                      fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+                <!-- left rejection region -->
+                <path d="M40,198 C110,196 150,150 168,128 L168,200 L40,200 Z" fill="rgba(251,191,36,.25)" stroke="none"/>
+                <!-- right rejection region -->
+                <path d="M322,128 C360,170 400,196 450,198 L450,200 L322,200 Z" fill="rgba(251,191,36,.25)" stroke="none"/>
+                <!-- critical value markers -->
+                <line x1="168" y1="200" x2="168" y2="128" stroke="#fbbf24" stroke-width="1.5"/>
+                <line x1="322" y1="200" x2="322" y2="128" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="168" y="216" fill="#fbbf24" font-size="11" text-anchor="middle">-1.96</text>
+                <text x="322" y="216" fill="#fbbf24" font-size="11" text-anchor="middle">+1.96</text>
+                <!-- observed t -->
+                <line x1="372" y1="200" x2="372" y2="96" stroke="#34d399" stroke-width="2.5"/>
+                <circle cx="372" cy="96" r="4" fill="#34d399"/>
+                <text x="372" y="88" fill="#34d399" font-size="11" text-anchor="middle">observed t = 2.6</text>
+                <text x="120" y="100" fill="#fbbf24" font-size="10" text-anchor="middle">reject H0</text>
+                <text x="395" y="150" fill="#fbbf24" font-size="10" text-anchor="middle">reject H0</text>
+                <text x="245" y="100" fill="#93c5fd" font-size="10" text-anchor="middle">fail to reject</text>
+            </svg>
+            <figcaption>Two-sided t-test at α = 0.05. The amber tails beyond ±1.96 are the rejection region. An observed t = 2.6 lands inside the right tail, so we reject H₀ — the coefficient is statistically significant.</figcaption>
+        </figure>
+        <p>A handy rule of thumb: with a reasonably large sample, <strong>|t| &gt; 2</strong> roughly corresponds to significance at the 5% level. But always let the reported p-value decide the close calls.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>A p-value is <strong>not</strong> "the probability that H₀ is true," and it is <strong>not</strong> the probability your result happened by chance. It is the probability of data this extreme <em>assuming H₀ holds</em>. Likewise, "fail to reject" never means "H₀ is proven" — a noisy, small sample can fail to reject almost anything.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>The F-test: Testing Several Coefficients at Once</h2>
+        <p>A t-test handles one restriction at a time. But economic questions are often <em>joint</em>: "do <strong>any</strong> of these three policy dummies matter?" or "are seasonal effects present <em>as a group</em>?" Testing them one by one is wrong — with enough separate tests, some will look significant by luck alone. The <strong>F-test</strong> tests a bundle of restrictions simultaneously.</p>
+        <p>The idea is to compare two nested models. The <strong>unrestricted</strong> model has all the regressors. The <strong>restricted</strong> model imposes H₀ (e.g., sets q coefficients to zero), so it's a special case of the unrestricted one. If the restrictions are harmless, dropping those variables should barely hurt the fit. We measure the damage with the residual sum of squares (SSR):</p>
+        <div class="eq">F = [ (SSR_r - SSR_ur) / q ] / [ SSR_ur / (n - k - 1) ]<small>SSR_r = restricted model's residual sum of squares; SSR_ur = unrestricted; q = number of restrictions; n - k - 1 = unrestricted df.</small></div>
+        <p>The numerator is the per-restriction rise in unexplained variation when you force H₀; the denominator scales it by the noise level. A <strong>large F</strong> means the restrictions cost a lot of fit, so the dropped variables jointly mattered — reject H₀. Under H₀, the statistic follows an <strong>F-distribution</strong> with (q, n − k − 1) degrees of freedom, and again you read off a p-value. Notice F can also be written using R²: F = [(R²<sub>ur</sub> − R²<sub>r</sub>)/q] / [(1 − R²<sub>ur</sub>)/(n − k − 1)].</p>
+        <figure class="fig">
+            <svg viewBox="0 0 480 220" role="img" aria-label="Two nested boxes. The unrestricted model contains all regressors; the restricted model drops three of them by setting their coefficients to zero. An arrow shows the F-test comparing their residual sums of squares.">
+                <!-- unrestricted box -->
+                <rect x="30" y="40" width="180" height="130" rx="10" fill="#101829" stroke="#60a5fa" stroke-width="2"/>
+                <text x="120" y="32" fill="#60a5fa" font-size="12" text-anchor="middle">Unrestricted model</text>
+                <text x="120" y="64" fill="#e6eef8" font-size="11" text-anchor="middle">y = b0 + b1 x1 + b2 x2</text>
+                <text x="120" y="84" fill="#e6eef8" font-size="11" text-anchor="middle">+ b3 x3 + b4 x4 + b5 x5</text>
+                <text x="120" y="118" fill="#93a8c8" font-size="11" text-anchor="middle">SSR_ur (smaller)</text>
+                <text x="120" y="150" fill="#34d399" font-size="11" text-anchor="middle">k = 5 slopes</text>
+                <!-- restricted box -->
+                <rect x="270" y="40" width="180" height="130" rx="10" fill="#101829" stroke="#a78bfa" stroke-width="2"/>
+                <text x="360" y="32" fill="#a78bfa" font-size="12" text-anchor="middle">Restricted model</text>
+                <text x="360" y="64" fill="#e6eef8" font-size="11" text-anchor="middle">y = b0 + b1 x1 + b2 x2</text>
+                <text x="360" y="84" fill="#93a8c8" font-size="11" text-anchor="middle">(b3 = b4 = b5 = 0)</text>
+                <text x="360" y="118" fill="#93a8c8" font-size="11" text-anchor="middle">SSR_r (larger)</text>
+                <text x="360" y="150" fill="#fbbf24" font-size="11" text-anchor="middle">q = 3 restrictions</text>
+                <!-- arrow between -->
+                <line x1="210" y1="105" x2="270" y2="105" stroke="#93a8c8" stroke-width="2"/>
+                <polygon points="270,105 260,100 260,110" fill="#93a8c8"/>
+                <text x="240" y="96" fill="#93a8c8" font-size="10" text-anchor="middle">impose H0</text>
+                <!-- F label -->
+                <text x="240" y="200" fill="#34d399" font-size="12" text-anchor="middle">F compares SSR_r vs SSR_ur over q and (n - k - 1)</text>
+            </svg>
+            <figcaption>The F-test compares a nested pair: the restricted model forces three slopes to zero. If SSR_r is much larger than SSR_ur, those three variables jointly matter and H₀ is rejected.</figcaption>
+        </figure>
+        <p>Two special cases you will meet constantly. <strong>(1) Overall significance:</strong> the F at the bottom of every regression table tests H₀ that <em>all</em> slopes are zero at once — "does the model explain anything?" <strong>(2) The t–F link:</strong> for a single restriction (q = 1), F = t², so the two tests agree exactly.</p>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>R² vs. Adjusted R², and What "Significant" Really Means</h2>
+        <p>The <strong>R²</strong> is the share of the variation in y explained by the regressors: R² = 1 − SSR/SST. It is tempting to treat a high R² as a "good model" badge — but R² has a trapdoor. <strong>Adding any regressor, even a column of random noise, can only raise R² or leave it unchanged</strong>, because OLS can always set the new coefficient near zero if the variable is useless, and will nudge it to grab any tiny accidental correlation.</p>
+        <div class="eq">R2_adj = 1 - ( SSR / (n - k - 1) ) / ( SST / (n - 1) )<small>Adjusted R² penalizes each added regressor through the (n - k - 1) degrees-of-freedom term, so it can fall when a variable doesn't earn its keep.</small></div>
+        <p><strong>Adjusted R²</strong> fixes this by charging a "rent" for every regressor: it rises only if the new variable improves fit by more than chance would predict. That makes it a fairer yardstick when comparing models with different numbers of regressors — though, crucially, neither R² is a hypothesis test, and a high R² never validates the model's assumptions.</p>
+        <p>Finally, keep two meanings of "significant" apart. <strong>Statistical significance</strong> means an effect is distinguishable from zero given the noise — it is partly a story about <em>sample size</em>, since huge samples make even trivial effects significant. <strong>Economic significance</strong> means the effect is <em>large enough to matter</em> in the real world. A coefficient can be wildly statistically significant yet economically negligible, or economically huge yet statistically uncertain.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Chasing R² by piling in regressors is a classic blunder — you can drive R² to 1 with enough junk variables while destroying out-of-sample accuracy (overfitting). Judge models on adjusted R², theory, and out-of-sample fit, never on raw R² alone. And never confuse a tiny p-value with a big effect: significance answers "is it zero?", not "is it large?".</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — a t-test and a joint F-test end to end</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">You estimate a wage equation on n = 526 workers with k = 4 regressors (education, experience, tenure, female). The unrestricted fit gives R²<sub>ur</sub> = 0.36 and SSR<sub>ur</sub> = 132.0. The coefficient on education is 0.083 with SE = 0.0078.</p>
+        <ol>
+            <li><strong>t-test on education:</strong> t = 0.083 / 0.0078 = <strong>10.6</strong>. With df = 526 − 4 − 1 = 521 the critical value is ≈ 1.96, and 10.6 ≫ 1.96 → reject H₀. Education's effect on log wage is strongly significant (p ≈ 0).</li>
+            <li><strong>A joint question:</strong> do experience <em>and</em> tenure jointly matter? Drop both (q = 2) and refit. The restricted model gives SSR<sub>r</sub> = 141.2.</li>
+            <li><strong>Numerator:</strong> (SSR<sub>r</sub> − SSR<sub>ur</sub>) / q = (141.2 − 132.0) / 2 = 9.2 / 2 = 4.6.</li>
+            <li><strong>Denominator:</strong> SSR<sub>ur</sub> / (n − k − 1) = 132.0 / 521 = 0.2534.</li>
+            <li><strong>F-statistic:</strong> F = 4.6 / 0.2534 = <strong>18.2</strong> on (2, 521) df. The 5% critical value is ≈ 3.0, so 18.2 ≫ 3.0 → reject H₀: experience and tenure are jointly significant.</li>
+            <li><strong>Read it:</strong> both the single-variable and the joint tests say these wage drivers are real. The economic story (an extra year of schooling raises wages ~8.3%) is also large — statistically <em>and</em> economically significant.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: t-tests and F-tests in statsmodels</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the course's free stack — <code>pandas</code>, <code>numpy</code>, <code>statsmodels</code>, and <code>pandas-datareader</code> for FRED data. If you set up the environment in the <strong>Week 1–2</strong> lectures (the install <code>&lt;details&gt;</code> there), you already have everything; just activate it.</p>
+        <p style="font-size:.9rem; color:var(--text2);">Below we pull a few macro series from FRED, fit a model, read the t-tests off the summary, then run an explicit joint F-test with <code>f_test</code> and compare a nested model with <code>anova_lm</code>.</p>
+        <pre><span class="c"># hypothesis_tests.py — Lecture 6</span>
+import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
+from statsmodels.stats.anova import anova_lm
+import pandas_datareader.data as web
+
+<span class="c"># --- pull free public data from FRED ---</span>
+start, end = "1990-01-01", "2019-12-01"
+codes = {"INDPRO": "ip", "UNRATE": "unemp",
+         "FEDFUNDS": "ffr", "CPIAUCSL": "cpi"}
+raw = web.DataReader(list(codes), "fred", start, end).rename(columns=codes)
+
+<span class="c"># monthly % changes, drop the first NaN row</span>
+df = raw.pct_change().dropna() * 100
+df.columns = ["g_ip", "g_unemp", "g_ffr", "g_cpi"]
+
+<span class="c"># --- unrestricted model: does IP growth respond to the others? ---</span>
+ur = smf.ols("g_ip ~ g_unemp + g_ffr + g_cpi", data=df).fit()
+print(ur.summary())          <span class="c"># t-stats &amp; p-values in the coef table</span>
+
+<span class="c"># single-coefficient t-test is right there: P&gt;|t| column</span>
+print("t on g_ffr:", ur.tvalues["g_ffr"],
+      " p:", ur.pvalues["g_ffr"])
+
+<span class="c"># --- joint F-test: are g_ffr AND g_cpi jointly zero? ---</span>
+ftest = ur.f_test("g_ffr = 0, g_cpi = 0")
+print(ftest)                 <span class="c"># F, p-value, and df for the joint null</span>
+
+<span class="c"># --- nested-model comparison via SSR (same F) ---</span>
+r = smf.ols("g_ip ~ g_unemp", data=df).fit()   <span class="c"># restricted</span>
+print(anova_lm(r, ur))       <span class="c"># compares restricted vs unrestricted</span>
+
+print("R2:", ur.rsquared, " adj R2:", ur.rsquared_adj)
+print("overall F:", ur.fvalue, " p:", ur.f_pvalue)</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The <code>P&gt;|t|</code> column gives each two-sided t-test; <code>f_test</code> and <code>anova_lm</code> give the joint F (they agree). Compare <code>rsquared</code> with <code>rsquared_adj</code> — then add a column of <code>np.random.randn</code> noise to the model and watch R² tick up while adjusted R² falls.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="border-color:#3a2f60;">
+        <h3 style="color:var(--blue);">💬 Discussion</h3>
+        <p>A widely-read empirical study reports that a job-training program raises annual earnings by <strong>$38</strong>, with a t-statistic of 7.5 (p &lt; 0.0001) on a sample of 2.1 million people. A policymaker reads the abstract and concludes the program "works and should be expanded nationwide." <strong>What is wrong — and what is right — about that conclusion?</strong> In your answer, separate statistical from economic significance, comment on the role of the huge sample, and say what additional evidence you'd want before scaling the program.</p>
+        <details>
+            <summary>Show a model response</summary>
+            <p style="font-size:.88rem; color:#cdd0ee; margin-top:10px;">The t-statistic of 7.5 tells us the $38 effect is <em>statistically</em> distinguishable from zero — we can be confident the true effect is not exactly $0. But that is almost entirely a story about the <strong>enormous sample</strong>: with 2.1 million observations, standard errors shrink so far that even a trivially small effect becomes "significant." The right question is <strong>economic significance</strong>: $38 a year is roughly a rounding error in household income, and almost certainly smaller than the per-person cost of running the program. So the policymaker is right that the effect is real and positive, but wrong to treat a tiny p-value as evidence that the effect is <em>large</em> or that expansion passes a cost-benefit test.</p>
+            <p style="font-size:.88rem; color:#cdd0ee;">Before scaling, I'd want: (1) a confidence interval on the dollar effect, not just a p-value, to see the plausible range; (2) the program's per-participant cost, to compute net benefit; (3) evidence the design is causal (random assignment or a credible quasi-experiment), since a significant OLS coefficient can still be biased by omitted variables; and (4) heterogeneity — whether the average hides large gains for some subgroups.</p>
+            <p style="font-size:.85rem; color:var(--green); margin-top:10px;">✓ Self-check rubric: Did you (a) state that significance ≠ large effect, (b) explain how sample size drives the small p-value, (c) raise cost-benefit / economic magnitude, and (d) note that significance does not establish causality? A strong answer hits all four.</p>
+        </details>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Every test today rested on a quiet assumption: that the standard errors are computed correctly. <strong>Week 7</strong> breaks that assumption — when error variance isn't constant (heteroskedasticity), the classical SEs are wrong and so are your t- and F-tests, until you switch to robust standard errors. The F-test for nested models is also the gateway to <em>structural-break</em> and <em>Chow</em> tests later in the course, and the same likelihood-ratio logic reappears in the maximum-likelihood models of C4. In the Quant Finance track, joint F-tests are exactly how you test whether a set of risk factors jointly explains asset returns.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The t-statistic for testing H₀: β<sub>j</sub> = 0 is computed as…</div>
+            <div class="opt"><b>A.</b> β̂<sub>j</sub> divided by its standard error</div>
+            <div class="opt"><b>B.</b> β̂<sub>j</sub> multiplied by its standard error</div>
+            <div class="opt"><b>C.</b> the standard error divided by β̂<sub>j</sub></div>
+            <div class="opt"><b>D.</b> β̂<sub>j</sub> divided by the sample size</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> With β<sub>j0</sub> = 0, t = β̂<sub>j</sub>/SE(β̂<sub>j</sub>). B and C invert or multiply incorrectly; D confuses the SE with n.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A correct interpretation of a p-value of 0.03 is…</div>
+            <div class="opt"><b>A.</b> there is a 3% chance the null hypothesis is true</div>
+            <div class="opt"><b>B.</b> if H₀ were true, there is a 3% chance of data at least this extreme</div>
+            <div class="opt"><b>C.</b> the effect is 3% as large as it could be</div>
+            <div class="opt"><b>D.</b> we are 3% confident in the alternative hypothesis</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A p-value is a tail probability computed <em>assuming H₀ is true</em>. A wrongly states it's the probability H₀ is true; C and D are not probabilities the p-value reports.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The F-test for joint significance is preferred over running several separate t-tests because…</div>
+            <div class="opt"><b>A.</b> the F-test always gives a smaller p-value</div>
+            <div class="opt"><b>B.</b> t-tests cannot be used on more than one coefficient ever</div>
+            <div class="opt"><b>C.</b> running many separate tests inflates the chance of a false positive, while the F-test assesses the restrictions jointly</div>
+            <div class="opt"><b>D.</b> the F-test does not require any degrees of freedom</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Multiple separate tests raise the family-wise error rate; the F-test handles all q restrictions in one shot. A is false (no guarantee), B is false, and D is false — F uses (q, n−k−1) df.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Compared with R², the adjusted R²…</div>
+            <div class="opt"><b>A.</b> can never decrease when a regressor is added</div>
+            <div class="opt"><b>B.</b> equals R² only when the sample size is infinite</div>
+            <div class="opt"><b>C.</b> is a formal hypothesis test of model fit</div>
+            <div class="opt"><b>D.</b> can fall when an added regressor doesn't improve fit enough to justify its lost degree of freedom</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Adjusted R² penalizes extra regressors, so it can decline — that's its whole point. A describes plain R²; B is false; C is wrong because neither R² is a hypothesis test.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> For a single linear restriction (q = 1), the relationship between the F-statistic and the t-statistic is…</div>
+            <div class="opt"><b>A.</b> F = t²</div>
+            <div class="opt"><b>B.</b> F = |t|</div>
+            <div class="opt"><b>C.</b> F = 2t</div>
+            <div class="opt"><b>D.</b> there is no relationship</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> With one restriction the F-statistic is exactly the square of the corresponding t-statistic, so the two tests agree. B, C, and D misstate this exact identity.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Framed economic claims as a <b>null and alternative hypothesis</b> about coefficients, testing by provisional contradiction.</li>
+            <li>Computed and interpreted the <b>t-test</b> (t = β̂/SE) and read <b>p-values</b> against a significance level α.</li>
+            <li>Built the <b>F-test</b> from restricted vs. unrestricted SSR to test the <b>joint significance</b> of several coefficients and compare nested models.</li>
+            <li>Distinguished <b>R² from adjusted R²</b> and saw why raw R² never falls when you add regressors.</li>
+            <li>Separated <b>statistical from economic significance</b>, and learned what a p-value does and does not say.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: <b>Heteroskedasticity &amp; Robust SEs</b>. When the error variance isn't constant, today's standard errors break — and so do these tests — until we fix them with robust inference.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-inference-standard-errors.html"><div class="dir">← Week 5</div><div class="ttl">Inference: Standard Errors &amp; t-tests</div></a>
+        <a class="next" href="l07-heteroskedasticity.html"><div class="dir">Week 7 →</div><div class="ttl">Heteroskedasticity &amp; Robust SEs</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Econometrics</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

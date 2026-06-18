@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C2 · Lecture 4 — Autocorrelation &amp; Stationarity</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C2 Time Series</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Autocorrelation &amp; Stationarity</h1>
+        <p class="sub">Before you can forecast a series, you must ask whether its statistical rules hold still long enough to be learned — and whether today secretly remembers yesterday.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define the autocorrelation function (ACF) and read a correlogram to spot memory in a series.</li>
+            <li>Distinguish the partial autocorrelation function (PACF) from the ACF and explain what each isolates.</li>
+            <li>State weak vs strict stationarity and explain why stationarity is the precondition for forecasting.</li>
+            <li>Recognize a unit root and read the Augmented Dickey–Fuller (ADF) test as a hypothesis test for non-stationarity.</li>
+            <li>Apply differencing to turn a non-stationary price series into a stationary return series.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>Autocorrelation: Does Today Remember Yesterday?</h2>
+        <p>A time series is a sequence of observations indexed by time: <span class="key">x<sub>1</sub>, x<sub>2</sub>, …, x<sub>T</sub></span>. Ordinary correlation (Course 1) measures the linear association between two <em>different</em> variables. <strong>Autocorrelation</strong> measures the correlation of a series with a time-shifted copy of <em>itself</em>. Shift the series back by <span class="key">k</span> periods — the <strong>lag</strong> — line it up against the original, and compute the correlation. Do that for every lag and you get the <strong>autocorrelation function (ACF)</strong>.</p>
+        <div class="eq">ρ(k) = Cov(x<sub>t</sub>, x<sub>t−k</sub>) / Var(x<sub>t</sub>) = γ(k) / γ(0)<small>γ(k) is the autocovariance at lag k; dividing by γ(0)=Var(x<sub>t</sub>) rescales it to a correlation in [−1, 1]. By construction ρ(0) = 1.</small></div>
+        <p>Why a quant cares: autocorrelation <em>is</em> predictability. If ρ(1) is meaningfully positive, an up-move today raises the odds of an up-move tomorrow — a <strong>momentum</strong> or <strong>trend</strong> signal. If ρ(1) is negative, moves tend to reverse — a <strong>mean-reversion</strong> signal that pairs-trading and market-making strategies live on. A series whose ACF is essentially zero at every lag is <strong>white noise</strong>: unforecastable from its own past, which is roughly what efficient-market theory predicts for raw asset returns.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Autocorrelation is an <strong>echo test</strong>. Clap once in a canyon: if you hear a strong echo half a second later, the environment "remembers" your clap at lag = 0.5s. A price series with positive ρ(1) echoes its last move into the next one; white noise is an anechoic chamber — the past leaves no audible trace.</div>
+        <p>We estimate ρ(k) from data with the sample autocorrelation, summing lagged products of the de-meaned series and normalizing by the total variation:</p>
+        <div class="eq">r(k) = Σ<sub>t=k+1</sub><sup>T</sup> (x<sub>t</sub> − x̄)(x<sub>t−k</sub> − x̄) ⁄ Σ<sub>t=1</sub><sup>T</sup> (x<sub>t</sub> − x̄)²</div>
+        <p>Plotting r(k) against k gives the <strong>correlogram</strong>. For white noise, each bar is approximately Normal(0, 1/T), so the band ±1.96/√T marks the 95% "indistinguishable-from-zero" zone. Bars poking outside it flag real, exploitable memory.</p>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Partial Autocorrelation: Direct vs Inherited Memory</h2>
+        <p>The ACF has a blind spot. Suppose today depends on yesterday and yesterday depended on the day before. Then today is correlated with two days ago — but only <em>indirectly</em>, through yesterday. The ACF at lag 2 reports that inherited correlation as if it were real direct memory.</p>
+        <p>The <strong>partial autocorrelation function (PACF)</strong> strips out the middlemen. The PACF at lag k is the correlation between x<sub>t</sub> and x<sub>t−k</sub> <em>after removing the linear effect of all the lags in between</em> (1 through k−1). It answers: once I already know the recent past, does going one step further back tell me anything <em>new</em>?</p>
+        <div class="eq">PACF(k) = Corr( x<sub>t</sub>, x<sub>t−k</sub> | x<sub>t−1</sub>, …, x<sub>t−k+1</sub> )<small>The correlation that remains after the intermediate lags are regressed out. PACF(1) = ρ(1) always, since there is nothing in between to control for.</small></div>
+        <p>This pair of plots is the practitioner's fingerprint kit for choosing a model (you will fit these in Weeks 5–6). The classic reading:</p>
+        <table class="dist">
+            <thead><tr><th>Pattern</th><th>ACF</th><th>PACF</th><th>Suggests</th></tr></thead>
+            <tbody>
+                <tr><td><b>AR(p)</b> — autoregressive</td><td>tails off (decays gradually)</td><td>cuts off after lag p</td><td>order p from the PACF</td></tr>
+                <tr><td><b>MA(q)</b> — moving average</td><td>cuts off after lag q</td><td>tails off</td><td>order q from the ACF</td></tr>
+                <tr><td><b>White noise</b></td><td>all bars inside the band</td><td>all bars inside the band</td><td>nothing to model</td></tr>
+            </tbody>
+        </table>
+        <div class="box warn"><span class="lbl">Common mistake</span>Reading a large ACF at lag 2 as "two-day memory" when the PACF at lag 2 is near zero. That lag-2 correlation is <em>inherited</em> through lag 1, not direct. Always read ACF and PACF together — the ACF tells you <em>that</em> there is memory; the PACF tells you <em>how far back the direct memory truly reaches</em>.</div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 760 230" role="img" aria-label="Two correlograms side by side. Left is the ACF: a tall bar near 1 at lag 0 then bars that decay gradually toward zero. Right is the PACF: a tall bar near 1 at lag 0, a bar at lag 1, then bars near zero inside the confidence band.">
+            <!-- LEFT PANEL: ACF tails off -->
+            <text x="190" y="20" fill="#fcd34d" font-size="13" text-anchor="middle" font-weight="bold">ACF — tails off (AR memory)</text>
+            <!-- zero axis -->
+            <line x1="40" y1="120" x2="350" y2="120" stroke="#bcae8c" stroke-width="1.5"/>
+            <!-- y axis -->
+            <line x1="40" y1="40" x2="40" y2="200" stroke="#bcae8c" stroke-width="1.5"/>
+            <text x="22" y="58" fill="#bcae8c" font-size="10">+1</text>
+            <text x="20" y="124" fill="#bcae8c" font-size="10">0</text>
+            <text x="330" y="138" fill="#bcae8c" font-size="10">lag k</text>
+            <!-- confidence band -->
+            <rect x="40" y="110" width="310" height="20" fill="rgba(96,165,250,.10)"/>
+            <line x1="40" y1="110" x2="350" y2="110" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 3"/>
+            <line x1="40" y1="130" x2="350" y2="130" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 3"/>
+            <!-- bars: lag 0 = 1, then decaying -->
+            <g fill="#fbbf24">
+                <rect x="58"  y="56"  width="14" height="64"/>
+                <rect x="92"  y="78"  width="14" height="42"/>
+                <rect x="126" y="92"  width="14" height="28"/>
+                <rect x="160" y="101" width="14" height="19"/>
+                <rect x="194" y="107" width="14" height="13"/>
+                <rect x="228" y="111" width="14" height="9"/>
+                <rect x="262" y="114" width="14" height="6"/>
+                <rect x="296" y="116" width="14" height="4"/>
+            </g>
+            <g fill="#bcae8c" font-size="9" text-anchor="middle">
+                <text x="65"  y="212">0</text><text x="99"  y="212">1</text><text x="133" y="212">2</text>
+                <text x="167" y="212">3</text><text x="201" y="212">4</text><text x="235" y="212">5</text>
+                <text x="269" y="212">6</text><text x="303" y="212">7</text>
+            </g>
+            <!-- RIGHT PANEL: PACF cuts off -->
+            <text x="565" y="20" fill="#fcd34d" font-size="13" text-anchor="middle" font-weight="bold">PACF — cuts off after lag 1</text>
+            <line x1="410" y1="120" x2="720" y2="120" stroke="#bcae8c" stroke-width="1.5"/>
+            <line x1="410" y1="40" x2="410" y2="200" stroke="#bcae8c" stroke-width="1.5"/>
+            <text x="392" y="58" fill="#bcae8c" font-size="10">+1</text>
+            <text x="392" y="124" fill="#bcae8c" font-size="10">0</text>
+            <text x="700" y="138" fill="#bcae8c" font-size="10">lag k</text>
+            <rect x="410" y="110" width="310" height="20" fill="rgba(96,165,250,.10)"/>
+            <line x1="410" y1="110" x2="720" y2="110" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 3"/>
+            <line x1="410" y1="130" x2="720" y2="130" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 3"/>
+            <g fill="#34d399">
+                <rect x="428" y="56"  width="14" height="64"/>
+                <rect x="462" y="80"  width="14" height="40"/>
+                <rect x="496" y="116" width="14" height="4"/>
+                <rect x="530" y="117" width="14" height="3"/>
+                <rect x="564" y="121" width="14" height="3"/>
+                <rect x="598" y="116" width="14" height="4"/>
+                <rect x="632" y="118" width="14" height="2"/>
+                <rect x="666" y="121" width="14" height="2"/>
+            </g>
+            <g fill="#bcae8c" font-size="9" text-anchor="middle">
+                <text x="435" y="212">0</text><text x="469" y="212">1</text><text x="503" y="212">2</text>
+                <text x="537" y="212">3</text><text x="571" y="212">4</text><text x="605" y="212">5</text>
+                <text x="639" y="212">6</text><text x="673" y="212">7</text>
+            </g>
+        </svg>
+        <figcaption>Two correlograms for the same AR(1)-style series. The ACF (left, gold) decays gradually because lag-2, lag-3, … memory is inherited through lag 1. The PACF (right, green) shows only the <em>direct</em> link: a spike at lag 1, then everything collapses inside the ±1.96/√T band (blue). Read together, they say "one step of direct memory."</figcaption>
+    </figure>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Stationarity: Why the Rules Must Hold Still</h2>
+        <p>Forecasting rests on a quiet assumption: that the statistical behavior you learned from the past still applies to the future. If the mean, variance, and correlation structure drift over time, then yesterday's fitted model describes a world that no longer exists. <strong>Stationarity</strong> is the formal name for "the rules hold still."</p>
+        <p>There are two grades. <strong>Strict stationarity</strong> demands that the <em>entire</em> joint distribution of any block of observations be unchanged by a time shift — a very strong, rarely-testable condition. <strong>Weak (covariance) stationarity</strong> asks only for the first two moments to be stable, which is all most models need:</p>
+        <div class="eq">E[x<sub>t</sub>] = μ &nbsp; (constant) &nbsp;&nbsp; Var(x<sub>t</sub>) = σ² &nbsp; (constant) &nbsp;&nbsp; Cov(x<sub>t</sub>, x<sub>t−k</sub>) = γ(k) &nbsp; (depends only on k, not on t)<small>Constant mean, constant variance, and an autocovariance that depends only on the gap k between two points — never on <em>when</em> they occur.</small></div>
+        <p>That third condition is what makes the ACF meaningful at all: only under stationarity is "the correlation at lag k" a single well-defined number rather than something that changes depending on which slice of history you measure. <strong>Raw asset prices are almost never stationary</strong> — they trend, and their variance grows over time. <strong>Returns</strong>, by contrast, are much closer to stationary, which is the deep reason Lecture 3's stylized facts were all stated about returns, not prices.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Stationarity is a <strong>level playing field</strong>. Imagine measuring a high-jumper's success rate, but the bar is silently being raised every round. Any "average success rate" you compute is meaningless — it mixes easy early rounds with impossible late ones. Differencing (§4.4) is like re-measuring jumps <em>relative to the current bar height</em>: a stable, comparable quantity you can actually model.</div>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>Unit Roots, the ADF Test &amp; Differencing</h2>
+        <p>The canonical non-stationary process is the <strong>random walk</strong> (Course 1, Week 5): tomorrow equals today plus an unpredictable shock. Write it as an AR(1) with coefficient φ:</p>
+        <div class="eq">x<sub>t</sub> = φ·x<sub>t−1</sub> + ε<sub>t</sub>,&nbsp;&nbsp; ε<sub>t</sub> ~ white noise<small>If |φ| &lt; 1 the series is stationary and pulls back toward its mean. If φ = 1 it is a random walk — a "unit root" — and wanders without bound.</small></div>
+        <p>When <span class="key">φ = 1</span> the process has a <strong>unit root</strong>: shocks never decay, the series has no fixed level to return to, and its variance grows linearly with time. A unit root is the mathematical signature of non-stationarity. The <strong>Augmented Dickey–Fuller (ADF) test</strong> formalizes the check. It rewrites the equation in differenced form and tests whether the level term truly pulls the series back:</p>
+        <div class="eq">Δx<sub>t</sub> = α + β·t + γ·x<sub>t−1</sub> + Σ δ<sub>i</sub>Δx<sub>t−i</sub> + ε<sub>t</sub><small>γ = φ − 1. The "augmented" part is the lagged-difference Σ δ<sub>i</sub>Δx<sub>t−i</sub> terms, which soak up short-run autocorrelation so the test isn't fooled by it.</small></div>
+        <p>The hypotheses are framed around γ:</p>
+        <div class="eq">H<sub>0</sub>: γ = 0 (unit root, non-stationary)&nbsp;&nbsp; vs &nbsp;&nbsp;H<sub>1</sub>: γ &lt; 0 (stationary)</div>
+        <p>A strongly negative γ means the level term actively drags the series back toward equilibrium — evidence <em>against</em> a unit root. The ADF statistic is that estimate divided by its standard error, but it does <strong>not</strong> follow a normal distribution, so it uses special Dickey–Fuller critical values. In practice you read the <strong>p-value</strong>: small p (say &lt; 0.05) ⟹ reject H<sub>0</sub> ⟹ call the series stationary.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Getting the null backwards. ADF's null hypothesis is "<em>non-stationary</em> (has a unit root)." A <strong>large</strong> p-value does not confirm stationarity — it merely fails to reject non-stationarity. To claim a series is stationary you need a <strong>small</strong> p-value. Treating "p = 0.40" as a green light is a classic way to fit a model on a series that is still wandering.</div>
+        <h3>Differencing to achieve stationarity</h3>
+        <p>If a series fails the test, the standard fix is <strong>differencing</strong>: model the change instead of the level.</p>
+        <div class="eq">Δx<sub>t</sub> = x<sub>t</sub> − x<sub>t−1</sub><small>One difference removes a single unit root. A series needing d differences to become stationary is "integrated of order d," written I(d); models built on it are the "I" in ARIMA (Week 6).</small></div>
+        <p>For prices this is exactly the move you already know: differencing the (log) price gives the <strong>return</strong>. A trending, unit-root price series I(1) becomes a roughly stationary I(0) return series — finally something whose ACF, mean, and variance you can trust enough to model. The art is differencing <em>enough</em> to reach stationarity but no more, since over-differencing injects artificial negative autocorrelation that corrupts the ACF you just worked to clean.</p>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 760 250" role="img" aria-label="Top panel shows a wandering random-walk price series that drifts upward and never settles, labeled non-stationary. Bottom panel shows its first difference fluctuating around a flat zero line, labeled stationary returns.">
+            <!-- TOP: random walk price (non-stationary) -->
+            <text x="380" y="18" fill="#fcd34d" font-size="13" text-anchor="middle" font-weight="bold">Price level — wanders (non-stationary, unit root)</text>
+            <line x1="40" y1="115" x2="730" y2="115" stroke="#bcae8c" stroke-width="1.2"/>
+            <line x1="40" y1="30" x2="40" y2="115" stroke="#bcae8c" stroke-width="1.2"/>
+            <text x="700" y="110" fill="#bcae8c" font-size="10">time →</text>
+            <!-- wandering walk, never returns -->
+            <path d="M40,100 L80,92 L120,98 L160,80 L200,84 L240,68 L280,74 L320,58 L360,62 L400,48 L440,52 L480,42 L520,46 L560,38 L600,44 L640,36 L680,40 L730,34"
+                  fill="none" stroke="#fbbf24" stroke-width="2.2"/>
+            <!-- BOTTOM: differenced returns (stationary) -->
+            <text x="380" y="158" fill="#6ee7b7" font-size="13" text-anchor="middle" font-weight="bold">First difference Δx — fluctuates around 0 (stationary)</text>
+            <!-- zero line -->
+            <line x1="40" y1="205" x2="730" y2="205" stroke="#34d399" stroke-width="1.4" stroke-dasharray="5 4"/>
+            <text x="20" y="209" fill="#6ee7b7" font-size="10">0</text>
+            <line x1="40" y1="172" x2="40" y2="238" stroke="#bcae8c" stroke-width="1.2"/>
+            <!-- differences oscillating about zero -->
+            <path d="M40,205 L80,190 L120,216 L160,184 L200,212 L240,182 L280,214 L320,186 L360,210 L400,180 L440,213 L480,185 L520,211 L560,183 L600,215 L640,184 L680,209 L730,188"
+                  fill="none" stroke="#60a5fa" stroke-width="2"/>
+        </svg>
+        <figcaption>Differencing in one picture. The price level (top, gold) is a random walk: it drifts upward and never returns to any fixed mean — a unit root. Its first difference Δx (bottom, blue) oscillates around a constant zero line with stable spread — a stationary series the ADF test would pass and a forecasting model can use.</figcaption>
+    </figure>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — ACF of a short return series, by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A tiny daily-return series (in %) over five days: <strong>x = [+2, −1, +2, −1, +2]</strong>. Compute the lag-1 sample autocorrelation r(1) and interpret it.</p>
+        <ol>
+            <li><strong>Sample mean:</strong> x̄ = (2 − 1 + 2 − 1 + 2) / 5 = 4/5 = <strong>0.8</strong>.</li>
+            <li><strong>De-mean the series:</strong> deviations d<sub>t</sub> = x<sub>t</sub> − 0.8 are [+1.2, −1.8, +1.2, −1.8, +1.2].</li>
+            <li><strong>Denominator</strong> Σd<sub>t</sub>² = 1.2² + 1.8² + 1.2² + 1.8² + 1.2² = 1.44 + 3.24 + 1.44 + 3.24 + 1.44 = <strong>10.8</strong>.</li>
+            <li><strong>Lag-1 cross products</strong> d<sub>t</sub>·d<sub>t−1</sub> for t = 2..5: (−1.8)(1.2) + (1.2)(−1.8) + (−1.8)(1.2) + (1.2)(−1.8) = −2.16 − 2.16 − 2.16 − 2.16 = <strong>−8.64</strong>.</li>
+            <li><strong>Lag-1 autocorrelation:</strong> r(1) = −8.64 / 10.8 = <strong>−0.80</strong>.</li>
+            <li><strong>Interpret:</strong> a strongly negative r(1) means the series <em>alternates</em> — an up-day is followed by a down-day. That is textbook <strong>mean reversion</strong>; a contrarian rule (fade today's move) would have predicted tomorrow's sign perfectly in this toy data. (With only T = 5 the white-noise band ±1.96/√5 ≈ ±0.88 is wide, so even this striking pattern is borderline-significant — a reminder that short samples lie.)</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: ACF, PACF, and an ADF test on real prices</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1/2 environment (NumPy + pandas + Matplotlib — install block is in <a href="../../c1-probability-stochastic/lectures/l01-probability-expectation.html" style="color:var(--accent2);">C1 Lecture 1</a>). This lecture adds two new tools — <code>yfinance</code> for data and <code>statsmodels</code> for the ACF/PACF/ADF machinery — so install just those.</p>
+        <details class="install">
+            <summary>⬇ New this lecture: yfinance + statsmodels</summary>
+            <p>Activate your existing <code>quant-env</code>, then add the two new packages:</p>
+            <pre>source quant-env/bin/activate      <span class="c"># macOS / Linux  (quant-env\Scripts\activate on Windows)</span>
+pip install yfinance statsmodels</pre>
+            <p><strong>Verify:</strong> <code>python -c "import statsmodels, yfinance; print('ok')"</code> should print <code>ok</code>.</p>
+        </details>
+        <pre><span class="c"># acf_stationarity.py — Lecture 4</span>
+import numpy as np, yfinance as yf
+from statsmodels.tsa.stattools import adfuller, acf
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+import matplotlib.pyplot as plt
+
+<span class="c"># 1. Daily closing prices for a broad equity index ETF</span>
+px = yf.download("SPY", start="2015-01-01", end="2023-01-01")["Close"].dropna()
+ret = np.log(px).diff().dropna()        <span class="c"># log-returns = first difference of log-price</span>
+
+<span class="c"># 2. ADF test on the PRICE level vs the RETURNS</span>
+def report(name, s):
+    stat, p = adfuller(s.values)[:2]
+    verdict = "STATIONARY (reject unit root)" if p &lt; 0.05 else "non-stationary"
+    print(f"{name:8s}  ADF={stat:7.3f}  p={p:6.3f}  -&gt; {verdict}")
+
+report("price", px)     <span class="c"># large p  -&gt; non-stationary (unit root, as expected)</span>
+report("return", ret)   <span class="c"># tiny p   -&gt; stationary, safe to model</span>
+
+<span class="c"># 3. Correlogram of returns: is there exploitable memory?</span>
+print("first 5 ACF lags of returns:", np.round(acf(ret, nlags=5)[1:], 3))
+fig, ax = plt.subplots(1, 2, figsize=(11, 3))
+plot_acf(ret, lags=20, ax=ax[0]);  plot_pacf(ret, lags=20, ax=ax[1])
+plt.tight_layout();  plt.savefig("correlogram.png", dpi=120)</pre>
+        <p style="font-size:.88rem; color:var(--text2);">You will see the price fail the ADF test (large p-value, wandering) while the returns pass it decisively (tiny p-value). The return correlogram bars mostly sit inside the ±1.96/√T band — daily equity returns are close to white noise, exactly the efficient-market prediction. The handful of bars that poke out (often a small negative lag-1, or seasonal lags) are precisely where systematic strategies go hunting for edge.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The ACF/PACF fingerprint and the stationarity check are the gateway to the modeling weeks. Next week's <strong>moving averages and smoothing</strong> are the simplest filters that exploit (or remove) autocorrelation; Week 6's <strong>ARIMA</strong> models read the exact ACF/PACF shapes from §4.2 to pick their AR and MA orders, with the "I" being the differencing you learned here. The volatility-clustering you saw in Lecture 3 reappears as autocorrelation in <em>squared</em> returns — the launchpad for <strong>GARCH</strong> volatility models later in the specialization. <span class="key">Project checkpoint (Week 4):</span> on your chosen ticker, produce a one-page diagnostic — an ADF test on both the price and the returns plus an annotated ACF/PACF of the returns — concluding which series is stationary and what order of differencing your capstone forecasting model will require. That artifact is the foundation every later model in your project will build on.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The autocorrelation function ρ(k) of a time series measures…</div>
+            <div class="opt"><b>A.</b> the correlation between two different assets at the same time</div>
+            <div class="opt"><b>B.</b> the correlation of the series with a copy of itself shifted by k periods</div>
+            <div class="opt"><b>C.</b> the variance of the series at time k</div>
+            <div class="opt"><b>D.</b> the probability that the series is stationary</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Autocorrelation is the correlation of a series with its own lag-k copy. Correlation between two different variables (A) is ordinary cross-correlation. Variance (C) is a single-point spread, not a lagged relationship. Stationarity is a property tested separately, not a probability the ACF returns (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A series has an ACF that decays slowly across many lags but a PACF that shows one large spike at lag 1 and near-zero bars afterward. The lag-2 ACF being non-zero is best explained by…</div>
+            <div class="opt"><b>A.</b> direct two-day memory in the series</div>
+            <div class="opt"><b>B.</b> a unit root that must be differenced away</div>
+            <div class="opt"><b>C.</b> measurement error in the data</div>
+            <div class="opt"><b>D.</b> correlation inherited through lag 1, not a direct lag-2 link</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> A PACF that cuts off after lag 1 says the only <em>direct</em> memory is one step; the lag-2 ACF is inherited through lag 1. Direct two-day memory (A) would show up as a PACF spike at lag 2, which is absent. A unit root (B) would show an ACF that barely decays at all, not the clean AR(1) decay described, and it would not be diagnosed from this pattern alone. Measurement error (C) is unrelated.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Which set of conditions defines weak (covariance) stationarity?</div>
+            <div class="opt"><b>A.</b> constant mean, constant variance, and an autocovariance that depends only on the lag k</div>
+            <div class="opt"><b>B.</b> the full joint distribution is unchanged by any time shift</div>
+            <div class="opt"><b>C.</b> the series has zero mean and is normally distributed</div>
+            <div class="opt"><b>D.</b> all autocorrelations are exactly zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Weak stationarity constrains only the first two moments: constant mean, constant variance, and a lag-only autocovariance. An unchanged full joint distribution (B) is the stronger <em>strict</em> stationarity. Zero-mean normality (C) is neither required nor sufficient. Zero autocorrelation everywhere (D) describes white noise — a special stationary case, not the definition.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> You run an Augmented Dickey–Fuller test on a price series and get a p-value of 0.62. The correct conclusion is…</div>
+            <div class="opt"><b>A.</b> the series is definitely stationary</div>
+            <div class="opt"><b>B.</b> the test is invalid and should be discarded</div>
+            <div class="opt"><b>C.</b> you fail to reject the null of a unit root — the series is treated as non-stationary</div>
+            <div class="opt"><b>D.</b> the series has exactly one unit root and needs no differencing</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> ADF's null is "has a unit root (non-stationary)." A large p-value (0.62) fails to reject that null, so you treat the series as non-stationary. It does not prove stationarity (A) — that needs a <em>small</em> p-value. The test is perfectly valid (B). And a non-rejection signals you likely <em>do</em> need to difference, contradicting D's "needs no differencing."</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why do quants almost always model asset <em>returns</em> rather than raw <em>prices</em>?</div>
+            <div class="opt"><b>A.</b> Returns are always normally distributed</div>
+            <div class="opt"><b>B.</b> Prices typically have a unit root and are non-stationary, whereas differencing into returns yields a roughly stationary series</div>
+            <div class="opt"><b>C.</b> Returns have no autocorrelation by definition</div>
+            <div class="opt"><b>D.</b> Prices cannot be downloaded reliably</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Prices trend and their variance grows (a unit root); differencing the log-price into returns removes that root and gives a stationary series whose mean, variance, and ACF are stable enough to model. Returns are <em>not</em> always normal (A) — Lecture 3 showed fat tails. They can carry small autocorrelation (C). And data availability (D) has nothing to do with it.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined the <b>ACF</b> ρ(k) = γ(k)/γ(0) as a series' correlation with its own lag, and read a <b>correlogram</b> against the ±1.96/√T white-noise band.</li>
+            <li>Separated the <b>PACF</b> (direct memory, intermediate lags controlled out) from the ACF (total memory), and used both to fingerprint AR(p) vs MA(q).</li>
+            <li>Stated <b>weak vs strict stationarity</b> and why a constant mean, variance, and lag-only autocovariance are the precondition for any forecast to be trustworthy.</li>
+            <li>Recognized a <b>unit root</b> (φ = 1) as the signature of non-stationarity and read the <b>ADF test</b>'s null as "non-stationary," requiring a small p-value to reject.</li>
+            <li>Used <b>differencing</b> to turn an I(1) price into a stationary I(0) return series — and saw it confirmed by ADF on real data in statsmodels.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: moving averages and smoothing — the simplest filters for separating signal from noise, and your first hands-on use of the autocorrelation structure you just learned to read.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-stylized-facts.html"><div class="dir">← Week 3</div><div class="ttl">Stylized Facts of Returns</div></a>
+        <a class="next" href="l05-moving-averages.html"><div class="dir">Week 5 →</div><div class="ttl">Moving Averages &amp; Smoothing</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Time Series</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

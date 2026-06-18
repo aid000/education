@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Lecture 6 — Investing II: Risk, Return &amp; Why Active Underperforms</title>
+    <style>
+        :root {
+            --bg: #0a1410; --surface: #0f1f18; --surface2: #16291f; --border: #1f3a2c;
+            --text: #e9f5ee; --text2: #9fc2b0; --accent: #10b981; --accent2: #34d399;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2519 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(16,185,129,.14); border: 1px solid rgba(16,185,129,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f8a72; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        /* ── DISCUSSION (interactive prototype) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(192,132,252,.12); border: 1px solid rgba(192,132,252,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #06140d; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Intro</a> / <a href="../index.html">C5 Personal Finance &amp; Wealth-Building Mindset</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Investing II — Risk, Return &amp; Why Active Underperforms</h1>
+        <p class="sub">Higher returns come bundled with bigger swings — and the people paid to beat the market mostly don't, once you count their fees.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="box warn" style="margin-top:28px;">
+        <span class="lbl">⚠ Educational only — not advice</span>
+        Educational only — <strong>not financial, tax, or investment advice</strong>. Figures are illustrative and dated; verify current numbers with the <strong>IRS / SSA</strong> and a qualified professional before acting. Long-run market returns are historical averages, not promises — any given decade can look very different.
+    </div>
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain the risk–return relationship and why expected return is the price you pay for bearing volatility.</li>
+            <li>Define volatility (standard deviation) and drawdown, and read them off a price path.</li>
+            <li>Explain — using fees and arithmetic — why most active funds underperform a cheap index over long horizons (citing the general SPIVA-style evidence without overstating it).</li>
+            <li>Name the main behavioral pitfalls (performance-chasing, panic-selling, overconfidence) and how they quietly cost returns.</li>
+            <li>Use Python + yfinance to measure the volatility and max drawdown of a real index.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Risk and Return Are Joined at the Hip</h2>
+        <p>In <a href="l05-investing-i-compounding-index-funds-and.html" style="color:var(--accent2);">Investing I</a> you saw compounding and why a low-cost, broadly diversified index fund is a sensible default. This week we look at the <em>other</em> side of the coin: the swings you must tolerate to earn those returns, and why the professionals paid to dodge those swings rarely beat the index after fees.</p>
+        <p>The central law of investing is simple: <strong>expected return is compensation for bearing risk.</strong> A U.S. Treasury bill is nearly risk-free, so it pays little. Stocks can drop 30–50% in a bad year, so over the long run they have paid more — a "risk premium" — to convince people to hold them through the scary parts.</p>
+        <div class="eq">expected return ≈ risk-free rate + risk premium<small>You don't get paid for taking risk you could have diversified away — only for the risk that remains.</small></div>
+        <p>There's a crucial subtlety: you are only rewarded for <span class="key">non-diversifiable</span> risk. The risk that one company blows up can be diluted by holding hundreds of companies, so the market doesn't pay you to concentrate in a single stock — it just pays you for the risk that <em>all</em> stocks move together (recessions, rate shocks). That's the deep reason diversification is "the only free lunch in finance."</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of return as <strong>wages</strong> and risk as <strong>how unpleasant the job is</strong>. Pleasant, safe jobs (a T-bill) pay little; jobs with stomach-churning ups and downs (stocks) pay a premium to get anyone to show up. But you only get hazard pay for hazards you <em>can't</em> avoid — nobody pays you extra for refusing to wear the free safety gear (diversification).</div>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>Measuring Risk: Volatility &amp; Drawdown</h2>
+        <p>"Risk" is fuzzy, so we measure it two concrete ways.</p>
+        <p><strong>Volatility</strong> is the standard deviation of returns — how widely returns scatter around their average. The broad U.S. stock market has historically had an annual volatility of roughly <strong>15–20%</strong> (as of 2026 — varies by period; verify against current data). Volatility scales with the square root of time, which is why a single day looks calm and a single year looks wild:</p>
+        <div class="eq">σ<sub>annual</sub> ≈ σ<sub>daily</sub> × √252<small>252 ≈ trading days per year. A 1%/day market implies ≈ 1% × 15.9 ≈ 16% per year.</small></div>
+        <p><strong>Drawdown</strong> is the more visceral measure: how far you are below your previous peak, right now. The <span class="key">maximum drawdown</span> is the worst peak-to-trough fall over a period — the deepest the pain ever got before recovery.</p>
+        <div class="eq">drawdown(t) = (value(t) − peak-so-far) / peak-so-far<small>Always ≤ 0. The broad market has endured drawdowns worse than −50% (e.g., 2007–09) — historical, verify.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="A rising but jagged price path with a peak, a deep trough below it, and the vertical gap between them labeled as maximum drawdown">
+                <line x1="44" y1="180" x2="362" y2="180" stroke="#9fc2b0" stroke-width="1.5"/>
+                <line x1="44" y1="30" x2="44" y2="180" stroke="#9fc2b0" stroke-width="1.5"/>
+                <text x="20" y="40" fill="#9fc2b0" font-size="11">value</text>
+                <text x="320" y="198" fill="#9fc2b0" font-size="11">time →</text>
+                <!-- price path: rises, peaks, crashes, recovers higher -->
+                <path d="M44,160 L90,150 L120,120 L150,70 L168,60 L168,60 L190,130 L210,150 L230,140 L260,100 L300,70 L340,50" fill="none" stroke="#10b981" stroke-width="2.5"/>
+                <!-- peak marker -->
+                <circle cx="168" cy="60" r="3.5" fill="#34d399"/>
+                <line x1="168" y1="60" x2="210" y2="60" stroke="#34d399" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="150" y="52" fill="#34d399" font-size="10">peak</text>
+                <!-- trough marker -->
+                <circle cx="210" cy="150" r="3.5" fill="#fbbf24"/>
+                <text x="214" y="166" fill="#fbbf24" font-size="10">trough</text>
+                <!-- drawdown gap -->
+                <line x1="210" y1="60" x2="210" y2="150" stroke="#fbbf24" stroke-width="1.6" stroke-dasharray="4 4"/>
+                <text x="218" y="108" fill="#fbbf24" font-size="11">max drawdown</text>
+            </svg>
+            <figcaption>Maximum drawdown is the worst peak-to-trough drop. Two portfolios can have the same average return yet very different drawdowns — and it's the drawdown that makes people panic-sell at the bottom.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Confusing <em>volatility</em> with <em>permanent loss</em>. For a diversified index, a drawdown is a paper loss that historically recovered if you held on; it only becomes a <strong>realized</strong> loss if you sell at the bottom. The real danger isn't the drop — it's your reaction to it (see §6.4).</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Why Most Active Funds Underperform After Fees</h2>
+        <p>An <strong>active</strong> fund pays managers to pick stocks and time markets, hoping to beat a benchmark like the S&amp;P 500. A <strong>passive</strong> index fund just holds the whole market cheaply. The repeated, well-documented finding — published each period in the SPIVA U.S. Scorecard (S&amp;P Dow Jones Indices) — is that <strong>the large majority of active U.S. equity funds underperform their benchmark over 10–15 year horizons</strong> (commonly on the order of 80–90%+ over 15 years, as of 2026 — verify against the latest SPIVA scorecard, figures shift each report).</p>
+        <p>This isn't bad luck or dumb managers. It's arithmetic, made famous by William Sharpe's "Arithmetic of Active Management":</p>
+        <ol style="margin:0 0 14px 22px; font-size:.94rem;">
+            <li>Before costs, the <em>average</em> actively managed dollar must earn exactly the market return — because together all investors <em>are</em> the market. For every active winner there is an active loser.</li>
+            <li>So as a group, active investors earn the market return <strong>minus their costs</strong>. Passive investors earn the market return minus <em>tiny</em> costs.</li>
+            <li>Therefore the average active dollar must, after fees, <strong>trail the average passive dollar</strong>. Not might — must.</li>
+        </ol>
+        <p>The lever is fees. A typical active fund might charge <strong>0.5–1.0%/yr</strong>; a broad index fund can charge <strong>0.03–0.10%/yr</strong> (illustrative, as of 2026 — check current expense ratios). That gap compounds relentlessly against the active fund. A handful of managers do beat the index in any period — but identifying <em>in advance</em> which ones will keep doing so has proven extremely hard, and past winners tend not to persist.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 220" role="img" aria-label="Two growth curves over 30 years starting equal: a higher passive curve charging point zero three percent and a lower active curve charging one percent, with a widening gap labeled fee drag">
+                <line x1="44" y1="180" x2="362" y2="180" stroke="#9fc2b0" stroke-width="1.5"/>
+                <line x1="44" y1="24" x2="44" y2="180" stroke="#9fc2b0" stroke-width="1.5"/>
+                <text x="20" y="34" fill="#9fc2b0" font-size="11">$</text>
+                <text x="300" y="198" fill="#9fc2b0" font-size="11">30 years →</text>
+                <!-- passive (low fee) curve -->
+                <path d="M44,170 C140,150 240,90 360,34" fill="none" stroke="#10b981" stroke-width="2.5"/>
+                <text x="250" y="60" fill="#34d399" font-size="11">index · 0.03% fee</text>
+                <!-- active (high fee) curve -->
+                <path d="M44,170 C140,158 240,118 360,80" fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+                <text x="250" y="108" fill="#fbbf24" font-size="11">active · 1.0% fee</text>
+                <!-- fee-drag gap -->
+                <line x1="360" y1="34" x2="360" y2="80" stroke="#c084fc" stroke-width="1.6" stroke-dasharray="4 4"/>
+                <text x="232" y="150" fill="#c084fc" font-size="11">gap = compounded fee drag</text>
+            </svg>
+            <figcaption>Two funds earning the same gross return: a 1%/yr fee vs 0.03%/yr. Over decades the fee gap compounds into a large chunk of your final wealth — the headwind every active manager must overcome <em>before</em> they even start adding value.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>Behavioral Pitfalls — the Gap You Inflict on Yourself</h2>
+        <p>Even an investor who picks a perfect low-cost index fund can underperform <em>that very fund</em> — because of how they behave. Studies of investor cash flows repeatedly find a "behavior gap": the return investors actually <em>earn</em> lags the return their funds <em>report</em>, because people buy high and sell low. The usual culprits:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Performance-chasing.</strong> Pouring money into whatever just went up (last year's hot fund, a soaring stock), which is often exactly when it's most expensive.</li>
+            <li><strong>Panic-selling.</strong> Bailing out during a drawdown, converting a temporary paper loss into a permanent realized one — and usually missing the recovery.</li>
+            <li><strong>Loss aversion.</strong> A loss hurts roughly twice as much as an equal gain feels good, so we make lopsided, fear-driven decisions.</li>
+            <li><strong>Overconfidence &amp; overtrading.</strong> Believing we can time the market or pick winners; frequent trading racks up costs and taxes and, on average, lowers returns.</li>
+            <li><strong>Recency bias.</strong> Assuming the recent past (a long bull market, or a crash) will simply continue.</li>
+        </ul>
+        <div class="box analogy"><span class="lbl">Analogy</span>Investing is like a bar of soap: <strong>the more you handle it, the smaller it gets.</strong> Each "smart" intervention — chasing a winner, dodging a dip — usually subtracts return through bad timing, costs, and taxes. The best behavior is mostly <em>boring inaction</em>: automate contributions, then leave it alone.</div>
+    </section>
+
+    <!-- 6.5 -->
+    <section class="lec">
+        <h2><span class="n">6.5</span>Putting Risk to Work: the Sharpe Ratio</h2>
+        <p>If two strategies earn the same return, the one with smaller swings is better. The <strong>Sharpe ratio</strong> captures "return per unit of risk":</p>
+        <div class="eq">Sharpe = (R<sub>portfolio</sub> − R<sub>risk-free</sub>) / σ<sub>portfolio</sub><small>Excess return divided by volatility. Higher is better; it lets you compare a calm and a wild strategy fairly.</small></div>
+        <p>This is also why <strong>asset allocation</strong> (last week's topic) and diversification matter: mixing assets that don't move in lockstep can lower σ without giving up much return, <em>raising</em> the Sharpe ratio. A volatility tax also lurks here — big drawdowns drag down your compounded (geometric) return even when the simple average looks fine, which is why limiting the depth of losses matters as much as chasing the average.</p>
+        <div class="eq">geometric return ≈ arithmetic return − ½σ²<small>The "volatility drag": the wilder the ride, the more your actual compounded growth falls below the simple average.</small></div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — what a 1% fee really costs</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">You invest <strong>$10,000</strong> for <strong>30 years</strong>. The market returns <strong>7%/yr</strong> gross. Compare an index fund (0.03% fee → net 6.97%) with an active fund that <em>matches the market gross</em> but charges 1.0% (net 6.0%). Use the compound formula FV = P·(1+r)<sup>n</sup>.</p>
+        <ol>
+            <li><strong>Index fund:</strong> FV = 10,000 × (1.0697)<sup>30</sup> ≈ 10,000 × 7.55 ≈ <strong>$75,500</strong>.</li>
+            <li><strong>Active fund (same gross, higher fee):</strong> FV = 10,000 × (1.06)<sup>30</sup> ≈ 10,000 × 5.74 ≈ <strong>$57,400</strong>.</li>
+            <li><strong>The fee gap:</strong> ≈ $75,500 − $57,400 ≈ <strong>$18,100</strong> — roughly a quarter of the index outcome — handed over for a fund that merely matched the market before fees.</li>
+            <li><strong>And that's the optimistic case.</strong> Most active funds don't even match the market gross; SPIVA-style evidence says the majority trail it. So the realistic gap is usually <em>worse</em>, not better.</li>
+            <li><strong>Takeaway:</strong> a fee is a guaranteed, compounding loss; outperformance is a hope. Rule of 72 sanity check: at 7% money doubles in ~72/7 ≈ 10 years, so 30 years ≈ ~3 doublings ≈ ~8×, matching the index figure.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: measure real volatility &amp; drawdown</h3>
+        <p>Reminder: this uses the same Python + numpy/pandas/matplotlib stack from Week 1 (one-liner if needed: <code>pip install numpy pandas matplotlib yfinance</code>). No Python? A Sheets backup is noted at the end.</p>
+        <p style="margin-top:14px;">Pull a few years of a broad U.S. index ETF, then compute annualized volatility and the maximum drawdown — the two risk numbers from §6.2 — on real data.</p>
+        <pre><span class="c"># risk_metrics.py — Lecture 6</span>
+import yfinance as yf
+import numpy as np
+
+px = yf.download("VTI", start="2015-01-01")["Close"].dropna()   <span class="c"># total US market</span>
+ret = px.pct_change().dropna()
+
+vol_annual = ret.std() * np.sqrt(252)            <span class="c"># annualized volatility</span>
+print(f"annualized volatility: {float(vol_annual):.1%}")   <span class="c"># ~15-20%, varies</span>
+
+peak = px.cummax()                                <span class="c"># running peak</span>
+drawdown = (px - peak) / peak                     <span class="c"># always <= 0</span>
+print(f"max drawdown: {float(drawdown.min()):.1%}")        <span class="c"># worst peak-to-trough</span>
+
+<span class="c"># Sharpe-ish: excess return per unit of risk (assume ~4% risk-free, illustrative)</span>
+mean_annual = ret.mean() * 252
+sharpe = (mean_annual - 0.04) / vol_annual
+print(f"approx Sharpe ratio: {float(sharpe):.2f}")</pre>
+        <p style="margin-top:6px;">Now compare a single stock (e.g. <code>"TSLA"</code>) to the index: its volatility and drawdown should be far larger — that's the undiversified, <em>unrewarded</em> risk from §6.1. <strong>Sheets backup:</strong> <code>GOOGLEFINANCE("VTI","close",DATE(2015,1,1),TODAY())</code>, then use <code>STDEV</code> on daily % changes ×√252, and a running <code>MAX</code> column for drawdown.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Next week pushes on the "diversify everything" message: when does it make sense to <em>concentrate</em> — a focused portfolio, or the extreme case of betting on a startup where most of your wealth (and your job) rides on one company? You'll see how the risk–return and behavior ideas here reframe that decision, and why the math that condemns the average active fund (Week 8: hedge-fund "2 and 20", leverage) is the same math, just turned up louder.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">7 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The reason stocks have historically paid more than Treasury bills over the long run is best described as…</div>
+            <div class="opt"><b>A.</b> compensation for bearing risk (a risk premium)</div>
+            <div class="opt"><b>B.</b> a guarantee written into securities law</div>
+            <div class="opt"><b>C.</b> because stock prices never fall</div>
+            <div class="opt"><b>D.</b> the effect of inflation alone</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Expected return is the price of bearing risk. Stocks swing hard, so they must offer a premium to attract holders — no guarantee involved.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Maximum drawdown measures…</div>
+            <div class="opt"><b>A.</b> the average yearly return</div>
+            <div class="opt"><b>B.</b> the annual dividend yield</div>
+            <div class="opt"><b>C.</b> the worst peak-to-trough drop over a period</div>
+            <div class="opt"><b>D.</b> the total fees charged by a fund</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Drawdown is how far below the previous peak you are; the maximum is the deepest such fall before recovery — the number that triggers panic.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> According to the "arithmetic of active management," the average actively managed dollar, <em>after costs</em>, must…</div>
+            <div class="opt"><b>A.</b> beat the market</div>
+            <div class="opt"><b>B.</b> trail the average passive dollar</div>
+            <div class="opt"><b>C.</b> exactly match the market</div>
+            <div class="opt"><b>D.</b> earn the risk-free rate</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Before costs the average active dollar earns the market return; after subtracting higher fees it must trail low-cost passive investors. It's arithmetic, not luck.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> An investor sells their index fund during a 30% drawdown, then buys back after it recovers. This mainly illustrates…</div>
+            <div class="opt"><b>A.</b> the benefit of diversification</div>
+            <div class="opt"><b>B.</b> a low expense ratio</div>
+            <div class="opt"><b>C.</b> panic-selling, turning a paper loss into a realized one</div>
+            <div class="opt"><b>D.</b> the Sharpe ratio</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A diversified index drawdown is usually a temporary paper loss; selling at the bottom realizes it and misses the recovery — the classic behavior gap.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The risk you are <em>not</em> rewarded for bearing is…</div>
+            <div class="opt"><b>A.</b> the risk that the whole market falls in a recession</div>
+            <div class="opt"><b>B.</b> interest-rate risk affecting all assets</div>
+            <div class="opt"><b>C.</b> the company-specific risk you could have diversified away</div>
+            <div class="opt"><b>D.</b> inflation risk</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Markets pay a premium only for non-diversifiable (systematic) risk. Single-company risk can be diluted by holding many names, so concentrating in one stock adds risk without added expected reward.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q6.</span> Two funds earn the same gross 7% return. Fund A charges 0.03%/yr, Fund B charges 1.0%/yr. Over 30 years, Fund B's investor will most likely end up with…</div>
+            <div class="opt"><b>A.</b> noticeably less, because the fee compounds against them</div>
+            <div class="opt"><b>B.</b> more, because higher fees buy better management</div>
+            <div class="opt"><b>C.</b> exactly the same amount</div>
+            <div class="opt"><b>D.</b> the same plus a tax credit</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A higher fee is a guaranteed, compounding subtraction from return. As the worked example showed, ~1% can erode roughly a quarter of the final balance over 30 years.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q7.</span> The Sharpe ratio of a portfolio rises when you…</div>
+            <div class="opt"><b>A.</b> increase volatility while keeping return fixed</div>
+            <div class="opt"><b>B.</b> earn more excess return per unit of volatility (e.g., via diversification)</div>
+            <div class="opt"><b>C.</b> add more fees</div>
+            <div class="opt"><b>D.</b> hold a single concentrated stock</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Sharpe = excess return ÷ volatility. Diversifying into assets that don't move together can cut σ without sacrificing much return, raising the ratio.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Risk and return are linked</b>: expected return is the premium for bearing non-diversifiable risk — you aren't paid for risk you could have diversified away.</li>
+            <li>Two concrete risk measures: <b>volatility</b> (std. dev. of returns, ~15–20%/yr for the broad market) and <b>maximum drawdown</b> (worst peak-to-trough fall).</li>
+            <li>Why <b>most active funds underperform</b> a cheap index after fees — the arithmetic of active management plus compounding fee drag (per general SPIVA-style evidence).</li>
+            <li>The <b>behavioral pitfalls</b> — performance-chasing, panic-selling, loss aversion, overconfidence, recency bias — that open a self-inflicted "behavior gap."</li>
+            <li>The <b>Sharpe ratio</b> and volatility drag, and measuring real volatility &amp; drawdown with Python + yfinance.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Balanced vs Focused Portfolios &amp; the Startup Mindset — when (if ever) concentration is worth the risk.</p>
+    </div>
+
+    <!-- ════════════════ DISCUSSION (interactive prototype) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 2 · Week 6</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="c5-l6-d2">
+            <p class="disc-prompt" id="prompt-c5l6">Most active funds underperform a cheap index fund over time. Why — and what does that imply for where a beginner should start? Reference both the <em>arithmetic/fee</em> argument and at least one <em>behavioral</em> risk, then give one concrete first step a beginner could take.</p>
+
+            <textarea id="ans-c5l6" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-c5l6">Not saved yet</span>
+                <span class="toast" id="toast-c5l6"></span>
+            </div>
+
+            <div class="disc-model" id="model-c5l6" hidden>
+                <h4>Model response</h4>
+                <p>The core reason is <strong>arithmetic, not bad luck</strong>: in aggregate, all active investors together <em>are</em> the market, so before costs the average active dollar earns the market return — every active winner is matched by an active loser. After subtracting their higher fees (often ~0.5–1.0%/yr vs ~0.03–0.10% for an index fund), the average active dollar must trail low-cost passive investors. That fee gap compounds: over decades it can erode a large fraction of final wealth even if the fund merely <em>matched</em> the market gross. The broad, repeated SPIVA-style evidence is that the large majority of active U.S. equity funds underperform their benchmark over 10–15 years, and past winners rarely persist — so picking tomorrow's winner in advance is very hard.</p>
+                <p>On top of fund choice, investors hurt themselves <strong>behaviorally</strong>: performance-chasing (buying last year's hot fund near its top) and panic-selling during a drawdown (turning a paper loss into a permanent one) open a "behavior gap" between the return funds report and the return investors actually earn.</p>
+                <p><strong>Implication for a beginner:</strong> start with a low-cost, broadly diversified index fund inside a tax-advantaged account, automate regular contributions, and then mostly leave it alone — letting low fees and time compound while removing the temptation to time the market. One concrete first step: set up an automatic monthly contribution into a total-market or S&amp;P 500 index fund. (Educational only — not advice; verify current fees and account rules.)</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>States the <em>arithmetic/fee</em> argument (active = market before costs, trails after fees; fees compound)</li>
+                    <li>Cites the general evidence without overstating (most underperform over long horizons; winners don't persist) and hedges/dates it</li>
+                    <li>Names at least one <em>behavioral</em> risk (performance-chasing, panic-selling, overconfidence)</li>
+                    <li>Gives a concrete beginner step (low-cost index fund, tax-advantaged account, automate, hold)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
+    <div class="lec-nav">
+        <a href="l05-investing-i-compounding-index-funds-and.html"><div class="dir">← Week 5</div><div class="ttl">Investing I — Compounding, Index Funds &amp; Allocation</div></a>
+        <a href="l07-balanced-vs-focused-portfolios-and-the.html" class="next"><div class="dir">Week 7 →</div><div class="ttl">Balanced vs Focused Portfolios &amp; the Startup Mindset</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Personal Finance &amp; Wealth-Building Mindset</a> · <a href="../../index.html">Intro</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    // ── scroll progress bar ──
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my personal-finance tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief. `
+             + `(This is educational only, not financial advice.)\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        // URL prefill works for short text; clipboard is the reliable fallback for long answers.
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
+    });
+</script>
+
+</body>
+</html>

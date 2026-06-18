@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Lecture 7 — Instruction Set &amp; Execution Cycle</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C3 Architecture</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Instruction Set &amp; Execution Cycle</h1>
+        <p class="sub">The CPU's language, and the fetch-decode-execute loop that runs it.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define the instruction set architecture (ISA) as the hardware/software contract.</li>
+            <li>Contrast RISC (small, regular, fixed-length) with CISC (large, complex, variable-length).</li>
+            <li>Read an instruction as an opcode plus operand fields, and tell R-type from I-type formats.</li>
+            <li>Walk an instruction through the fetch → decode → execute → write-back → PC-update cycle.</li>
+            <li>Distinguish the ISA (the interface) from the microarchitecture (the implementation).</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>The ISA</h2>
+        <p>The <strong>instruction set architecture (ISA)</strong> is the <em>contract between software and hardware</em>. It defines everything a program can ask the CPU to do: the <span class="key">instructions</span> (their opcodes), the <span class="key">registers</span> available, and the <span class="key">formats</span> used to encode each instruction in memory. A compiler emits only instructions the ISA promises; the CPU promises to carry every one of them out.</p>
+        <p>Two broad philosophies divide ISAs. <strong>RISC</strong> (Reduced Instruction Set Computer) keeps the set <em>small and regular</em> — few instructions, fixed length, simple addressing — so each is easy to decode and run fast (ARM, RISC-V). <strong>CISC</strong> (Complex Instruction Set Computer) offers a <em>large, complex</em> set with variable-length, multi-step instructions that do more per instruction (x86).</p>
+        <div class="eq">RISC → small · regular · fixed-length&nbsp;&nbsp;·&nbsp;&nbsp;CISC → large · complex · variable-length</div>
+        <div class="box analogy"><span class="lbl">Analogy</span>The ISA is the CPU's <em>menu</em> — the language it speaks. A program orders only dishes the menu lists, and the kitchen guarantees it can cook every one. RISC is a short menu of simple dishes done quickly; CISC is a long menu with elaborate combination plates.</div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>Instruction Formats</h2>
+        <p>Every instruction is just a binary word split into <strong>fields</strong>. The first field is the <span class="key">opcode</span> — it says <em>what</em> to do. The remaining <span class="key">operand fields</span> say <em>what to do it to</em>: which registers, or an immediate constant. RISC uses a handful of <em>fixed-length</em> formats so the decoder always knows where each field sits.</p>
+        <h3>R-type (register-register)</h3>
+        <p>An <strong>R-type</strong> instruction operates on registers only: an opcode, a destination register <code>rd</code>, and two source registers <code>rs1</code> and <code>rs2</code>. <code>ADD R1, R2, R3</code> is R-type.</p>
+        <div class="eq">opcode | rd | rs1 | rs2<small>All operands are registers — nothing is read from the instruction word as data.</small></div>
+        <h3>I-type (immediate)</h3>
+        <p>An <strong>I-type</strong> instruction replaces one source register with an <span class="key">immediate</span> — a constant baked into the instruction itself: an opcode, <code>rd</code>, one source <code>rs1</code>, and the immediate. <code>ADDI R1, R2, #4</code> is I-type.</p>
+        <div class="eq">opcode | rd | rs1 | immediate</div>
+        <figure class="fig">
+            <svg viewBox="0 0 560 130" role="img" aria-label="An R-type instruction format bar split into four fields: opcode, rd, rs1, rs2, with bit-width labels.">
+                <text x="280" y="22" fill="#67e8f9" font-size="13" text-anchor="middle" font-family="monospace">R-type instruction (32 bits)</text>
+                <!-- field bar -->
+                <rect x="40" y="40" width="180" height="46" fill="#1c2c3e" stroke="#22d3ee" stroke-width="1.5"/>
+                <rect x="220" y="40" width="110" height="46" fill="#14202e" stroke="#243648" stroke-width="1.5"/>
+                <rect x="330" y="40" width="110" height="46" fill="#14202e" stroke="#243648" stroke-width="1.5"/>
+                <rect x="440" y="40" width="80" height="46" fill="#14202e" stroke="#243648" stroke-width="1.5"/>
+                <!-- field names -->
+                <text x="130" y="69" fill="#22d3ee" font-size="14" text-anchor="middle" font-weight="bold">opcode</text>
+                <text x="275" y="69" fill="#e8f0f8" font-size="14" text-anchor="middle">rd</text>
+                <text x="385" y="69" fill="#e8f0f8" font-size="14" text-anchor="middle">rs1</text>
+                <text x="480" y="69" fill="#e8f0f8" font-size="14" text-anchor="middle">rs2</text>
+                <!-- bit widths -->
+                <text x="130" y="106" fill="#94a8bc" font-size="11" text-anchor="middle">11 bits</text>
+                <text x="275" y="106" fill="#94a8bc" font-size="11" text-anchor="middle">7 bits</text>
+                <text x="385" y="106" fill="#94a8bc" font-size="11" text-anchor="middle">7 bits</text>
+                <text x="480" y="106" fill="#94a8bc" font-size="11" text-anchor="middle">7 bits</text>
+            </svg>
+            <figcaption>A fixed-length R-type instruction: an opcode tells the CPU what to do, and three register fields (destination <code>rd</code>, sources <code>rs1</code>/<code>rs2</code>) tell it which registers to use.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>The Fetch-Decode-Execute Cycle</h2>
+        <p>The CPU runs a program by repeating one loop, once for <em>every</em> instruction. The <span class="key">program counter (PC)</span> holds the address of the instruction to run. The four core steps:</p>
+        <div class="eq">FETCH → DECODE → EXECUTE → WRITE-BACK → (update PC) → FETCH…</div>
+        <p><strong>Fetch</strong> — read the instruction stored at the address in the PC. <strong>Decode</strong> — the control unit reads the opcode and generates the <span class="key">control signals</span> that steer the datapath. <strong>Execute</strong> — the datapath/ALU performs the operation. <strong>Write-back</strong> — the result is written into the destination register (or memory). <strong>Update the PC</strong> — increment it to the next instruction, or load a branch target. Then the loop repeats.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 240" role="img" aria-label="The fetch-decode-execute cycle as a loop: Fetch leads to Decode leads to Execute leads to Write-back, then an arrow loops back from Write-back to Fetch, with PC update on the return path.">
+                <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#22d3ee"/></marker></defs>
+                <!-- four stage boxes across the top -->
+                <rect x="20" y="40" width="110" height="50" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="75" y="70" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Fetch</text>
+                <rect x="170" y="40" width="110" height="50" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="225" y="70" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Decode</text>
+                <rect x="320" y="40" width="110" height="50" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="375" y="70" fill="#67e8f9" font-size="14" text-anchor="middle" font-weight="bold">Execute</text>
+                <rect x="430" y="40" width="0" height="0" fill="none"/>
+                <rect x="430" y="120" width="110" height="50" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="485" y="150" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">Write-back</text>
+                <!-- forward arrows -->
+                <line x1="130" y1="65" x2="168" y2="65" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+                <line x1="280" y1="65" x2="318" y2="65" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+                <!-- Execute down to Write-back -->
+                <path d="M430,75 C470,90 485,100 485,118" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+                <!-- return path: Write-back back to Fetch along the bottom -->
+                <path d="M430,150 L75,150 L75,92" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#ar)"/>
+                <text x="250" y="143" fill="#34d399" font-size="12" text-anchor="middle">update PC → next instruction</text>
+                <text x="280" y="220" fill="#94a8bc" font-size="11" text-anchor="middle">the loop repeats for every instruction</text>
+            </svg>
+            <figcaption>The fetch-decode-execute cycle. After write-back, the PC is updated (incremented, or set to a branch target) and control loops back to fetch the next instruction — forever.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>The <strong>ISA is the interface</strong> — what software sees — and is <em>distinct</em> from the <strong>microarchitecture</strong>, which is how the hardware actually implements it (two chips can share an ISA yet differ wildly inside). Also: the fetch-decode-execute cycle repeats for <strong>every</strong> instruction, and <strong>updating the PC</strong> (increment, or load a branch target) is part of the cycle — not an afterthought.</div>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>A Simple RISC Example</h2>
+        <p>The same cycle handles every instruction; only the <em>execute</em> and <em>PC-update</em> steps differ. Watch four common RISC instructions move through it:</p>
+        <h3>ADD R1, R2, R3</h3>
+        <p>Fetch the word; decode as an R-type add; the ALU computes R2 + R3; write the sum to R1; PC increments to the next instruction.</p>
+        <h3>LOAD R1, [R2]</h3>
+        <p>Fetch and decode; execute computes the memory address from R2; the value is read from memory and written back into R1; PC increments.</p>
+        <h3>STORE R1, [R2]</h3>
+        <p>Fetch and decode; execute computes the address from R2; R1's value is written <em>to</em> memory — there is no register write-back; PC increments.</p>
+        <h3>BRANCH (e.g. BEQ R1, R2, target)</h3>
+        <p>Fetch and decode; execute compares R1 and R2; if equal, the <strong>PC is set to the branch target</strong> instead of simply incrementing — this is how the PC-update step changes the flow of control.</p>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Trace <code>ADD R1, R2, R3</code> (compute R1 = R2 + R3) through the full cycle, naming what happens at each step.</p>
+        <ol>
+            <li><strong>Fetch:</strong> the CPU reads the instruction word stored at the address in the PC.</li>
+            <li><strong>Decode:</strong> the control unit recognizes the ADD opcode and sets the control signals — <code>ALU-op = add</code> and <code>register-write = on</code>.</li>
+            <li><strong>Execute:</strong> the ALU adds the contents of R2 and R3.</li>
+            <li><strong>Write-back:</strong> the resulting sum is written into register R1.</li>
+            <li><strong>Update PC:</strong> the PC increments to point at the next instruction, and the cycle repeats.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: a tiny instruction decoder in Verilog</h3>
+        <p>The decode step is pure combinational logic: opcode in, control signals out. Build a minimal decoder and check that each opcode lights up the right signals — or, on paper, trace the cycle for a couple of instructions step by step.</p>
+        <pre><span class="c">// tiny instruction decoder — opcode -> control signals</span>
+module decoder(input [3:0] opcode,
+               output reg alu_add, output reg reg_write,
+               output reg mem_read, output reg is_branch);
+  always @(*) begin
+    {alu_add, reg_write, mem_read, is_branch} = 4'b0000;
+    case (opcode)
+      4'h0: begin alu_add=1; reg_write=1; end <span class="c">// ADD</span>
+      4'h1: begin reg_write=1; mem_read=1; end <span class="c">// LOAD</span>
+      4'h2: begin /* store: no reg_write */ end <span class="c">// STORE</span>
+      4'h3: begin is_branch=1; end             <span class="c">// BRANCH</span>
+    endcase
+  end
+endmodule</pre>
+        <p>Drive <code>opcode = 4'h0</code> (ADD) and confirm <code>reg_write</code> and <code>alu_add</code> are high while <code>mem_read</code> and <code>is_branch</code> stay low. Then try <code>4'h1</code> (LOAD) and predict the outputs before simulating.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The ISA defines…</div>
+            <div class="opt"><b>A.</b> the transistor layout of the chip</div>
+            <div class="opt"><b>B.</b> the clock speed</div>
+            <div class="opt"><b>C.</b> the instructions, registers, and formats the CPU understands (the hardware/software contract)</div>
+            <div class="opt"><b>D.</b> the cache size</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The ISA is the contract between software and hardware: the set of instructions, the registers, and the encoding formats. Transistor layout, clock speed, and cache size are microarchitecture/implementation details.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In the FETCH step…</div>
+            <div class="opt"><b>A.</b> the instruction at the PC's address is read</div>
+            <div class="opt"><b>B.</b> the ALU computes the result</div>
+            <div class="opt"><b>C.</b> the result is stored</div>
+            <div class="opt"><b>D.</b> the PC is reset</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Fetch reads the instruction word at the address held in the PC. Computing (execute), storing (write-back), and changing the PC happen in later steps.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> RISC instruction sets favor…</div>
+            <div class="opt"><b>A.</b> many complex variable-length instructions</div>
+            <div class="opt"><b>B.</b> a small, regular, fixed-length instruction set</div>
+            <div class="opt"><b>C.</b> no registers</div>
+            <div class="opt"><b>D.</b> microcode only</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> RISC means a small, regular, fixed-length set that's easy to decode and run fast. Large, complex, variable-length instructions are the CISC style.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> After executing a non-branch instruction, the PC…</div>
+            <div class="opt"><b>A.</b> increments to the next instruction</div>
+            <div class="opt"><b>B.</b> stays the same</div>
+            <div class="opt"><b>C.</b> jumps to zero</div>
+            <div class="opt"><b>D.</b> decrements</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Updating the PC is part of every cycle. For a normal instruction it increments to the next one; only a taken branch loads a different target.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The ISA is distinct from…</div>
+            <div class="opt"><b>A.</b> the assembly language</div>
+            <div class="opt"><b>B.</b> the compiler</div>
+            <div class="opt"><b>C.</b> the microarchitecture (the specific hardware implementation)</div>
+            <div class="opt"><b>D.</b> the operating system</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The ISA is the interface (what software sees); the microarchitecture is how a particular chip implements it. Different microarchitectures can share one ISA.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>ISA</b> is the hardware/software contract — the instructions, registers, and formats the CPU understands.</li>
+            <li><b>RISC</b> (small, regular, fixed-length) vs <b>CISC</b> (large, complex, variable-length).</li>
+            <li>An instruction is an <b>opcode</b> plus operand fields — <b>R-type</b> (three registers) and <b>I-type</b> (an immediate).</li>
+            <li>The <b>fetch → decode → execute → write-back → update-PC</b> cycle repeats for every instruction.</li>
+            <li>The ISA (interface) is distinct from the <b>microarchitecture</b> (implementation).</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: Pipelining — overlapping the cycle's stages so several instructions are in flight at once, boosting throughput.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l06-control-unit.html"><div class="dir">← Week 6</div><div class="ttl">Control Unit</div></a>
+        <a href="l08-pipelining.html" class="next"><div class="dir">Week 8 →</div><div class="ttl">Pipelining</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Architecture</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

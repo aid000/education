@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C1 · Lecture 3 — Root Finding II: Newton &amp; Secant</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C1 Numerical Methods</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3</span>
+        <h1>Root Finding II — Newton &amp; Secant</h1>
+        <p class="sub">Bisection always wins the race but plods; Newton's method sprints by riding the tangent line — and learning when it stumbles is what separates a working solver from a hanging one.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Derive Newton's method from the tangent line of a Taylor expansion and explain its update rule.</li>
+            <li>State and interpret <strong>quadratic convergence</strong> — why the number of correct digits roughly doubles each step.</li>
+            <li>Derive the <strong>secant method</strong> as a derivative-free Newton, and know its golden-ratio convergence order.</li>
+            <li>Recognize the failure modes — overshoot, cycling, and divergence — and why a bracketing fallback (like Brent's method) is wise.</li>
+            <li>Compare bisection, secant, and Newton on cost-per-iteration versus rate, and implement a safeguarded solver in SciPy.</li>
+        </ul>
+    </div>
+
+    <!-- 3.1 -->
+    <section class="lec">
+        <h2><span class="n">3.1</span>Newton's Method: Ride the Tangent Line</h2>
+        <p>Last week, bisection found a root by relentlessly halving a bracket. It is safe but slow — it ignores everything about the shape of <em>f</em> except the sign at the endpoints. Newton's method asks a sharper question: if I am standing at a guess <em>x</em><sub>n</sub>, which way is the root, and how far? The answer is hidden in the slope.</p>
+        <p>Expand <em>f</em> in a Taylor series about the current guess <em>x</em><sub>n</sub> and keep only the linear term:</p>
+        <div class="eq">f(x) ≈ f(x_n) + f'(x_n)·(x - x_n)<small>Replace the true curve with its tangent line at the current point — a "local linear model" of f.</small></div>
+        <p>The tangent line is an honest stand-in for the curve nearby. Where does <em>that line</em> cross zero? Set the right side to 0 and solve for <em>x</em>; call the answer the next guess <em>x</em><sub>n+1</sub>:</p>
+        <div class="eq">x_(n+1) = x_n - f(x_n) / f'(x_n)<small>The Newton iteration: slide down the tangent line to the x-axis, then re-linearize there and repeat.</small></div>
+        <p>Geometrically: draw the tangent at your guess, follow it to the x-axis, and that landing point is your new guess. Each step the curve looks <em>more</em> like its tangent (you are closer to the root), so the corrections shrink fast.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 230" role="img" aria-label="Newton's method geometry: a convex decreasing curve, a tangent line at x0 sliding down to x1 on the axis, then a second tangent at x1 landing nearer the root">
+                <!-- axes -->
+                <line x1="40" y1="170" x2="400" y2="170" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="20" x2="60" y2="200" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="392" y="188" fill="#a3a8c8" font-size="11">x</text>
+                <text x="44" y="30" fill="#a3a8c8" font-size="11">f(x)</text>
+                <!-- the curve f (convex, decreasing, crossing axis near x=290) -->
+                <path d="M70,48 Q150,95 205,130 Q280,165 360,205" fill="none" stroke="#818cf8" stroke-width="2.5"/>
+                <text x="338" y="128" fill="#818cf8" font-size="11">f(x)</text>
+                <!-- x0 point on curve (110,80) and dropline -->
+                <circle cx="110" cy="80" r="3.5" fill="#a5b4fc"/>
+                <line x1="110" y1="80" x2="110" y2="170" stroke="#a5b4fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="108" y="186" fill="#a5b4fc" font-size="11" text-anchor="middle">x0</text>
+                <!-- tangent at x0: through (110,80), slope ~0.95, hits axis at x1=205 -->
+                <line x1="85" y1="56" x2="205" y2="170" stroke="#fbbf24" stroke-width="1.8"/>
+                <text x="118" y="58" fill="#fbbf24" font-size="10">tangent at x0</text>
+                <circle cx="205" cy="170" r="3.2" fill="#fbbf24"/>
+                <text x="205" y="186" fill="#fbbf24" font-size="11" text-anchor="middle">x1</text>
+                <!-- point on curve above x1 (205,130) -->
+                <circle cx="205" cy="130" r="3.5" fill="#a5b4fc"/>
+                <line x1="205" y1="130" x2="205" y2="170" stroke="#a5b4fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <!-- tangent at x1: through (205,130), slope 0.5, hits axis at x2=285 -->
+                <line x1="185" y1="120" x2="285" y2="170" stroke="#34d399" stroke-width="1.8"/>
+                <text x="226" y="116" fill="#34d399" font-size="10">tangent at x1</text>
+                <circle cx="285" cy="170" r="3.2" fill="#34d399"/>
+                <text x="285" y="186" fill="#34d399" font-size="11" text-anchor="middle">x2</text>
+                <!-- the true root near (290,170) -->
+                <circle cx="290" cy="170" r="4" fill="none" stroke="#e9ebf8" stroke-width="1.6"/>
+                <text x="300" y="160" fill="#e9ebf8" font-size="10">root r</text>
+            </svg>
+            <figcaption>Newton's method: from x0, slide down the tangent (amber) to the axis at x1; re-linearize there (green tangent) to land at x2, already hugging the true root r. Each correction shrinks faster than the last.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>You are descending a hill in thick fog toward sea level (the root). You can't see the shoreline, but you <em>can</em> feel the slope under your feet. Newton's rule is: read the slope, extrapolate in a straight line to where that slope would hit sea level, and walk there. If the hill is smooth and you started reasonably close, each guess overshoots far less than the last — you home in astonishingly fast.</div>
+    </section>
+
+    <!-- 3.2 -->
+    <section class="lec">
+        <h2><span class="n">3.2</span>Quadratic Convergence — Why Digits Double</h2>
+        <p>The reason Newton's method feels magical is its <strong>convergence order</strong>. Let <em>e</em><sub>n</sub> = <em>x</em><sub>n</sub> − <em>r</em> be the error from the true root <em>r</em>. A second-order Taylor expansion of the iteration shows that, near a simple root,</p>
+        <div class="eq">e_(n+1) ≈ [ f''(r) / (2 f'(r)) ] · e_n^2<small>The new error is proportional to the SQUARE of the old error: convergence of order p = 2.</small></div>
+        <p>Squaring a small error is dramatic. If your error is 10<sup>−2</sup>, the next is about 10<sup>−4</sup>, then 10<sup>−8</sup>, then 10<sup>−16</sup> — machine precision in four steps. Informally: <strong>the number of correct decimal digits roughly doubles every iteration</strong>. Contrast bisection, which gains a fixed one bit (about 0.3 digit) per step — linear convergence.</p>
+        <div class="eq">Newton: order 2 (digits double) &nbsp;|&nbsp; Secant: order ≈ 1.618 &nbsp;|&nbsp; Bisection: order 1 (linear)<small>Higher order means fewer iterations — but each Newton step costs an extra derivative evaluation.</small></div>
+        <p>Two important caveats hide in that error formula. First, it assumes a <strong>simple</strong> root, where <em>f</em>'(<em>r</em>) ≠ 0. At a double root (<em>f</em>' = 0 too), the 1/<em>f</em>' factor misbehaves and Newton degrades to merely linear convergence. Second, the quadratic rate is <em>local</em>: it only kicks in once you are close enough. Far away, anything can happen — which is the subject of the next section.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Reporting "Newton converges quadratically" as if it were unconditional. The order-2 result is <strong>local and assumes a simple root</strong> with a continuous second derivative. At a multiple root, or from a bad starting point, Newton can crawl linearly, oscillate, or fly off entirely. Never quote the rate without the hypotheses.</div>
+    </section>
+
+    <!-- 3.3 -->
+    <section class="lec">
+        <h2><span class="n">3.3</span>The Secant Method: Newton Without a Derivative</h2>
+        <p>Newton's update needs <em>f</em>'(<em>x</em><sub>n</sub>) at every step. But in real physics code the function is often a black box — the output of a simulation, an experimental fit, or a tangled expression whose analytic derivative is painful or impossible. The <strong>secant method</strong> sidesteps this by approximating the slope from the two most recent points:</p>
+        <div class="eq">f'(x_n) ≈ [ f(x_n) - f(x_(n-1)) ] / ( x_n - x_(n-1) )<small>A finite-difference slope using points you already evaluated — no extra cost, no derivative needed.</small></div>
+        <p>Substitute that into Newton's rule and you get the secant iteration. Geometrically, instead of the tangent line you draw the <strong>secant line</strong> through your two latest points and follow <em>it</em> to the x-axis:</p>
+        <div class="eq">x_(n+1) = x_n - f(x_n) · ( x_n - x_(n-1) ) / ( f(x_n) - f(x_(n-1)) )<small>Requires two starting guesses; each new step reuses the previous f value, so only ONE new evaluation per step.</small></div>
+        <p>The secant method converges with order <strong>φ ≈ 1.618</strong>, the golden ratio — slower than Newton's 2, but it needs no derivative and only one function evaluation per step (Newton needs two: <em>f</em> and <em>f</em>'). When a function call is expensive — as it is when each evaluation runs a whole simulation — secant often wins the <em>wall-clock</em> race even though it takes more iterations.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 220" role="img" aria-label="Secant method geometry: a chord through two points on the curve extended to the x-axis to produce the next guess">
+                <line x1="40" y1="170" x2="400" y2="170" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="20" x2="60" y2="190" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="392" y="188" fill="#a3a8c8" font-size="11">x</text>
+                <text x="44" y="30" fill="#a3a8c8" font-size="11">f(x)</text>
+                <!-- curve crossing axis near x=300 -->
+                <path d="M70,40 Q210,110 300,170 Q345,200 390,212" fill="none" stroke="#818cf8" stroke-width="2.5"/>
+                <text x="90" y="52" fill="#818cf8" font-size="11">f(x)</text>
+                <!-- two points: (110,60) and (200,118) -->
+                <circle cx="110" cy="60" r="3.5" fill="#a5b4fc"/>
+                <line x1="110" y1="60" x2="110" y2="170" stroke="#a5b4fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="108" y="186" fill="#a5b4fc" font-size="11" text-anchor="middle">x0</text>
+                <circle cx="200" cy="118" r="3.5" fill="#a5b4fc"/>
+                <line x1="200" y1="118" x2="200" y2="170" stroke="#a5b4fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="200" y="186" fill="#a5b4fc" font-size="11" text-anchor="middle">x1</text>
+                <!-- secant chord through (110,60) and (200,118), extended to axis at x2=280 -->
+                <line x1="110" y1="60" x2="285" y2="173" stroke="#fbbf24" stroke-width="1.8"/>
+                <text x="150" y="78" fill="#fbbf24" font-size="10">secant line</text>
+                <circle cx="280" cy="170" r="3.2" fill="#fbbf24"/>
+                <text x="280" y="186" fill="#fbbf24" font-size="11" text-anchor="middle">x2</text>
+                <!-- true root -->
+                <circle cx="300" cy="170" r="4" fill="none" stroke="#e9ebf8" stroke-width="1.6"/>
+                <text x="318" y="160" fill="#e9ebf8" font-size="10">root r</text>
+            </svg>
+            <figcaption>Secant method: draw the chord (amber) through the two latest points (x0, x1) and extend it to the axis to get x2. No derivative needed — the chord's slope stands in for the tangent.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 3.4 -->
+    <section class="lec">
+        <h2><span class="n">3.4</span>Failure Modes &amp; the Bracketing Fallback</h2>
+        <p>Speed has a price: Newton and secant carry <strong>no safety net</strong>. Bisection can never leave its bracket, so it cannot diverge. The tangent-line gamble, by contrast, can throw you anywhere. Three classic failure modes recur:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Overshoot / divergence.</strong> Near a point where <em>f</em>' is small (a near-flat spot), the tangent is nearly horizontal, so the step −<em>f</em>/<em>f</em>' is huge and flings the guess far away — possibly diverging to infinity.</li>
+            <li><strong>Cycling.</strong> Some functions trap Newton in a periodic orbit, e.g. the iteration bounces x → −x → x forever. The canonical example is <em>f</em>(<em>x</em>) = <em>x</em><sup>1/3</sup>, where Newton's step is exactly −2<em>x</em><sub>n</sub>, so |<em>x</em>| <em>grows</em> each step.</li>
+            <li><strong>Wrong basin.</strong> With multiple roots, a poor start lands you at a different root than intended — or at one far from your region of interest.</li>
+        </ul>
+        <div class="eq">x_(n+1) = x_n - f(x_n)/f'(x_n)&nbsp;&nbsp;->&nbsp;&nbsp; blows up when f'(x_n) ≈ 0<small>A near-zero derivative is the danger sign: the step length is f/f', which explodes as f' -> 0.</small></div>
+        <p>The professional answer is a <strong>hybrid solver</strong>: take a fast Newton or secant step when it lands <em>inside</em> the current bracket, but if the step would jump outside, fall back to a guaranteed bisection step instead. You keep the bracket's safety <em>and</em> Newton's speed. This is exactly the idea behind <strong>Brent's method</strong> (combining bisection, secant, and inverse-quadratic interpolation), the default in SciPy's <code>brentq</code> and the workhorse for most production root-finding.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Shipping a bare Newton loop with <code>while abs(f(x)) &gt; tol</code> and no iteration cap or bracket. On a hard function it can loop forever or return a number from a divergent trajectory. <strong>Always</strong> add a maximum-iteration guard and, when you have a sign-change bracket, prefer a safeguarded method like <code>brentq</code>.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — Newton for the square root of 2</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Solve f(x) = x² − 2 = 0 (so the root is √2 ≈ 1.41421356). With f'(x) = 2x, Newton's rule simplifies to the famous "Babylonian" iteration x ← (x + 2/x)/2. Start at x₀ = 1 and watch the digits double.</p>
+        <ol>
+            <li><strong>Iteration 1:</strong> x₁ = (1 + 2/1)/2 = 1.5. Error vs √2: e₁ ≈ 0.0858.</li>
+            <li><strong>Iteration 2:</strong> x₂ = (1.5 + 2/1.5)/2 = 1.41666667. Error e₂ ≈ 2.45×10⁻³ — roughly e₁² as predicted.</li>
+            <li><strong>Iteration 3:</strong> x₃ = (1.41666667 + 2/1.41666667)/2 = 1.41421569. Error e₃ ≈ 2.12×10⁻⁶ — again about e₂².</li>
+            <li><strong>Iteration 4:</strong> x₄ = 1.41421356237469. Error e₄ ≈ 1.6×10⁻¹² — essentially e₃². Correct digits: 1 → 3 → 6 → 12, doubling each step.</li>
+            <li><strong>Iteration 5:</strong> x₅ = 1.4142135623730951 — full double precision (e₅ below 10⁻¹⁶). Newton hit machine epsilon in <strong>five</strong> steps; bisection on [1, 2] would need about 52 steps to match.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: race Newton, secant, and bisection</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Use the same free Python + NumPy/SciPy stack from <strong>Week 1</strong> (the one-time install lives in Lecture 1). No new tools needed here — SciPy already ships <code>newton</code> (which also does secant) and <code>brentq</code>.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">Below, find a root of f(x) = x³ − x − 2 (real root ≈ 1.5214). We count iterations for hand-rolled Newton and secant, then call SciPy's safeguarded solvers and the bisection from last week.</p>
+        <pre><span class="c"># root_finding_newton.py — Lecture 3</span>
+import numpy as np
+from scipy.optimize import newton, brentq, bisect
+
+f  = lambda x: x**3 - x - 2
+fp = lambda x: 3*x**2 - 1          <span class="c"># analytic derivative</span>
+
+<span class="c"># --- hand-rolled Newton: watch quadratic convergence ---</span>
+x, root = 1.5, 1.5213797068045676
+for k in range(1, 7):
+    x = x - f(x)/fp(x)
+    print(f"Newton step {k}: x={x:.15f}  err={abs(x-root):.2e}")
+
+<span class="c"># --- hand-rolled secant: no derivative, two seeds ---</span>
+a, b = 1.0, 2.0
+for k in range(1, 9):
+    a, b = b, b - f(b)*(b-a)/(f(b)-f(a))
+    print(f"Secant step {k}: x={b:.15f}  err={abs(b-root):.2e}")
+
+<span class="c"># --- SciPy: derivative-based Newton, derivative-free secant, safeguarded Brent ---</span>
+print("scipy newton (with fprime):", newton(f, x0=1.5, fprime=fp))
+print("scipy secant (no fprime)  :", newton(f, x0=1.5))      <span class="c"># falls back to secant</span>
+print("scipy brentq on [1,2]     :", brentq(f, 1.0, 2.0))    <span class="c"># safeguarded, always converges</span>
+print("plain bisection on [1,2]  :", bisect(f, 1.0, 2.0))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Try a pathological start: call <code>newton(lambda x: x**3 - 5*x, x0=1.0)</code>. With f'(1) small relative to the curvature, the bare Newton step overshoots and may converge to the wrong root or warn. Then solve the same with <code>brentq(..., -1, 0.5)</code> and confirm the safeguarded method lands cleanly.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Newton's method is the seed of a vast family. In <strong>Week 4</strong> we interpolate functions with polynomials — the very tool inside Brent's "inverse-quadratic" step. The multivariable generalization, where 1/f' becomes the inverse of a <em>Jacobian matrix</em>, drives nonlinear solvers everywhere: finding equilibrium in circuit and power-grid simulation, implicit time-stepping for stiff ODEs (Course 2), self-consistent field iterations in quantum chemistry (the Quantum track), and the Newton step at the heart of optimization and maximum-likelihood fitting (the Quant track). Master the tangent-line idea here and you have met the engine that powers most of computational science.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#15233a,#13283b); border-color:#2b557a;">
+        <h3 style="color:var(--blue);">💬 Discussion</h3>
+        <p style="color:#cfe2f5;">You are writing a root-finder that will be called millions of times inside a physics pipeline, on a function that is <em>moderately</em> expensive (each evaluation runs a small simulation) and whose analytic derivative is unavailable. You can bracket the root cheaply. Which method would you reach for — bisection, secant, or a safeguarded hybrid like Brent's — and <em>why</em>? Argue in terms of convergence order, cost per iteration, and robustness. Where does "fastest convergence order" stop being the right thing to optimize?</p>
+        <details style="margin-top:14px;">
+            <summary style="cursor:pointer; color:var(--accent2); font-weight:600; font-size:.9rem;">Show a model response</summary>
+            <div style="margin-top:12px; font-size:.9rem; color:#cfe2f5;">
+                <p style="margin-bottom:10px;">I'd choose a <strong>safeguarded hybrid (Brent's method / <code>brentq</code>)</strong>. Here is the reasoning, weighed on three axes:</p>
+                <p style="margin-bottom:10px;"><strong>Convergence order.</strong> No derivative is available, so pure Newton (order 2) is off the table unless I pay for a finite-difference derivative — which costs an <em>extra</em> expensive evaluation per step and reintroduces the round-off/step-size trade-off from Lecture 1. Secant gives order ≈ 1.618 with just one new evaluation per step, so per-evaluation it is actually competitive with Newton. Bisection is only linear.</p>
+                <p style="margin-bottom:10px;"><strong>Cost per iteration.</strong> Because each call runs a simulation, the metric that matters is <em>total function evaluations</em>, not iteration count. Secant minimizes evaluations-per-step; bisection wastes them by ignoring function values.</p>
+                <p style="margin-bottom:10px;"><strong>Robustness.</strong> Called millions of times on varied inputs, a bare secant <em>will</em> eventually hit a near-flat region and overshoot or diverge — and a hung or wrong solve in an automated pipeline is far costlier than a few extra evaluations. Since I can bracket cheaply, Brent's method gives me secant/inverse-quadratic speed in the easy case while guaranteeing the bracket can never be lost.</p>
+                <p style="margin-bottom:10px;"><strong>Where order stops mattering:</strong> once a method is "fast enough" to reach tolerance in a handful of steps, additional convergence order buys almost nothing, while a single divergence costs the whole run. Past that point I optimize for <em>guaranteed termination</em> and bounded evaluations, not raw rate.</p>
+                <p style="margin-top:12px; padding-top:10px; border-top:1px dashed #2b557a;"><strong>✓ Self-check rubric — a strong answer:</strong> (1) names the no-derivative constraint and rules out plain Newton or prices its finite-difference cost; (2) distinguishes iteration count from total function evaluations given the expensive call; (3) invokes the safety of bracketing against the real failure modes (overshoot/divergence/cycling); (4) explicitly states that beyond "fast enough," robustness and guaranteed termination outrank convergence order.</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Newton's update x<sub>n+1</sub> = x<sub>n</sub> − f(x<sub>n</sub>)/f'(x<sub>n</sub>) comes from…</div>
+            <div class="opt"><b>A.</b> halving the interval where f changes sign</div>
+            <div class="opt"><b>B.</b> finding where the tangent line at x<sub>n</sub> crosses the x-axis</div>
+            <div class="opt"><b>C.</b> averaging the two previous guesses</div>
+            <div class="opt"><b>D.</b> fitting a parabola through three points</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Keep the linear Taylor term f(x) ≈ f(x<sub>n</sub>) + f'(x<sub>n</sub>)(x − x<sub>n</sub>), set it to zero, and solve — that is the tangent's x-intercept. (A) is bisection; (C) is unrelated; (D) describes inverse-quadratic/Muller-style steps, not Newton.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> "Quadratic convergence" of Newton's method near a simple root means…</div>
+            <div class="opt"><b>A.</b> the error halves each iteration</div>
+            <div class="opt"><b>B.</b> the method needs a quadratic function to work</div>
+            <div class="opt"><b>C.</b> the new error is proportional to the square of the old error, so correct digits roughly double each step</div>
+            <div class="opt"><b>D.</b> it takes two iterations per root</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> e<sub>n+1</sub> ≈ C·e<sub>n</sub>², so 10⁻² → 10⁻⁴ → 10⁻⁸ → … and the number of correct digits doubles. (A) describes linear convergence (bisection). (B) and (D) are misreadings of the word "quadratic."</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The secant method differs from Newton chiefly in that it…</div>
+            <div class="opt"><b>A.</b> requires the exact analytic derivative at every step</div>
+            <div class="opt"><b>B.</b> approximates the slope from the two latest points, needing no derivative</div>
+            <div class="opt"><b>C.</b> is guaranteed never to leave its bracket</div>
+            <div class="opt"><b>D.</b> converges faster than Newton</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Secant replaces f'(x<sub>n</sub>) with the finite-difference slope [f(x<sub>n</sub>) − f(x<sub>n−1</sub>)]/(x<sub>n</sub> − x<sub>n−1</sub>). (A) is Newton; (C) is bisection (secant has no bracket guarantee); (D) is false — secant's order ≈ 1.618 is below Newton's 2.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A bare Newton iteration is most likely to diverge or overshoot when…</div>
+            <div class="opt"><b>A.</b> the starting guess is exactly the root</div>
+            <div class="opt"><b>B.</b> f is a straight line</div>
+            <div class="opt"><b>C.</b> the function is bracketed with a sign change</div>
+            <div class="opt"><b>D.</b> the derivative f'(x<sub>n</sub>) is near zero (a near-flat spot)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The step is −f/f', so a tiny f' makes the step enormous and flings the guess far away. (A) converges instantly; (B) makes Newton land exactly on the root in one step; (C) is the condition that <em>helps</em> a safeguarded fallback.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why combine Newton/secant with bisection in a hybrid like Brent's method?</div>
+            <div class="opt"><b>A.</b> to get bisection's guaranteed convergence (the bracket can't be lost) plus Newton/secant's speed</div>
+            <div class="opt"><b>B.</b> because bisection alone converges quadratically</div>
+            <div class="opt"><b>C.</b> to avoid ever evaluating the function</div>
+            <div class="opt"><b>D.</b> because Newton's method cannot find any root without it</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Take a fast open step when it stays inside the bracket; otherwise fall back to a safe bisection step — safety plus speed. (B) is false (bisection is linear). (C) is impossible. (D) is false — Newton works fine from a good start.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Newton's method</b> follows the tangent line to the axis: x<sub>n+1</sub> = x<sub>n</sub> − f(x<sub>n</sub>)/f'(x<sub>n</sub>).</li>
+            <li><b>Quadratic convergence</b> near a simple root — e<sub>n+1</sub> ∝ e<sub>n</sub>² — so correct digits roughly double each step.</li>
+            <li>The <b>secant method</b> replaces the derivative with a chord slope (order ≈ 1.618), ideal when no derivative is available.</li>
+            <li>The <b>failure modes</b> — overshoot, cycling, divergence near f' ≈ 0 — and why open methods need a bracketing fallback.</li>
+            <li><b>Cost vs rate</b>: bisection is safe but linear; Newton/secant are fast but unsafe; <b>Brent's method</b> (<code>brentq</code>) gives both.</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: polynomial interpolation — fitting curves through data points, the tool hiding inside Brent's inverse-quadratic step and the gateway to numerical integration.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l02-root-finding-bisection.html"><div class="dir">← Week 2</div><div class="ttl">Root Finding I — Bisection &amp; Bracketing</div></a>
+        <a class="next" href="l04-polynomial-interpolation.html"><div class="dir">Week 4 →</div><div class="ttl">Polynomial Interpolation</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Numerical Methods</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

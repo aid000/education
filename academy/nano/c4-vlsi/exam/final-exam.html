@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Final Exam — VLSI Design</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C4 VLSI</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C4 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week VLSI flow, from RTL to GDSII signoff.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Flow <b>2</b></span>
+            <span class="wchip">Layout <b>2</b></span>
+            <span class="wchip">HDL <b>3</b></span>
+            <span class="wchip">Combinational <b>3</b></span>
+            <span class="wchip">Sequential <b>2</b></span>
+            <span class="wchip">Synthesis <b>3</b></span>
+            <span class="wchip">STA <b>3</b></span>
+            <span class="wchip">Physical design <b>3</b></span>
+            <span class="wchip">Routing <b>2</b></span>
+            <span class="wchip">Signoff <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ FLOW & LAYOUT (Weeks 1–2) ============ -->
+    <div class="exam-sec">Flow &amp; layout · Weeks 1–2</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>1.</span> The VLSI design flow proceeds as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> layout → synthesis → RTL</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> RTL → synthesis → place &amp; route → signoff → GDSII</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> GDSII → RTL → test</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> fab → RTL → tape-out</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The standard flow runs RTL → synthesis → place &amp; route → signoff → GDSII, descending from abstract intent to physical geometry.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>2.</span> "Tape-out" means…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> simulating the RTL</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> installing the tools</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> sending the final GDSII to the fab for manufacturing</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> testing the finished chip</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Tape-out is the moment the verified GDSII layout is released to the foundry to be manufactured.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>3.</span> A layout is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> the physical polygon geometry on each fabrication layer</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> a Verilog netlist</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> a timing report</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> a truth table</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A layout is the set of physical polygons drawn on each fab layer (diffusion, poly, metals, etc.) — what actually gets manufactured.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> Design rules (DRC) specify…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> the clock frequency</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> the logic function</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> the pin count</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> minimum widths and spacings for manufacturability</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Design rules are the fab's geometric constraints — minimum widths, spacings, enclosures — that keep a layout manufacturable.</div>
+    </div>
+
+    <!-- ============ HDL & COMBINATIONAL LOGIC (Weeks 3–4) ============ -->
+    <div class="exam-sec">HDL &amp; combinational logic · Weeks 3–4</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>5.</span> Verilog fundamentally describes…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> a step-by-step program</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> hardware that operates in parallel</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> only simulation scripts</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> a layout file</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Verilog is a hardware description language: it specifies concurrent hardware, not sequential software instructions.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>6.</span> <code>always @(posedge clk) q &lt;= d;</code> infers…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> a flip-flop (edge-triggered storage)</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> a combinational gate</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> a wire</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> a testbench</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A clocked <code>posedge</code> block with a registered output synthesizes an edge-triggered flip-flop.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> In a combinational <code>always @(*)</code> block, not assigning an output in every branch…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> speeds it up</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> is a syntax error</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> infers an unintended latch</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> creates a flip-flop on purpose</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> If an output isn't driven on every path, it must "remember" its old value, so the tool infers an unintended latch.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>8.</span> <code>assign sum = a + b;</code> synthesizes…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> a flip-flop</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> an adder</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> a multiplexer</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> nothing</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A continuous assignment of <code>a + b</code> maps to combinational adder logic.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>9.</span> In clocked sequential blocks you should use…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> blocking <code>=</code></span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> <code>assign</code></span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> continuous assignment</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> nonblocking <code>&lt;=</code></span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Nonblocking <code>&lt;=</code> in clocked blocks models registers correctly and avoids simulation race conditions.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>10.</span> Synthesis maps RTL onto…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> a gate-level netlist using a standard-cell library</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> a waveform</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> a layout directly</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> a testbench</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Synthesis translates RTL into a gate-level netlist built from cells in the standard-cell library.</div>
+    </div>
+
+    <!-- ============ SYNTHESIS & TIMING (Weeks 5–7) ============ -->
+    <div class="exam-sec">Synthesis &amp; timing · Weeks 5–7</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> Large on-chip memory is best built from…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> flip-flop arrays</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> the register file only</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> dedicated SRAM macros (denser than FF arrays)</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> on-chip DRAM</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Compiled SRAM macros are far denser and lower-power than equivalent flip-flop arrays for large memories.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>12.</span> The same RTL can produce different netlists depending on…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> the file name</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> the constraints (timing/area/power targets)</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> the simulator</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> the monitor</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Synthesis is constraint-driven — different timing, area, or power targets steer the tool toward different gate choices.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>13.</span> The standard-cell library (<code>.lib</code>) provides…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> the RTL source</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> the floorplan</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> the clock waveform</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> each cell's timing, area, and power</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The <code>.lib</code> characterizes every cell — delay, area, and power — so the tools can optimize and analyze the netlist.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>14.</span> Static timing analysis…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> checks timing on all paths exhaustively, without test vectors</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> simulates a few cases</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> measures power</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> runs only at tape-out</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> STA analytically checks every timing path against constraints with no stimulus needed — exhaustive and vectorless.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> A setup violation means the path is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> unconnected</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> too fast</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> too slow (data arrives after the deadline)</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> asynchronous</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> A setup violation means data arrives too late — after the capturing clock edge's setup deadline — so the path is too slow.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>16.</span> Slack is defined as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> arrival minus required</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> required time minus arrival time (positive = meets timing)</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> the clock period</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> the gate count</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Slack = required − arrival; positive slack means the signal arrives in time, negative means a violation.</div>
+    </div>
+
+    <!-- ============ PHYSICAL DESIGN & ROUTING (Weeks 8–9) ============ -->
+    <div class="exam-sec">Physical design &amp; routing · Weeks 8–9</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>17.</span> Floorplanning sets…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> the RTL</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> the gate logic</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> the clock frequency</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> the die size, I/O and macro placement, and the power grid</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Floorplanning fixes the die outline, I/O and macro locations, and the power distribution grid before detailed placement.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>18.</span> Clock tree synthesis (CTS)…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> distributes the clock with minimal skew to all flip-flops</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> generates the clock frequency</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> routes the signal nets</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> runs DRC</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> CTS builds a balanced buffer tree that delivers the clock to every flip-flop with minimal skew.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> Placement positions standard cells to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> maximize die size</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> randomize locations</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> minimize wirelength/congestion and meet timing</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> set the clock period</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Placement legally positions cells to shorten wires, ease congestion, and help close timing.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>20.</span> Routing proceeds as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> detailed then global</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> global routing then detailed routing</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> a single pass</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> before placement</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Global routing plans coarse paths/regions first; detailed routing then assigns exact tracks and vias.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>21.</span> Routing congestion happens when…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> the clock is slow</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> there are too few transistors</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> the die is too large</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> too many wires compete for the limited tracks</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Congestion arises where the demand for routing tracks in a region exceeds the supply available.</div>
+    </div>
+
+    <!-- ============ SIGNOFF (Week 10) ============ -->
+    <div class="exam-sec">Signoff · Week 10</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>22.</span> DRC (design-rule check) verifies…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> the layout geometry obeys the fab's rules</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> the layout matches the netlist</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> the timing is met</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> the RTL compiles</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> DRC confirms the drawn geometry satisfies the foundry's width, spacing, and enclosure rules.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> LVS (layout-versus-schematic) verifies…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> the spacing rules</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> the clock skew</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> the layout's connectivity matches the intended netlist</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> the power</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> LVS extracts the layout's connectivity and confirms it matches the intended schematic/netlist.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>24.</span> Signoff timing analysis is performed…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> at one nominal condition only</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> across multiple corners (process/voltage/temperature)</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> after the chip ships</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> with no clock</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Signoff STA checks timing across PVT corners so the design works over the full range of process, voltage, and temperature.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>25.</span> "Tape-out" is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> the first simulation</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> drawing the floorplan</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> installing the tools</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> releasing the verified GDSII to the fab</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Tape-out is the final step: the fully verified GDSII is handed off to the foundry for fabrication.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C4 Syllabus</div></a>
+        <a href="../lectures/l01-vlsi-design-flow.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 VLSI</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

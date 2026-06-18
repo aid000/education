@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C3 · Lecture 2 — Eigenvalues &amp; Eigenvectors</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C3 LinAlg &amp; Quantum</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Eigenvalues &amp; Eigenvectors</h1>
+        <p class="sub">Hidden inside every matrix are a handful of special directions it cannot rotate — find them, and the hardest problems in physics fall apart into independent, solvable pieces.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define eigenvalues and eigenvectors as the invariant directions of a linear map and read them off a transformation geometrically.</li>
+            <li>Derive the characteristic equation det(A − λI) = 0 and use it to find eigenvalues by hand for small matrices.</li>
+            <li>Explain why symmetric and Hermitian matrices have <em>real</em> eigenvalues and <em>orthogonal</em> eigenvectors — and why physics depends on it.</li>
+            <li>Connect the eigenvalue problem to the time-independent Schrödinger equation and to normal modes of vibration.</li>
+            <li>Compute eigenpairs reliably with <code>np.linalg.eig</code> and <code>np.linalg.eigh</code>, and know which to reach for.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>The Directions a Matrix Cannot Bend</h2>
+        <p>A square matrix A is a <strong>linear transformation</strong>: feed it a vector, get a vector back, generally rotated and stretched. Most input directions come out pointing somewhere new. But almost every matrix hides a few special directions that come out pointing <em>exactly the same way</em> — only scaled. A vector v on such a direction satisfies:</p>
+        <div class="eq">A v = λ v&nbsp;&nbsp;(v ≠ 0)<small>v is an eigenvector; the scale factor λ is its eigenvalue. The matrix acts on this direction as pure stretching.</small></div>
+        <p>The word <em>eigen</em> is German for "own" or "characteristic" — these are the directions a matrix considers its own. Acting with A on an eigenvector never tilts it; it only lengthens (λ &gt; 1), shrinks (0 &lt; λ &lt; 1), flips (λ &lt; 0), or freezes it (λ = 1). Off the eigen-directions the matrix mixes things up; along them it is as simple as multiplying by a number. That collapse from "complicated transformation" to "just a number" is the entire payoff.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 230" role="img" aria-label="A linear map stretches a generic vector by tilting it, but stretches an eigenvector along its own line without rotating">
+                <!-- axes -->
+                <line x1="40" y1="200" x2="220" y2="200" stroke="#2a3052" stroke-width="1"/>
+                <line x1="60" y1="40" x2="60" y2="210" stroke="#2a3052" stroke-width="1"/>
+                <line x1="250" y1="200" x2="430" y2="200" stroke="#2a3052" stroke-width="1"/>
+                <line x1="270" y1="40" x2="270" y2="210" stroke="#2a3052" stroke-width="1"/>
+                <!-- LEFT: input -->
+                <text x="130" y="30" fill="#a3a8c8" font-size="12" text-anchor="middle">input vectors</text>
+                <!-- generic vector (blue) -->
+                <line x1="60" y1="200" x2="130" y2="120" stroke="#60a5fa" stroke-width="2.5"/>
+                <polygon points="130,120 122,124 128,130" fill="#60a5fa"/>
+                <text x="138" y="118" fill="#60a5fa" font-size="11">u</text>
+                <!-- eigenvector (green) -->
+                <line x1="60" y1="200" x2="150" y2="170" stroke="#34d399" stroke-width="2.5"/>
+                <polygon points="150,170 141,170 146,177" fill="#34d399"/>
+                <text x="156" y="170" fill="#34d399" font-size="11">v</text>
+                <!-- RIGHT: output -->
+                <text x="340" y="30" fill="#a3a8c8" font-size="12" text-anchor="middle">after applying A</text>
+                <!-- generic vector rotated AND stretched (blue) -->
+                <line x1="270" y1="200" x2="380" y2="150" stroke="#60a5fa" stroke-width="2.5"/>
+                <polygon points="380,150 371,149 375,157" fill="#60a5fa"/>
+                <text x="388" y="148" fill="#60a5fa" font-size="11">A u (tilted)</text>
+                <!-- eigenvector stretched along same line (green), colinear with input v -->
+                <line x1="270" y1="200" x2="405" y2="155" stroke="#34d399" stroke-width="2.5"/>
+                <polygon points="405,155 396,156 399,163" fill="#34d399"/>
+                <text x="285" y="190" fill="#34d399" font-size="11">A v = lambda v</text>
+                <text x="285" y="203" fill="#34d399" font-size="10">(same line as v)</text>
+            </svg>
+            <figcaption>The generic vector <b>u</b> is rotated when A acts on it. The eigenvector <b>v</b> keeps its direction — A only rescales it by the eigenvalue λ. Eigenvectors are the axes along which the transformation is "diagonal."</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of A as a current in a pond and vectors as twigs floating on it. A generic twig gets spun and carried off at an angle. But a twig laid along an eigen-direction is only pushed straight along its own length — faster or slower, forward or backward, never turned. Those special "no-spin" lines are the eigenvectors; how fast the current pushes along each is the eigenvalue.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>The Characteristic Equation</h2>
+        <p>How do we find these directions? Rewrite A v = λ v by moving everything to one side, using the identity matrix I so the dimensions match:</p>
+        <div class="eq">(A − λI) v = 0<small>We need a nonzero v in the null space of the matrix (A − λI).</small></div>
+        <p>A nonzero vector v can only be sent to 0 if the matrix (A − λI) is <strong>singular</strong> — it must squash some direction to nothing. A matrix is singular exactly when its <strong>determinant is zero</strong>. That gives the master condition, the <span class="key">characteristic equation</span>:</p>
+        <div class="eq">det(A − λI) = 0<small>A polynomial of degree n in λ for an n×n matrix. Its roots are the eigenvalues.</small></div>
+        <p>Expanding the determinant produces the <strong>characteristic polynomial</strong>, degree n in λ. Its n roots (real or complex, possibly repeated) are the eigenvalues. For each eigenvalue λ, you then solve (A − λI) v = 0 to find the eigenvector(s) spanning its direction. Two facts fall out for free and make excellent sanity checks: the eigenvalues sum to the <strong>trace</strong> (the diagonal sum) and multiply to the <strong>determinant</strong>:</p>
+        <div class="eq">λ₁ + λ₂ + ... + λn = tr(A)&nbsp;&nbsp;&nbsp; λ₁·λ₂·...·λn = det(A)<small>Cheap, powerful checks: if your eigenvalues don't sum to the trace, something is wrong.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Forgetting the I. Writing <code>det(A − λ) = 0</code> is meaningless — you cannot subtract a scalar λ from a matrix. You must subtract λ <em>times the identity</em>, which removes λ only from the diagonal entries. A second trap: assuming a real matrix has real eigenvalues. A plain rotation matrix has <em>complex</em> eigenvalues (it turns every real vector), which is exactly why the symmetric/Hermitian guarantee in §2.3 matters so much.</div>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Why Physics Loves Symmetric &amp; Hermitian Matrices</h2>
+        <p>A real matrix is <strong>symmetric</strong> if A = Aᵀ (it equals its own transpose). Its complex-valued cousin is <strong>Hermitian</strong>: A = A† , where A† is the conjugate transpose (transpose, then conjugate every entry). These are not arbitrary — they are the matrices that encode <em>physical observables</em>. And they come with a remarkable two-part guarantee (the <strong>spectral theorem</strong>):</p>
+        <div class="eq">A = A† &nbsp;⟹&nbsp; every λ is real, &nbsp;and&nbsp; eigenvectors of distinct λ are orthogonal<small>Real spectrum + orthogonal eigenbasis. This is the backbone of quantum mechanics and of vibration analysis.</small></div>
+        <p>Why <strong>real</strong> eigenvalues? In quantum mechanics, energy, momentum, and position are represented by Hermitian operators, and any <em>measured</em> value must be a real number — you never read 3 + 2i joules off a meter. The Hermitian property forces the spectrum to be real, so it can describe measurable quantities. The short proof: take Av = λv, hit it from the left with v† . Then v†Av = λ v†v. Taking the conjugate transpose of the whole scalar and using A† = A shows v†Av is real and v†v &gt; 0, so λ = (v†Av)/(v†v) is real.</p>
+        <p>Why <strong>orthogonal</strong> eigenvectors? They form a clean coordinate system — perpendicular axes with no overlap. In quantum mechanics, eigenstates of different energy are mutually exclusive outcomes; orthogonality is the mathematical statement that measuring "state 1" rules out "state 2." Practically, an orthogonal eigenbasis lets you decompose any state or any motion into independent pieces that evolve on their own.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 220" role="img" aria-label="A symmetric matrix maps the unit circle to an ellipse whose principal axes are perpendicular eigenvectors with real positive eigenvalues">
+                <!-- center -->
+                <line x1="30" y1="110" x2="430" y2="110" stroke="#2a3052" stroke-width="1"/>
+                <line x1="160" y1="20" x2="160" y2="200" stroke="#2a3052" stroke-width="1"/>
+                <!-- unit circle (left, conceptual) -->
+                <circle cx="160" cy="110" r="55" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <text x="160" y="35" fill="#60a5fa" font-size="11" text-anchor="middle">unit circle (inputs)</text>
+                <!-- ellipse (output of symmetric A) -->
+                <ellipse cx="160" cy="110" rx="120" ry="40" fill="rgba(129,140,248,.10)" stroke="#818cf8" stroke-width="2"/>
+                <text x="300" y="92" fill="#818cf8" font-size="11">ellipse (A applied)</text>
+                <!-- eigenvector 1 (long axis, green) -->
+                <line x1="160" y1="110" x2="280" y2="110" stroke="#34d399" stroke-width="2.5"/>
+                <polygon points="280,110 272,106 272,114" fill="#34d399"/>
+                <text x="232" y="128" fill="#34d399" font-size="11">v1, lambda1 = 3</text>
+                <!-- eigenvector 2 (short axis, amber) PERPENDICULAR -->
+                <line x1="160" y1="110" x2="160" y2="70" stroke="#fbbf24" stroke-width="2.5"/>
+                <polygon points="160,70 156,78 164,78" fill="#fbbf24"/>
+                <text x="168" y="60" fill="#fbbf24" font-size="11">v2, lambda2 = 1</text>
+                <!-- right-angle marker -->
+                <rect x="160" y="98" width="12" height="12" fill="none" stroke="#a3a8c8" stroke-width="1"/>
+            </svg>
+            <figcaption>A symmetric matrix maps the unit circle to an ellipse whose principal axes <b>are</b> its eigenvectors — and those axes meet at a right angle (orthogonal). The eigenvalues (here 3 and 1) are the stretch factors along each axis, both real.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Spin a lump of clay on a potter's wheel and a symmetric "stress" matrix squashes the round ball into an ellipsoid. Its longest and shortest axes are always at right angles — never a skewed parallelogram. Those perpendicular principal axes are the eigenvectors; the amount of squash along each is its (real) eigenvalue. Nature builds observables out of exactly this shape.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Eigenproblems Are Everywhere in Physics</h2>
+        <p>Once you recognize the pattern A v = λ v, you start seeing it everywhere. The two pillars of computational physics are both eigenvalue problems in disguise.</p>
+        <h3>Quantum mechanics: the time-independent Schrödinger equation</h3>
+        <p>The allowed energies of a quantum system are the eigenvalues of its <strong>Hamiltonian</strong> operator H — a Hermitian operator. Discretize space on a grid and H becomes a (large, Hermitian) matrix; the equation</p>
+        <div class="eq">H ψ = E ψ<small>Energy levels E are eigenvalues; the wavefunctions ψ (orbitals, bound states) are the eigenvectors.</small></div>
+        <p>is literally an eigenvalue problem. The discrete energy levels of an atom — why spectra are sharp lines and not a smear — are exactly the discrete eigenvalues of a Hermitian matrix. We solve a small version of this by hand and on the computer in Week 8.</p>
+        <h3>Classical vibration: normal modes</h3>
+        <p>A network of masses and springs obeys M ẍ = −K x. Seeking oscillating solutions x = v·e<sup>iωt</sup> turns this into the generalized eigenproblem K v = ω²M v: the eigenvalues are the <strong>squared resonant frequencies</strong> and the eigenvectors are the <strong>normal modes</strong> — the special shapes in which the whole structure vibrates in lock-step at one frequency. Because K and M are symmetric, those frequencies are real and the modes are orthogonal, which is why any complicated vibration decomposes cleanly into independent modes (Week 3).</p>
+        <p>The same structure governs the principal axes of a rotating rigid body (the inertia tensor), the stability of equilibria (signs of eigenvalues of the Hessian), and the principal components that compress data — all read off from one matrix's eigenpairs.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — eigenvalues and eigenvectors of a 2×2 symmetric matrix</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Find the eigenvalues and eigenvectors of the symmetric matrix A = [[2, 1], [1, 2]], and verify the trace/determinant checks.</p>
+        <ol>
+            <li><strong>Set up the characteristic equation:</strong> A − λI = [[2−λ, 1], [1, 2−λ]]. Its determinant is (2−λ)(2−λ) − (1)(1) = (2−λ)² − 1.</li>
+            <li><strong>Solve det = 0:</strong> (2−λ)² = 1, so 2−λ = ±1, giving <strong>λ₁ = 3</strong> and <strong>λ₂ = 1</strong>. Both real, as the spectral theorem promised for a symmetric matrix.</li>
+            <li><strong>Sanity checks:</strong> trace = 2 + 2 = 4 and λ₁ + λ₂ = 3 + 1 = 4 ✓. det(A) = 2·2 − 1·1 = 3 and λ₁·λ₂ = 3·1 = 3 ✓.</li>
+            <li><strong>Eigenvector for λ₁ = 3:</strong> solve (A − 3I)v = [[−1, 1], [1, −1]]v = 0, i.e. −v₁ + v₂ = 0, so v₁ = v₂. Direction v₁ = (1, 1) (normalize to (1, 1)/√2).</li>
+            <li><strong>Eigenvector for λ₂ = 1:</strong> solve (A − I)v = [[1, 1], [1, 1]]v = 0, i.e. v₁ + v₂ = 0, so v₂ = −v₁. Direction v₂ = (1, −1)/√2.</li>
+            <li><strong>Orthogonality check:</strong> v₁ · v₂ = (1)(1) + (1)(−1) = 0 ✓ — perpendicular, exactly as guaranteed for distinct eigenvalues of a symmetric matrix.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: eig vs eigh, and a particle in a box</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free Python + NumPy/SciPy stack runs everything in this specialization. <strong>Course setup:</strong> install it once (below), then reuse it every lecture and for the project.</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + NumPy / SciPy (one-time, Week 2 setup)</summary>
+            <p>With Python 3 installed (from <code>python.org</code> or your package manager), create an environment and install the scientific stack:</p>
+            <pre>python3 -m venv compphys-env
+source compphys-env/bin/activate     <span class="c"># macOS / Linux</span>
+compphys-env\Scripts\activate         <span class="c"># Windows (PowerShell)</span>
+pip install numpy scipy matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import numpy, scipy; print(numpy.__version__)"</code> — a version string means you're set. For large sparse eigenproblems later we'll use <code>scipy.sparse.linalg.eigsh</code>.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">First reproduce the worked example, then see why <code>eigh</code> (for symmetric/Hermitian matrices) is the right tool: it returns <em>real, sorted</em> eigenvalues and orthonormal eigenvectors, while the general <code>eig</code> can hand back complex round-off noise on the same matrix.</p>
+        <pre><span class="c"># eigenvalues.py — Lecture 2</span>
+import numpy as np
+
+A = np.array([[2.0, 1.0],
+              [1.0, 2.0]])
+
+<span class="c"># General solver: works for any square matrix</span>
+vals, vecs = np.linalg.eig(A)
+print("eig  values:", vals)             <span class="c"># [3. 1.] (order not guaranteed)</span>
+
+<span class="c"># eigh: ONLY for symmetric/Hermitian — faster, real, sorted ascending</span>
+w, V = np.linalg.eigh(A)
+print("eigh values:", w)                <span class="c"># [1. 3.]</span>
+print("eigh vectors:\n", V)             <span class="c"># columns are the eigenvectors</span>
+
+<span class="c"># Check the definition A v = lambda v for the first eigenpair</span>
+print("residual:", A @ V[:, 0] - w[0] * V[:, 0])   <span class="c"># ~0</span>
+<span class="c"># Check orthonormality: V^T V should be the identity</span>
+print(np.round(V.T @ V, 12))            <span class="c"># [[1 0],[0 1]]</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Now a real eigenproblem: a particle in a 1-D box. Build the Hamiltonian as a tridiagonal (Hermitian) matrix and let <code>eigh</code> hand you the energy levels and wavefunctions.</p>
+        <pre><span class="c"># particle_in_a_box.py — discrete Schrodinger equation</span>
+import numpy as np
+
+N = 500                       <span class="c"># grid points</span>
+x = np.linspace(0, 1, N)
+h = x[1] - x[0]
+
+<span class="c"># Kinetic energy ~ -1/2 d^2/dx^2 via the second-difference stencil</span>
+main = np.full(N, 2.0)
+off  = np.full(N - 1, -1.0)
+H = (np.diag(main) + np.diag(off, 1) + np.diag(off, -1)) / (2 * h**2)
+
+E, psi = np.linalg.eigh(H)    <span class="c"># Hermitian -> real, sorted energies</span>
+print("lowest 4 energies:", E[:4])
+<span class="c"># Ratios approach 1 : 4 : 9 : 16  (E_n proportional to n^2), the box spectrum</span>
+print("ratios:", np.round(E[:4] / E[0], 2))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Predict the energy ratios from E<sub>n</sub> ∝ n² before you run it, then plot <code>psi[:, 0]</code> and <code>psi[:, 1]</code> with Matplotlib — the ground state and first excited state of the box.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Eigenpairs are the engine of the rest of this course and beyond. Next week (Week 3) we use them to <em>diagonalize</em> a matrix and read off the normal modes of a coupled oscillator. Later in C3 the same machinery becomes the time-independent Schrödinger equation for real atoms (Week 8), and we swap dense <code>eigh</code> for <code>scipy.sparse.linalg.eigsh</code> when the Hamiltonian is huge but sparse. The orthogonal eigenbasis you met here reappears as Principal Component Analysis in the data/Quant track and as the stable-mode analysis that decides whether a PDE scheme blows up in Course 4. Master "A v = λ v" and you hold a master key to computational physics.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A vector v satisfies A v = λ v with v ≠ 0. Geometrically, what does A do to the direction of v?</div>
+            <div class="opt"><b>A.</b> rotates it by 90 degrees</div>
+            <div class="opt"><b>B.</b> leaves the direction unchanged, only scaling it by λ</div>
+            <div class="opt"><b>C.</b> always shrinks it to the zero vector</div>
+            <div class="opt"><b>D.</b> projects it onto the x-axis</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> An eigenvector keeps its line; A only rescales it by λ. (A) describes a rotation, which generally moves a direction; (C) would require v = 0 or λ = 0 for all of v, not the general case; (D) is a specific projection, not the eigen-relation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why do we solve det(A − λI) = 0 rather than det(A − λ) = 0 to find eigenvalues?</div>
+            <div class="opt"><b>A.</b> The two are identical; the I is just decoration.</div>
+            <div class="opt"><b>B.</b> Because λ must be subtracted from every entry of A.</div>
+            <div class="opt"><b>C.</b> Because you cannot subtract a scalar from a matrix; λI subtracts λ from the diagonal so (A − λI) is a valid matrix that must be singular.</div>
+            <div class="opt"><b>D.</b> Because the determinant is only defined for diagonal matrices.</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A − λ is undefined (matrix minus scalar). We need (A − λI) singular so a nonzero v lands in its null space. (A) is false — the I matters; (B) is wrong, λI touches only the diagonal; (D) is false, determinants are defined for any square matrix.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> For a Hermitian matrix (A = A†), the spectral theorem guarantees that…</div>
+            <div class="opt"><b>A.</b> all eigenvalues are real and eigenvectors of distinct eigenvalues are orthogonal</div>
+            <div class="opt"><b>B.</b> all eigenvalues are complex with nonzero imaginary part</div>
+            <div class="opt"><b>C.</b> the matrix has no eigenvalues</div>
+            <div class="opt"><b>D.</b> every eigenvalue equals 1</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Real spectrum and an orthogonal eigenbasis — the reason Hermitian operators model observables. (B) is backward (the imaginary parts vanish); (C) is false (an n×n matrix always has n eigenvalues counted with multiplicity); (D) describes only the identity, not Hermitian matrices in general.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the time-independent Schrödinger equation H ψ = E ψ, what are the eigenvalues and eigenvectors?</div>
+            <div class="opt"><b>A.</b> eigenvalues are wavefunctions; eigenvectors are forces</div>
+            <div class="opt"><b>B.</b> eigenvalues are the allowed energies E; eigenvectors are the wavefunctions ψ</div>
+            <div class="opt"><b>C.</b> eigenvalues are positions; eigenvectors are momenta</div>
+            <div class="opt"><b>D.</b> there is no eigenvalue structure; it is solved by integration only</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> H ψ = E ψ is exactly A v = λ v: E are the (real, since H is Hermitian) energy eigenvalues and ψ are the eigenvectors. (A) swaps the roles; (C) misnames the quantities; (D) ignores that on a grid H is a Hermitian matrix whose eigenpairs we compute directly.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You have a real symmetric matrix and want its eigenvalues and eigenvectors in NumPy. The best choice is…</div>
+            <div class="opt"><b>A.</b> <code>np.linalg.solve</code>, since eigenvalues are just a linear system</div>
+            <div class="opt"><b>B.</b> <code>np.linalg.inv</code>, then read the diagonal</div>
+            <div class="opt"><b>C.</b> <code>np.linalg.det</code> in a loop over λ</div>
+            <div class="opt"><b>D.</b> <code>np.linalg.eigh</code>, which exploits symmetry to return real, sorted eigenvalues and orthonormal eigenvectors</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> <code>eigh</code> is built for symmetric/Hermitian matrices: faster and numerically cleaner than the general <code>eig</code>, with guaranteed-real sorted eigenvalues. (A) solves Ax = b, not the eigenproblem; (B) the inverse's diagonal is unrelated to eigenvalues; (C) scanning det(A − λI) by hand is hopeless numerically.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>An <b>eigenvector</b> is an invariant direction of a linear map; A only scales it by its <b>eigenvalue</b> λ, via A v = λ v.</li>
+            <li>Eigenvalues are the roots of the <b>characteristic equation</b> det(A − λI) = 0; they sum to the trace and multiply to the determinant.</li>
+            <li><b>Symmetric/Hermitian</b> matrices have <b>real eigenvalues</b> and <b>orthogonal eigenvectors</b> — the spectral theorem that underpins physics.</li>
+            <li>Eigenproblems <em>are</em> physics: H ψ = E ψ gives quantum energy levels, and K v = ω²M v gives classical normal modes.</li>
+            <li>Compute with <b>np.linalg.eig</b> for general matrices and <b>np.linalg.eigh</b> for symmetric/Hermitian ones — sorted, real, orthonormal.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: Diagonalization &amp; Normal Modes — using the eigenbasis to decouple a system into independent oscillators you can solve one at a time.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-vectors-matrices.html"><div class="dir">← Week 1</div><div class="ttl">Vectors, Matrices &amp; Linear Transformations</div></a>
+        <a class="next" href="l03-diagonalization-normal-modes.html"><div class="dir">Week 3 →</div><div class="ttl">Diagonalization &amp; Normal Modes</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 LinAlg &amp; Quantum</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

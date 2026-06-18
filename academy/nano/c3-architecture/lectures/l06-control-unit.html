@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Lecture 6 — Control Unit</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; } .objectives li { font-size: .92rem; margin-bottom: 5px; }
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; } .key { color: var(--accent2); font-weight: 600; }
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; } .worked li { margin-bottom: 6px; }
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; } .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; } .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .quiz { margin: 48px 0 24px; } .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; } .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); } .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; } .q details .ans { color: var(--green); font-weight: 700; }
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08121a; border-color: var(--accent); } .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); } .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); } .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; } .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; } .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; } .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .data-note { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; } .lec-nav a.next { text-align: right; }
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C3 Architecture</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Control Unit</h1>
+        <p class="sub">The conductor that decodes instructions and tells the datapath what to do, and when.</p>
+    </div>
+</header>
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the control unit's job: decode the current instruction and generate the signals that steer the datapath.</li>
+            <li>Define a finite state machine as a set of states plus the transitions between them.</li>
+            <li>Describe how control marches through fetch → decode → execute states each cycle.</li>
+            <li>Contrast hardwired control (fast, rigid) with microcoded control (flexible, slower).</li>
+            <li>Explain why CISC machines favored microcode while modern RISC pipelines lean hardwired.</li>
+        </ul>
+    </div>
+
+    <section class="lec">
+        <h2><span class="n">6.1</span>The Control Unit's Job</h2>
+        <p>The datapath — registers, ALU, muxes, and memory ports from Lecture 5 — can <em>do</em> everything a processor needs, but it has no idea <em>what</em> to do on any given cycle. That's the <span class="key">control unit</span>'s job: take the current instruction, <strong>decode</strong> it, and generate the <strong>control signals</strong> that steer the datapath.</p>
+        <p>Those signals are exactly the knobs the datapath exposes: <strong>mux selects</strong> (which operand or write-back source to route), the <strong>ALU operation</strong> (add, subtract, AND, …), <strong>register-write enables</strong> (whether and which register latches a result), and <strong>memory read/write</strong> lines. The control unit reads the opcode and asserts the right combination so the right thing happens this cycle.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 210" role="img" aria-label="Control unit block: an instruction opcode feeds a decoder and FSM, which output control signals as arrows to the datapath blocks">
+                <rect x="20" y="80" width="70" height="48" rx="8" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.6"/>
+                <text x="55" y="100" fill="#e8f0f8" font-size="11" text-anchor="middle">Opcode</text>
+                <text x="55" y="115" fill="#94a8bc" font-size="9" text-anchor="middle">(instruction)</text>
+                <line x1="90" y1="104" x2="120" y2="104" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#ah)"/>
+                <rect x="122" y="62" width="96" height="84" rx="10" fill="#14202e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="170" y="98" fill="#67e8f9" font-size="12" text-anchor="middle" font-weight="bold">Control Unit</text>
+                <text x="170" y="114" fill="#94a8bc" font-size="9" text-anchor="middle">decoder / FSM</text>
+                <rect x="284" y="20" width="60" height="26" rx="6" fill="#1c2c3e" stroke="#34d399" stroke-width="1.4"/>
+                <text x="314" y="37" fill="#6ee7b7" font-size="9" text-anchor="middle">mux sel</text>
+                <rect x="284" y="58" width="60" height="26" rx="6" fill="#1c2c3e" stroke="#34d399" stroke-width="1.4"/>
+                <text x="314" y="75" fill="#6ee7b7" font-size="9" text-anchor="middle">ALU op</text>
+                <rect x="284" y="96" width="60" height="26" rx="6" fill="#1c2c3e" stroke="#34d399" stroke-width="1.4"/>
+                <text x="314" y="113" fill="#6ee7b7" font-size="9" text-anchor="middle">reg write</text>
+                <rect x="284" y="134" width="60" height="26" rx="6" fill="#1c2c3e" stroke="#34d399" stroke-width="1.4"/>
+                <text x="314" y="151" fill="#6ee7b7" font-size="9" text-anchor="middle">mem r/w</text>
+                <line x1="218" y1="86" x2="284" y2="33" stroke="#34d399" stroke-width="1.4" marker-end="url(#ag)"/>
+                <line x1="218" y1="98" x2="284" y2="71" stroke="#34d399" stroke-width="1.4" marker-end="url(#ag)"/>
+                <line x1="218" y1="110" x2="284" y2="109" stroke="#34d399" stroke-width="1.4" marker-end="url(#ag)"/>
+                <line x1="218" y1="122" x2="284" y2="147" stroke="#34d399" stroke-width="1.4" marker-end="url(#ag)"/>
+                <text x="240" y="178" fill="#94a8bc" font-size="9" text-anchor="middle">control signals → datapath</text>
+                <defs>
+                    <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a8bc"/></marker>
+                    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#34d399"/></marker>
+                </defs>
+            </svg>
+            <figcaption>The opcode enters the control unit (a decoder / FSM), which fans out control signals — mux selects, ALU op, register-write, memory read/write — to steer the datapath.</figcaption>
+        </figure>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.2</span>Finite State Machines</h2>
+        <p>One instruction usually takes several steps, so control doesn't fire all its signals at once — it <strong>marches through states</strong>. The natural model is a <span class="key">finite state machine</span> (FSM): a finite set of <strong>states</strong> plus the <strong>transitions</strong> between them. Each clock edge moves the machine from one state to the next.</p>
+        <p>For a simple processor the states are the classic <strong>fetch</strong> (read the next instruction), <strong>decode</strong> (figure out what it is and read operands), and <strong>execute</strong> (do the work and write back) — then loop back to fetch. In each state the control unit asserts exactly the signals that step needs.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 180" role="img" aria-label="A finite state machine state diagram with three circular states, Fetch, Decode, and Execute, connected by arrows in a cycle">
+                <circle cx="60" cy="90" r="34" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="60" y="94" fill="#67e8f9" font-size="12" text-anchor="middle" font-weight="bold">Fetch</text>
+                <circle cx="180" cy="90" r="34" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="180" y="94" fill="#67e8f9" font-size="12" text-anchor="middle" font-weight="bold">Decode</text>
+                <circle cx="300" cy="90" r="34" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="300" y="94" fill="#67e8f9" font-size="12" text-anchor="middle" font-weight="bold">Execute</text>
+                <line x1="94" y1="90" x2="146" y2="90" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#sa)"/>
+                <line x1="214" y1="90" x2="266" y2="90" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#sa)"/>
+                <path d="M300,124 C300,168 60,168 60,124" fill="none" stroke="#34d399" stroke-width="1.6" marker-end="url(#sb)"/>
+                <text x="180" y="162" fill="#6ee7b7" font-size="10" text-anchor="middle">back to Fetch</text>
+                <defs>
+                    <marker id="sa" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a8bc"/></marker>
+                    <marker id="sb" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#34d399"/></marker>
+                </defs>
+            </svg>
+            <figcaption>An FSM state diagram: the control unit cycles Fetch → Decode → Execute, then transitions back to Fetch for the next instruction.</figcaption>
+        </figure>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.3</span>Hardwired Control</h2>
+        <p>In <span class="key">hardwired control</span>, the decode-and-sequence logic is built <strong>directly out of gates</strong> — an FSM implemented as combinational logic plus a state register. The opcode and current state feed a fixed network of AND/OR gates that produces the control signals.</p>
+        <p>The payoff is <strong>speed</strong>: signals come straight out of a shallow logic network with no extra lookup, so hardwired control is compact and fast. The cost is rigidity — every instruction is baked into the gates, so changing or fixing the instruction set means redesigning the logic. This style is typical of <strong>RISC</strong> machines, whose small, regular instruction sets map cleanly onto fast hardwired control.</p>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.4</span>Microcoded Control</h2>
+        <p>In <span class="key">microcoded control</span>, each machine instruction is implemented by a tiny <strong>microprogram</strong> — a short sequence of <strong>microinstructions</strong> stored in a <strong>control ROM</strong>. The opcode indexes into the ROM, and each microinstruction's bits <em>are</em> the control signals for one step.</p>
+        <p>Because behavior lives in ROM rather than in gates, microcode is <strong>flexible</strong>: adding a complex or variable-length instruction — or fixing a bug — is just editing the microcode, not respinning logic. The cost is the extra ROM lookup each step, which makes microcode <strong>slower</strong>. This style is typical of older <strong>CISC</strong> machines with rich, irregular instruction sets.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The control unit is the <strong>conductor of an orchestra</strong> — it doesn't play the notes (the datapath does that), it signals <em>who plays when</em>. Hardwired control is a fixed score engraved once and never changed; microcode is a programmable score the conductor looks up in a book, page by page — easy to revise, but it takes a moment to turn each page.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Hardwired control is <em>faster</em> but inflexible; microcode trades speed for flexibility (and makes complex instructions easier to implement) — don't swap those around. And remember the control unit only generates <strong>signals</strong>; it does <em>not</em> compute data. The arithmetic happens in the ALU/datapath, not the control unit.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Same datapath, two instructions — watch how only the <em>control signals</em> change.</p>
+        <ol>
+            <li><strong>ADD R3, R1, R2:</strong> register-read R1 and R2, set <strong>ALU op = add</strong>, route the ALU result to write-back, <strong>register-write enabled</strong> (into R3), and memory stays <strong>idle</strong> (no read or write).</li>
+            <li><strong>LOAD R3, [R1]:</strong> the <strong>ALU computes the address</strong> from R1, <strong>memory-read enabled</strong>, the write-back <strong>mux selects memory</strong> (not the ALU result) as the source, and <strong>register-write enabled</strong> (into R3).</li>
+            <li><strong>Takeaway:</strong> the wires, ALU, and register file are identical in both cases. Only the control unit's signal pattern differs — that pattern <em>is</em> the difference between an add and a load.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: a 3-state control FSM in Verilog</h3>
+        <p>Code the fetch/decode/execute FSM as a clocked <code>always @(posedge clk)</code> block with a <code>case</code> over the state. Simulate with Icarus Verilog and view the waveform in GTKWave.</p>
+        <pre><span class="c">// control_fsm.v — fetch/decode/execute</span>
+module control_fsm(input clk, input rst, output reg [1:0] state);
+  localparam FETCH=2'd0, DECODE=2'd1, EXECUTE=2'd2;
+  always @(posedge clk) begin
+    if (rst) state &lt;= FETCH;
+    else case (state)
+      FETCH:   state &lt;= DECODE;
+      DECODE:  state &lt;= EXECUTE;
+      EXECUTE: state &lt;= FETCH;   <span class="c">// loop back</span>
+      default: state &lt;= FETCH;
+    endcase
+  end
+endmodule</pre>
+        <p>Build and run: <code>iverilog -o fsm control_fsm.v tb.v</code> then <code>vvp fsm</code>, and open the dump with <code>gtkwave fsm.vcd</code>. Expected: <code>state</code> steps 0 → 1 → 2 → 0 each clock, cycling forever.</p>
+    </div>
+
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The control unit…</div>
+            <div class="opt"><b>A.</b> performs the arithmetic</div>
+            <div class="opt"><b>B.</b> decodes instructions and generates the signals that steer the datapath</div>
+            <div class="opt"><b>C.</b> stores the operands</div>
+            <div class="opt"><b>D.</b> holds the program</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The control unit decodes the current instruction and asserts the control signals (mux selects, ALU op, write/memory enables) — it doesn't compute data itself.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A finite state machine consists of…</div>
+            <div class="opt"><b>A.</b> only inputs</div>
+            <div class="opt"><b>B.</b> a single register</div>
+            <div class="opt"><b>C.</b> states and the transitions between them</div>
+            <div class="opt"><b>D.</b> an adder and a mux</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> An FSM is a finite set of states plus the transitions between them — exactly the model control uses to march through fetch/decode/execute.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Hardwired control is…</div>
+            <div class="opt"><b>A.</b> slow but flexible</div>
+            <div class="opt"><b>B.</b> fast but rigid and hard to modify</div>
+            <div class="opt"><b>C.</b> stored in ROM</div>
+            <div class="opt"><b>D.</b> the same as microcode</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Built directly as gates/an FSM, it's fast and compact but rigid — changing the instruction set means redesigning logic. (Typical of RISC.)</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Microcoded control…</div>
+            <div class="opt"><b>A.</b> is always faster</div>
+            <div class="opt"><b>B.</b> uses no memory</div>
+            <div class="opt"><b>C.</b> stores each instruction as a microprogram in a control ROM (flexible, good for complex ISAs)</div>
+            <div class="opt"><b>D.</b> can't do branches</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Each instruction is a tiny microprogram in a control ROM — flexible and good for complex/variable instructions, at the cost of an extra lookup (slower). (Typical of older CISC.)</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The fetch-decode-execute sequence is implemented by…</div>
+            <div class="opt"><b>A.</b> the ALU</div>
+            <div class="opt"><b>B.</b> the register file</div>
+            <div class="opt"><b>C.</b> the cache</div>
+            <div class="opt"><b>D.</b> the control FSM</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The control unit's finite state machine sequences fetch → decode → execute, asserting the right signals in each state.</p></details>
+        </div>
+    </div>
+
+    <!-- DISCUSSION 2 -->
+    <div class="discussion">
+        <div class="disc-head"><span class="wkbadge">Discussion 2 · Week 6</span><h2>💬 Discuss &amp; get feedback</h2></div>
+        <div class="disc-item" data-disc="c3-l6-d2">
+            <p class="disc-prompt" id="prompt-c3l6">Hardwired vs microcoded control units — what does each optimize for, and why did complex (CISC) machines favor microcode while modern RISC pipelines lean hardwired?</p>
+            <textarea id="ans-c3l6" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta"><span class="saved-note" id="saved-c3l6">Not saved yet</span><span class="toast" id="toast-c3l6"></span></div>
+            <div class="disc-model" id="model-c3l6" hidden>
+                <h4>Model response</h4>
+                <p>Hardwired control implements the decode/sequencing directly in logic — it's fast and compact, but every instruction must be baked into fixed gates, so it's rigid and hard to extend or fix. Microcoded control stores each instruction as a small program in a control ROM, so adding complex or variable-length instructions (and fixing bugs) is just editing the microcode — at the cost of an extra lookup, hence slower.</p>
+                <p>Early CISC machines had rich, irregular instruction sets and limited logic budgets, so microcode was the practical way to implement them. RISC deliberately simplified the instruction set to a small, regular form that maps cleanly onto fast hardwired control and pipelining, so modern high-speed pipelines lean hardwired.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Hardwired = fast/compact but rigid</li>
+                    <li>Microcode = flexible/easier for complex instructions but slower</li>
+                    <li>Connects CISC → microcode and RISC/pipelines → hardwired</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="data-note">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty. The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>control unit</b> decodes the current instruction and generates the signals (mux selects, ALU op, register-write, memory r/w) that steer the datapath.</li>
+            <li>A <b>finite state machine</b> — states plus transitions — sequences control through fetch → decode → execute each cycle.</li>
+            <li><b>Hardwired control</b> is built as gates/an FSM: fast and compact but rigid (typical of RISC).</li>
+            <li><b>Microcoded control</b> stores each instruction as a microprogram in a control ROM: flexible and good for complex ISAs, but slower (typical of older CISC).</li>
+            <li>Same datapath, different <b>control signals</b> — an ADD and a LOAD differ only in the signals control asserts.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Instruction Set &amp; Execution Cycle — how instructions are encoded and run end to end.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l05-processor-datapath.html"><div class="dir">← Week 5</div><div class="ttl">Processor Datapath</div></a>
+        <a href="l07-instruction-cycle.html" class="next"><div class="dir">Week 7 →</div><div class="ttl">Instruction Set &amp; Execution Cycle</div></a>
+    </div>
+</div>
+<footer>
+    <p><a href="../index.html">← C3 Architecture</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => { const h = document.documentElement; bar.style.width = (h.scrollTop)/(h.scrollHeight - h.clientHeight)*100 + '%'; });
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my computer-architecture tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\nMY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) { const t = item.querySelector('.toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500); }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.')); }
+        else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) { const item = btn.closest('.disc-item'); const full = buildPrompt(item); copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.'); window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener'); }
+    function copyForAI(btn) { const item = btn.closest('.disc-item'); copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.'); }
+    function toggleModel(btn) { const m = btn.closest('.disc-item').querySelector('.disc-model'); if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; } else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; } }
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => { localStorage.setItem(key, t.value); if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet'; });
+    });
+</script>
+</body>
+</html>

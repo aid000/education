@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C3 · Lecture 7 — The Greeks</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C3 Derivatives</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>The Greeks</h1>
+        <p class="sub">An option's price is a surface; the Greeks are the slopes that tell a trader exactly which way — and how fast — that surface is about to move under their feet.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define each Greek as a partial derivative of the option price and explain why traders measure sensitivity rather than re-pricing.</li>
+            <li>State delta and read it as both a slope and the hedge ratio (the shares per option that flatten risk).</li>
+            <li>Explain gamma as the curvature of the price and the reason a delta hedge must be rebalanced.</li>
+            <li>Describe vega, theta, and rho, give their signs for a long option, and articulate the theta–gamma tradeoff.</li>
+            <li>Compute all five Greeks for a Black–Scholes call in SciPy and verify them against a finite-difference bump.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>Why Sensitivities, Not Just Prices</h2>
+        <p>Last week the Black–Scholes formula gave us a single number: the fair value of an option for a given spot price S, strike K, volatility σ, time-to-expiry T, and rate r. But a trader who holds that option does not live in a frozen world. The spot moves every second, implied volatility drifts, the clock ticks, rates shift. The pressing question is not "what is the option worth now?" but "<strong>how will its value change when the world changes?</strong>"</p>
+        <p>That is a question about <em>derivatives</em> — in the calculus sense. The price V is a function V(S, σ, T, r), and each <strong>Greek</strong> is one of its partial derivatives: the first-order rate of change of value with respect to one input, holding the others fixed. Collectively they form a local linear-plus-quadratic map of the price surface, so a desk can re-state its risk in a handful of numbers instead of re-running a pricer for every conceivable scenario.</p>
+        <div class="eq">V = V(S, σ, T, r)<small>The Greeks are the partial derivatives of this one function — each isolates the effect of moving a single input.</small></div>
+        <p>The five we study are named (mostly) after Greek letters: <span class="key">delta</span> (∂V/∂S), <span class="key">gamma</span> (∂²V/∂S²), <span class="key">vega</span> (∂V/∂σ), <span class="key">theta</span> (∂V/∂t), and <span class="key">rho</span> (∂V/∂r). A first-order Taylor expansion of the price around today's market stitches them together:</p>
+        <div class="eq">ΔV ≈ Δ·ΔS + ½·Γ·(ΔS)² + 𝒱·Δσ + Θ·Δt + ρ·Δr<small>Delta and gamma are the first two terms in S; vega, theta, and rho cover volatility, time, and rates. Hedging means zeroing the terms you don't want exposure to.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the option value as the <strong>altitude of a hiker</strong> on a hillside. Delta is the steepness directly under your feet — step east and you know roughly how much you climb. Gamma is how quickly that steepness itself changes as you walk, so a flat-looking slope can suddenly turn into a cliff. The Greeks are the contour lines that let you navigate without re-surveying the whole mountain at every step.</div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>Delta — Slope and Hedge Ratio</h2>
+        <p><strong>Delta</strong> (Δ) is the first derivative of the option price with respect to the underlying spot: how many dollars the option gains when the stock rises by one dollar. For a Black–Scholes call and put it has a clean closed form:</p>
+        <div class="eq">Δ<sub>call</sub> = N(d<sub>1</sub>),&nbsp;&nbsp; Δ<sub>put</sub> = N(d<sub>1</sub>) − 1<small>N is the standard-normal CDF; d<sub>1</sub> = [ln(S/K) + (r + ½σ²)T] / (σ√T) from Week 6.</small></div>
+        <p>Because N maps to (0, 1), a call's delta lives in <span class="key">[0, 1]</span> and a put's in <span class="key">[−1, 0]</span>. A deep in-the-money call moves almost dollar-for-dollar with the stock (Δ ≈ 1, it behaves like the share itself); a far out-of-the-money call barely reacts (Δ ≈ 0). Right at the money a call's delta sits near 0.5 — a coin-flip's worth of stock exposure.</p>
+        <p>The second reading of delta is the one that pays the rent: it is the <strong>hedge ratio</strong>. If you are short one call with delta 0.6, you can neutralize your spot exposure by buying 0.6 shares. Then a small move in S changes the option leg and the share leg by equal and opposite amounts, and your combined position is — to first order — <em>immune</em> to where the stock goes. This is the seed of delta hedging, the entire subject of next week.</p>
+        <div class="eq">Position delta = 0&nbsp;&nbsp;⟹&nbsp;&nbsp;shares to hold = −(option delta) × (number of options)<small>A delta-neutral book has no first-order exposure to the underlying's direction.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Delta is a <em>local</em> slope, valid only for a small move. People treat "Δ = 0.6" as if the option will always track 60% of the stock — but delta itself changes as S moves (that change is gamma, §7.3). A position that is delta-neutral right now drifts <em>out</em> of neutrality the instant the spot moves, which is precisely why hedges must be rebalanced.</div>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Gamma — Convexity and the Cost of Rebalancing</h2>
+        <p><strong>Gamma</strong> (Γ) is the second derivative of price with respect to spot — equivalently, the rate at which delta itself changes as the stock moves. It is the <em>curvature</em> of the option's value as a function of S. For both Black–Scholes calls and puts it is identical and always positive for a long option:</p>
+        <div class="eq">Γ = ∂Δ/∂S = ∂²V/∂S² = N′(d<sub>1</sub>) / (S·σ·√T)<small>N′ is the standard-normal density. Gamma is largest at the money and near expiry, and decays for deep ITM/OTM options.</small></div>
+        <p>Positive gamma is the option buyer's friend. Because the value curve bends upward, a long option <em>gains delta as the stock rises and loses delta as it falls</em> — you are automatically longer when you're winning and shorter when you're losing. Delta-hedge such a position and you end up systematically "buying low and selling high" in your rebalancing trades, banking a small profit from every wiggle. That profit is the payoff for being long convexity.</p>
+        <p>Gamma is concentrated where the option is most uncertain about finishing in or out of the money: <strong>near the strike and close to expiry</strong>. A far-dated, deep-ITM option is nearly linear in S (gamma ≈ 0); an at-the-money option the afternoon before expiry has explosive gamma, its delta flipping between 0 and 1 on tiny moves.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Delta is your car's <strong>speed</strong>; gamma is the <strong>accelerator</strong>. A high-gamma position is a twitchy sports car — touch the spot and your delta lurches, so you must steer (rebalance) constantly. A low-gamma position is a heavy truck that holds its line. Market-makers who are short gamma feel like they're driving that sports car downhill in the rain: every move forces them to trade in the <em>wrong</em> direction.</div>
+    </section>
+
+    <!-- FIGURE 1: delta and gamma vs spot -->
+    <figure class="fig">
+        <svg viewBox="0 0 400 230" role="img" aria-label="Call delta as an S-shaped curve rising from zero to one as spot increases through the strike, with gamma shown as a bell-shaped curve peaked at the strike">
+            <!-- axes -->
+            <line x1="46" y1="170" x2="372" y2="170" stroke="#bcae8c" stroke-width="1.5"/>
+            <line x1="46" y1="30" x2="46" y2="170" stroke="#bcae8c" stroke-width="1.5"/>
+            <text x="300" y="190" fill="#bcae8c" font-size="11">spot price S →</text>
+            <text x="52" y="42" fill="#bcae8c" font-size="11">Δ , Γ</text>
+            <!-- delta reference levels -->
+            <line x1="46" y1="50" x2="372" y2="50" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+            <text x="30" y="54" fill="#bcae8c" font-size="9" text-anchor="middle">1</text>
+            <line x1="46" y1="110" x2="372" y2="110" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+            <text x="30" y="114" fill="#bcae8c" font-size="9" text-anchor="middle">0.5</text>
+            <!-- strike marker -->
+            <line x1="209" y1="50" x2="209" y2="170" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 3"/>
+            <text x="209" y="186" fill="#93c5fd" font-size="10" text-anchor="middle">K</text>
+            <!-- delta: S-shaped CDF, rising 0 -> 1 -->
+            <path d="M52,168 C100,166 150,160 185,135 C200,124 209,110 218,96 C250,55 300,52 366,51"
+                  fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+            <text x="330" y="44" fill="#fcd34d" font-size="11">Δ (call)</text>
+            <!-- gamma: bell peaked at strike, drawn lower in frame -->
+            <path d="M52,169 C120,168 165,166 188,150 C200,140 209,118 209,118 C209,118 218,140 230,150 C253,166 298,168 366,169"
+                  fill="rgba(52,211,153,.10)" stroke="#34d399" stroke-width="2.2"/>
+            <text x="120" y="150" fill="#6ee7b7" font-size="11">Γ</text>
+        </svg>
+        <figcaption>Delta (gold) is an S-shaped curve sweeping from 0 (deep OTM) through ≈0.5 at the strike to 1 (deep ITM). Gamma (green) is the slope of that delta curve — a bell peaked right at the strike, where delta changes fastest. Both flatten far from K.</figcaption>
+    </figure>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>Vega, Theta, Rho — and the Theta–Gamma Tradeoff</h2>
+        <p>The remaining Greeks measure exposure to the other inputs. <strong>Vega</strong> (𝒱, not actually a Greek letter) is the sensitivity to <em>volatility</em>: how much value the option gains per one-point rise in σ. It is always positive for a long option — more volatility means a fatter chance of a big favorable move, and the option holder keeps only the upside.</p>
+        <div class="eq">𝒱 = ∂V/∂σ = S·N′(d<sub>1</sub>)·√T&nbsp;&nbsp;&nbsp;&nbsp;(same for calls and puts)<small>Vega peaks at the money and grows with time-to-expiry — long-dated options are the big volatility bets.</small></div>
+        <p><strong>Theta</strong> (Θ) is the sensitivity to the passage of <em>time</em>: the value lost per day as expiry approaches, the famous "time decay." For a long option theta is typically <strong>negative</strong> — every day that passes with the stock going nowhere bleeds away the option's remaining time value. <strong>Rho</strong> (ρ) is the sensitivity to the <em>interest rate</em>; it is positive for calls, negative for puts, and is usually the smallest of the five for short-dated equity options.</p>
+        <div class="eq">Θ ≈ ∂V/∂t &lt; 0 (long option),&nbsp;&nbsp; ρ<sub>call</sub> = K·T·e<sup>−rT</sup>·N(d<sub>2</sub>) &gt; 0<small>Convention: theta is usually quoted per calendar day and as the decay (a negative number) for a long position.</small></div>
+        <p>The deepest relationship in this lecture is the <strong>theta–gamma tradeoff</strong>. They are two sides of one coin. Long gamma — the convexity that lets you scalp profits from every wiggle — must be <em>paid for</em>, and the rent is theta. Under Black–Scholes the connection is exact: for a delta-hedged book, the per-unit-time decay is balanced against the convexity gain at the realized variance:</p>
+        <div class="eq">Θ + ½·σ²·S²·Γ + r·S·Δ − r·V = 0<small>The Black–Scholes PDE. For a delta-neutral position (Δ ≈ 0) it says Θ ≈ −½σ²S²Γ: positive gamma demands negative theta.</small></div>
+        <p>Read it plainly: if you are long gamma you are short theta, and you only come out ahead if the stock actually moves enough — if <em>realized</em> volatility beats the <em>implied</em> volatility you paid for. That single inequality is the engine of volatility trading.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't confuse <em>vega</em> with <em>gamma</em> — both rise with "more movement," but they answer different questions. Vega is exposure to a change in the <strong>implied</strong> volatility you're quoted (a re-pricing of the option), while gamma pays off from the <strong>realized</strong> volatility the stock actually delivers (a hedging P&amp;L). You can be long one and short the other.</p></div>
+    </section>
+
+    <!-- FIGURE 2: theta-gamma tradeoff -->
+    <figure class="fig">
+        <svg viewBox="0 0 400 230" role="img" aria-label="A long option value curve bowing above its straight delta tangent line at the central spot price, with the upward gap labeled gamma gain and a lower dashed curve labeled value tomorrow from theta decay">
+            <!-- axes -->
+            <line x1="46" y1="185" x2="372" y2="185" stroke="#bcae8c" stroke-width="1.5"/>
+            <line x1="185" y1="32" x2="185" y2="185" stroke="#bcae8c" stroke-width="1"/>
+            <text x="290" y="204" fill="#bcae8c" font-size="11">spot price S →</text>
+            <text x="58" y="46" fill="#bcae8c" font-size="11">option value V</text>
+            <text x="185" y="202" fill="#bcae8c" font-size="10" text-anchor="middle">S₀</text>
+            <!-- straight tangent line (delta), touches the curve at S0 (185,118) -->
+            <line x1="60" y1="160" x2="356" y2="80" stroke="#60a5fa" stroke-width="1.6" stroke-dasharray="5 4"/>
+            <text x="196" y="100" fill="#93c5fd" font-size="10">delta tangent</text>
+            <!-- convex value curve today: tangent at S0, bowing ABOVE the line on both sides -->
+            <path d="M60,150 C120,134 160,124 185,118 C235,106 300,78 356,40"
+                  fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+            <text x="82" y="132" fill="#fcd34d" font-size="10">V(S) today</text>
+            <!-- gamma gain arrow: vertical gap between curve (40) and tangent (80) at x=356 -->
+            <line x1="340" y1="80" x2="340" y2="51" stroke="#34d399" stroke-width="1.6"/>
+            <path d="M340,51 L335,60 L345,60 Z" fill="#34d399"/>
+            <path d="M340,80 L335,71 L345,71 Z" fill="#34d399"/>
+            <text x="320" y="96" fill="#6ee7b7" font-size="9.5" text-anchor="middle">Γ gain</text>
+            <!-- theta decay: value curve sagged down one day -->
+            <path d="M60,164 C120,150 160,142 185,137 C235,126 300,100 356,64"
+                  fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-dasharray="4 3"/>
+            <text x="118" y="174" fill="#c4b5fd" font-size="9.5">V tomorrow (Θ)</text>
+        </svg>
+        <figcaption>The theta–gamma tradeoff. A long option's value (gold) curves <em>above</em> its delta tangent (blue) — that upward bow is gamma, worth money when the stock moves. The price for it is theta: as a day passes the whole curve sags toward the payoff (violet, dashed). You profit only if realized movement outruns the decay.</figcaption>
+    </figure>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — Greeks of an at-the-money call</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 3-month call on a non-dividend stock: S = 100, K = 100, r = 5%, σ = 20%, T = 0.25. Find d<sub>1</sub>, d<sub>2</sub>, delta, gamma, and vega, then read off the hedge.</p>
+        <ol>
+            <li><strong>Compute d<sub>1</sub>:</strong> d<sub>1</sub> = [ln(100/100) + (0.05 + ½·0.20²)·0.25] / (0.20·√0.25) = [0 + (0.07)(0.25)] / (0.20·0.5) = 0.0175 / 0.10 = <strong>0.175</strong>.</li>
+            <li><strong>And d<sub>2</sub>:</strong> d<sub>2</sub> = d<sub>1</sub> − σ√T = 0.175 − 0.10 = <strong>0.075</strong>.</li>
+            <li><strong>Delta:</strong> Δ = N(0.175) ≈ <strong>0.569</strong>. The call gains about 57¢ per $1 rise in the stock — slightly above 0.5 because the drift (r) tilts the odds toward finishing ITM.</li>
+            <li><strong>Gamma:</strong> N′(0.175) = (1/√2π)e<sup>−0.175²/2</sup> ≈ 0.3925. Γ = 0.3925 / (100·0.20·0.5) = 0.3925 / 10 = <strong>0.0393</strong> per $1. So a $1 move changes delta by about 0.039.</li>
+            <li><strong>Vega:</strong> 𝒱 = S·N′(d<sub>1</sub>)·√T = 100·0.3925·0.5 = <strong>19.6</strong> per 1.00 (100-point) change in σ — i.e. about <strong>0.196</strong> per 1% (0.01) change in volatility.</li>
+            <li><strong>The hedge:</strong> short one call ⟹ buy 0.569 shares to be delta-neutral now. But with Γ = 0.039, a $5 rally pushes delta to ≈ 0.569 + 5·0.039 ≈ 0.76, so you'd need to buy ~0.19 more shares to stay neutral — gamma in action.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: Greeks in SciPy, checked by bumping</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1/2 stack (NumPy + SciPy + Jupyter — the install block lives in <a href="../../c1-probability-stochastic/lectures/l01-probability-expectation.html" style="color:var(--accent2);">C1 Lecture 1</a>). We code the closed-form Greeks, then confirm delta and gamma with a finite-difference "bump" — the same sanity check a desk runs against its analytic library.</p>
+        <pre><span class="c"># greeks.py — Lecture 7</span>
+import numpy as np
+from scipy.stats import norm
+
+def d1_d2(S, K, r, sigma, T):
+    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    return d1, d1 - sigma*np.sqrt(T)
+
+def bs_call(S, K, r, sigma, T):
+    d1, d2 = d1_d2(S, K, r, sigma, T)
+    return S*norm.cdf(d1) - K*np.exp(-r*T)*norm.cdf(d2)
+
+def greeks_call(S, K, r, sigma, T):
+    d1, d2 = d1_d2(S, K, r, sigma, T)
+    delta = norm.cdf(d1)
+    gamma = norm.pdf(d1) / (S*sigma*np.sqrt(T))
+    vega  = S*norm.pdf(d1)*np.sqrt(T)                 <span class="c"># per 1.00 of sigma</span>
+    theta = (-S*norm.pdf(d1)*sigma/(2*np.sqrt(T))
+             - r*K*np.exp(-r*T)*norm.cdf(d2))          <span class="c"># per year</span>
+    rho   = K*T*np.exp(-r*T)*norm.cdf(d2)
+    return delta, gamma, vega, theta, rho
+
+S, K, r, sigma, T = 100, 100, 0.05, 0.20, 0.25
+delta, gamma, vega, theta, rho = greeks_call(S, K, r, sigma, T)
+print(f"delta {delta:.4f}  gamma {gamma:.4f}  vega {vega:.3f}")
+print(f"theta/yr {theta:.3f}  (per day {theta/365:.4f})  rho {rho:.3f}")
+
+<span class="c"># --- verify delta &amp; gamma by bumping the spot ---</span>
+h = 1e-3
+delta_fd = (bs_call(S+h,K,r,sigma,T) - bs_call(S-h,K,r,sigma,T)) / (2*h)
+gamma_fd = (bs_call(S+h,K,r,sigma,T) - 2*bs_call(S,K,r,sigma,T)
+            + bs_call(S-h,K,r,sigma,T)) / h**2
+print(f"delta (bump) {delta_fd:.4f}   gamma (bump) {gamma_fd:.4f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">You should see delta ≈ 0.5692, gamma ≈ 0.0393, vega ≈ 19.6, and the bumped values matching the closed form to several decimals. Sweep <code>S</code> from 80 to 120 and plot delta and gamma with Matplotlib to reproduce the S-curve and bell in Figure 1 — and watch gamma spike as you shrink <code>T</code> toward expiry.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The Greeks are the bridge from a static price to a living trading book. <strong>Next week</strong> we turn delta into action: continuously rebalancing a stock hedge to replicate an option, the argument that <em>derives</em> Black–Scholes from no-arbitrage. From there, <strong>gamma scalping</strong> and the theta–gamma inequality become a full volatility-trading strategy, and <strong>vega</strong> opens the door to the volatility surface and smile (later in C3) where σ is no longer a single number. In the risk-management course these same partials aggregate across thousands of positions into a desk-level risk report — the daily language every derivatives trader speaks.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A trader is short 10 call options, each with delta 0.40. To make the position delta-neutral they should…</div>
+            <div class="opt"><b>A.</b> sell 4 shares of the stock</div>
+            <div class="opt"><b>B.</b> buy 4 shares of the stock</div>
+            <div class="opt"><b>C.</b> buy 10 shares of the stock</div>
+            <div class="opt"><b>D.</b> do nothing — short calls are already neutral</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Short 10 calls gives position delta −10×0.40 = −4. To offset it you need +4 of spot delta, i.e. buy 4 shares. Selling shares (A) doubles the negative exposure; 10 shares (C) ignores the per-option delta; short options carry plenty of directional exposure, so D is wrong.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Gamma is largest for a call that is…</div>
+            <div class="opt"><b>A.</b> deep in the money with years to expiry</div>
+            <div class="opt"><b>B.</b> deep out of the money with years to expiry</div>
+            <div class="opt"><b>C.</b> at the money and close to expiry</div>
+            <div class="opt"><b>D.</b> the same everywhere — gamma is constant</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Gamma peaks where delta changes fastest: at the money, and it sharpens as expiry nears. Deep ITM (A) and deep OTM (B) options are nearly linear in S, so gamma ≈ 0. Gamma is decidedly not constant (D) — that variation is the whole point.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> For a long option position, the typical signs of gamma and theta are…</div>
+            <div class="opt"><b>A.</b> gamma negative, theta positive</div>
+            <div class="opt"><b>B.</b> both positive</div>
+            <div class="opt"><b>C.</b> both negative</div>
+            <div class="opt"><b>D.</b> gamma positive, theta negative</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> A long option has positive convexity (Γ &gt; 0) but pays for it through time decay (Θ &lt; 0) — the theta–gamma tradeoff. The signs are opposite, so "both positive" (B) and "both negative" (C) are wrong; a short option, not a long one, has the reversed pair in A.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Vega measures an option's sensitivity to…</div>
+            <div class="opt"><b>A.</b> a change in volatility, and is positive for a long option</div>
+            <div class="opt"><b>B.</b> a change in the underlying spot price</div>
+            <div class="opt"><b>C.</b> the passage of time</div>
+            <div class="opt"><b>D.</b> a change in the interest rate</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Vega = ∂V/∂σ, the value change per unit of volatility, and it is positive for long calls and puts. Sensitivity to spot is delta (B), to time is theta (C), and to rates is rho (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A desk is long gamma and has delta-hedged its book. Under the Black–Scholes relation Θ ≈ −½σ²S²Γ, the position makes money over the day only if…</div>
+            <div class="opt"><b>A.</b> the interest rate falls</div>
+            <div class="opt"><b>B.</b> the stock's realized move is large enough to outpace the theta decay</div>
+            <div class="opt"><b>C.</b> the stock stays perfectly still</div>
+            <div class="opt"><b>D.</b> implied volatility is exactly zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Long gamma pays off from realized movement; the gamma P&amp;L must exceed the theta the desk bleeds — i.e. realized vol must beat the implied vol paid. A still stock (C) maximizes the loss to theta; rates (A) act through rho, not this tradeoff; zero implied vol (D) would mean a worthless option, not a profit.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined each Greek as a <b>partial derivative</b> of the option price and assembled them into a Taylor map of risk.</li>
+            <li>Read <b>delta</b> = N(d₁) as both a slope (dollars per dollar) and the <b>hedge ratio</b> — shares per option that flatten directional risk.</li>
+            <li>Understood <b>gamma</b> = ∂Δ/∂S as positive <b>convexity</b>, peaked at the money near expiry, and the reason a delta hedge must be rebalanced.</li>
+            <li>Placed <b>vega</b> (volatility exposure), <b>theta</b> (time decay, negative for longs), and <b>rho</b> (rate exposure), with their signs.</li>
+            <li>Derived the <b>theta–gamma tradeoff</b> from the Black–Scholes PDE and computed all five Greeks in SciPy, verified by bumping.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: delta hedging and replication — turning these slopes into a continuously rebalanced portfolio that manufactures an option from stock and cash, and the no-arbitrage argument that pins down its price.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-black-scholes.html"><div class="dir">← Week 6</div><div class="ttl">The Black-Scholes Formula</div></a>
+        <a class="next" href="l08-delta-hedging.html"><div class="dir">Week 8 →</div><div class="ttl">Delta Hedging &amp; Replication</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Derivatives</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

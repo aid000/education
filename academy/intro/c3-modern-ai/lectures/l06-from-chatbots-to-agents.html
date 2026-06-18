@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern AI C3 · Lecture 6 — From Chatbots to Agents</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .disc-box { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 18px 0; }
+        .disc-prompt { font-size: .94rem; margin-bottom: 12px; }
+        .disc-ta { width: 100%; min-height: 120px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-family: inherit; font-size: .92rem; line-height: 1.5; resize: vertical; }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .disc-btn { cursor: pointer; font-size: .84rem; font-weight: 600; border-radius: 8px; padding: 8px 14px; border: 1px solid var(--accent); background: var(--accent); color: #1a0f17; }
+        .disc-btn.ghost { background: transparent; color: var(--accent2); border-color: var(--border); }
+        .disc-saved { font-size: .76rem; color: var(--text2); }
+        .disc-model { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px; }
+        .disc-model h3 { font-size: .92rem; color: var(--accent2); margin-bottom: 6px; }
+        .disc-model ul { margin: 6px 0 0 18px; font-size: .88rem; color: var(--text2); }
+        .disc-model li { margin-bottom: 4px; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Intro</a> / <a href="../index.html">C3 Modern AI — From Impossible to Agentic</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>From Chatbots to Agents</h1>
+        <p class="sub">A chatbot answers your message. An <em>agent</em> takes your goal, makes a plan, uses tools, checks what happened, and keeps going — until the job is done or it needs you.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the four ingredients that turn a chatbot into an <b>agent</b>: planning, tool calling, memory/state, and a loop.</li>
+            <li>Trace the <b>perceive → reason → act → observe</b> cycle that an agent repeats toward a goal.</li>
+            <li>Describe the <b>ReAct</b> pattern — interleaving a written "thought" with an "action" and an "observation."</li>
+            <li>Reason about the <b>autonomy-vs-control</b> trade-off and why errors can <b>compound</b> over multi-step runs.</li>
+            <li>Decide where a <b>human-in-the-loop</b> checkpoint belongs and why verification is non-negotiable.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Chatbot vs. Agent — the Real Difference</h2>
+        <p>You have spent two weeks (Weeks 4–5) learning to <em>prompt</em>: shape one request, get one good answer back. That is a <strong>chatbot</strong> interaction — it is <em>turn-based</em>. You speak, the model speaks, and nothing happens in the world between turns. The model has no hands and no clock; it only emits text.</p>
+        <p>An <strong>agent</strong> is the same underlying model placed inside a <em>program</em> that gives it three new powers: the ability to <em>act</em> on the world through <strong>tools</strong>, the ability to <em>remember</em> what it has done, and a <strong>loop</strong> that lets it keep going without waiting for you at every step. The model still only outputs text — but now some of that text is interpreted as a <em>command</em> to run a tool, and the result is fed back in.</p>
+        <div class="eq">chatbot:&nbsp; you → model → answer&nbsp;&nbsp;&nbsp;(stop)<br>agent:&nbsp;&nbsp;&nbsp; goal → [ plan → act via tool → observe ] ↺ → result<small>The brackets repeat. The agent decides when to stop — that is the part that earns the word "autonomy."</small></div>
+        <p>So the dividing line is not intelligence — it is the same model. The line is <strong>the loop plus the tools plus the memory</strong>. Take any of those away and you are back to a chatbot that happens to be very capable.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A chatbot is a brilliant friend on the phone: ask anything, get great advice, hang up. An agent is that same friend <strong>given your house keys, a to-do list, and a car</strong> — now they can actually go buy the groceries, notice the store was out of milk, drive to a second store, and text you only when they hit a real decision. The brain is identical; what changed is that they can <em>act, remember, and keep going</em>.</div>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>The Four Ingredients</h2>
+        <p>Strip an agent down and you always find the same four parts working together. Lose one and the whole thing degrades.</p>
+        <h3>1 · Planning</h3>
+        <p>Given a goal ("book me a quiet table for four on Friday"), the agent first <em>decomposes</em> it into steps — the exact skill from Week 5, now done by the model itself. A plan can be written up front or formed one step at a time as new information arrives.</p>
+        <h3>2 · Tool calling</h3>
+        <p>A <strong>tool</strong> is any function the agent is allowed to invoke: a web search, a calculator, code execution, a database query, a calendar API. The model emits a structured request like <code>search("quiet restaurants near me")</code>; the surrounding program actually runs it and returns the result as text. Tools are what let a text-only model touch the real world.</p>
+        <h3>3 · Memory / state</h3>
+        <p>The agent must remember the goal, the steps already taken, and what each tool returned — otherwise it loops forever or repeats itself. Short-term memory lives in the context window; longer-term memory is often stored outside and retrieved when relevant (a theme we deepen in Week 7).</p>
+        <h3>4 · The loop</h3>
+        <p>A controller repeatedly asks the model "what next?", runs the chosen action, feeds the observation back, and checks whether the goal is met. This <strong>perceive → reason → act → observe</strong> cycle is the engine of every agent.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 440 200" role="img" aria-label="The agentic loop: a goal feeds a model that reasons and plans, chooses a tool action, observes the result, updates memory, and loops back until done">
+                <text x="220" y="18" fill="#a3a8c8" font-size="11" text-anchor="middle">The agentic loop</text>
+                <!-- goal -->
+                <rect x="14" y="80" width="70" height="38" rx="8" fill="rgba(192,132,252,.16)" stroke="#c084fc" stroke-width="1.5"/>
+                <text x="49" y="103" fill="#c084fc" font-size="11" text-anchor="middle">goal</text>
+                <!-- reason/plan -->
+                <rect x="120" y="70" width="92" height="58" rx="10" fill="rgba(167,139,250,.20)" stroke="#a78bfa" stroke-width="1.8"/>
+                <text x="166" y="94" fill="#c4b5fd" font-size="11" text-anchor="middle">reason</text>
+                <text x="166" y="110" fill="#c4b5fd" font-size="11" text-anchor="middle">+ plan</text>
+                <!-- act/tool -->
+                <rect x="252" y="70" width="92" height="58" rx="10" fill="rgba(52,211,153,.16)" stroke="#34d399" stroke-width="1.8"/>
+                <text x="298" y="94" fill="#34d399" font-size="11" text-anchor="middle">act</text>
+                <text x="298" y="110" fill="#34d399" font-size="10" text-anchor="middle">(tool call)</text>
+                <!-- done -->
+                <rect x="372" y="80" width="56" height="38" rx="8" fill="rgba(96,165,250,.14)" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="400" y="103" fill="#60a5fa" font-size="11" text-anchor="middle">done?</text>
+                <!-- arrows -->
+                <line x1="84" y1="99" x2="118" y2="99" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#ar)"/>
+                <line x1="212" y1="99" x2="250" y2="99" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#ar)"/>
+                <line x1="344" y1="99" x2="370" y2="99" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#ar)"/>
+                <!-- observe loop back -->
+                <path d="M298 128 L298 170 L166 170 L166 130" fill="none" stroke="#34d399" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arg)"/>
+                <text x="232" y="186" fill="#34d399" font-size="9" text-anchor="middle">observe → update memory → loop</text>
+                <defs>
+                    <marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#a78bfa"/></marker>
+                    <marker id="arg" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#34d399"/></marker>
+                </defs>
+            </svg>
+            <figcaption>The four ingredients in motion: a goal enters, the model reasons and plans, it acts through a tool, observes the result and updates memory, then loops — repeating until a "done" check passes.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>The ReAct Pattern — Reason + Act</h2>
+        <p>How do we get a next-token predictor to use tools sensibly instead of just describing them? The most influential answer is the <strong>ReAct</strong> pattern (short for <em>Reason + Act</em>, a research framing from around 2022–2023 — treat it as a durable <em>pattern</em>, not a fixed product feature). The idea is simple: make the model interleave <em>thinking out loud</em> with <em>taking actions</em>, in a fixed three-part rhythm.</p>
+        <div class="eq">Thought → Action → Observation&nbsp;&nbsp;(repeat)<small>The model writes its reasoning, emits one tool call, then reads the result before thinking again.</small></div>
+        <p>A run looks like a transcript the model both writes and reads:</p>
+        <pre><span class="c"># Goal: "What's the population of the capital of Australia?"</span>
+Thought: I'm not certain of Australia's capital. I should look it up.
+Action: search("capital of Australia")
+Observation: The capital of Australia is Canberra.
+Thought: Now I need Canberra's population.
+Action: search("population of Canberra")
+Observation: Canberra's population is approximately 460,000.
+Thought: I have the answer.
+Answer: The capital is Canberra, with roughly 460,000 people.</pre>
+        <p>Why interleave instead of planning everything first? Because <strong>the world talks back</strong>. The observation after each action carries information the model could not have known in advance (the store is out of milk; the search returned nothing; the code threw an error). Writing a fresh <em>Thought</em> after each <em>Observation</em> lets the agent adapt — this is chain-of-thought reasoning fused with the ability to act and re-plan.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>ReAct is cooking from a recipe while actually tasting the dish. A pure-planning agent writes the whole recipe, then executes it blind, even if step 2 already came out too salty. A ReAct agent <em>tastes after every step</em> (the Observation), thinks "too salty — skip the added salt" (the next Thought), and adjusts the rest. Acting and reasoning take turns, so reality keeps steering the plan.</div>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>Autonomy vs. Control &amp; Why Errors Compound</h2>
+        <p>Every agent sits somewhere on a dial. Turn it one way and the agent asks you to approve each step (high control, low autonomy); turn it the other way and it runs the whole task unsupervised (high autonomy, low control). Neither extreme is "right" — the correct setting depends on <strong>how reversible and how costly a mistake is</strong>.</p>
+        <p>The reason this dial matters is <strong>error compounding</strong>. Suppose each step in a plan is 90% reliable — quite good. The chance that a <em>whole chain</em> succeeds is roughly the product of the per-step reliabilities:</p>
+        <div class="eq">P(run succeeds) ≈ p<sup>n</sup>&nbsp;&nbsp;→&nbsp;&nbsp;0.90<sup>5</sup> ≈ 0.59,&nbsp;&nbsp;0.90<sup>10</sup> ≈ 0.35<small>Independent-step approximation: a 90%-reliable step, run 10 times, lands near a coin flip. Real runs aren't fully independent, but the lesson holds: length is risk.</small></p></div>
+        <p>So a longer autonomous run is not just "more work" — it is <em>geometrically</em> more likely to drift off course, and an early wrong turn (a misread instruction, a bad search result accepted as truth) can be quietly carried through every later step. The longer the leash, the more a small early error can snowball.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 440 170" role="img" aria-label="A control-versus-autonomy dial: left side high control with human approval at each step, right side high autonomy running unattended, with a curve showing success probability falling as the number of steps grows">
+                <text x="220" y="18" fill="#a3a8c8" font-size="11" text-anchor="middle">success probability vs. run length</text>
+                <!-- axes -->
+                <line x1="50" y1="130" x2="410" y2="130" stroke="#2a3052" stroke-width="1.5"/>
+                <line x1="50" y1="40" x2="50" y2="130" stroke="#2a3052" stroke-width="1.5"/>
+                <text x="30" y="46" fill="#a3a8c8" font-size="9" text-anchor="middle">1.0</text>
+                <text x="30" y="128" fill="#a3a8c8" font-size="9" text-anchor="middle">0</text>
+                <text x="230" y="152" fill="#a3a8c8" font-size="9" text-anchor="middle">number of autonomous steps →</text>
+                <!-- decay curve p^n with p=0.9 -->
+                <path d="M50 49 L86 58 L122 66 L158 74 L194 81 L230 87 L266 92 L302 97 L338 101 L374 105 L410 108" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <circle cx="50" cy="49" r="3" fill="#34d399"/>
+                <circle cx="194" cy="81" r="3" fill="#fbbf24"/>
+                <circle cx="410" cy="108" r="3" fill="#c084fc"/>
+                <text x="70" y="44" fill="#34d399" font-size="9">short + checked</text>
+                <text x="350" y="86" fill="#c084fc" font-size="9" text-anchor="end">long + unattended</text>
+            </svg>
+            <figcaption>Even with reliable single steps, success of the whole run decays as steps multiply. More autonomy across more steps means more chances to drift — which is exactly why long runs need checkpoints.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't assume "the agent looped, so it must have converged on the right answer." A loop can confidently run to completion while having gone wrong at step 2 — every later step just builds on the bad foundation. <strong>Finishing is not the same as succeeding.</strong> Give an agent the autonomy that matches the <em>cost of being wrong</em>: low stakes and reversible → long leash; spending money, sending email, deleting files → short leash with approval.</div>
+    </section>
+
+    <!-- 6.5 -->
+    <section class="lec">
+        <h2><span class="n">6.5</span>Keeping a Human in the Loop</h2>
+        <p>The fix for error compounding is not "make the model perfect" — it is to insert <strong>verification</strong> at the right places. A <strong>human-in-the-loop (HITL)</strong> design keeps a person at the decision points that matter, while letting the agent grind through the safe, repetitive parts on its own. You are not babysitting every token; you are guarding the <em>irreversible</em> moves.</p>
+        <p>Three durable rules for where the human belongs:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Gate the irreversible.</strong> Sending an email, charging a card, deleting data, publishing — require an explicit human "yes" before the agent does any of these.</li>
+            <li><strong>Verify the load-bearing.</strong> Numbers, citations, code that will run, claims you'll act on — check these against a real source (an echo of Week 5's "self-critique is not a fact-checker").</li>
+            <li><strong>Checkpoint long runs.</strong> Have the agent pause and summarize its plan/progress at milestones, so an early wrong turn is caught before it compounds.</li>
+        </ul>
+        <p>Notice the symmetry: the more autonomy you grant, the more these checkpoints earn their keep. A well-designed agent is <em>not</em> the one that needs you least — it is the one that knows <em>when</em> to stop and ask.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A human-in-the-loop agent is a <strong>self-driving car with a steering wheel</strong>. It handles the boring highway miles on its own, but it hands control back — or simply stops and asks — at the ambiguous, high-stakes moments (a closed road, an unusual intersection). The autonomy is real; the human stays where a mistake would be expensive to undo.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — designing an agent to "tidy my inbox and reply to the easy ones"</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Goal: an agent triages today's email. Watch how the four ingredients, the ReAct rhythm, and the human checkpoints fall into place.</p>
+        <ol>
+            <li><strong>Name the goal &amp; plan (decompose):</strong> read inbox → classify each message (urgent / reply-now / archive / needs-me) → draft replies for the easy ones → present a summary for approval.</li>
+            <li><strong>Pick the tools:</strong> <code>list_emails()</code>, <code>read_email(id)</code>, <code>draft_reply(id, text)</code>. Critically, give it <code>draft_reply</code>, <em>not</em> <code>send_email</code> — drafting is reversible, sending is not.</li>
+            <li><strong>One ReAct turn:</strong> <em>Thought:</em> "Message 4 is a meeting reschedule — I can reply." → <em>Action:</em> <code>draft_reply(4, "Tuesday works…")</code> → <em>Observation:</em> "draft saved." → next Thought.</li>
+            <li><strong>Memory keeps it honest:</strong> the agent records which IDs it has already handled, so the loop doesn't re-process message 4 or run forever.</li>
+            <li><strong>Set the autonomy dial:</strong> classifying and drafting are reversible → full autonomy. Sending anything → <em>stop</em> and require a human "yes."</li>
+            <li><strong>Insert the human-in-the-loop checkpoint:</strong> the agent ends with "Here are 6 drafts and 3 messages flagged for you. Approve which to send?" You verify the load-bearing replies and click send yourself.</li>
+            <li><strong>Takeaway:</strong> the agent did the tedious 90% autonomously, but the one irreversible action (send) was gated behind a human. Error compounding is contained because the only step that touches the outside world waits for you.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: run a ReAct loop &amp; find the human checkpoint</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Use any free-tier chat assistant (Claude, ChatGPT, or Grok all work). One-line reminder: the Python/Jupyter setup from <b>Week 1</b> is all you need for the log step — no new installs.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;"><strong>Exercise — make a plain chatbot <em>act like</em> an agent by hand:</strong></p>
+        <pre><span class="c"># 1. FORCE THE ReAct RHYTHM — paste this, then a small goal</span>
+Act as a ReAct agent. For my goal, respond ONLY in this loop:
+  Thought: (your reasoning)
+  Action: (one tool from: search[q], calc[expr], ask_human[q])
+Then STOP and wait. I will play the tools and paste back:
+  Observation: (result)
+Continue until you can give a final Answer.
+Goal: plan a 3-stop walking route between three places I name.
+
+<span class="c"># 2. YOU ARE THE TOOLS — answer each Action with an Observation,</span>
+<span class="c">#    and notice every time it (correctly) emits ask_human[...]</span>
+
+<span class="c"># 3. STRESS-TEST AUTONOMY — give a SECOND Observation that's wrong</span>
+<span class="c">#    ("that street is closed") and watch whether it re-plans (good ReAct)</span>
+<span class="c">#    or barrels ahead on the stale plan (error compounding).</span></pre>
+        <p style="font-size:.9rem; color:var(--text2);">Run the same goal in two different assistants and note which one pauses to <code>ask_human</code> at the right moment.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;"><strong>Prompt log (Jupyter):</strong> turn each agent run into data, not memory.</p>
+        <pre><span class="c"># agent_log.ipynb — Lecture 6</span>
+import pandas as pd
+
+log = pd.DataFrame([
+    {"step": 1, "thought": "find place A",  "action": "search[A]",   "human_gate": False, "ok": True},
+    {"step": 2, "thought": "route A→B",      "action": "search[A→B]", "human_gate": False, "ok": True},
+    {"step": 3, "thought": "street closed?", "action": "ask_human[?]", "human_gate": True,  "ok": True},
+])
+print(log.to_string(index=False))
+<span class="c"># One row per loop iteration. Flag human_gate=True on every irreversible</span>
+<span class="c"># or load-bearing step — that column is your verification checklist.</span></pre>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You just ran a ReAct loop <em>by hand</em>, playing the tools and the human gate yourself. Next week the loop becomes <strong>real software</strong>: you'll wire actual tools to a model, let it decide when to call them, chain multiple steps, and build the verification checkpoints in for real — moving from "an agent in principle" to a <strong>working agentic workflow</strong> you can trust with a multi-step task.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">7 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> What is the core difference between a <em>chatbot</em> and an <em>agent</em>?</div>
+            <div class="opt"><b>A.</b> An agent uses a fundamentally smarter, larger model</div>
+            <div class="opt"><b>B.</b> An agent runs a loop that lets it plan, use tools, keep memory, and act toward a goal</div>
+            <div class="opt"><b>C.</b> A chatbot can't answer questions</div>
+            <div class="opt"><b>D.</b> An agent never uses text</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> It can be the very same model. The difference is the loop + tools + memory wrapped around it — not raw intelligence.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Which is <em>not</em> one of the four ingredients of an agent?</div>
+            <div class="opt"><b>A.</b> Planning</div>
+            <div class="opt"><b>B.</b> Tool calling</div>
+            <div class="opt"><b>C.</b> A larger context window than any chatbot</div>
+            <div class="opt"><b>D.</b> Memory / state</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The four are planning, tool calling, memory/state, and the loop. A big context window can help, but it isn't what defines an agent.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In the <em>ReAct</em> pattern, the repeating rhythm is…</div>
+            <div class="opt"><b>A.</b> Thought → Action → Observation, repeated</div>
+            <div class="opt"><b>B.</b> Plan the entire run first, then execute it blindly</div>
+            <div class="opt"><b>C.</b> Answer immediately with no reasoning</div>
+            <div class="opt"><b>D.</b> Call every available tool at once</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The model writes its reasoning, emits one action, reads the observation, then thinks again — interleaving reasoning with acting so reality can steer the plan.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why interleave reasoning and acting (ReAct) instead of planning everything up front?</div>
+            <div class="opt"><b>A.</b> It uses fewer tokens</div>
+            <div class="opt"><b>B.</b> It removes the need for tools</div>
+            <div class="opt"><b>C.</b> Each observation carries new information, so the agent can adapt and re-plan</div>
+            <div class="opt"><b>D.</b> It guarantees the answer is correct</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The world talks back — a tool result the model couldn't predict (an error, an empty search, a closed road) lets it course-correct on the next Thought.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> If each step in a plan is 90% reliable, the chance a 10-step autonomous run fully succeeds is closest to…</div>
+            <div class="opt"><b>A.</b> 99%</div>
+            <div class="opt"><b>B.</b> 90%</div>
+            <div class="opt"><b>C.</b> 75%</div>
+            <div class="opt"><b>D.</b> about 35% (errors compound: 0.9¹⁰ ≈ 0.35)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Roughly p<sup>n</sup> = 0.9¹⁰ ≈ 0.35. Even reliable steps multiply into real risk over a long run — length is risk.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q6.</span> An agent finished its loop and produced a result. What should you conclude?</div>
+            <div class="opt"><b>A.</b> Finishing the loop proves the answer is correct</div>
+            <div class="opt"><b>B.</b> Finishing is not the same as succeeding — it may have gone wrong early and built on it</div>
+            <div class="opt"><b>C.</b> The longer it ran, the more trustworthy the result</div>
+            <div class="opt"><b>D.</b> No verification is needed once it stops</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A loop can confidently run to completion on a bad step-2 foundation. Always verify load-bearing output regardless of how cleanly it finished.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q7.</span> Where does a human-in-the-loop checkpoint belong <em>first</em>?</div>
+            <div class="opt"><b>A.</b> On every single token the agent produces</div>
+            <div class="opt"><b>B.</b> Nowhere — autonomy means no human</div>
+            <div class="opt"><b>C.</b> Before irreversible or high-cost actions (send, pay, delete, publish)</div>
+            <div class="opt"><b>D.</b> Only after the task is completely finished</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Gate the irreversible, verify the load-bearing, and checkpoint long runs. You guard the costly, undo-resistant moves — not every routine step.</p></details>
+        </div>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="quiz" style="margin-top:48px;">
+      <h2>💬 Discussion 2</h2>
+      <p class="section-sub">A reflection prompt — write your answer (auto-saved in your browser), get AI feedback, then compare with a model response.</p>
+      <div class="disc-box">
+        <p class="disc-prompt"><strong>Prompt.</strong> What actually turns a "chatbot" into an "agent"? Sketch a 3-step task you would want an agent to do for you and mark where a human should stay in the loop.</p>
+        <textarea id="discAns" class="disc-ta" placeholder="Write your answer here…"></textarea>
+        <div class="disc-actions">
+          <button class="disc-btn" id="discChat" type="button">📋 Get feedback in ChatGPT</button>
+          <button class="disc-btn ghost" id="discToggle" type="button">👁 Show model response</button>
+          <span class="disc-saved" id="discSaved"></span>
+        </div>
+        <div class="disc-model" id="discModel" hidden>
+          <h3>Model response</h3>
+          <p>What turns a chatbot into an agent is not a smarter model but a wrapper that adds four things: planning, tool calling, memory/state, and a loop — the agent decomposes a goal, takes actions through tools, observes what comes back, remembers what it has done, and iterates until the goal is met or it needs me. A task I'd hand off: (1) read this week's class emails and classify which are urgent; (2) draft a reply to the routine scheduling ones; (3) compile a one-page summary of the rest. The first two steps are reversible, so I'd give the agent full autonomy there, but I'd keep a human-in-the-loop gate before any reply is actually <em>sent</em> — sending is irreversible and load-bearing, so I verify and click send myself. I'd also have it checkpoint after classifying, because an early misread would otherwise compound through every later step.</p>
+          <h3>✓ Rubric — a strong answer…</h3>
+          <ul><li>Names that the same model becomes an agent via the loop + tools + memory + planning (not raw intelligence).</li><li>Gives a concrete 3-step task with clear, single-purpose steps.</li><li>Marks a specific human-in-the-loop checkpoint and justifies it (irreversible or load-bearing action).</li><li>Connects the checkpoint to error compounding / verification over a multi-step run.</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A <b>chatbot</b> is turn-based text; an <b>agent</b> wraps the same model in a loop so it can act, remember, and iterate toward a goal.</li>
+            <li>The four ingredients are <b>planning, tool calling, memory/state, and the loop</b> — lose one and you're back to a chatbot.</li>
+            <li>The <b>ReAct</b> pattern interleaves <b>Thought → Action → Observation</b>, so each tool result can re-steer the plan.</li>
+            <li><b>Errors compound</b> over long runs (≈ p<sup>n</sup>); more autonomy across more steps means more chances to drift.</li>
+            <li>A <b>human-in-the-loop</b> design gates the irreversible, verifies the load-bearing, and checkpoints long runs — finishing isn't succeeding.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: <b>Building Agentic Workflows</b> — turn the hand-run ReAct loop into real software, wire actual tools to a model, and build the verification checkpoints in.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-prompting-ii-structure-long-context-and.html"><div class="dir">← Week 5</div><div class="ttl">Prompting II — Structure, Long Context &amp; Tree-of-Thoughts</div></a>
+        <a class="next" href="l07-building-agentic-workflows.html"><div class="dir">Week 7 →</div><div class="ttl">Building Agentic Workflows</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Modern AI — From Impossible to Agentic</a> · <a href="../../index.html">Intro</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+
+    // Discussion widget
+    (function(){
+        const KEY = 'intro-c3-w6-disc';
+        const ta = document.getElementById('discAns');
+        const saved = document.getElementById('discSaved');
+        if (ta) {
+            ta.value = localStorage.getItem(KEY) || '';
+            ta.addEventListener('input', () => { localStorage.setItem(KEY, ta.value); saved.textContent = '✓ saved'; });
+            document.getElementById('discToggle').addEventListener('click', () => { const m = document.getElementById('discModel'); m.hidden = !m.hidden; });
+            document.getElementById('discChat').addEventListener('click', () => {
+                const p = 'You are my tutor. Give feedback on my answer to this discussion prompt: What actually turns a "chatbot" into an "agent"? Sketch a 3-step task you would want an agent to do for you and mark where a human should stay in the loop.' + '\n\nMy answer:\n' + ta.value;
+                navigator.clipboard && navigator.clipboard.writeText(p);
+                window.open('https://chatgpt.com/?q=' + encodeURIComponent(p), '_blank');
+            });
+        }
+    })();
+</script>
+
+</body>
+</html>

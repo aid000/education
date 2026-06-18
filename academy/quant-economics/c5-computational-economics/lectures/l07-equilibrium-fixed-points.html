@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C5 · Lecture 7 — Solving Equilibrium: Root-Finding &amp; Fixed Points</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C5 Computational Econ</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Solving Equilibrium: Root-Finding &amp; Fixed Points</h1>
+        <p class="sub">An equilibrium price is just a number where two curves cross — and the whole game is teaching a computer to find that crossing fast and reliably.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Reframe a market-clearing condition (supply = demand) as a root-finding problem, f(p) = 0.</li>
+            <li>Explain and code the <strong>bisection</strong> method and reason about its guaranteed but slow convergence.</li>
+            <li>Derive <strong>Newton's method</strong> from a local linear approximation and contrast its quadratic speed with bisection.</li>
+            <li>Define a <strong>fixed point</strong> and a <strong>contraction mapping</strong>, and state when fixed-point iteration converges.</li>
+            <li>Solve for a market-clearing price in Python using <code>scipy.optimize.brentq</code> and a fixed-point iteration, and judge stability from the slope.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>Equilibrium as a Root-Finding Problem</h2>
+        <p>So far in this course we have simulated and optimized. Now we ask the central question of computational economics: <strong>given a model, what price (or interest rate, or wage) makes the system consistent with itself?</strong> In a single market, "consistent" means <strong>markets clear</strong>: the quantity buyers want equals the quantity sellers offer. Let demand be <em>D(p)</em> and supply <em>S(p)</em>. The equilibrium price <em>p*</em> solves:</p>
+        <div class="eq">D(p*) = S(p*)<small>Market clearing: at the right price, every unit produced is bought and no buyer is left wanting.</small></div>
+        <p>That looks like an equation about two functions, but it is cleaner to fold it into one. Define the <strong>excess demand</strong> function <em>f(p) = D(p) − S(p)</em>. The equilibrium is then exactly the price where excess demand is zero:</p>
+        <div class="eq">f(p*) = D(p*) - S(p*) = 0<small>A zero of f is called a "root." Finding equilibrium = finding a root. This reframing is the heart of computational equilibrium.</small></div>
+        <p>Why does this help? Because the world has a deep, general-purpose toolbox for <strong>root-finding</strong>: numerical methods that, given any function, hunt down the input where it crosses zero. We rarely have a clean algebraic formula for <em>p*</em> — demand and supply can be messy nonlinear curves estimated from data. But a computer can locate the crossing to ten decimal places in microseconds. That is the bargain of this lecture: trade a formula you cannot write for an algorithm that always works.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Excess demand is a thermostat reading. When <em>f(p) &gt; 0</em> there are more buyers than goods — a shortage — and the price gets bid <em>up</em>. When <em>f(p) &lt; 0</em> there is a glut and the price drifts <em>down</em>. The equilibrium price is the setting where the room is exactly comfortable: the reading is zero and nothing wants to move.</div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>Bisection: Slow but Sure</h2>
+        <p>The simplest robust root-finder is <strong>bisection</strong>. It needs just one thing: two prices <em>a</em> and <em>b</em> that <strong>bracket</strong> the root, meaning <em>f(a)</em> and <em>f(b)</em> have <strong>opposite signs</strong>. If <em>f</em> is continuous, the Intermediate Value Theorem guarantees a root lives somewhere between them.</p>
+        <p>The algorithm: evaluate <em>f</em> at the midpoint <em>m = (a+b)/2</em>. The root must lie in whichever half still has a sign change — so keep that half and throw away the other. Repeat. Each step halves the interval.</p>
+        <div class="eq">m = (a + b) / 2;  keep [a, m] if f(a)*f(m) &lt; 0, else [m, b]<small>The bracket width shrinks by exactly 1/2 every iteration: after n steps it is (b - a) / 2^n.</small></div>
+        <p>Because the interval halves each round, to reach an accuracy of <em>e</em> you need about <em>log2((b−a)/e)</em> steps. Cutting a starting interval of width 1 down to 10<sup>-6</sup> takes only about 20 evaluations. That is <strong>linear convergence</strong>: you gain a fixed number of correct bits per step. It is not blazing fast, but it <em>cannot fail</em> once you have a valid bracket — a rare and precious guarantee in numerical work.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 260" role="img" aria-label="Excess demand curve f(p) crossing zero. Bisection brackets the root between a and b, evaluating midpoint m which lies on the curve, then keeps the half that still changes sign.">
+                <!-- axes -->
+                <line x1="50" y1="40" x2="50" y2="220" stroke="#1f2f4a" stroke-width="1.5"/>
+                <line x1="50" y1="150" x2="400" y2="150" stroke="#1f2f4a" stroke-width="1.5"/>
+                <text x="40" y="44" fill="#93a8c8" font-size="11" text-anchor="end">f(p)</text>
+                <text x="396" y="168" fill="#93a8c8" font-size="11" text-anchor="end">p</text>
+                <text x="44" y="154" fill="#93a8c8" font-size="10" text-anchor="end">0</text>
+                <!-- excess demand curve: downward sloping through (235,150) -->
+                <path d="M 60 70 Q 160 110 235 150 Q 320 184 390 205" fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+                <text x="74" y="64" fill="#60a5fa" font-size="11">f(p) = D(p) - S(p)</text>
+                <!-- a -->
+                <line x1="90" y1="150" x2="90" y2="92" stroke="#34d399" stroke-width="1" stroke-dasharray="3 3"/>
+                <circle cx="90" cy="92" r="3.5" fill="#34d399"/>
+                <text x="90" y="236" fill="#34d399" font-size="11" text-anchor="middle">a</text>
+                <text x="90" y="84" fill="#34d399" font-size="9" text-anchor="middle">f(a)&gt;0</text>
+                <!-- b -->
+                <line x1="370" y1="150" x2="370" y2="200" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3"/>
+                <circle cx="370" cy="200" r="3.5" fill="#fbbf24"/>
+                <text x="370" y="236" fill="#fbbf24" font-size="11" text-anchor="middle">b</text>
+                <text x="370" y="216" fill="#fbbf24" font-size="9" text-anchor="middle">f(b)&lt;0</text>
+                <!-- m -->
+                <line x1="230" y1="150" x2="230" y2="149" stroke="#a78bfa" stroke-width="1"/>
+                <circle cx="230" cy="149" r="3.5" fill="#a78bfa"/>
+                <text x="230" y="236" fill="#a78bfa" font-size="11" text-anchor="middle">m=(a+b)/2</text>
+                <!-- root marker -->
+                <circle cx="235" cy="150" r="4.5" fill="none" stroke="#e6eef8" stroke-width="1.5"/>
+                <text x="252" y="142" fill="#e6eef8" font-size="10">p*  (root)</text>
+            </svg>
+            <figcaption>Bisection on the excess-demand curve f(p) = D(p) − S(p). With f(a) &gt; 0 (shortage) and f(b) &lt; 0 (glut), a root is trapped between a and b. Testing the midpoint m and keeping the sign-changing half halves the bracket each step until it pins p*.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Newton's Method &amp; brentq</h2>
+        <p>Bisection ignores everything about <em>f</em> except its sign. <strong>Newton's method</strong> exploits the slope. Near a guess <em>p<sub>n</sub></em>, approximate <em>f</em> by its tangent line and ask where <em>that</em> line hits zero. The tangent is <em>f(p<sub>n</sub>) + f&#39;(p<sub>n</sub>)(p − p<sub>n</sub>)</em>; setting it to zero and solving gives the update:</p>
+        <div class="eq">p_(n+1) = p_n - f(p_n) / f&#39;(p_n)<small>Slide down the tangent line to where it crosses zero, then repeat. Needs the derivative f'(p).</small></div>
+        <p>When it works, Newton is <strong>quadratically convergent</strong>: the number of correct digits roughly <em>doubles</em> each step. Where bisection adds one bit per iteration, Newton can go from 3 correct digits to 6 to 12 in two steps. That is why it powers solvers deep inside option pricers, general-equilibrium models, and macro DSGE codes where a root must be found millions of times.</p>
+        <p>The catch: Newton needs the derivative, and it can <strong>diverge</strong> — if a tangent is nearly flat (<em>f&#39;</em> ≈ 0) the next guess can fly off to infinity, and there is no bracket to catch it. In practice you want the best of both worlds: bisection's safety and Newton's speed. That is exactly what <strong>Brent's method</strong> delivers, and SciPy ships it as <code>scipy.optimize.brentq</code>.</p>
+        <div class="eq">brentq(f, a, b)  ->  p* with f(p*) = 0<small>Give it a function and a bracket [a, b] that changes sign; it blends bisection, secant, and inverse-quadratic steps.</small></div>
+        <p><code>brentq</code> keeps the root bracketed at all times (so it is <em>guaranteed</em> to converge like bisection) but takes fast secant/parabolic steps whenever they stay inside the bracket. It needs no derivative, only a sign-changing interval. For one-dimensional equilibrium problems it is the default workhorse — robust, derivative-free, and nearly as fast as Newton.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Passing <code>brentq</code> a bracket where <em>f(a)</em> and <em>f(b)</em> have the <strong>same sign</strong>. The method assumes a sign change — without one it raises <code>ValueError: f(a) and f(b) must have different signs</code>. Always sanity-check that you straddle the root (e.g. a very low price gives excess demand &gt; 0 and a very high price gives excess demand &lt; 0) before calling it.</div>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>Fixed Points &amp; Contraction</h2>
+        <p>Root-finding asks where <em>f(p) = 0</em>. A close cousin asks where a map sends a point back to itself. A <strong>fixed point</strong> of a function <em>g</em> is a value <em>p*</em> with:</p>
+        <div class="eq">g(p*) = p*<small>The input that g leaves unchanged. Plot y = g(p) and y = p; the fixed point is where they cross.</small></div>
+        <p>This is the natural language for <strong>price adjustment</strong>. Economists often model how a price updates one period to the next: a tâtonnement ("groping") rule like <em>p<sub>n+1</sub> = p<sub>n</sub> + α·f(p<sub>n</sub>)</em> raises the price when there is excess demand and lowers it when there is a glut. Define <em>g(p) = p + α·f(p)</em>; the price stops moving exactly when <em>g(p*) = p*</em>, i.e. when <em>f(p*) = 0</em>. So a fixed point of the adjustment map <em>is</em> the market equilibrium. Just iterate:</p>
+        <div class="eq">p_(n+1) = g(p_n),  starting from any p_0<small>Feed the output back as the next input. The sequence may converge to p*, or it may not — that is the whole question.</small></div>
+        <p>When does this <strong>converge</strong>? The key idea is a <strong>contraction mapping</strong>: <em>g</em> is a contraction if it shrinks distances, |g(x) − g(y)| ≤ L·|x − y| with a Lipschitz constant <strong>L &lt; 1</strong>. The Banach fixed-point theorem then guarantees a unique fixed point and that iteration from any start converges to it. Locally, the relevant <em>L</em> is the slope magnitude |g&#39;(p*)|:</p>
+        <div class="eq">stable  iff  |g&#39;(p*)| &lt; 1<small>Slope flatter than 45 degrees pulls you in (cobweb spirals inward). Steeper than 45 degrees pushes you out (diverges).</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Fixed-point iteration is a "cobweb." Start at p&#8320;, bounce up to the curve y = g(p), then sideways to the 45-degree line to get your next p, and repeat. If the curve is flatter than the diagonal at the crossing, the cobweb spirals <em>inward</em> to the fixed point — stable. If it is steeper, the cobweb spirals <em>outward</em> — the price oscillates away and the iteration explodes.</div>
+        <figure class="fig">
+            <svg viewBox="0 0 420 300" role="img" aria-label="Cobweb diagram. The 45-degree line y equals p and a flatter update curve y equals g of p cross at a stable fixed point p-star. Staircase steps from p0 spiral inward toward p-star.">
+                <!-- axes -->
+                <line x1="50" y1="30" x2="50" y2="260" stroke="#1f2f4a" stroke-width="1.5"/>
+                <line x1="50" y1="260" x2="400" y2="260" stroke="#1f2f4a" stroke-width="1.5"/>
+                <text x="40" y="40" fill="#93a8c8" font-size="11" text-anchor="end">g(p)</text>
+                <text x="396" y="278" fill="#93a8c8" font-size="11" text-anchor="end">p</text>
+                <!-- 45 degree line: from (50,260) to (380,30) over equal range -->
+                <line x1="50" y1="260" x2="380" y2="30" stroke="#93a8c8" stroke-width="1.5" stroke-dasharray="4 4"/>
+                <text x="356" y="44" fill="#93a8c8" font-size="10">y = p</text>
+                <!-- update curve g(p): flatter line through fixed point (240,135) -->
+                <!-- choose g linear with slope 0.45: passes (240,135). map p->x: x=p; g value -> y. y=260-(g)*scale. Use a straight flatter line. -->
+                <line x1="50" y1="205" x2="380" y2="78" stroke="#60a5fa" stroke-width="2.5"/>
+                <text x="300" y="100" fill="#60a5fa" font-size="11">y = g(p)</text>
+                <!-- fixed point where lines cross approx (240,135) -->
+                <circle cx="240" cy="135" r="4.5" fill="#a78bfa"/>
+                <text x="252" y="130" fill="#a78bfa" font-size="11">p* fixed point</text>
+                <line x1="240" y1="135" x2="240" y2="260" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="240" y="278" fill="#a78bfa" font-size="10" text-anchor="middle">p*</text>
+                <!-- cobweb staircase from p0=120 spiraling inward -->
+                <!-- p0 at x=120 on axis -->
+                <text x="120" y="278" fill="#34d399" font-size="10" text-anchor="middle">p0</text>
+                <!-- vertical up to g curve at x=120: g line y at x=120: y=205 + (78-205)*((120-50)/(380-50)) = 205 -127*0.2121=205-26.9=178 -->
+                <line x1="120" y1="260" x2="120" y2="178" stroke="#34d399" stroke-width="1.6"/>
+                <!-- horizontal to 45 line: 45 line y at x: y=260-(x-50)*(230/330). set y=178 -> x-50=(260-178)*330/230=82*1.4348=117.7 -> x=167.7 -->
+                <line x1="120" y1="178" x2="168" y2="178" stroke="#34d399" stroke-width="1.6"/>
+                <!-- vertical up to g curve at x=168: y=205+(78-205)*((168-50)/330)=205-127*0.3576=205-45.4=159.6 -->
+                <line x1="168" y1="178" x2="168" y2="160" stroke="#34d399" stroke-width="1.6"/>
+                <!-- horizontal to 45 line at y=160: x-50=(260-160)*330/230=100*1.4348=143.5 -> x=193.5 -->
+                <line x1="168" y1="160" x2="194" y2="160" stroke="#34d399" stroke-width="1.6"/>
+                <!-- vertical to g curve at x=194: y=205+(78-205)*((194-50)/330)=205-127*0.4364=205-55.4=149.6 -->
+                <line x1="194" y1="160" x2="194" y2="150" stroke="#34d399" stroke-width="1.6"/>
+                <!-- horizontal to 45 line at y=150: x-50=(260-150)*330/230=110*1.4348=157.8 -> x=207.8 -->
+                <line x1="194" y1="150" x2="208" y2="150" stroke="#34d399" stroke-width="1.6"/>
+                <text x="92" y="206" fill="#34d399" font-size="9">step inward -&gt;</text>
+            </svg>
+            <figcaption>Cobweb for a stable fixed point: the update curve y = g(p) (blue) is flatter than the 45-degree line y = p (gray dashed) at the crossing, so |g&#39;(p*)| &lt; 1. The green staircase from p0 spirals inward to p*. A steeper curve would spiral outward and diverge.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — clear a linear market by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A market has linear demand <strong>D(p) = 100 − 5p</strong> and supply <strong>S(p) = 20 + 3p</strong>. Find the equilibrium price two ways: (1) directly, and (2) by one bisection step plus a fixed-point check.</p>
+        <ol>
+            <li><strong>Excess demand:</strong> f(p) = D(p) − S(p) = (100 − 5p) − (20 + 3p) = <strong>80 − 8p</strong>.</li>
+            <li><strong>Direct root:</strong> set 80 − 8p = 0 → p* = <strong>10</strong>. Quantity: D(10) = 100 − 50 = 50 = S(10) = 20 + 30. Markets clear. ✓</li>
+            <li><strong>Bracket it:</strong> f(0) = 80 &gt; 0 (shortage at price 0) and f(20) = 80 − 160 = −80 &lt; 0 (glut). Opposite signs → root in [0, 20]. ✓</li>
+            <li><strong>One bisection step:</strong> midpoint m = 10, f(10) = 0 — we landed exactly on the root. (For a nonlinear f you would test the sign and keep the changing half.)</li>
+            <li><strong>Fixed-point view:</strong> use g(p) = p + α·f(p) = p + α(80 − 8p) = (1 − 8α)p + 80α. The slope is g&#39;(p) = 1 − 8α. Pick α = 0.1 → g&#39;= 0.2, |0.2| &lt; 1, so the iteration is <strong>stable</strong> and converges to p* = 10. Pick α = 0.3 → g&#39; = 1 − 2.4 = −1.4, |−1.4| &gt; 1, so it <strong>diverges</strong>. The step size α decides stability — that is the lesson.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: solve the market in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the free scientific-Python stack from the <strong>Week 1/2 setup</strong> (Python + NumPy + SciPy + Matplotlib + QuantEcon — see the install drop-down in the early lectures). Root-finding lives in <code>scipy.optimize</code>; no new install is needed today. The script below clears a nonlinear market with <code>brentq</code> and then reproduces the answer with a fixed-point iteration so you can see them agree.</p>
+        <pre><span class="c"># market_clearing.py — Lecture 7</span>
+import numpy as np
+from scipy.optimize import brentq
+
+<span class="c"># A nonlinear market: demand falls, supply rises (both in p &gt; 0)</span>
+def demand(p):   return 120.0 / (1.0 + p)      <span class="c"># constant-elasticity-ish demand</span>
+def supply(p):   return 2.0 * p                 <span class="c"># upward-sloping supply</span>
+def excess(p):   return demand(p) - supply(p)   <span class="c"># f(p) = D - S</span>
+
+<span class="c"># 1) Bracket the root: low price -&gt; shortage, high price -&gt; glut</span>
+a, b = 0.01, 50.0
+assert excess(a) &gt; 0 and excess(b) &lt; 0, "bracket must change sign"
+
+<span class="c"># 2) Robust derivative-free solve</span>
+p_star = brentq(excess, a, b)
+print(f"brentq price   = {p_star:.6f},  excess = {excess(p_star):.2e}")
+
+<span class="c"># 3) Fixed-point iteration (tatonnement): p_(n+1) = p_n + alpha * f(p_n)</span>
+def tatonnement(p0, alpha=0.05, tol=1e-8, itmax=10_000):
+    p = p0
+    for n in range(itmax):
+        p_new = p + alpha * excess(p)
+        if abs(p_new - p) &lt; tol:
+            return p_new, n
+        p = p_new
+    raise RuntimeError("did not converge -- alpha too large?")
+
+p_fp, iters = tatonnement(p0=1.0, alpha=0.05)
+print(f"fixed-point    = {p_fp:.6f}  in {iters} steps")
+<span class="c"># Both print ~ the same p*. Try alpha=0.5 and watch it blow up (|g'|&gt;1).</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Run it: <code>brentq</code> nails the root in a handful of internal steps, and the tâtonnement converges to the same price for a small <code>alpha</code>. Then crank <code>alpha</code> up and watch the iteration diverge — a live demonstration of the |g&#39;(p*)| &lt; 1 stability rule. QuantEcon also bundles a <code>compute_fixed_point</code> helper if you prefer a ready-made iterator.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>One market and one price was the warm-up. Next week (Week 8) we turn the same equilibrium-as-a-solution idea into <strong>convex programming with CVXPY</strong>, where an equilibrium is the solution of an optimization problem rather than a single root. From there, multi-good <em>general equilibrium</em> turns <em>f(p) = 0</em> into a vector system solved by multidimensional Newton, and dynamic-programming courses use the <strong>contraction</strong> idea again as the Bellman operator (value-function iteration is fixed-point iteration on a function space). The same <code>brentq</code>/Newton machinery reappears in the Quant Finance track when you back out implied volatility — solving for the rate that makes a model price match the market.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Writing market clearing as f(p) = D(p) − S(p) = 0 turns finding an equilibrium price into…</div>
+            <div class="opt"><b>A.</b> a root-finding problem</div>
+            <div class="opt"><b>B.</b> a sorting problem</div>
+            <div class="opt"><b>C.</b> a matrix inversion</div>
+            <div class="opt"><b>D.</b> a linear regression</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The equilibrium price is the zero (root) of excess demand. It is not sorting (B) or regression (D), which fit/order data, nor a matrix inversion (C) — that solves linear systems, not a single nonlinear equation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Bisection requires that the two endpoints a and b satisfy…</div>
+            <div class="opt"><b>A.</b> f(a) and f(b) are both positive</div>
+            <div class="opt"><b>B.</b> f(a) and f(b) have opposite signs (a sign change)</div>
+            <div class="opt"><b>C.</b> the derivative f&#39; is known at a and b</div>
+            <div class="opt"><b>D.</b> a and b are equal</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A sign change brackets a continuous root (Intermediate Value Theorem). Same signs (A) need not bracket a root; bisection uses no derivative (C); equal endpoints (D) leave no interval to halve.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Compared with bisection, Newton's method is typically faster because it…</div>
+            <div class="opt"><b>A.</b> never needs a starting guess</div>
+            <div class="opt"><b>B.</b> is guaranteed to converge from any start</div>
+            <div class="opt"><b>C.</b> uses the slope f&#39;(p) and converges quadratically (digits roughly double per step)</div>
+            <div class="opt"><b>D.</b> halves the interval each step</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Newton uses the tangent (the derivative) and converges quadratically. It is <em>not</em> guaranteed to converge (B) — it can diverge when f&#39; ≈ 0 — it still needs a guess (A), and halving the interval (D) is bisection, not Newton.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A fixed point of a map g is a value p* satisfying…</div>
+            <div class="opt"><b>A.</b> g&#39;(p*) = 0</div>
+            <div class="opt"><b>B.</b> g(p*) = 0</div>
+            <div class="opt"><b>C.</b> g(p*) = 1</div>
+            <div class="opt"><b>D.</b> g(p*) = p*</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> By definition a fixed point is left unchanged by the map: g(p*) = p*. Option B is a root of g (a different thing); A is a stationary point of g; C is arbitrary.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Fixed-point iteration p&#8345;&#8330;&#8321; = g(p&#8345;) is locally stable (converges) when, at the fixed point…</div>
+            <div class="opt"><b>A.</b> |g&#39;(p*)| &lt; 1</div>
+            <div class="opt"><b>B.</b> |g&#39;(p*)| &gt; 1</div>
+            <div class="opt"><b>C.</b> g(p*) &gt; 0</div>
+            <div class="opt"><b>D.</b> g&#39;(p*) = 1 exactly</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A slope magnitude below 1 makes g a local contraction, so the cobweb spirals inward. |g&#39;| &gt; 1 (B) diverges; the level g(p*) (C) is irrelevant to stability; slope exactly 1 (D) is the borderline case where the test fails to guarantee convergence.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Recast market clearing as a <b>root-finding</b> problem: the equilibrium price is the zero of <b>excess demand</b> f(p) = D(p) − S(p).</li>
+            <li>Used <b>bisection</b> — guaranteed but linearly slow — once you have a sign-changing bracket.</li>
+            <li>Derived <b>Newton's method</b> from the tangent line and saw its <b>quadratic</b> speed, plus why <code>brentq</code> blends safety and speed.</li>
+            <li>Defined a <b>fixed point</b> g(p*) = p* and the <b>contraction</b> condition |g&#39;(p*)| &lt; 1 for convergence.</li>
+            <li>Solved a nonlinear market in Python with <code>scipy.optimize.brentq</code> and a <b>tâtonnement</b> fixed-point iteration, judging stability from the step size α.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: Convex Programming with CVXPY, where equilibria and optimal allocations are found by handing a solver a well-posed optimization problem instead of a single root.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-markov-chains.html"><div class="dir">← Week 6</div><div class="ttl">Markov Chains</div></a>
+        <a class="next" href="l08-convex-programming-cvxpy.html"><div class="dir">Week 8 →</div><div class="ttl">Convex Programming with CVXPY</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Computational Econ</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

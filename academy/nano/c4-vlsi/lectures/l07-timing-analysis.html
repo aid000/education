@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Lecture 7 — Static Timing Analysis</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C4 VLSI</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Static Timing Analysis</h1>
+        <p class="sub">Proving a design meets timing on every path — without simulating a single test vector.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why static timing analysis (STA) verifies <em>every</em> path exhaustively, with no test vectors.</li>
+            <li>Distinguish a setup check (path too slow) from a hold check (path too fast).</li>
+            <li>Define slack = required time − arrival time, and identify positive vs. negative slack.</li>
+            <li>Identify the critical path as the path with the least (most negative) slack.</li>
+            <li>Choose the right fix: faster cells / less logic depth / pipelining for setup; added buffers for hold.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>Why STA?</h2>
+        <p>Once a netlist is synthesized, you need to <em>prove</em> it runs at the target clock frequency. Functional simulation can tell you the logic is correct, but it only checks the cases you bother to exercise — a handful of test vectors out of an astronomical number of possible input patterns. A timing bug on an un-exercised path slips right through.</p>
+        <p><strong>Static timing analysis (STA)</strong> takes the opposite approach. It is <span class="key">static</span> — it never runs the circuit. Instead it walks the netlist's delay graph and verifies, <em>mathematically and exhaustively</em>, that the timing on <strong>every</strong> path meets the clock's requirements.</p>
+        <div class="eq">STA checks <span class="key">all paths</span> · no test vectors · no simulation<small>Simulation checks the cases you exercise; STA proves timing on every path at once.</small></div>
+        <p>Because it considers all paths in one analysis, STA is the standard sign-off check for whether a design "makes timing." If STA passes, you are guaranteed no path violates the clock — for any input pattern.</p>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>Setup &amp; Hold Checks</h2>
+        <p>Every timing path runs from a launching flip-flop, through some combinational logic, to a capturing flip-flop. Both flops are clocked. For the captured value to be correct, the data must be stable in a window around the capturing clock edge. STA enforces this with two checks:</p>
+        <h3>Setup check — is the path too slow?</h3>
+        <p>The data launched on one clock edge must <em>arrive and settle</em> before the next capturing edge's deadline. A <span class="key">setup violation</span> means data arrives <strong>too late</strong> — the path is <strong>too SLOW</strong>.</p>
+        <h3>Hold check — is the path too fast?</h3>
+        <p>The data must also hold steady <em>just after</em> the capturing edge, so the new value doesn't race through and corrupt what's being latched. A <span class="key">hold violation</span> means data changes <strong>too soon</strong> after the edge — the path is <strong>too FAST</strong>.</p>
+        <div class="eq">setup fails ⟹ path too SLOW&nbsp;&nbsp;·&nbsp;&nbsp;hold fails ⟹ path too FAST</div>
+        <div class="box analogy"><span class="lbl">Analogy</span>STA is like checking that every runner in a relay finishes before the baton handoff — the clock edge. You don't stand and watch one race (that's a single simulation run, one set of inputs); you mathematically verify <em>every possible path's</em> timing at once. A runner who's too slow misses the handoff (setup); a runner who hands off too early, before the next runner is ready, fumbles the baton (hold).</div>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Slack: the Timing Margin</h2>
+        <p>STA quantifies how comfortably a path meets timing with a single number, <span class="key">slack</span>. For each endpoint it computes when the signal is <em>required</em> to be there and when it actually <em>arrives</em>, then subtracts:</p>
+        <div class="eq">slack = required time − arrival time<small>Positive slack ⟹ meets timing. Negative slack ⟹ a violation.</small></div>
+        <p>A <strong>positive</strong> slack means the data shows up with margin to spare — the path passes. A <strong>negative</strong> slack means it shows up after its deadline — the path <em>fails</em>. The amount of negative slack tells you how badly, and by how much you have to speed the path up.</p>
+        <p>Among all the paths in a design, the one with the <strong>least (most negative) slack</strong> is the <span class="key">critical path</span>. It is the bottleneck that sets the maximum clock frequency: improve it and the whole design can run faster.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 600 260" role="img" aria-label="A timing path from a launch flip-flop through a combinational logic cloud to a capture flip-flop, both clocked, with arrival time, required time and slack labeled">
+                <defs><marker id="aP" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#22d3ee"/></marker></defs>
+                <!-- launch FF -->
+                <rect x="40" y="90" width="80" height="80" rx="6" fill="#14202e" stroke="#67e8f9" stroke-width="2"/>
+                <text x="80" y="118" fill="#e8f0f8" font-size="13" text-anchor="middle">Launch</text>
+                <text x="80" y="136" fill="#94a8bc" font-size="12" text-anchor="middle">FF</text>
+                <text x="80" y="156" fill="#94a8bc" font-size="11" text-anchor="middle">Q</text>
+                <!-- clock pin launch -->
+                <path d="M48,150 l10,-7 l-10,-7" fill="none" stroke="#94a8bc" stroke-width="1.5"/>
+                <!-- logic cloud -->
+                <ellipse cx="300" cy="130" rx="78" ry="48" fill="#1c2c3e" stroke="#a78bfa" stroke-width="2"/>
+                <text x="300" y="126" fill="#e8f0f8" font-size="13" text-anchor="middle">Combinational</text>
+                <text x="300" y="144" fill="#94a8bc" font-size="12" text-anchor="middle">logic</text>
+                <!-- capture FF -->
+                <rect x="480" y="90" width="80" height="80" rx="6" fill="#14202e" stroke="#67e8f9" stroke-width="2"/>
+                <text x="520" y="118" fill="#e8f0f8" font-size="13" text-anchor="middle">Capture</text>
+                <text x="520" y="136" fill="#94a8bc" font-size="12" text-anchor="middle">FF</text>
+                <text x="520" y="156" fill="#94a8bc" font-size="11" text-anchor="middle">D</text>
+                <path d="M488,150 l10,-7 l-10,-7" fill="none" stroke="#94a8bc" stroke-width="1.5"/>
+                <!-- data path arrows -->
+                <line x1="120" y1="130" x2="216" y2="130" stroke="#22d3ee" stroke-width="2" marker-end="url(#aP)"/>
+                <line x1="384" y1="130" x2="476" y2="130" stroke="#22d3ee" stroke-width="2" marker-end="url(#aP)"/>
+                <!-- clock line -->
+                <line x1="80" y1="210" x2="520" y2="210" stroke="#34d399" stroke-width="1.5"/>
+                <line x1="80" y1="170" x2="80" y2="210" stroke="#34d399" stroke-width="1.5"/>
+                <line x1="520" y1="170" x2="520" y2="210" stroke="#34d399" stroke-width="1.5"/>
+                <text x="300" y="227" fill="#34d399" font-size="12" text-anchor="middle">clock (same edge launches &amp; captures)</text>
+                <!-- arrival / required labels -->
+                <text x="168" y="108" fill="#22d3ee" font-size="12" text-anchor="middle">arrival time</text>
+                <text x="430" y="108" fill="#fbbf24" font-size="12" text-anchor="middle">required time</text>
+                <text x="300" y="44" fill="#67e8f9" font-size="14" text-anchor="middle" font-family="monospace">slack = required − arrival</text>
+                <text x="300" y="64" fill="#94a8bc" font-size="11" text-anchor="middle">positive = meets timing · negative = violation</text>
+            </svg>
+            <figcaption>A timing path: data launches from one flip-flop, propagates through combinational logic, and must arrive at the capture flip-flop before its required time. Slack is the margin between the two.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>Fixing Timing Violations</h2>
+        <p>The fix depends on <em>which</em> check failed — and these pull in opposite directions, so you must diagnose first.</p>
+        <h3>Setup violations (path too slow) — speed it up</h3>
+        <p>You need the data to arrive sooner. Options:</p>
+        <div class="eq">faster cells&nbsp;·&nbsp;less logic depth&nbsp;·&nbsp;pipelining</div>
+        <p>Swap in higher-drive or low-threshold standard cells, restructure the logic to reduce the number of stages between flops, or insert a pipeline register to split a long combinational path into two shorter ones.</p>
+        <h3>Hold violations (path too fast) — slow it down</h3>
+        <p>You need the data to arrive a little <em>later</em>, so it stays stable past the capturing edge. The fix is to <strong>add delay</strong>:</p>
+        <div class="eq">insert buffers (delay) on the too-fast path</div>
+        <p>Adding buffer cells lengthens the short path just enough to satisfy the hold requirement, without disturbing the (already-met) setup margin.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't confuse the two checks. A <strong>SETUP violation means the path is too SLOW</strong> — speed it up (faster cells, less logic, pipelining). A <strong>HOLD violation means the path is too FAST</strong> — add delay (buffers). Remember too that STA is <strong>exhaustive and static</strong>: it needs <em>no test vectors</em> and runs no simulation, yet covers every path. And <strong>negative slack means timing FAILS</strong> — positive slack is the passing case.</div>
+        <figure class="fig">
+            <svg viewBox="0 0 560 230" role="img" aria-label="The setup and hold window around a clock edge: a rising clock edge with a data-must-be-stable window, setup before the edge and hold after it">
+                <!-- clock waveform -->
+                <text x="40" y="46" fill="#34d399" font-size="13">clock</text>
+                <path d="M40,90 L240,90 L240,40 L300,40 L300,90 L520,90"
+                      fill="none" stroke="#34d399" stroke-width="2.5"/>
+                <!-- the capturing edge -->
+                <line x1="240" y1="40" x2="240" y2="200" stroke="#67e8f9" stroke-width="1.4" stroke-dasharray="4 4"/>
+                <text x="240" y="218" fill="#67e8f9" font-size="12" text-anchor="middle">capturing clock edge</text>
+                <!-- stable window shading -->
+                <rect x="170" y="130" width="140" height="46" fill="rgba(34,211,238,.14)" stroke="#22d3ee" stroke-width="1.4"/>
+                <text x="240" y="120" fill="#22d3ee" font-size="12" text-anchor="middle">data must be stable</text>
+                <text x="240" y="158" fill="#e8f0f8" font-size="12" text-anchor="middle">(valid data)</text>
+                <!-- setup span -->
+                <line x1="170" y1="194" x2="240" y2="194" stroke="#fbbf24" stroke-width="1.4"/>
+                <line x1="170" y1="188" x2="170" y2="200" stroke="#fbbf24" stroke-width="1.4"/>
+                <line x1="240" y1="188" x2="240" y2="200" stroke="#fbbf24" stroke-width="1.4"/>
+                <text x="150" y="198" fill="#fbbf24" font-size="12" text-anchor="end">setup</text>
+                <!-- hold span -->
+                <line x1="240" y1="194" x2="310" y2="194" stroke="#a78bfa" stroke-width="1.4"/>
+                <line x1="310" y1="188" x2="310" y2="200" stroke="#a78bfa" stroke-width="1.4"/>
+                <text x="330" y="198" fill="#a78bfa" font-size="12" text-anchor="start">hold</text>
+                <!-- labels for before/after -->
+                <text x="205" y="80" fill="#fbbf24" font-size="11" text-anchor="middle">before edge</text>
+                <text x="275" y="80" fill="#a78bfa" font-size="11" text-anchor="middle">after edge</text>
+            </svg>
+            <figcaption>Setup/hold window: data must be stable for the setup time <em>before</em> the capturing clock edge and the hold time <em>after</em> it. A too-slow path violates setup; a too-fast path violates hold.</figcaption>
+        </figure>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — Computing Slack</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A path is clocked with a period of 2 ns, and the capturing flop has a setup time of 0.2 ns. Find the required time, then the slack for two cases: (a) arrival time 1.6 ns, and (b) arrival time 2.0 ns.</p>
+        <ol>
+            <li><strong>Required time:</strong> required = period − setup = 2 − 0.2 = <strong>1.8 ns</strong> (the deadline for data to arrive).</li>
+            <li><strong>Case (a), arrival = 1.6 ns:</strong> slack = required − arrival = 1.8 − 1.6 = <strong>+0.2 ns</strong> → positive slack, the path <strong>MEETS timing</strong>.</li>
+            <li><strong>Case (b), arrival = 2.0 ns:</strong> slack = 1.8 − 2.0 = <strong>−0.2 ns</strong> → negative slack, a <strong>SETUP VIOLATION</strong> — the path is too slow.</li>
+            <li><strong>Fix for (b):</strong> speed the path up (faster cells, less logic depth, or pipelining) to pull arrival back under 1.8 ns.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: run STA and read the worst-slack report</h3>
+        <p>OpenLane runs <code>OpenSTA</code> as its sign-off timing engine. After synthesis (or any stage), pull up the timing report and find the worst negative slack and the critical path. You can also drive OpenSTA standalone on a netlist + Liberty + SDC.</p>
+        <pre><span class="c"># In an OpenSTA / OpenROAD shell, after reading the design:</span>
+read_liberty sky130.lib
+read_verilog design.synth.v
+link_design top
+read_sdc design.sdc
+
+<span class="c"># worst setup slack + the offending critical path</span>
+report_checks -path_delay max -slack_max 0 -fields {slack}
+
+<span class="c"># worst hold slack</span>
+report_checks -path_delay min</pre>
+        <p>Read off the <code>slack</code> at the bottom of each path report: a negative value flags a violation. Then compute slack by hand for one path — required = clock period − setup time, slack = required − arrival — and confirm it matches the tool. Predict whether tightening the clock period will create new violations before you re-run.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Static timing analysis…</div>
+            <div class="opt"><b>A.</b> simulates a few representative test cases</div>
+            <div class="opt"><b>B.</b> checks timing on all paths exhaustively, without test vectors</div>
+            <div class="opt"><b>C.</b> measures the dynamic power of the design</div>
+            <div class="opt"><b>D.</b> runs only once, at tape-out</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> STA is static and exhaustive — it walks the delay graph and verifies every path, needing no test vectors and no simulation. Simulation only checks the cases you exercise.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A setup violation means the path is…</div>
+            <div class="opt"><b>A.</b> too slow (data arrives after the deadline)</div>
+            <div class="opt"><b>B.</b> too fast</div>
+            <div class="opt"><b>C.</b> unconnected</div>
+            <div class="opt"><b>D.</b> asynchronous</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Setup fails when data arrives <em>after</em> the capturing edge's deadline — the path is too slow. Fix it by speeding it up (faster cells, less logic, pipelining).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Slack is defined as…</div>
+            <div class="opt"><b>A.</b> arrival time minus required time</div>
+            <div class="opt"><b>B.</b> required time minus arrival time (positive = meets timing)</div>
+            <div class="opt"><b>C.</b> the clock period</div>
+            <div class="opt"><b>D.</b> the gate count of the path</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> slack = required − arrival. Positive slack means the data arrives with margin (meets timing); negative slack is a violation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The critical path is the path with…</div>
+            <div class="opt"><b>A.</b> the most gates, always</div>
+            <div class="opt"><b>B.</b> the least (most negative) slack</div>
+            <div class="opt"><b>C.</b> the highest power</div>
+            <div class="opt"><b>D.</b> the longest wire only</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The critical path has the least (most negative) slack — it's the bottleneck that sets the maximum clock frequency. Not necessarily the most gates or the longest wire.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A hold violation is fixed by…</div>
+            <div class="opt"><b>A.</b> using faster cells</div>
+            <div class="opt"><b>B.</b> raising the clock frequency</div>
+            <div class="opt"><b>C.</b> adding delay (buffers) on the too-fast path</div>
+            <div class="opt"><b>D.</b> removing a flip-flop</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A hold violation means data arrives too fast, so you add delay (buffers) to the short path to keep it stable past the capturing edge. Faster cells would make it worse.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>STA</b> verifies timing on <b>every path exhaustively</b>, statically and with <b>no test vectors</b> — unlike simulation, which checks only the cases you exercise.</li>
+            <li>A <b>setup check</b> fails if a path is <b>too slow</b>; a <b>hold check</b> fails if a path is <b>too fast</b>.</li>
+            <li><b>slack = required − arrival</b>; positive meets timing, negative is a violation.</li>
+            <li>The <b>critical path</b> has the <b>least (most negative) slack</b> and sets the max clock frequency.</li>
+            <li>Fix <b>setup</b> with faster cells / less logic depth / pipelining; fix <b>hold</b> by adding buffer delay.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: Physical Design Basics — floorplanning, placement, clock-tree synthesis, and routing that turn a timing-clean netlist into real geometry.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l06-rtl-synthesis.html"><div class="dir">← Week 6</div><div class="ttl">RTL Synthesis</div></a>
+        <a href="l08-physical-design.html" class="next"><div class="dir">Week 8 →</div><div class="ttl">Physical Design Basics</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 VLSI</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reactor Systems C4 · Lecture 6 — Containment &amp; Structural Design</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C4 Reactor Systems</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Containment &amp; Structural Design</h1>
+        <p class="sub">The last line of defense is a steel-and-concrete dome built to swallow a burst pipe, shrug off an earthquake, and hold a city's worth of pressure without letting a single curie slip out.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain <em>defense-in-depth</em> and name the successive physical barriers that confine radioactivity.</li>
+            <li>Describe why containment is a pressure-retaining structure and what design-basis accident sets its rating.</li>
+            <li>Compute the membrane stress in a thin-walled pressure vessel from internal pressure (hoop and longitudinal).</li>
+            <li>Reason qualitatively about seismic loads and how mass, stiffness, and base motion combine into a design force.</li>
+            <li>Quantify leak-tightness with the containment leak rate and explain how it bounds any radiological release.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Defense-in-Depth: A Stack of Barriers</h2>
+        <p>No single wall is trusted to keep fission products away from people. Instead, reactor safety is built on <strong>defense-in-depth</strong>: a series of independent physical barriers, each of which would have to fail before radioactivity could reach the public. If one leaks, the next still holds. The philosophy is the same one a careful engineer uses everywhere — never let a single failure become a catastrophe.</p>
+        <p>For a typical water-cooled reactor there are four nested barriers between the fuel and the environment:</p>
+        <p><strong>1. The fuel matrix itself.</strong> Uranium dioxide is a hard ceramic that traps most fission products inside its crystal lattice. <strong>2. The fuel cladding.</strong> The sealed zirconium-alloy tubes around the pellets (Week 2) hold in the gaseous fission products that do escape the ceramic. <strong>3. The reactor coolant pressure boundary.</strong> The thick-walled steel pressure vessel and primary piping enclose the whole core and its coolant. <strong>4. The containment building.</strong> The large steel-lined concrete structure that surrounds the entire primary system — the subject of this lecture.</p>
+        <p>The crucial design idea is <em>independence</em>: the barriers fail by different mechanisms, so one event is unlikely to defeat them all at once. The containment is the <strong>final</strong> barrier, and unlike the others it is designed to remain intact even when the inner barriers are assumed to have failed.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a thermos of hot coffee inside a sealed lunchbox inside a locked car. The thermos lid (cladding) usually holds; if it spills, the lunchbox (pressure boundary) catches it; if the lunchbox cracks, the car's sealed cabin (containment) still keeps the coffee off the parking lot. Each layer assumes the one inside it might fail — that pessimism is exactly what makes the whole stack trustworthy.</div>
+
+        <figure class="fig">
+            <svg viewBox="0 0 560 250" role="img" aria-label="Four nested barriers shown as concentric rounded rectangles: fuel pellet at center, then cladding, then pressure vessel, then containment building, with fission products contained at each stage.">
+                <!-- containment (outer) -->
+                <rect x="20" y="20" width="520" height="210" rx="18" fill="none" stroke="#34d399" stroke-width="3"/>
+                <text x="280" y="42" fill="#34d399" font-size="13" text-anchor="middle" font-weight="bold">4. Containment building</text>
+                <!-- pressure boundary -->
+                <rect x="80" y="58" width="400" height="150" rx="14" fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+                <text x="280" y="78" fill="#60a5fa" font-size="12" text-anchor="middle">3. Reactor coolant pressure boundary</text>
+                <!-- cladding -->
+                <rect x="150" y="92" width="260" height="84" rx="10" fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+                <text x="280" y="110" fill="#fbbf24" font-size="12" text-anchor="middle">2. Fuel cladding</text>
+                <!-- fuel -->
+                <rect x="220" y="122" width="120" height="40" rx="8" fill="#1a2c20" stroke="#a78bfa" stroke-width="2.5"/>
+                <text x="280" y="147" fill="#a78bfa" font-size="12" text-anchor="middle">1. Fuel pellet</text>
+                <!-- leakage arrows getting weaker outward -->
+                <text x="280" y="222" fill="#94b8a2" font-size="10" text-anchor="middle">each barrier must fail before fission products reach the environment</text>
+            </svg>
+            <figcaption>Defense-in-depth as four nested barriers. Fission products born in the <span style="color:#a78bfa">fuel pellet</span> must breach the <span style="color:#fbbf24">cladding</span>, then the <span style="color:#60a5fa">pressure boundary</span>, then the <span style="color:#34d399">containment</span> before reaching the public. The barriers fail by different mechanisms, so a single event rarely defeats them all.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>Containment as a Pressure Vessel</h2>
+        <p>What does the containment actually have to survive? Imagine the worst credible failure of the inner barriers: a large pipe in the primary loop breaks and the entire high-pressure, high-temperature coolant inventory flashes to steam inside the building. This is the <strong>design-basis accident</strong> — usually a large-break loss-of-coolant accident (LOCA). In seconds the containment fills with hot steam and its internal pressure spikes. The containment must take that pressure pulse and hold.</p>
+        <p>So containment is fundamentally a <strong>pressure-retaining structure</strong>: a sealed shell rated for a peak internal pressure (commonly a few hundred kilopascals gauge, i.e. a few atmospheres above outside air) and a corresponding temperature. The design pressure is chosen by estimating how much steam and energy the design-basis accident releases into the free volume, then adding margin. Larger free volume means lower peak pressure for the same energy release — which is one reason large dry containments are so cavernous.</p>
+        <p>Because the shell is thin compared with its radius, we can use <strong>thin-wall (membrane) theory</strong>. For a cylindrical shell of radius r and wall thickness t under internal gauge pressure P, the wall carries two membrane stresses. The <strong>hoop (circumferential) stress</strong> tries to split the cylinder along its length:</p>
+        <div class="eq">sigma_hoop = P * r / t<small>Circumferential stress in a thin-walled cylinder (t much smaller than r). This is the larger of the two and usually governs.</small></div>
+        <p>The <strong>longitudinal (axial) stress</strong> tries to pull the end caps off and is exactly half as large:</p>
+        <div class="eq">sigma_long = P * r / (2 * t)<small>Axial stress in the same cylinder. For a spherical containment, BOTH directions equal P*r/(2t) -- which is why spheres are the most material-efficient pressure shape.</small></div>
+        <p>The factor-of-two difference is why a cylinder loaded by pressure tends to burst along a longitudinal seam, like an overcooked sausage splitting down its length rather than across. It also explains why containment domes are spherical or hemispherical: a sphere shares the load equally in every direction, so it needs the least wall for a given pressure.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> mix up the two stresses or use the wrong radius. The hoop stress P&middot;r/t is <em>twice</em> the longitudinal stress, so design against hoop stress — sizing the wall for the smaller longitudinal value would leave the shell at <strong>half</strong> its needed thickness and guarantee a longitudinal rupture. Also use the <em>inner</em> radius and the <em>gauge</em> (not absolute) pressure; the structure only feels the pressure difference across its wall.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Seismic &amp; Combined Structural Loads</h2>
+        <p>Internal pressure is only one of the loads the structure must carry. A containment also has to stand up to <strong>seismic events</strong> — ground shaking from earthquakes — often combined with its own weight, wind, and the pressure pulse. Seismic design is frequently the governing load case for the thick concrete base and walls, even more than accident pressure.</p>
+        <p>The intuition is Newton's second law applied to a shaking foundation. When the ground accelerates, the massive structure resists through its inertia, and that resistance shows up as a horizontal force the walls must carry. To first order the <strong>seismic base shear</strong> is the structure's mass times the ground (spectral) acceleration:</p>
+        <div class="eq">V = m * a = (W / g) * (Sa / g) * g<small>V = horizontal base shear (N), m = structural mass, a = effective seismic acceleration. Engineers often write a as a fraction of g: a 0.3g earthquake means a = 0.3 * 9.81 m/s^2.</small></div>
+        <p>Crucially, the response is not just about the ground motion — it depends on the structure's own <strong>natural frequency</strong>. Every structure has frequencies at which it likes to vibrate, set by its stiffness k and mass m. For a simple single-mode oscillator:</p>
+        <div class="eq">f = (1 / (2*pi)) * sqrt(k / m)<small>Natural frequency (Hz). If earthquake energy concentrates near f, the structure resonates and the effective acceleration Sa is amplified far above the raw ground value.</small></div>
+        <p>If an earthquake's energy is concentrated near the building's natural frequency, the response <em>amplifies</em> — the same resonance that lets a singer shatter a wine glass. So designers deliberately make containment stiff (high f) to keep its natural frequency above the dominant earthquake frequencies, and they verify the response against a site-specific <strong>response spectrum</strong> that maps how much acceleration a structure of each frequency would feel. The massive, heavily reinforced concrete shell is partly a pressure vessel and partly a tuned, stiff seismic mass.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Carry a full mug of coffee and shake your hand slowly — the coffee stays put. Shake it at just the wrong rhythm and it sloshes over the rim: you have hit its natural frequency. A containment is engineered to be the stiff, short mug nothing can easily slosh, not the tall wobbly one that resonates with every jolt.</div>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>Leak-Tightness: Bounding the Release</h2>
+        <p>Holding the pressure is necessary but not sufficient — the containment must also be <strong>leak-tight</strong>. Even an intact shell has penetrations: piping, electrical cables, equipment hatches, and a personnel airlock. Each is a potential leak path, so each is sealed and the whole building is leak-rate tested. The metric is the fraction of the contained atmosphere that can escape per day at design pressure.</p>
+        <p>A common requirement is that leakage stay below roughly <strong>0.1 to 0.5 percent of the contained volume per day</strong> at peak accident pressure. Why does such a tiny leak rate matter so much? Because it directly bounds the radiological dose to the public. The amount of radioactive material released in a given time is the airborne inventory inside times the leak fraction:</p>
+        <div class="eq">release_rate = L * A_in(t)<small>L = fractional leak rate (per day), A_in(t) = airborne activity inside containment. Smaller L means proportionally smaller release for the same internal source.</small></div>
+        <p>The airborne inventory itself shrinks over time as activity decays and as engineered systems clean the atmosphere — sprays wash out particulates and iodine, filters trap aerosols, and natural deposition (plate-out) drops material onto surfaces. So the dose to a person outside is a race: the leak slowly bleeds activity out while decay and cleanup rapidly drive the inside inventory down. A factor-of-ten lower leak rate is a factor-of-ten lower release and dose — which is why leak testing is one of the most carefully enforced requirements over a plant's life.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>A "leak-tight" containment is <strong>not</strong> a perfect seal, and assuming zero leakage is the wrong mental model. Real containments leak a small, <em>specified</em> amount, and the safety case is built on that bounded number plus the decay and cleanup of the inside inventory. Treating containment as a hermetic box also ignores its real job: it does not promise zero release, it promises that any release stays small enough to keep public dose well below limits.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — wall thickness for a containment dome</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A large dry containment is approximated as a cylinder of inner radius <strong>r = 20 m</strong>. After a design-basis LOCA the internal gauge pressure peaks at <strong>P = 0.40 MPa</strong> (about 4 atmospheres above outside air). The steel liner / reinforcement must keep the membrane stress below an allowable <strong>sigma_allow = 140 MPa</strong>. What hoop stress would a 25 mm steel liner see, and what is the minimum thickness to stay within the allowable?</p>
+        <ol>
+            <li><strong>Convert units:</strong> P = 0.40 MPa = 4.0&times;10&#8309; Pa, r = 20 m, trial t = 0.025 m, sigma_allow = 1.40&times;10&#8312; Pa.</li>
+            <li><strong>Hoop stress at t = 25 mm:</strong> sigma_hoop = P&middot;r/t = (4.0&times;10&#8309; &times; 20) / 0.025 = <strong>3.2&times;10&#8312; Pa = 320 MPa</strong>. That exceeds 140 MPa — a bare 25 mm steel shell alone is over-stressed.</li>
+            <li><strong>Minimum thickness for the allowable:</strong> t_min = P&middot;r/sigma_allow = (4.0&times;10&#8309; &times; 20) / (1.40&times;10&#8312;) = <strong>0.057 m &approx; 57 mm</strong> of equivalent steel.</li>
+            <li><strong>Interpret:</strong> A pure steel shell would need ~57 mm. Real containments instead use a thin (~6&ndash;40 mm) steel liner for leak-tightness <em>backed by ~1 m of reinforced or prestressed concrete</em>, which carries most of the membrane load — far cheaper than thick steel.</li>
+            <li><strong>Sanity check:</strong> Longitudinal stress is half the hoop value, sigma_long = P&middot;r/(2t) = 160 MPa at 25 mm. Designing against the larger hoop stress (320 MPa) is correct; sizing for the longitudinal value would leave the wall dangerously thin.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: size a containment shell &amp; check seismic response in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This course's free toolchain is <code>FreeCAD</code> (parametric CAD for vessel and core geometry), <code>Salome-Meca</code> (open-source finite-element analysis for thermal/structural studies), and the <code>Python + NumPy</code> scientific stack for quick calculations. You set all three up in the <strong>Week 1</strong> lecture (the install <code>&lt;details&gt;</code> there covers the one-time setup); we reuse that same environment here — no new tools needed for this lecture.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:8px;">Below we turn this lecture's physics into code: compute the membrane stresses for a pressurized shell, solve for the required wall thickness, and estimate the seismic base shear. For a full 3-D stress field you would build the dome in FreeCAD and mesh/solve it in Salome-Meca; the closed-form membrane result is the check you compare that FEA against.</p>
+        <pre><span class="c"># containment.py — Lecture 6</span>
+import numpy as np
+
+<span class="c"># --- internal pressure (thin-wall membrane theory) ---</span>
+P = 0.40e6          <span class="c"># peak accident gauge pressure, Pa</span>
+r = 20.0            <span class="c"># inner radius, m</span>
+sig_allow = 140e6   <span class="c"># allowable membrane stress, Pa</span>
+
+def hoop_stress(P, r, t):       return P * r / t          <span class="c"># circumferential</span>
+def long_stress(P, r, t):       return P * r / (2 * t)    <span class="c"># axial (half of hoop)</span>
+def min_thickness(P, r, s_all): return P * r / s_all      <span class="c"># size against hoop</span>
+
+t_trial = 0.025
+print(f"hoop @25mm : {hoop_stress(P, r, t_trial)/1e6:.0f} MPa")
+print(f"long @25mm : {long_stress(P, r, t_trial)/1e6:.0f} MPa")
+print(f"t_min      : {min_thickness(P, r, sig_allow)*1e3:.0f} mm steel")
+
+<span class="c"># --- seismic base shear: V = (W/g)*Sa ---</span>
+g  = 9.81
+W  = 6.0e8          <span class="c"># structure weight, N (~60,000 tonnes)</span>
+Sa = 0.30 * g       <span class="c"># spectral acceleration, 0.3 g event</span>
+V  = (W / g) * Sa
+print(f"base shear : {V/1e6:.0f} MN  ({Sa/g:.2f} g)")
+
+<span class="c"># hoop @25mm : 320 MPa   long @25mm : 160 MPa</span>
+<span class="c"># t_min      : 57 mm steel   base shear : 180 MN (0.30 g)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Hoop stress is exactly twice the longitudinal value — confirming the cylinder wants to split lengthwise. Try sweeping <code>r</code> and <code>P</code> to see how the required thickness scales, then rebuild the shell in FreeCAD and verify the FEA membrane stress matches P&middot;r/t.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background: linear-gradient(135deg,#10231a,#13261c); border-color:#2f6048;">
+        <h3 style="color: var(--accent2);">💬 Discussion</h3>
+        <p style="color:#cfe9da;">A large dry containment relies mostly on a huge enclosed volume to keep peak accident pressure low. A pressure-suppression containment instead routes the released steam through a pool of water that condenses it, allowing a far smaller, lower-pressure building. <strong>Which philosophy would you choose for a new reactor, and why?</strong> Weigh the trade-offs across capital cost, the consequences if the suppression pool is unavailable, leak-path complexity, and how each behaves in a <em>beyond</em>-design-basis accident. There is no single right answer — defend your reasoning from first principles.</p>
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer; color:var(--accent2); font-weight:600; font-size:.9rem;">Show a model response</summary>
+            <p style="font-size:.9rem; color:#cdd0ee; margin-top:10px;">A defensible answer recognizes that both choices express defense-in-depth differently. The <strong>large dry</strong> design trades material and volume for passive simplicity: with a huge free volume, the same accident energy produces a lower peak pressure (more volume, lower pressure for a given steam release), and there is no pool that must be ready to function — fewer active dependencies, fewer leak paths through a complex vent system. Its weakness is cost and footprint, and a slower natural pressure decay relying on sprays and structural heat sinks.</p>
+            <p style="font-size:.9rem; color:#cdd0ee; margin-top:8px;">The <strong>suppression</strong> design is smaller and cheaper because the pool condenses steam and crushes the pressure pulse, but it adds a critical dependency: the pool and its vents must work, and bypass of the pool (or boiling it dry in a prolonged accident) erodes the margin. A strong answer picks a side and ties it to a clear priority — e.g., "I favor large dry for a site with space, because minimizing active dependencies maximizes robustness in beyond-design-basis events, even at higher capital cost" — and explicitly names the condition under which the other choice would win (tight site, strong passive-cooling pool design).</p>
+            <p style="font-size:.86rem; color:#a9d6c0; margin-top:10px;"><strong>✓ Self-check rubric:</strong> Did you (1) connect free volume to peak pressure quantitatively or qualitatively, (2) identify at least one failure mode unique to each design, (3) distinguish design-basis from beyond-design-basis behavior, and (4) commit to a choice with a stated priority rather than hedging? Hitting all four is a strong response.</p>
+        </details>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The membrane stresses you computed here are the simplest case of a much richer subject. <strong>Week 7</strong> digs into the materials that carry these loads — how steel and concrete respond to stress, and how neutron irradiation embrittles them over decades, shifting the allowable stress you used in today's worked example. Later weeks bring it together in the design project, where you will size a real pressure boundary in FreeCAD, run a full thermal-and-structural FEA in Salome-Meca, and check it against the closed-form hoop and seismic estimates from this lecture. The closed-form answer is always your reality check on the simulation.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In the defense-in-depth scheme for a water reactor, which is the <em>final</em> barrier between fission products and the public?</div>
+            <div class="opt"><b>A.</b> The fuel cladding</div>
+            <div class="opt"><b>B.</b> The reactor coolant pressure boundary</div>
+            <div class="opt"><b>C.</b> The containment building</div>
+            <div class="opt"><b>D.</b> The fuel ceramic matrix</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The containment is the last, outermost barrier and is designed to hold even when the inner barriers are assumed to have failed. (A) cladding and (B) the pressure boundary are inner barriers; (D) the fuel matrix is the <em>first</em>, innermost barrier.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> For a thin-walled cylindrical containment under internal pressure P, radius r, thickness t, how do the hoop and longitudinal membrane stresses compare?</div>
+            <div class="opt"><b>A.</b> Hoop stress is twice the longitudinal stress</div>
+            <div class="opt"><b>B.</b> Longitudinal stress is twice the hoop stress</div>
+            <div class="opt"><b>C.</b> They are equal</div>
+            <div class="opt"><b>D.</b> Hoop stress is zero for a closed cylinder</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> sigma_hoop = P&middot;r/t while sigma_long = P&middot;r/(2t), so hoop is twice longitudinal — the cylinder tends to split lengthwise. (B) reverses them; (C) is true only for a sphere; (D) is false — hoop stress is the largest, not zero.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A containment is sized for a "design-basis accident." Which event most commonly sets its peak internal pressure?</div>
+            <div class="opt"><b>A.</b> A small electrical fire in the turbine hall</div>
+            <div class="opt"><b>B.</b> A large-break loss-of-coolant accident that flashes coolant to steam inside the building</div>
+            <div class="opt"><b>C.</b> Normal full-power operation</div>
+            <div class="opt"><b>D.</b> Routine refueling with the vessel head removed</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A large-break LOCA releases the hot, high-pressure coolant inventory as steam into the containment free volume, producing the peak pressure the shell is rated for. (A) a turbine-hall fire is outside containment; (C) normal operation keeps containment near atmospheric; (D) refueling occurs at low pressure with the system open.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why do designers make a containment structure very stiff (high natural frequency)?</div>
+            <div class="opt"><b>A.</b> To increase its mass so it absorbs more radiation</div>
+            <div class="opt"><b>B.</b> To make it lighter and cheaper to build</div>
+            <div class="opt"><b>C.</b> To raise its natural frequency above the dominant earthquake frequencies and avoid resonant amplification</div>
+            <div class="opt"><b>D.</b> Because stiffness has no effect on seismic response</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A high natural frequency keeps the structure off resonance with the earthquake's energy, so the effective seismic acceleration is not amplified. (A) confuses shielding with structural dynamics; (B) stiff concrete is heavier, not lighter; (D) is false — stiffness directly sets the natural frequency and thus the response.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A containment's allowed leak rate is specified at a small fraction of its volume per day. What does this number primarily bound?</div>
+            <div class="opt"><b>A.</b> Nothing safety-relevant — it is only a construction tolerance</div>
+            <div class="opt"><b>B.</b> The reactor's thermal efficiency</div>
+            <div class="opt"><b>C.</b> The rate at which coolant boils in the core</div>
+            <div class="opt"><b>D.</b> The radiological release, and therefore the dose to the public, during an accident</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Release rate equals the leak fraction times the airborne activity inside, so a smaller leak rate directly bounds the release and the public dose. (A) understates a key safety parameter; (B) efficiency is a thermodynamic property unrelated to leak-tightness; (C) core boiling is set by reactor thermal-hydraulics, not the containment seal.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Explained <b>defense-in-depth</b> and the four nested barriers — fuel matrix, cladding, pressure boundary, and <b>containment</b> as the final line.</li>
+            <li>Saw why containment is a <b>pressure-retaining structure</b> sized to a <b>design-basis accident</b> (large-break LOCA).</li>
+            <li>Computed thin-wall <b>hoop and longitudinal membrane stress</b> and learned hoop is twice longitudinal — so design against it.</li>
+            <li>Reasoned about <b>seismic base shear</b> and why stiffness keeps a structure off resonance with earthquake frequencies.</li>
+            <li>Quantified <b>leak-tightness</b> and showed it directly bounds the radiological release and public dose.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Materials, Stress &amp; Radiation Damage. The steel and concrete that carry these loads change over a plant's life — neutron irradiation hardens and embrittles them, shifting the very allowable stresses we used today.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-control-rods-reactivity.html"><div class="dir">← Week 5</div><div class="ttl">Control: Rods &amp; Reactivity</div></a>
+        <a class="next" href="l07-materials-stress-radiation.html"><div class="dir">Week 7 →</div><div class="ttl">Materials, Stress &amp; Radiation Damage</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Reactor Systems</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

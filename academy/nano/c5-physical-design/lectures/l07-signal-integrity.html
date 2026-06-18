@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Lecture 7 — Signal Integrity</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C5 Physical Design</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Signal Integrity</h1>
+        <p class="sub">When neighboring wires talk to each other — crosstalk delay and noise, and how to stop it.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain how coupling capacitance between adjacent wires causes crosstalk.</li>
+            <li>Distinguish crosstalk <em>delay</em> (delta delay on a switching victim) from crosstalk <em>noise</em> (a glitch on a quiet victim).</li>
+            <li>List the main mitigation techniques: spacing, shielding, buffering, and net ordering.</li>
+            <li>State why signoff timing must be SI-aware and fold crosstalk delay into the analysis.</li>
+            <li>Identify the layout patterns — long, closely-spaced parallel runs — that make crosstalk worst.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>Crosstalk</h2>
+        <p>Two wires running near each other are not electrically isolated. The metal forms a tiny capacitor across the gap — a <span class="key">coupling capacitance</span> that links the two nets. Nothing in the netlist tells you it exists; it comes purely from the physical layout.</p>
+        <div class="eq">C<sub>c</sub> ∝ (parallel run length) / (spacing)<small>Coupling grows with how long the wires run side by side, and shrinks as you push them apart.</small></div>
+        <p>When one wire — the <strong>aggressor</strong> — switches, its changing voltage drives current through that coupling capacitance (i = C<sub>c</sub>·dv/dt) and <em>injects charge</em> onto its neighbor, the <strong>victim</strong>. The faster and bigger the aggressor's transition, the more charge it dumps onto the victim.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 180" role="img" aria-label="An aggressor net beside a victim net with a coupling capacitor drawn between them; arrows show the aggressor switching">
+                <!-- aggressor net -->
+                <line x1="40" y1="55" x2="320" y2="55" stroke="#22d3ee" stroke-width="3"/>
+                <text x="40" y="40" fill="#22d3ee" font-size="13">Aggressor</text>
+                <!-- switching arrow on aggressor -->
+                <line x1="90" y1="72" x2="90" y2="46" stroke="#fbbf24" stroke-width="2"/>
+                <path d="M85,52 L90,44 L95,52 Z" fill="#fbbf24"/>
+                <text x="100" y="78" fill="#fbbf24" font-size="11">switches</text>
+                <!-- coupling capacitor between the two nets -->
+                <line x1="200" y1="55" x2="200" y2="92" stroke="#a78bfa" stroke-width="2"/>
+                <line x1="186" y1="92" x2="214" y2="92" stroke="#a78bfa" stroke-width="2.5"/>
+                <line x1="186" y1="100" x2="214" y2="100" stroke="#a78bfa" stroke-width="2.5"/>
+                <line x1="200" y1="100" x2="200" y2="137" stroke="#a78bfa" stroke-width="2"/>
+                <text x="222" y="100" fill="#a78bfa" font-size="13">C</text>
+                <text x="234" y="104" fill="#a78bfa" font-size="9">c</text>
+                <!-- injected-charge arrow -->
+                <path d="M210,116 L226,116" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#aSI)"/>
+                <text x="240" y="120" fill="#fbbf24" font-size="10">charge</text>
+                <!-- victim net -->
+                <line x1="40" y1="137" x2="320" y2="137" stroke="#34d399" stroke-width="3"/>
+                <text x="40" y="160" fill="#34d399" font-size="13">Victim</text>
+                <defs><marker id="aSI" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#fbbf24"/></marker></defs>
+            </svg>
+            <figcaption>A switching aggressor net couples through C<sub>c</sub> and injects charge onto the parallel victim net.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Crosstalk is two people in adjacent phone booths. A loud neighbor (an aggressor switching) bleeds through the wall into your call (the victim) — either garbling what you hear (a noise glitch) or making you stumble over your words (delay). Shielding is putting a soundproof, grounded wall between the booths.</div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>Crosstalk Delay &amp; Noise</h2>
+        <p>What the injected charge <em>does</em> depends on what the victim is doing at that instant.</p>
+        <h3>Crosstalk delay (victim is also switching)</h3>
+        <p>If the victim is mid-transition, the aggressor's pushiness either helps or fights it — a <span class="key">delta delay</span>:</p>
+        <div class="eq">aggressor switches <strong>same</strong> direction → victim <strong>speeds up</strong><br>aggressor switches <strong>opposite</strong> direction → victim <strong>slows down</strong></div>
+        <p>An aggressor moving the same way as the victim effectively adds drive (less delay); one moving the opposite way fights the victim (more delay). The slow-down case is what threatens setup timing.</p>
+        <h3>Crosstalk noise (victim is quiet)</h3>
+        <p>If the victim is supposed to hold a steady value, the injected charge can't change a real logic transition — instead it produces a transient bump: a <span class="key">glitch</span>. If that glitch is big enough and lands at the wrong moment, downstream logic can sample it and <em>falsely flip</em>, corrupting the data.</p>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Mitigation</h2>
+        <p>Every fix attacks the same equation — reduce C<sub>c</sub> or weaken its effect:</p>
+        <h3>Increase spacing</h3>
+        <p>Push the victim away from aggressors. Coupling falls with distance, so even one extra track of spacing helps a sensitive net.</p>
+        <h3>Shield critical nets</h3>
+        <p>Route grounded (or power) wires on <em>both</em> sides of the critical net. The shields are quiet, so the victim now couples to steady ground instead of to a switching aggressor — the injected charge has nowhere to come from.</p>
+        <h3>Insert buffers</h3>
+        <p>Break a long coupled run into shorter segments with buffers. Each segment has less parallel length, and the buffer restores a strong, fast edge that is harder to disturb.</p>
+        <h3>Order and space nets</h3>
+        <p>During routing, place the most sensitive nets away from the busiest aggressors, and order/space the tracks so no single victim sees a long, tightly-coupled neighbor.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Crosstalk is <strong>not only noise</strong>. A switching aggressor can both <strong>delay</strong> a signal <em>and</em> create a <strong>glitch</strong>. It is worst for <strong>long, closely-spaced parallel nets</strong>. The fixes are <strong>spacing, shielding, and buffering</strong>. And crosstalk delay must be <strong>folded INTO signoff timing</strong> — never ignored or assumed away.</div>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>SI-Aware Timing</h2>
+        <p>Static timing analysis from the previous lecture assumed each net's delay stood on its own. Real nets don't: a victim's delay shifts depending on whether its aggressors switch with it or against it. <strong>SI-aware STA</strong> recomputes path delays <em>with</em> the worst-case crosstalk contribution included.</p>
+        <div class="eq">net delay = base delay ± crosstalk delta delay<small>Signoff must use the slowed-down (or sped-up) value, not the standalone base delay.</small></div>
+        <p>The danger pattern is exactly the one that builds the most coupling: <span class="key">long, closely-spaced parallel runs</span>. Ignoring their crosstalk delta can let a chip pass timing on paper and then fail on silicon.</p>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A clock-like critical net runs 400 µm parallel to two busy data buses, one on each side, at minimum spacing. SI analysis flags a large crosstalk delta delay and a glitch risk. How do you fix it, and what does it cost?</p>
+        <ol>
+            <li><strong>Diagnose:</strong> the long parallel run and tight spacing give a large C<sub>c</sub> to two active aggressors — the recipe for both delay and noise.</li>
+            <li><strong>Pick the fix:</strong> spacing alone isn't enough for a critical net, so route grounded <strong>shield wires on both sides</strong>.</li>
+            <li><strong>Effect:</strong> the switching neighbors are replaced by quiet ground. C<sub>c</sub> now ties the victim to a steady node, so the crosstalk delta delay and the glitch essentially disappear.</li>
+            <li><strong>Cost:</strong> two extra routing tracks (the two shields) consume area next to the net — you trade routing resources for a clean signal.</li>
+            <li><strong>Note:</strong> C<sub>c</sub> grows with run length and shrinks with spacing, so shorter runs and wider gaps reduce how much shielding you need in the first place.</li>
+        </ol>
+    </div>
+
+    <figure class="fig">
+        <svg viewBox="0 0 360 180" role="img" aria-label="A victim net with grounded shield wires routed on both sides isolating it">
+            <!-- top shield -->
+            <line x1="40" y1="48" x2="300" y2="48" stroke="#94a8bc" stroke-width="3"/>
+            <text x="312" y="52" fill="#94a8bc" font-size="12">GND</text>
+            <text x="40" y="36" fill="#94a8bc" font-size="12">Shield</text>
+            <!-- victim -->
+            <line x1="40" y1="90" x2="320" y2="90" stroke="#34d399" stroke-width="3"/>
+            <text x="40" y="80" fill="#34d399" font-size="13">Victim (critical net)</text>
+            <!-- bottom shield -->
+            <line x1="40" y1="132" x2="300" y2="132" stroke="#94a8bc" stroke-width="3"/>
+            <text x="312" y="136" fill="#94a8bc" font-size="12">GND</text>
+            <text x="40" y="156" fill="#94a8bc" font-size="12">Shield</text>
+            <!-- ground ties -->
+            <line x1="170" y1="48" x2="170" y2="38" stroke="#94a8bc" stroke-width="1.5"/>
+            <line x1="162" y1="38" x2="178" y2="38" stroke="#94a8bc" stroke-width="2"/>
+            <line x1="170" y1="132" x2="170" y2="142" stroke="#94a8bc" stroke-width="1.5"/>
+            <line x1="162" y1="142" x2="178" y2="142" stroke="#94a8bc" stroke-width="2"/>
+        </svg>
+        <figcaption>Shielding: grounded wires on both sides of the critical net replace switching neighbors with quiet ground, removing crosstalk delay and noise — at the cost of two extra tracks.</figcaption>
+    </figure>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: read a crosstalk / SI report</h3>
+        <p>SI tools emit a per-net report listing coupling capacitance, the worst aggressors, and the resulting delta delay and noise. Scan it to find the nets that need spacing or shielding.</p>
+        <pre><span class="c">* Crosstalk / SI report — Lecture 7</span>
+net          coupled_len  Cc(fF)  aggressors  delta_delay(ps)  noise(mV)
+clk_distr        420        18.4       2            +47            210   <span class="c">; long + tight → fix</span>
+data_bus[3]      310        12.1       2            +29            160   <span class="c">; watch</span>
+ctrl_en           45         1.2       1             +3             20   <span class="c">; fine, isolated</span></pre>
+        <p>The long, closely-spaced nets (<code>clk_distr</code>, <code>data_bus[3]</code>) carry the biggest <code>Cc</code>, delta delay, and noise — those are the ones to <em>shield</em> or <em>space</em>. The short isolated <code>ctrl_en</code> needs nothing. Then confirm the fixed delays are folded back into SI-aware STA.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Crosstalk is caused by…</div>
+            <div class="opt"><b>A.</b> coupling capacitance between adjacent wires</div>
+            <div class="opt"><b>B.</b> resistance in the power grid</div>
+            <div class="opt"><b>C.</b> clock skew</div>
+            <div class="opt"><b>D.</b> gate leakage</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Adjacent wires form a coupling capacitance C<sub>c</sub>; when one switches it drives current through C<sub>c</sub> onto its neighbor.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> When an aggressor net switches it can…</div>
+            <div class="opt"><b>A.</b> only add delay</div>
+            <div class="opt"><b>B.</b> only inject noise</div>
+            <div class="opt"><b>C.</b> both delay the victim and inject a noise glitch</div>
+            <div class="opt"><b>D.</b> have no effect on the victim</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> On a switching victim it shifts the delay (delta delay); on a quiet victim it injects a glitch. It does both, not just one.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Crosstalk is worst for…</div>
+            <div class="opt"><b>A.</b> short isolated nets</div>
+            <div class="opt"><b>B.</b> long, closely-spaced parallel nets</div>
+            <div class="opt"><b>C.</b> power rails</div>
+            <div class="opt"><b>D.</b> single vias</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Coupling capacitance grows with parallel run length and shrinks with spacing, so long, tightly-spaced parallel runs couple the most.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Shielding a critical net means…</div>
+            <div class="opt"><b>A.</b> routing grounded wires beside it</div>
+            <div class="opt"><b>B.</b> widening the clock</div>
+            <div class="opt"><b>C.</b> adding a decap</div>
+            <div class="opt"><b>D.</b> removing vias</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Grounded shield wires on both sides replace switching aggressors with quiet ground, so the victim couples to a steady node instead.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Signoff timing must…</div>
+            <div class="opt"><b>A.</b> ignore crosstalk</div>
+            <div class="opt"><b>B.</b> assume zero coupling</div>
+            <div class="opt"><b>C.</b> include crosstalk-induced delay (SI-aware STA)</div>
+            <div class="opt"><b>D.</b> use only the typical corner</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Crosstalk delta delay is real; SI-aware STA folds it into path delays so a chip that passes on paper also passes on silicon.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Adjacent wires share a <b>coupling capacitance</b>; a switching <b>aggressor</b> injects charge onto a <b>victim</b>.</li>
+            <li>Crosstalk causes both a <b>delta delay</b> (speed-up or slow-down on a switching victim) and a <b>noise glitch</b> (on a quiet victim).</li>
+            <li>It is worst for <b>long, closely-spaced parallel nets</b> — C<sub>c</sub> grows with run length, shrinks with spacing.</li>
+            <li>Mitigations: <b>spacing, grounded shielding, buffering, and net ordering</b>.</li>
+            <li>Signoff must be <b>SI-aware</b> — crosstalk delay is folded INTO STA, never ignored.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: Power Integrity — keeping the supply voltage clean as millions of gates switch at once (IR drop, di/dt noise, and decaps).</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l06-timing-signoff.html"><div class="dir">← Week 6</div><div class="ttl">Timing Signoff (STA)</div></a>
+        <a href="l08-power-integrity.html" class="next"><div class="dir">Week 8 →</div><div class="ttl">Power Integrity</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Physical Design</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

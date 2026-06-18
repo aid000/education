@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Final Exam — Behavioral Physiology</title>
+    <style>
+        :root {
+            --bg: #0a1614; --surface: #102320; --surface2: #173029; --border: #244038;
+            --text: #e8f4f0; --text2: #94bcb1; --accent: #2dd4bf; --accent2: #5eead4;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2620 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .note { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 12px; padding: 14px 20px; margin: 0 0 18px; font-size: .84rem; color: var(--text2); }
+        .note b { color: var(--text); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(45,212,191,.12); border-color: rgba(45,212,191,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #04201b; border-color: var(--accent); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Intro</a> / <a href="../index.html">C4 Behavioral Physiology</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C4 Final Exam</h1>
+        <p class="sub">Mastering Yourself &amp; Difficult People — comprehensive across the full 10-week syllabus, from the nervous system to the de-escalation playbook.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="note">
+        <b>Educational only</b> — not therapy or medical/psychological advice. If you are struggling, talk to a qualified professional.
+    </div>
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward applied material:</span>
+            <span class="wchip">Nervous system / HPA <b>3</b></span>
+            <span class="wchip">Stress &amp; recovery <b>3</b></span>
+            <span class="wchip">Regulation / breathing <b>4</b></span>
+            <span class="wchip">Brain under pressure <b>3</b></span>
+            <span class="wchip">Cognitive biases <b>3</b></span>
+            <span class="wchip">Social neuroscience <b>3</b></span>
+            <span class="wchip">Difficult people &amp; playbook <b>4</b></span>
+            <span class="wchip">Habits / capstone <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ TWO NERVOUS SYSTEMS & HPA (Weeks 1) ============ -->
+    <div class="exam-sec">Your two nervous systems · the HPA axis · the vagal brake · Week 1</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> Which branch of the autonomic nervous system dominates during the "rest-and-digest" state, slowing the heart and supporting recovery?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> the parasympathetic branch</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> the sympathetic branch</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> the somatic motor system</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> the HPA axis</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The parasympathetic branch handles "rest-and-digest"; the sympathetic branch drives "fight-or-flight."</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>2.</span> Put the HPA axis in order. A stressor activates the hypothalamus, which signals the pituitary, which then signals the adrenal glands. The hormones involved, in that sequence, are roughly:</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> cortisol → ACTH → adrenaline</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> ACTH → cortisol → CRH</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> hypothalamus (CRH) → pituitary (ACTH) → adrenal (cortisol)</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> adrenal (cortisol) → pituitary (ACTH) → hypothalamus</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Hypothalamus → Pituitary (releases ACTH) → Adrenal (releases cortisol). The "H-P-A" name follows the cascade.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>3.</span> The vagus nerve is often called a "brake" on the body's stress response because it…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> releases adrenaline to speed up the heart</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> carries parasympathetic signals that slow the heart and calm arousal</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> blocks the prefrontal cortex during a threat</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> stores cortisol for later release</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The vagus is the major parasympathetic nerve; high vagal tone lets the body slow the heart and downshift arousal quickly — a "brake."</div>
+    </div>
+
+    <!-- ============ STRESS RESPONSE & RECOVERY (Week 2) ============ -->
+    <div class="exam-sec">Cortisol, adrenaline &amp; recovery · Week 2</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> "Allostatic load" best describes…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> the burst of adrenaline in a single acute scare</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> the maximum cortisol the adrenals can ever produce</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> a beneficial short-term boost in focus and energy</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> the cumulative "wear and tear" from repeated or chronic stress without enough recovery</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Allostatic load is the long-term cost of the body repeatedly mobilizing for stress without adequate recovery — the chronic, not the acute, picture.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>5.</span> A healthy daily cortisol rhythm typically looks like…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> flat and unchanging all day and night</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> highest in the late evening, lowest at dawn</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> spiking only when you eat</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> a morning peak shortly after waking, then a decline across the day</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Cortisol normally peaks in the morning (the cortisol awakening response) and tapers toward night, helping you wake and wind down.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>6.</span> Why does the course argue that <em>recovery</em> — not stress alone — is what builds resilience?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> Stress has no physical effect, so only rest matters</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> Recovery permanently removes the stress response</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> Stress is a stimulus, but adaptation and repair happen during recovery; without recovery, stress just accumulates as load</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> Recovery raises baseline cortisol so you feel more alert</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Like training a muscle, the stressor is the signal but the adaptation occurs during recovery. No recovery means accumulating allostatic load instead of resilience.</div>
+    </div>
+
+    <!-- ============ EMOTIONAL REGULATION & BREATHING (Week 3) ============ -->
+    <div class="exam-sec">The physiological sigh, cyclic sighing &amp; reframing · Week 3</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>7.</span> The "physiological sigh" (cyclic sigh) is performed as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> rapid panting through the mouth for 30 seconds</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> holding the breath as long as possible</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> equal-length inhale and exhale through the mouth</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> a double inhale through the nose followed by a long, extended exhale</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A physiological sigh is a sharp inhale, a second top-up inhale, then a slow extended exhale — the pattern studied in cyclic sighing.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>8.</span> A 2023 study comparing brief daily breathing practices found that cyclic sighing produced the greatest improvement in mood and reduction in arousal. The proposed mechanism centers on…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> raising cortisol to energize the body</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> a lengthened exhale that boosts parasympathetic activity, plus offloading CO₂</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> stimulating the amygdala to release adrenaline</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> increasing the heart rate to flush out stress hormones</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The extended exhale increases parasympathetic (vagal) activity and slows the heart, while the double inhale helps offload CO₂ — shifting the body toward calm.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>9.</span> Slow, deliberate breathing can calm the body partly because breathing connects to brainstem centers that set heart rate. This illustrates that breathing is a…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> rare process we can run both automatically and consciously, giving deliberate access to autonomic state</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> purely conscious act with no automatic control</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> purely automatic act we can never influence</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> process controlled only by the prefrontal cortex</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Breathing runs automatically but can also be controlled voluntarily, giving us a conscious "dial" into otherwise involuntary autonomic state via brainstem pathways.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>10.</span> Cognitive reframing reduces a stress reaction mainly by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> suppressing the emotion until it disappears</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> changing the appraisal of a situation (e.g., "threat" → "challenge"), which changes the physiological response</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> physically removing the stressor every time</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> increasing adrenaline to overpower the feeling</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Reframing works at the appraisal stage: how we interpret an event shapes the body's response, so a "challenge" reading is less taxing than a "threat" reading.</div>
+    </div>
+
+    <!-- ============ BRAIN UNDER PRESSURE (Week 4) ============ -->
+    <div class="exam-sec">Amygdala vs prefrontal cortex · Week 4</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> The "amygdala hijack," a term popularized by Daniel Goleman, describes a situation where…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> the prefrontal cortex overrides all emotion</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> the amygdala is surgically removed</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> a fast emotional/threat response from the amygdala overwhelms slower, reasoned prefrontal control</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> the vagus nerve stops the heart</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> In an amygdala hijack the rapid threat-detection circuit drives behavior before the slower prefrontal "thinking" brain can weigh in.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> "Top-down regulation" of emotion refers to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> the amygdala suppressing the cortex</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> hormones from the adrenal glands controlling the brain</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> reflexes overriding conscious thought</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> the prefrontal cortex modulating and dampening the amygdala's reaction</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Top-down regulation is the "higher" prefrontal cortex reinterpreting and reining in the "lower" amygdala-driven response.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>13.</span> Why does poor sleep make emotional control harder?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> Sleep deprivation tends to heighten amygdala reactivity and weaken prefrontal regulation</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> Sleep deprivation shuts off the amygdala entirely</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> Sleep has no measurable effect on emotion</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> Less sleep strengthens prefrontal control</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Too little sleep amplifies amygdala responses and reduces the prefrontal cortex's ability to regulate them — a worse threat-to-brake ratio.</div>
+    </div>
+
+    <!-- ============ COGNITIVE BIASES (Week 5) ============ -->
+    <div class="exam-sec">Cognitive biases under pressure · Week 5</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>14.</span> "Loss aversion," documented by Kahneman and Tversky, is the tendency for…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> gains and losses to feel exactly equal</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> a loss to feel psychologically larger than an equivalent gain</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> people to always prefer risky bets</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> people to ignore losses completely</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Roughly, "losses loom larger than gains" — a loss hurts more than an equal-sized gain feels good, biasing decisions.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> "Negativity bias" means that, all else equal, the brain tends to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> weight positive and negative information equally</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> ignore threats in favor of rewards</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> give greater weight and attention to negative events than to comparable positive ones</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> forget negative events faster than positive ones</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Negativity bias: bad news, threats, and criticism grab disproportionate attention and weight — useful for survival, costly for balanced judgment.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> How does physiology bias decisions under pressure?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> High arousal makes people uniformly more rational</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> Stress hormones have no effect on thinking</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> A calm body guarantees a perfect decision</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> High threat-arousal narrows attention and pushes toward fast, defensive, bias-prone choices</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Under threat the body shifts toward fast, defensive responses; attention narrows and biases like loss aversion and negativity bias get amplified.</div>
+    </div>
+
+    <!-- ============ SOCIAL NEUROSCIENCE (Week 6) ============ -->
+    <div class="exam-sec">Oxytocin, mirror neurons &amp; attachment · Week 6</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> Oxytocin is most accurately described in this course as a hormone/neuropeptide associated with…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> social bonding and trust (with effects that are context-dependent, not a simple "love drug")</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> the fight-or-flight surge of energy</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> long-term memory storage only</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> regulating blood sugar</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Oxytocin is linked to bonding, trust, and affiliation — but its effects depend on context, so it shouldn't be oversimplified as a pure "love hormone."</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> Which statement about mirror neurons is most scientifically careful?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> Mirror neurons fully explain empathy, language, and autism</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> Mirror neurons are linked to mapping others' actions, but their exact role in humans is still debated and shouldn't be overstated</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> Mirror neurons do not exist in any species</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> Mirror neurons store cortisol for stress responses</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Mirror neurons are a real and intriguing finding, but their precise function in humans remains debated — claims that they "explain everything" overstate the evidence.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> Why does the course treat status and belonging as <em>biological</em> needs, not just preferences?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> Because social standing has no measurable effect on the body</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> Because belonging only matters in childhood</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> Because social threats (rejection, loss of status) can trigger stress-response physiology much like physical threats</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> Because they only affect oxytocin, nothing else</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The social brain treats rejection and status loss as genuine threats, engaging the same stress circuitry — which is why they feel so physically real.</div>
+    </div>
+
+    <!-- ============ DIFFICULT PEOPLE & PLAYBOOK (Weeks 7-8) ============ -->
+    <div class="exam-sec">Understanding difficult people &amp; the playbook · Weeks 7–8</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>20.</span> The course advises "reading state, not just behavior" in a difficult person. This means…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> inferring their underlying physiological/emotional state (e.g., threatened, dysregulated) rather than only reacting to the surface behavior</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> ignoring their words and assuming the worst intent</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> diagnosing them with a clinical disorder</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> matching their volume and aggression</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Behavior is the output; reading state means noticing the threat/arousal driving it, which lets you respond to the cause rather than escalate the symptom.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>21.</span> From a threat-physiology view, why do people often escalate during conflict?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> Because escalation always reflects a calm, deliberate strategy</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> Because the prefrontal cortex is fully in control</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> Because parasympathetic activity is too high</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> Because perceived threat or status loss triggers sympathetic arousal and an amygdala-driven defensive response</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Escalation is usually a threat response: feeling attacked or diminished spikes sympathetic arousal and pulls behavior into defensive, fight-mode territory.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> The "gray-rock" method is best used to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> win arguments by overwhelming the other person</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> become deliberately unengaging and low-reactivity so a manipulative or attention-seeking person finds little to feed on</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> express every emotion as loudly as possible</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> permanently cut off all communication in every relationship</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Gray-rock means giving boring, neutral, low-emotion responses so a provocateur gets no reaction to escalate — a targeted, situational tool, not a way to treat everyone.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> Which response best reflects de-escalation grounded in threat-response biology?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> Raise your voice to assert dominance</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> List every way the person is wrong</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> Lower your tone, slow your pace, acknowledge their concern, and reduce the sense of threat before problem-solving</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> Issue an ultimatum immediately</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> De-escalation first lowers the other person's threat arousal — calm tone, slower pace, acknowledgment — so their prefrontal cortex can re-engage before you tackle the problem.</div>
+    </div>
+
+    <!-- ============ HABITS & CAPSTONE (Weeks 9-10) ============ -->
+    <div class="exam-sec">Antifragile habits, recovery systems &amp; capstone · Weeks 9–10</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>24.</span> Which set of daily inputs does the course highlight as pillars of a personal recovery system?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> sleep, morning sunlight, movement, and social connection</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> caffeine, late screens, skipping meals, and isolation</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> maximizing chronic stress with no rest</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> avoiding all physical activity</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The recovery pillars are sleep, daylight exposure (especially morning), regular movement, and genuine social connection — the inputs that support autonomic balance.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>25.</span> The capstone asks you to analyze your own tracker data and build a scenario playbook. The main point of tracking and reviewing your data is to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> prove a theory true for everyone by collecting a few data points</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> notice your personal patterns and triggers so you can choose tools that actually work for you</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> replace professional care with self-diagnosis</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> maximize how many metrics you record, regardless of usefulness</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A self-experiment is about your own n-of-1 patterns — spotting personal triggers and what reliably helps — not proving universal claims or replacing professional help.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C4 Syllabus</div></a>
+        <a href="../lectures/l01-your-two-nervous-systems-stress-the.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Week 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Behavioral Physiology</a> · <a href="../../index.html">Intro</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">Educational only — not therapy or medical/psychological advice. If you are struggling, talk to a qualified professional.</p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

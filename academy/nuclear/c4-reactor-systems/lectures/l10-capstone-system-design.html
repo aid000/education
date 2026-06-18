@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reactor Systems C4 · Lecture 10 — Capstone: A Reactor System Design Study</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C4 Reactor Systems</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Capstone: A Reactor System Design Study</h1>
+        <p class="sub">Everything from ten weeks — core, primary loop, secondary loop, safety, and a single stressed bolt — finally clicks together into one plant you can defend on a single sheet of paper.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Size a reactor core from a target electrical output, working backward through thermal efficiency, power density, and fuel inventory.</li>
+            <li>Connect the core to a primary coolant loop and a secondary steam loop into one self-consistent plant heat balance.</li>
+            <li>Perform a first-order stress check on a single pressure-bearing component and decide whether it meets an allowable-stress margin.</li>
+            <li>Assemble the design into a one-page concept with key parameters and a defensible, defense-in-depth safety rationale.</li>
+            <li>Frame and deliver the capstone: what reviewers expect, how to present trade-offs, and how to justify every number.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>From Target Power to Core: Sizing the Heart of the Plant</h2>
+        <p>A reactor design never starts with the core. It starts with a <strong>requirement</strong> — "deliver 300&nbsp;MW of electricity to the grid" — and works <em>backward</em> through the plant until it arrives at a lump of fuel. This is the single most important habit of a systems engineer: the customer buys electricity, not neutrons, so every choice traces back to that output number.</p>
+        <p>Electrical output P<sub>e</sub> is the thermal power P<sub>th</sub> the core produces, multiplied by the <strong>thermal efficiency</strong> &eta; of the power-conversion cycle. A light-water plant runs a Rankine steam cycle limited by coolant temperature to roughly &eta; &asymp; 0.33; a high-temperature gas system can reach &eta; &asymp; 0.45. Invert that relationship and the required core power falls out immediately:</p>
+        <div class="eq">P_th = P_e / eta<small>P_e = electrical output (MW), eta = net cycle efficiency (dimensionless), P_th = reactor thermal power (MWth).</small></div>
+        <p>Once you know P<sub>th</sub>, the core's <em>size</em> follows from how hard you are willing to push each cubic metre of fuel — the <strong>average power density</strong> q&#39;&#39;&#39; (MW per m³). Push too hard and the fuel centreline overheats; push too gently and the vessel becomes uneconomically large. The active core volume is simply the thermal power divided by the power density:</p>
+        <div class="eq">V_core = P_th / q'''<small>V_core = active fuel volume (m^3), q''' = average volumetric power density (MW/m^3).</small></div>
+        <p>From the volume you pick an aspect ratio (height-to-diameter near 1 minimises neutron leakage, a result you proved back in the criticality weeks), count the fuel assemblies, and finally fix the <strong>fissile inventory</strong> from the enrichment and the burnup target. Notice the chain: a single grid requirement has cascaded all the way down to kilograms of uranium-235. That cascade <em>is</em> systems engineering.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Designing a plant from its power target is like buying a car by deciding the trip first. You don't start at the engine — you say "I need to haul 1&nbsp;tonne up a 6&nbsp;% grade at 100&nbsp;km/h," and only <em>that</em> tells you the horsepower, which tells you the displacement, which tells you the fuel tank. Reverse the order and you end up with an engine in search of a purpose.</div>
+    </section>
+
+    <!-- FIGURE 1: requirement cascade -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 230" role="img" aria-label="Requirement cascade flowing left to right: grid demand to electrical power to thermal power via efficiency, to core volume via power density, to fuel inventory via enrichment and burnup.">
+            <!-- boxes -->
+            <rect x="20" y="80" width="92" height="58" rx="8" fill="#122017" stroke="#60a5fa" stroke-width="1.5"/>
+            <text x="66" y="104" fill="#60a5fa" font-size="11" text-anchor="middle">Grid demand</text>
+            <text x="66" y="122" fill="#e8f4ec" font-size="13" text-anchor="middle" font-weight="bold">P_e = 300</text>
+
+            <rect x="150" y="80" width="92" height="58" rx="8" fill="#122017" stroke="#34d399" stroke-width="1.5"/>
+            <text x="196" y="104" fill="#34d399" font-size="11" text-anchor="middle">Core power</text>
+            <text x="196" y="122" fill="#e8f4ec" font-size="13" text-anchor="middle" font-weight="bold">P_th = 909</text>
+
+            <rect x="280" y="80" width="92" height="58" rx="8" fill="#122017" stroke="#34d399" stroke-width="1.5"/>
+            <text x="326" y="104" fill="#34d399" font-size="11" text-anchor="middle">Core volume</text>
+            <text x="326" y="122" fill="#e8f4ec" font-size="13" text-anchor="middle" font-weight="bold">V = 18 m3</text>
+
+            <rect x="410" y="80" width="120" height="58" rx="8" fill="#122017" stroke="#fbbf24" stroke-width="1.5"/>
+            <text x="470" y="104" fill="#fbbf24" font-size="11" text-anchor="middle">Fuel inventory</text>
+            <text x="470" y="122" fill="#e8f4ec" font-size="13" text-anchor="middle" font-weight="bold">U-235 mass</text>
+
+            <!-- arrows -->
+            <line x1="112" y1="109" x2="148" y2="109" stroke="#94b8a2" stroke-width="2"/>
+            <polygon points="148,109 138,104 138,114" fill="#94b8a2"/>
+            <text x="130" y="74" fill="#94b8a2" font-size="9" text-anchor="middle">/ eta</text>
+
+            <line x1="242" y1="109" x2="278" y2="109" stroke="#94b8a2" stroke-width="2"/>
+            <polygon points="278,109 268,104 268,114" fill="#94b8a2"/>
+            <text x="260" y="74" fill="#94b8a2" font-size="9" text-anchor="middle">/ q'''</text>
+
+            <line x1="372" y1="109" x2="408" y2="109" stroke="#94b8a2" stroke-width="2"/>
+            <polygon points="408,109 398,104 398,114" fill="#94b8a2"/>
+            <text x="390" y="74" fill="#94b8a2" font-size="9" text-anchor="middle">enrich</text>
+
+            <text x="280" y="40" fill="#6ee7b7" font-size="13" text-anchor="middle" font-weight="bold">The requirement cascade (eta = 0.33)</text>
+            <text x="280" y="180" fill="#94b8a2" font-size="10" text-anchor="middle">Each arrow divides by one plant parameter. The customer's number on the left fixes the fuel on the right.</text>
+        </svg>
+        <figcaption>The requirement cascade. A 300&nbsp;MWe grid demand divided by &eta;&nbsp;=&nbsp;0.33 sets 909&nbsp;MWth of core power; dividing by the power density sets the core volume (~18&nbsp;m³ at 50&nbsp;MW/m³); enrichment and burnup then fix the fissile mass. Design flows right-to-left in physics but is reasoned left-to-right from the customer.</figcaption>
+    </figure>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Closing the Loop: Primary &amp; Secondary Heat Balance</h2>
+        <p>The core makes heat; the rest of the plant's job is to move that heat to a turbine without ever letting the fuel melt or the radioactive coolant escape. In a typical pressurised water plant this is done with <strong>two loops</strong>. The <strong>primary loop</strong> circulates pressurised water through the core (kept liquid at high temperature by ~15&nbsp;MPa pressure) and dumps its heat into a steam generator. The <strong>secondary loop</strong> boils clean, non-radioactive water on the other side of that steam generator and drives the turbine. The two never mix — that physical separation is itself a safety barrier.</p>
+        <p>Sizing the primary loop is a single conservation-of-energy statement. The heat the core deposits must equal the heat the coolant carries away, which is the mass flow rate times the specific heat times the temperature rise across the core:</p>
+        <div class="eq">P_th = m_dot * c_p * (T_hot - T_cold)<small>m_dot = coolant mass flow (kg/s), c_p = specific heat (J/kg/K), (T_hot - T_cold) = core temperature rise (K).</small></div>
+        <p>This one equation sets the pump size. Fix the temperature rise (limited by how hot you dare run the fuel and how cold the steam generator returns the water), and the required flow rate &mdash; and therefore the coolant-pump power &mdash; drops straight out. The secondary loop is then governed by the same logic in reverse: the steam generator must transfer that <em>same</em> P<sub>th</sub> into the steam, and the turbine converts the fraction &eta; into shaft work while a condenser rejects the remainder, (1&nbsp;&minus;&nbsp;&eta;)P<sub>th</sub>, to the ultimate heat sink (a river, the sea, or a cooling tower).</p>
+        <p>The whole plant must <strong>balance</strong>: every watt is accounted for. A design that "loses" energy somewhere in the heat balance is simply wrong, and a reviewer will find it in thirty seconds. Drawing the full balance — in, through, and out — is the single most powerful check you have on a system concept.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Students routinely confuse <strong>electrical</strong> and <strong>thermal</strong> megawatts. A 300&nbsp;MWe plant is <em>not</em> a 300&nbsp;MWth core — at &eta;&nbsp;=&nbsp;0.33 the core makes roughly 909&nbsp;MWth, and about 609&nbsp;MWth (two thirds of the total!) is dumped to the environment as waste heat, never electricity. Sizing your steam generator or condenser to the electrical number undersizes it by a factor of three. Always carry the "e" or "th" subscript.</div>
+    </section>
+
+    <!-- FIGURE 2: plant heat balance -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 280" role="img" aria-label="Two-loop plant heat balance. Core feeds the primary loop through a steam generator; the secondary loop drives a turbine generator and rejects waste heat through a condenser.">
+            <!-- core -->
+            <rect x="30" y="110" width="70" height="80" rx="8" fill="#122017" stroke="#34d399" stroke-width="2"/>
+            <text x="65" y="146" fill="#34d399" font-size="12" text-anchor="middle" font-weight="bold">CORE</text>
+            <text x="65" y="164" fill="#e8f4ec" font-size="10" text-anchor="middle">909 MWth</text>
+
+            <!-- steam generator -->
+            <rect x="200" y="90" width="60" height="120" rx="8" fill="#122017" stroke="#60a5fa" stroke-width="2"/>
+            <text x="230" y="44" fill="#60a5fa" font-size="11" text-anchor="middle">Steam</text>
+            <text x="230" y="58" fill="#60a5fa" font-size="11" text-anchor="middle">generator</text>
+
+            <!-- primary loop arrows -->
+            <line x1="100" y1="125" x2="200" y2="125" stroke="#fbbf24" stroke-width="2.5"/>
+            <polygon points="200,125 190,120 190,130" fill="#fbbf24"/>
+            <text x="150" y="116" fill="#fbbf24" font-size="9" text-anchor="middle">T_hot</text>
+            <line x1="200" y1="175" x2="100" y2="175" stroke="#60a5fa" stroke-width="2.5"/>
+            <polygon points="100,175 110,170 110,180" fill="#60a5fa"/>
+            <text x="150" y="190" fill="#60a5fa" font-size="9" text-anchor="middle">T_cold (pump)</text>
+            <text x="150" y="78" fill="#94b8a2" font-size="9" text-anchor="middle">PRIMARY (radioactive)</text>
+
+            <!-- turbine -->
+            <polygon points="360,100 410,90 410,150 360,140" fill="#122017" stroke="#34d399" stroke-width="2"/>
+            <text x="385" y="124" fill="#34d399" font-size="10" text-anchor="middle">TURB</text>
+            <circle cx="455" cy="120" r="22" fill="#122017" stroke="#fbbf24" stroke-width="2"/>
+            <text x="455" y="124" fill="#fbbf24" font-size="9" text-anchor="middle">GEN</text>
+            <text x="455" y="86" fill="#fbbf24" font-size="10" text-anchor="middle">300 MWe</text>
+
+            <!-- secondary loop: steam to turbine -->
+            <line x1="260" y1="110" x2="358" y2="112" stroke="#fbbf24" stroke-width="2.5"/>
+            <polygon points="358,112 348,107 348,117" fill="#fbbf24"/>
+            <text x="300" y="100" fill="#fbbf24" font-size="9" text-anchor="middle">steam</text>
+            <line x1="410" y1="120" x2="433" y2="120" stroke="#94b8a2" stroke-width="2"/>
+
+            <!-- condenser -->
+            <rect x="360" y="190" width="100" height="40" rx="8" fill="#122017" stroke="#60a5fa" stroke-width="2"/>
+            <text x="410" y="214" fill="#60a5fa" font-size="10" text-anchor="middle">Condenser</text>
+            <line x1="385" y1="150" x2="385" y2="190" stroke="#60a5fa" stroke-width="2.5"/>
+            <polygon points="385,190 380,180 390,180" fill="#60a5fa"/>
+            <line x1="360" y1="210" x2="262" y2="195" stroke="#60a5fa" stroke-width="2"/>
+            <polygon points="262,195 272,193 270,203" fill="#60a5fa"/>
+            <text x="320" y="215" fill="#94b8a2" font-size="9" text-anchor="middle">feedwater</text>
+            <line x1="410" y1="230" x2="410" y2="258" stroke="#94b8a2" stroke-width="2"/>
+            <polygon points="410,258 405,248 415,248" fill="#94b8a2"/>
+            <text x="410" y="272" fill="#94b8a2" font-size="9" text-anchor="middle">609 MWth waste -> sink</text>
+
+            <text x="350" y="78" fill="#94b8a2" font-size="9" text-anchor="middle">SECONDARY (clean)</text>
+        </svg>
+        <figcaption>Two-loop plant heat balance. 909&nbsp;MWth leaves the core; the steam generator passes it to the clean secondary loop; the turbine-generator extracts 300&nbsp;MWe (&eta;&nbsp;=&nbsp;0.33) and the condenser rejects 609&nbsp;MWth to the heat sink. Primary and secondary fluids never mix &mdash; a deliberate safety barrier.</figcaption>
+    </figure>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>A Single Stressed Component: First-Order CAD &amp; Stress Check</h2>
+        <p>A plant concept is not credible until at least one part is shown to physically survive. You will not analyse the whole vessel for the capstone &mdash; that is a career, not a course &mdash; but you <em>will</em> take one pressure-bearing component and prove it holds. The classic choice is the <strong>reactor pressure vessel wall</strong>, a thin-walled cylinder under internal pressure. For a cylinder whose wall is thin compared with its radius, the dominant <strong>hoop stress</strong> (circumferential, the stress that tries to split the cylinder lengthwise) is:</p>
+        <div class="eq">sigma_hoop = p * r / t<small>p = internal pressure (Pa), r = inner radius (m), t = wall thickness (m). Valid when t &lt; r/10.</small></div>
+        <p>The hoop stress is twice the axial (lengthwise) stress, which is why pressurised pipes split along their length rather than popping their ends &mdash; the seam always fails the way the higher stress points. Design then becomes a single inequality: the working stress must stay below the material's <strong>allowable stress</strong> S, which is the yield (or ultimate) strength reduced by a <strong>safety factor</strong> n that absorbs corrosion, weld defects, irradiation embrittlement, and plain uncertainty:</p>
+        <div class="eq">sigma_hoop &lt;= S = sigma_yield / n<small>S = allowable stress, sigma_yield = material yield strength, n = safety factor (often 1.5 to 3 for nuclear pressure boundaries).</small></div>
+        <p>In a free CAD tool you draw the cylinder, then in a free finite-element solver you apply the pressure load and read back the peak stress &mdash; which near the smooth wall should match the hand formula, while near nozzles and welds it spikes (a <strong>stress concentration</strong>) and tells you exactly where to add material. The hand calculation is the sanity check on the software; the software finds the corners the hand formula cannot. You always do both.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Hoop stress is why an over-inflated balloon or a boiling sausage splits along a line down its side, never around its waist. The skin is pulled hardest around the circumference, so that is where it tears. A reactor vessel obeys the identical physics &mdash; just with steel instead of latex and 15&nbsp;MPa instead of your lungs.</div>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>The Deliverable: One Page, Every Number Defended</h2>
+        <p>The capstone is <strong>due this week</strong>, and the deliverable is deliberately compact: a <strong>one-page design concept</strong> plus a short defence. Reviewers do not want a novel; they want to see that your numbers are <em>self-consistent</em> and that you understand <em>why</em> each choice is safe. A strong submission has four parts.</p>
+        <p><strong>1. The key-parameter table.</strong> Power (MWe and MWth), efficiency, coolant and pressure, core dimensions, fissile inventory, primary flow, and the stress margin on your chosen component. Every number must be traceable to one of the equations above &mdash; a reviewer should be able to recompute any cell from the others.</p>
+        <p><strong>2. The system sketch.</strong> The two-loop diagram of &sect;10.2 with your numbers on it: the heat balance must close.</p>
+        <p><strong>3. The safety rationale.</strong> This is where you earn the grade. Frame it around <strong>defense in depth</strong> &mdash; multiple independent barriers (fuel matrix, cladding, primary boundary, containment) so that no single failure releases radioactivity &mdash; and around <strong>inherent feedback</strong>: your design should have a <em>negative</em> temperature coefficient so that a power excursion is self-limiting, the physics you proved in the reactivity weeks. Name the worst-case event and show what stops it.</p>
+        <p><strong>4. The honest trade-offs.</strong> Every real design sacrifices something. Higher efficiency wants higher temperature, which embrittles steel faster; higher power density shrinks the vessel but shortens the thermal margin to fuel melting. State the tension and defend where you landed.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The fatal capstone error is an <strong>unbalanced or untraceable number</strong> &mdash; a core power that does not equal P<sub>e</sub>/&eta;, a condenser sized to MWe, or a stress margin quoted with no safety factor. Reviewers check consistency first and elegance second. A modest design whose numbers all close beats a clever design that silently violates conservation of energy.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — sizing a 300 MWe plant end to end</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Design target: 300&nbsp;MWe net, pressurised-water plant. Use &eta;&nbsp;=&nbsp;0.33, average power density q&#39;&#39;&#39;&nbsp;=&nbsp;50&nbsp;MW/m³, coolant c<sub>p</sub>&nbsp;=&nbsp;5500&nbsp;J/kg/K, core temperature rise (T<sub>hot</sub>&nbsp;&minus;&nbsp;T<sub>cold</sub>)&nbsp;=&nbsp;35&nbsp;K. The vessel is a thin cylinder, inner radius r&nbsp;=&nbsp;2.0&nbsp;m, wall t&nbsp;=&nbsp;0.18&nbsp;m, internal pressure p&nbsp;=&nbsp;15.5&nbsp;MPa, steel yield &sigma;<sub>yield</sub>&nbsp;=&nbsp;345&nbsp;MPa. Find core power, core volume, primary flow, and the vessel safety factor.</p>
+        <ol>
+            <li><strong>Thermal power:</strong> P<sub>th</sub> = P<sub>e</sub> / &eta; = 300 / 0.33 = <strong>909 MWth</strong>. (So 609&nbsp;MWth is waste heat.)</li>
+            <li><strong>Core volume:</strong> V = P<sub>th</sub> / q&#39;&#39;&#39; = 909 / 50 = <strong>18.2 m³</strong> of active fuel.</li>
+            <li><strong>Primary flow:</strong> m_dot = P<sub>th</sub> / [c<sub>p</sub>(T<sub>hot</sub>&minus;T<sub>cold</sub>)] = 909&times;10⁶ / (5500 &times; 35) = 909e6 / 192500 &approx; <strong>4720 kg/s</strong>.</li>
+            <li><strong>Hoop stress:</strong> &sigma;<sub>hoop</sub> = p&middot;r/t = (15.5&times;10⁶ &times; 2.0) / 0.18 = 31.0e6 / 0.18 &approx; <strong>172 MPa</strong>. (Check thin-wall: t/r = 0.09 &lt; 0.1 ✓.)</li>
+            <li><strong>Safety factor:</strong> n = &sigma;<sub>yield</sub> / &sigma;<sub>hoop</sub> = 345 / 172 &approx; <strong>2.0</strong> &mdash; comfortably above 1.5, so the wall passes on yield. (You would still check fatigue and irradiation embrittlement before signing.)</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a one-script plant sizer + vessel check</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This course's design stack is all free: <code>FreeCAD</code> to draw the vessel, <code>Salome-Meca</code> (the open-source Code_Aster front end) for the finite-element stress run, and <code>Python</code>&nbsp;+&nbsp;<code>NumPy</code> for the system arithmetic &mdash; installed back in the Week&nbsp;1/2 setup (the install <code>&lt;details&gt;</code> lives in those early lectures). Below, NumPy does the whole capstone heat-balance and stress check in one pass, so every number in your one-pager is traceable to code.</p>
+        <pre><span class="c"># capstone_sizer.py — Lecture 10: size a plant from its grid target</span>
+import numpy as np
+
+<span class="c"># --- design inputs ---</span>
+P_e   = 300e6        <span class="c"># target electrical power, W</span>
+eta   = 0.33         <span class="c"># net cycle efficiency</span>
+q3    = 50e6         <span class="c"># average power density, W per m^3</span>
+cp    = 5500.0       <span class="c"># coolant specific heat, J/kg/K</span>
+dT    = 35.0         <span class="c"># core temperature rise, K</span>
+
+<span class="c"># --- vessel inputs (thin cylinder) ---</span>
+p     = 15.5e6       <span class="c"># internal pressure, Pa</span>
+r     = 2.0          <span class="c"># inner radius, m</span>
+t     = 0.18         <span class="c"># wall thickness, m</span>
+sy    = 345e6        <span class="c"># steel yield strength, Pa</span>
+
+<span class="c"># --- the requirement cascade ---</span>
+P_th  = P_e / eta              <span class="c"># core thermal power, W</span>
+P_rej = P_th - P_e             <span class="c"># waste heat to the sink, W</span>
+V     = P_th / q3              <span class="c"># active core volume, m^3</span>
+mdot  = P_th / (cp * dT)       <span class="c"># primary coolant flow, kg/s</span>
+
+<span class="c"># --- vessel stress check ---</span>
+sigma = p * r / t              <span class="c"># hoop stress, Pa</span>
+n     = sy / sigma             <span class="c"># safety factor on yield</span>
+
+print(f"Thermal power : {P_th/1e6:6.1f} MWth")
+print(f"Waste heat    : {P_rej/1e6:6.1f} MWth to sink")
+print(f"Core volume   : {V:6.1f} m^3")
+print(f"Primary flow  : {mdot:6.0f} kg/s")
+print(f"Hoop stress   : {sigma/1e6:6.1f} MPa")
+print(f"Safety factor : {n:6.2f}  ->", "PASS" if n &gt;= 1.5 else "FAIL")
+
+<span class="c"># Thermal power :  909.1 MWth</span>
+<span class="c"># Waste heat    :  609.1 MWth to sink</span>
+<span class="c"># Core volume   :   18.2 m^3</span>
+<span class="c"># Primary flow  :   4723 kg/s</span>
+<span class="c"># Hoop stress   :  172.2 MPa</span>
+<span class="c"># Safety factor :   2.00  -> PASS</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Next, build the cylinder in FreeCAD, load it at 15.5&nbsp;MPa in Salome-Meca, and confirm the smooth-wall stress lands near 172&nbsp;MPa &mdash; then watch it spike at a nozzle cutout. The script is the hand-check; the FEM finds the corners. Together they are your defensible vessel result.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>This capstone is the bridge out of the foundational courses. The sizing instincts you just exercised feed directly into the advanced thermal-hydraulics and fuel-performance tracks, where the lumped heat balance becomes a full subchannel and CFD analysis, and the single hoop-stress check grows into transient thermal-stress and fracture-mechanics assessment of the whole pressure boundary. The safety rationale you wrote here is the seed of a full probabilistic safety assessment in later coursework. And the small-modular-reactor concepts from Week&nbsp;9 are exactly the kind of clean-sheet design that rewards the requirement-first method you practised today. Defend this one page well, and you have the workflow for every plant you will ever scope.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A plant must deliver 600&nbsp;MWe at a net cycle efficiency of 0.40. What thermal power must the core produce?</div>
+            <div class="opt"><b>A.</b> 240 MWth</div>
+            <div class="opt"><b>B.</b> 600 MWth</div>
+            <div class="opt"><b>C.</b> 1500 MWth</div>
+            <div class="opt"><b>D.</b> 960 MWth</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> P<sub>th</sub> = P<sub>e</sub>/&eta; = 600/0.40 = 1500&nbsp;MWth. (A) multiplies instead of divides (600&times;0.40). (B) ignores efficiency entirely. (D) uses 1&minus;&eta; in the denominator, which has no physical basis.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In the heat balance P<sub>th</sub> = m_dot&middot;c<sub>p</sub>&middot;(T<sub>hot</sub>&minus;T<sub>cold</sub>), if you must raise core power but cannot increase the coolant temperature rise, what must increase?</div>
+            <div class="opt"><b>A.</b> The condenser rejection temperature</div>
+            <div class="opt"><b>B.</b> The mass flow rate of the coolant</div>
+            <div class="opt"><b>C.</b> The thermal efficiency of the turbine</div>
+            <div class="opt"><b>D.</b> The vessel wall thickness</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> With c<sub>p</sub> and &Delta;T fixed, P<sub>th</sub> is proportional to m_dot, so a bigger pump is required. (A) sets the cold-end of the secondary cycle, not the core balance. (C) efficiency relates P<sub>e</sub> to P<sub>th</sub>, not the core flow. (D) wall thickness is a structural choice, unrelated to heat transport.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> For a thin-walled cylindrical pressure vessel, how does the hoop (circumferential) stress compare with the axial (lengthwise) stress?</div>
+            <div class="opt"><b>A.</b> They are equal</div>
+            <div class="opt"><b>B.</b> Hoop stress is half the axial stress</div>
+            <div class="opt"><b>C.</b> Hoop stress is twice the axial stress</div>
+            <div class="opt"><b>D.</b> Axial stress is always zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> &sigma;<sub>hoop</sub> = pr/t and &sigma;<sub>axial</sub> = pr/2t, so hoop is twice axial &mdash; which is why pressurised cylinders split along their length. (A) and (B) get the ratio wrong. (D) is false; the end caps carry a real axial load.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A vessel sees a hoop stress of 200&nbsp;MPa in a steel with 360&nbsp;MPa yield. What is the safety factor on yield, and does it clear a 1.5 threshold?</div>
+            <div class="opt"><b>A.</b> 1.8 — passes</div>
+            <div class="opt"><b>B.</b> 0.56 — fails</div>
+            <div class="opt"><b>C.</b> 1.5 — exactly marginal</div>
+            <div class="opt"><b>D.</b> 2.4 — passes</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> n = &sigma;<sub>yield</sub>/&sigma;<sub>working</sub> = 360/200 = 1.8, above 1.5, so it passes. (B) inverts the ratio (200/360). (C) and (D) are arithmetic errors &mdash; 360/200 is neither 1.5 nor 2.4.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A reviewer reads your one-page capstone. Which single property of the design will they almost certainly check first?</div>
+            <div class="opt"><b>A.</b> Whether the color scheme of the diagram is appealing</div>
+            <div class="opt"><b>B.</b> Whether the fuel vendor's brand is named</div>
+            <div class="opt"><b>C.</b> Whether the design uses the newest possible technology</div>
+            <div class="opt"><b>D.</b> Whether the heat balance closes and every key number is internally consistent</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Self-consistency &mdash; P<sub>th</sub>=P<sub>e</sub>/&eta;, the condenser sized to waste MWth, a stress margin with a stated safety factor &mdash; is the first thing a reviewer verifies. (A) is cosmetic. (B) is irrelevant and not a design property. (C) novelty never substitutes for a balance that closes.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Sized a core by running the <b>requirement cascade</b> backward: P<sub>th</sub> = P<sub>e</sub>/&eta;, then V = P<sub>th</sub>/q&#39;&#39;&#39;, then fissile inventory.</li>
+            <li>Closed the <b>two-loop heat balance</b> with P<sub>th</sub> = m_dot&middot;c<sub>p</sub>&middot;&Delta;T and accounted for every watt, including the waste heat to the sink.</li>
+            <li>Ran a first-order <b>hoop-stress check</b> (&sigma; = pr/t) and converted it to a defensible <b>safety factor</b> against yield.</li>
+            <li>Combined a hand calculation with a free <b>FreeCAD + Salome-Meca</b> FEM run so the software catches the stress concentrations the formula misses.</li>
+            <li>Framed the capstone deliverable: a <b>one-page concept</b> with a traceable parameter table, a balanced sketch, a <b>defense-in-depth</b> safety rationale, and honest trade-offs.</li>
+        </ul>
+        <p class="next-up">Next up — the C4 Final Exam (currently being built): a comprehensive test across reactor types, core and fuel design, control and reactivity, containment, advanced and small modular reactors, and this capstone synthesis.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-advanced-smr.html"><div class="dir">← Week 9</div><div class="ttl">Advanced &amp; Small Modular Reactors</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Reactor Systems</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

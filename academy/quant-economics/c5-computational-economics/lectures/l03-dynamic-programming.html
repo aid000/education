@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C5 · Lecture 3 — Dynamic Programming &amp; the Bellman Equation</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+        .ext details { margin-top: 12px; }
+        .ext summary { cursor: pointer; color: var(--violet); font-weight: 600; font-size: .88rem; }
+        .ext details p { margin-top: 10px; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C5 Computational Econ</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3</span>
+        <h1>Dynamic Programming &amp; the Bellman Equation</h1>
+        <p class="sub">When today's choice changes tomorrow's options, you stop optimizing a number and start optimizing a function — the value of being in a state.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Recognize a <strong>sequential decision problem</strong> and describe it with states, actions, transitions, and rewards.</li>
+            <li>Define the <strong>value function</strong> as the best total reward attainable from a given state.</li>
+            <li>State the <strong>Bellman equation</strong> and explain how it splits a problem into "now" plus "the rest."</li>
+            <li>Explain the <strong>principle of optimality</strong> and why it justifies the Bellman recursion.</li>
+            <li>Set up and solve the <strong>cake-eating problem</strong> — the canonical first dynamic program — analytically and in Python.</li>
+        </ul>
+    </div>
+
+    <!-- 3.1 -->
+    <section class="lec">
+        <h2><span class="n">3.1</span>Decisions That Unfold Over Time</h2>
+        <p>In Lecture 2 you minimized a single objective with the optimizer's whole answer arriving at once: pick the vector that maximizes <em>f</em>. But many economic problems are not one-shot. You choose how much to consume <em>today</em>, and what is left over determines what you can do <em>tomorrow</em>. Today's action quietly rewrites tomorrow's menu of options. That feedback loop is the defining feature of a <strong>sequential decision problem</strong>.</p>
+        <p>To talk about such problems precisely we need four ingredients. They will recur in every dynamic program for the rest of the course:</p>
+        <div class="eq">state s&nbsp; · &nbsp;action a&nbsp; · &nbsp;transition s' = g(s, a)&nbsp; · &nbsp;reward r(s, a)<small>The <b>state</b> summarizes everything you need to know to act optimally; the <b>action</b> is your choice; the <b>transition</b> says how the action moves you to the next state; the <b>reward</b> is the payoff you collect this period.</small></div>
+        <p>The crucial idea is the <strong>state</strong>. A good state variable is a <em>sufficient statistic</em> for the future: once you know it, the entire history of how you arrived is irrelevant to what you should do next. In the savings problem the state is your current wealth; in inventory control it is stock on hand; in a job search it is the wage offer in front of you. Choosing the right state variable is the single most important modeling step.</p>
+        <p>We add one more piece. Future rewards are usually worth less than rewards today, so we apply a <strong>discount factor</strong> <em>&beta;</em> with 0 &lt; <em>&beta;</em> &lt; 1. The objective is the discounted sum of all current and future rewards:</p>
+        <div class="eq">max&nbsp; r(s&#8320;,a&#8320;) + &beta;&middot;r(s&#8321;,a&#8321;) + &beta;&sup2;&middot;r(s&#8322;,a&#8322;) + ...<small>A reward one period away counts for &beta; of a reward now; two periods away, &beta;&sup2;; and so on. Discounting keeps the infinite sum finite and reflects impatience or interest.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of planning a road trip with a fixed tank of gas. The <strong>state</strong> is how much fuel you have left; the <strong>action</strong> is how far to drive today; the <strong>transition</strong> is the tank draining; the <strong>reward</strong> is the scenery you enjoy each day. You never plan the whole trip stop-by-stop in advance — you ask, at each town, "given the fuel I have now, what is the best I can still do?" That question is the value function.</div>
+    </section>
+
+    <!-- 3.2 -->
+    <section class="lec">
+        <h2><span class="n">3.2</span>The Value Function and the Bellman Equation</h2>
+        <p>A brute-force attack would optimize over the <em>entire infinite sequence</em> of actions at once — hopeless. Dynamic programming's breakthrough is to define a single object that hides all that future complexity. The <strong>value function</strong> <em>V(s)</em> is the best total discounted reward you can possibly achieve <em>starting</em> from state <em>s</em> and playing optimally forever after:</p>
+        <div class="eq">V(s) = max over all future plans of&nbsp; [ total discounted reward starting from s ]<small>V(s) does not depend on how you got to s — only on s itself. It is "the worth of being here."</small></div>
+        <p>The magic is that <em>V</em> obeys a self-referential equation. Whatever your optimal infinite plan is, it consists of one action now plus an optimal continuation from wherever that action lands you. So the value of being in <em>s</em> equals the best over actions of <em>(reward now) plus (discounted value of the next state)</em>. This is the <strong>Bellman equation</strong>:</p>
+        <div class="eq">V(s) = max&#95;a&nbsp; { &nbsp;r(s, a) &nbsp;+&nbsp; &beta;&middot;V( g(s, a) ) &nbsp;}<small>"Now" = r(s, a). "The rest" = &beta;&middot;V of the next state g(s, a). The same unknown function V appears on both sides — it is a fixed-point equation.</small></div>
+        <p>Notice what just happened. We turned an optimization over an infinite stream of decisions into an optimization over a <em>single</em> action <em>a</em>, repeated. The price is that <em>V</em> is now unknown and appears on both sides — but that fixed-point structure is exactly what next week's value-function iteration will exploit to solve for <em>V</em> numerically.</p>
+        <p>The action that achieves the maximum, written <em>a = &pi;(s)</em>, is the <strong>policy</strong>: a rule mapping each state to the optimal action. Once you have <em>V</em>, reading off <em>&pi;</em> is a one-line maximization at each state.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The value function depends only on the <em>state</em>, never on the calendar time or the path taken to reach it (in a stationary, infinite-horizon problem). Students often try to carry along "how much I've already eaten" as an extra variable. If wealth today fully determines your future options, the past is sunk — adding history bloats the state and breaks the clean recursion. Keep the state as small as it can be while still being a sufficient statistic.</div>
+    </section>
+
+    <!-- 3.3 -->
+    <section class="lec">
+        <h2><span class="n">3.3</span>The Principle of Optimality</h2>
+        <p>Why is the Bellman equation <em>true</em>? It rests on a deceptively simple statement, the <strong>principle of optimality</strong>:</p>
+        <div class="eq">Any tail of an optimal plan is itself optimal for the state it starts from.<small>If your full plan is best overall, then from period 1 onward it must also be the best possible plan starting from state s&#8321; — otherwise you could improve the tail and beat the original.</small></div>
+        <p>The argument is a proof by contradiction. Suppose the optimal plan from <em>s&#8320;</em> reaches state <em>s&#8321;</em> after one action, but the continuation from <em>s&#8321;</em> is <em>not</em> the best possible from <em>s&#8321;</em>. Then you could swap in the better continuation, leaving the first action unchanged, and raise the total. That contradicts the original plan being optimal. Hence the tail must be optimal — which is precisely the <em>&beta;&middot;V(s')</em> term.</p>
+        <p>This is also the recipe behind the famous shortest-path logic: the shortest route from A to C that passes through B must use the shortest route from B to C. The figure below traces this "now plus the rest" decomposition.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 230" role="img" aria-label="Decision tree showing state s splitting into the immediate reward of an action plus the discounted value of the resulting next state, which recurses again.">
+                <!-- nodes -->
+                <circle cx="70" cy="115" r="26" fill="#101829" stroke="#60a5fa" stroke-width="2.5"/>
+                <text x="70" y="120" fill="#93c5fd" font-size="15" text-anchor="middle" font-family="monospace">s</text>
+                <text x="70" y="160" fill="#93a8c8" font-size="11" text-anchor="middle">state now</text>
+
+                <circle cx="290" cy="115" r="26" fill="#101829" stroke="#34d399" stroke-width="2.5"/>
+                <text x="290" y="120" fill="#34d399" font-size="14" text-anchor="middle" font-family="monospace">s'</text>
+                <text x="290" y="160" fill="#93a8c8" font-size="11" text-anchor="middle">next state</text>
+
+                <circle cx="500" cy="115" r="26" fill="#101829" stroke="#a78bfa" stroke-width="2.5"/>
+                <text x="500" y="120" fill="#a78bfa" font-size="13" text-anchor="middle" font-family="monospace">s''</text>
+                <text x="500" y="160" fill="#93a8c8" font-size="11" text-anchor="middle">and so on</text>
+
+                <!-- arrows -->
+                <defs>
+                    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+                        <path d="M0,0 L7,3 L0,6 Z" fill="#93a8c8"/>
+                    </marker>
+                </defs>
+                <line x1="96" y1="115" x2="262" y2="115" stroke="#93a8c8" stroke-width="2" marker-end="url(#arr)"/>
+                <line x1="316" y1="115" x2="472" y2="115" stroke="#93a8c8" stroke-width="2" marker-end="url(#arr)"/>
+
+                <!-- labels on edges -->
+                <text x="180" y="88" fill="#34d399" font-size="13" text-anchor="middle" font-family="monospace">r(s, a)</text>
+                <text x="180" y="105" fill="#93a8c8" font-size="10.5" text-anchor="middle">reward now</text>
+                <text x="394" y="88" fill="#a78bfa" font-size="12.5" text-anchor="middle" font-family="monospace">+ beta * r(s', a')</text>
+                <text x="394" y="105" fill="#93a8c8" font-size="10.5" text-anchor="middle">discounted tail</text>
+
+                <!-- bellman caption row -->
+                <text x="280" y="205" fill="#60a5fa" font-size="13" text-anchor="middle" font-family="monospace">V(s) = max_a { r(s,a) + beta * V(s') }</text>
+            </svg>
+            <figcaption>The Bellman decomposition. From state <em>s</em>, an action earns reward <em>r(s, a)</em> now and lands you in <em>s'</em>, whose entire optimal future is summarized by <em>V(s')</em>, discounted by <em>&beta;</em>. The principle of optimality guarantees the tail is itself optimal, so the same <em>V</em> recurses.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 3.4 -->
+    <section class="lec">
+        <h2><span class="n">3.4</span>The Cake-Eating Problem</h2>
+        <p>The canonical first dynamic program is wonderfully concrete. You have a cake of size <em>x</em>. Each period you eat some amount <em>c</em>, enjoy utility <em>u(c)</em>, and save the rest for later. You never get more cake. How should you spread your eating over time? This is the savings problem stripped to its bare bones — wealth in, consumption out.</p>
+        <p>Here the <strong>state</strong> is the cake remaining <em>x</em>; the <strong>action</strong> is consumption <em>c</em> with 0 &le; <em>c</em> &le; <em>x</em>; the <strong>transition</strong> is <em>x' = x &minus; c</em>; the <strong>reward</strong> is <em>u(c)</em>. With a log utility <em>u(c) = ln(c)</em> and discount factor <em>&beta;</em>, the Bellman equation is:</p>
+        <div class="eq">V(x) = max&#95;{0 &le; c &le; x}&nbsp; { &nbsp;ln(c) &nbsp;+&nbsp; &beta;&middot;V(x &minus; c) &nbsp;}<small>Eat a little now for utility ln(c); the leftover cake x &minus; c carries its own optimal value V, discounted by &beta;.</small></div>
+        <p>This problem has a clean closed form, which makes it the perfect benchmark for testing numerical methods next week. One can verify (by guessing <em>V(x) = A&middot;ln(x) + B</em> and matching coefficients) that the optimal policy is to eat a <em>constant fraction</em> of whatever cake remains:</p>
+        <div class="eq">c* = (1 &minus; &beta;)&middot;x&nbsp; &nbsp; and &nbsp; &nbsp;V(x) = ln(x)/(1 &minus; &beta;) + constant<small>Eat the fraction (1 &minus; &beta;) of remaining cake each period. A patient eater (&beta; near 1) eats a tiny slice each period and stretches the cake out; an impatient eater (&beta; near 0) devours most of it now.</small></div>
+        <p>Economically: more patience (higher <em>&beta;</em>) means a smaller bite today and a flatter consumption path — exactly the intuition behind consumption smoothing in macro models. The geometry of that constant-fraction rule is shown below.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 520 240" role="img" aria-label="Two declining curves of remaining cake over periods. The patient eater with beta 0.9 declines slowly; the impatient eater with beta 0.5 drops sharply at first.">
+                <!-- axes -->
+                <line x1="55" y1="30" x2="55" y2="195" stroke="#1f2f4a" stroke-width="2"/>
+                <line x1="55" y1="195" x2="490" y2="195" stroke="#1f2f4a" stroke-width="2"/>
+                <text x="20" y="115" fill="#93a8c8" font-size="11" text-anchor="middle" transform="rotate(-90 20 115)">cake left</text>
+                <text x="270" y="222" fill="#93a8c8" font-size="11" text-anchor="middle">period t</text>
+                <!-- y top tick -->
+                <text x="48" y="40" fill="#93a8c8" font-size="10" text-anchor="end">x0</text>
+                <text x="48" y="193" fill="#93a8c8" font-size="10" text-anchor="end">0</text>
+
+                <!-- patient: beta 0.9, x_t = 0.9^t * x0 ; x0=160px scale, top at y=35 -->
+                <!-- points at periods 0..6 across x 55..475 (step 70) -->
+                <polyline fill="none" stroke="#34d399" stroke-width="2.5"
+                    points="55,35 125,49 195,61 265,72 335,82 405,90 475,98"/>
+                <circle cx="55" cy="35" r="3" fill="#34d399"/>
+                <circle cx="125" cy="49" r="3" fill="#34d399"/>
+                <circle cx="195" cy="61" r="3" fill="#34d399"/>
+                <circle cx="265" cy="72" r="3" fill="#34d399"/>
+                <circle cx="335" cy="82" r="3" fill="#34d399"/>
+                <circle cx="405" cy="90" r="3" fill="#34d399"/>
+                <circle cx="475" cy="98" r="3" fill="#34d399"/>
+                <text x="330" y="62" fill="#34d399" font-size="11" text-anchor="middle">patient (beta=0.9)</text>
+
+                <!-- impatient: beta 0.5, x_t = 0.5^t * x0 -->
+                <polyline fill="none" stroke="#fbbf24" stroke-width="2.5"
+                    points="55,35 125,115 195,155 265,175 335,185 405,190 475,192"/>
+                <circle cx="55" cy="35" r="3" fill="#fbbf24"/>
+                <circle cx="125" cy="115" r="3" fill="#fbbf24"/>
+                <circle cx="195" cy="155" r="3" fill="#fbbf24"/>
+                <circle cx="265" cy="175" r="3" fill="#fbbf24"/>
+                <circle cx="335" cy="185" r="3" fill="#fbbf24"/>
+                <text x="195" y="148" fill="#fbbf24" font-size="11">impatient (beta=0.5)</text>
+            </svg>
+            <figcaption>Remaining cake over time under the constant-fraction rule <em>c* = (1 &minus; &beta;)x</em>. The patient eater (green, <em>&beta;</em>=0.9) shaves off thin slices and the cake lasts; the impatient eater (amber, <em>&beta;</em>=0.5) eats half each period and burns through it fast. Both curves start at the same <em>x&#8320;</em>.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — solve a finite cake by backward induction</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A cake of size <strong>x = 1</strong> must be eaten over exactly <strong>two periods</strong> (periods 0 and 1), then it is gone. Utility is <em>u(c) = ln(c)</em> and <em>&beta; = 0.9</em>. Find the optimal consumption in each period by working backward.</p>
+        <ol>
+            <li><strong>Last period (period 1):</strong> whatever cake <em>x&#8321;</em> is left, there is no future, so eat it all: <em>c&#8321; = x&#8321;</em> and value <em>V&#8321;(x&#8321;) = ln(x&#8321;)</em>.</li>
+            <li><strong>Period 0 Bellman:</strong> choose <em>c&#8320;</em> to maximize <em>ln(c&#8320;) + &beta;&middot;ln(x&#8321;)</em> where <em>x&#8321; = 1 &minus; c&#8320;</em>. So maximize <em>ln(c&#8320;) + 0.9&middot;ln(1 &minus; c&#8320;)</em>.</li>
+            <li><strong>First-order condition:</strong> differentiate and set to zero: <em>1/c&#8320; &minus; 0.9/(1 &minus; c&#8320;) = 0</em>, giving <em>1 &minus; c&#8320; = 0.9&middot;c&#8320;</em>.</li>
+            <li><strong>Solve:</strong> <em>1 = 1.9&middot;c&#8320;</em>, so <em>c&#8320; = 1/1.9 &asymp; 0.526</em>. Then <em>x&#8321; = 1 &minus; 0.526 = 0.474</em> and <em>c&#8321; = 0.474</em>.</li>
+            <li><strong>Read the pattern:</strong> the eater consumes about 53% now and saves 47% — patience (&beta;=0.9) pulls consumption toward the future relative to eating everything immediately. With three or more periods you repeat the backward step; in the infinite-horizon limit this converges to the constant-fraction rule <em>c* = (1 &minus; &beta;)x</em>.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: solve the cake by backward induction in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the free QuantEcon stack — Python + NumPy + SciPy (+ Matplotlib), pip-installable. The full one-time environment setup lives in the <strong>Week 1 install note</strong>; reuse that same <code>econ-env</code> here. This lecture needs nothing new beyond SciPy's <code>minimize_scalar</code>, which ships with SciPy.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">We solve a finite-horizon cake by backward induction: start at the last period (eat everything) and step backward, at each period maximizing today's utility plus the discounted value already computed for tomorrow.</p>
+        <pre><span class="c"># cake_eating.py — Lecture 3: finite-horizon cake by backward induction</span>
+import numpy as np
+from scipy.optimize import minimize_scalar
+
+beta = 0.9
+T    = 5                      <span class="c"># periods 0..4, cake gone after</span>
+x0   = 1.0
+
+<span class="c"># V[t](x) approximated on a grid; here we instead solve analytically per step</span>
+<span class="c"># by exploiting that value is log-shaped. Simplest: simulate the policy.</span>
+
+def u(c):
+    return np.log(c)
+
+<span class="c"># Backward induction on a wealth grid</span>
+grid = np.linspace(1e-4, x0, 400)
+V    = np.log(grid)                       <span class="c"># last period: eat all -&gt; V = ln(x)</span>
+policy_fracs = []
+
+for t in range(T - 1, 0, -1):             <span class="c"># step backward over periods</span>
+    Vnew = np.empty_like(grid)
+    pol  = np.empty_like(grid)
+    for i, x in enumerate(grid):
+        <span class="c"># choose c in (0, x); next value interpolated from V</span>
+        def neg_obj(c):
+            xnext = x - c
+            Vnext = np.interp(xnext, grid, V)
+            return -(u(c) + beta * Vnext)
+        res = minimize_scalar(neg_obj, bounds=(1e-6, x - 1e-6), method='bounded')
+        Vnew[i] = -res.fun
+        pol[i]  = res.x
+    V = Vnew
+    policy_fracs.append(pol[-1] / grid[-1])   <span class="c"># fraction eaten at x = x0</span>
+
+print("eaten-fraction at first period (numeric):", round(policy_fracs[-1], 3))
+print("infinite-horizon target  (1 - beta)    :", round(1 - beta, 3))
+<span class="c"># As T grows, the first-period fraction approaches 1 - beta = 0.1</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Run it and watch the first-period eating fraction creep toward <code>1 - beta</code> as you raise <code>T</code> — the finite problem converging to the infinite-horizon constant-fraction rule. Next week we replace this hand-rolled backward loop with proper <strong>value-function iteration</strong>, which solves the fixed point directly.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The Bellman equation is the workhorse of modern quantitative economics. Next week (Lecture 4) we solve it by <strong>value-function iteration</strong> — iterating the recursion until <em>V</em> stops changing, a contraction-mapping fixed point. From there the same machinery powers the <strong>stochastic growth model</strong> and <strong>income-fluctuation / consumption-savings</strong> problems where transitions are random, the <strong>McCall job-search model</strong> (when to accept a wage offer), and optimal-stopping problems throughout the Quant Finance track (American option exercise is a Bellman equation in disguise). The reinforcement-learning revolution in machine learning is, at its core, the same equation solved from data rather than from a known model.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext">
+        <h3>💬 Discussion</h3>
+        <p>The Bellman equation insists that the <em>state</em> is a sufficient statistic for the future — the past is sunk. Yet real people (and real firms) routinely let history matter: they "throw good money after bad," honor sunk costs, or feel loyalty to a path. <strong>Pick one real economic decision and argue both sides:</strong> what would the right state variable be, and is there a defensible reason the history might genuinely belong in the state rather than being a behavioral mistake?</p>
+        <details>
+            <summary>Show a model response</summary>
+            <p><strong>Sample answer.</strong> Consider a firm deciding whether to keep funding a half-built factory. The clean dynamic-programming framing says the state is <em>only</em> the remaining cost to finish and the expected future revenue — money already spent is sunk and should not enter the decision. By that logic, "we've already spent so much, we can't stop now" is the classic sunk-cost fallacy.</p>
+            <p>But there is a defensible case for history entering the state, and it hinges on whether the past changes the <em>future options or payoffs</em>. If partial construction has lowered the remaining cost to completion, or built reputation/learning that raises future revenue, then those effects belong in the state — not as "history for its own sake," but because they are genuine, forward-looking determinants of value. The discipline of dynamic programming is precisely this test: include a variable in the state if and only if it changes the distribution of future rewards. History that fails that test (regret, pride, accounting optics) is a behavioral bias; history that passes it (accumulated capital, learned skill, a stock of inventory) is a legitimate state variable that was simply mislabeled as "the past."</p>
+            <p>✓ <strong>Self-check rubric.</strong> A strong answer: (1) names a concrete decision and proposes an explicit state variable; (2) correctly identifies the sunk-cost reasoning that the Bellman framing implies; (3) distinguishes history that alters future payoffs/options (legitimately part of the state) from history that does not (a behavioral bias); and (4) ties the test back to the definition of the state as a sufficient statistic for future rewards.</p>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In a dynamic program, the <em>state</em> variable is best described as…</div>
+            <div class="opt"><b>A.</b> a sufficient statistic that summarizes everything needed to act optimally going forward</div>
+            <div class="opt"><b>B.</b> the action the agent chooses each period</div>
+            <div class="opt"><b>C.</b> the discount factor applied to future rewards</div>
+            <div class="opt"><b>D.</b> the total reward collected so far</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The state is exactly the information you need to choose optimally from here on; history beyond it is irrelevant. B is the action, C is &beta;, and D (accumulated past reward) is sunk and not part of the state.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The Bellman equation <em>V(s) = max&#95;a [ r(s,a) + &beta;V(g(s,a)) ]</em> works by…</div>
+            <div class="opt"><b>A.</b> optimizing the entire infinite sequence of actions in one step</div>
+            <div class="opt"><b>B.</b> splitting the problem into the reward now plus the discounted value of the next state</div>
+            <div class="opt"><b>C.</b> ignoring future rewards entirely</div>
+            <div class="opt"><b>D.</b> assuming the discount factor &beta; is greater than 1</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> That "now plus the rest" decomposition is the whole point — it reduces an infinite-horizon plan to a single-action maximization. A is the brute-force approach DP avoids; C contradicts the &beta;V term; D would make the discounted sum diverge (&beta; must be between 0 and 1).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The <em>principle of optimality</em> states that…</div>
+            <div class="opt"><b>A.</b> the first action of any plan is always the most important</div>
+            <div class="opt"><b>B.</b> optimal plans never use discounting</div>
+            <div class="opt"><b>C.</b> any tail of an optimal plan is itself optimal for the state where the tail begins</div>
+            <div class="opt"><b>D.</b> every problem has a unique optimal action regardless of state</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> This is precisely what justifies the recursion: the continuation from the next state must itself be optimal, which is the &beta;V(s') term. A and D are not implied by the principle, and B is false — discounting is standard.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the cake-eating problem with <em>u(c) = ln(c)</em> and discount factor <em>&beta;</em>, the optimal infinite-horizon policy is to eat…</div>
+            <div class="opt"><b>A.</b> the entire cake in the first period</div>
+            <div class="opt"><b>B.</b> a fixed absolute amount each period regardless of cake size</div>
+            <div class="opt"><b>C.</b> nothing until the very last period</div>
+            <div class="opt"><b>D.</b> a constant fraction (1 &minus; &beta;) of the remaining cake each period</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> With log utility the optimal rule is <em>c* = (1 &minus; &beta;)x</em> — a constant fraction of what remains. A and C ignore smoothing/discounting; B is wrong because the optimal amount scales with the remaining cake, not a fixed absolute quantity.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Raising the discount factor <em>&beta;</em> toward 1 (more patience) in the cake-eating problem causes the eater to…</div>
+            <div class="opt"><b>A.</b> consume a smaller slice today and stretch the cake out over more periods</div>
+            <div class="opt"><b>B.</b> consume the whole cake immediately</div>
+            <div class="opt"><b>C.</b> stop caring about future utility</div>
+            <div class="opt"><b>D.</b> violate the principle of optimality</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Since <em>c* = (1 &minus; &beta;)x</em>, a higher &beta; shrinks the fraction eaten today, flattening the consumption path — the patient eater stretches the cake. B describes an impatient (low-&beta;) eater; C is backwards (high &beta; means future utility matters <em>more</em>); D is unrelated — the principle holds for any valid &beta;.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Framed <b>sequential decisions</b> with the four ingredients: <b>state, action, transition, reward</b> (plus a discount factor &beta;).</li>
+            <li>Defined the <b>value function</b> V(s) as the best discounted reward attainable from a state.</li>
+            <li>Wrote the <b>Bellman equation</b> — "reward now plus discounted value of the next state" — as a fixed point in V.</li>
+            <li>Used the <b>principle of optimality</b> to justify the recursion, and saw the same logic behind shortest paths.</li>
+            <li>Solved the <b>cake-eating problem</b>, deriving the constant-fraction rule c* = (1 &minus; &beta;)x analytically and by backward induction in Python.</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: <b>Value Function Iteration</b> — turning the Bellman fixed point into a working algorithm by iterating the recursion until V converges, the contraction-mapping engine behind nearly every model in the rest of the course.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l02-numerical-optimization.html"><div class="dir">← Week 2</div><div class="ttl">Numerical Optimization</div></a>
+        <a class="next" href="l04-value-function-iteration.html"><div class="dir">Week 4 →</div><div class="ttl">Value Function Iteration</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Computational Econ</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

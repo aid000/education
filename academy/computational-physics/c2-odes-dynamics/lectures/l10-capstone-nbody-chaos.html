@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C2 · Lecture 10 — Capstone: N-Body Simulator / Chaos &amp; Lyapunov</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C2 ODEs &amp; Dynamics</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Capstone: N-Body Simulator / Chaos &amp; Lyapunov</h1>
+        <p class="sub">Everything you've built — solvers, adaptive stepping, phase space, chaos — converges into one project that either keeps the planets in orbit or measures how fast a pendulum forgets where it started.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Choose between the two capstone tracks — an N-body gravitational simulator or a double-pendulum Lyapunov study — and justify the choice in terms of conservation vs. divergence.</li>
+            <li>Explain why a <strong>symplectic</strong> integrator (velocity Verlet / leapfrog) beats RK4 for long gravitational runs, and use the energy drift as your primary correctness diagnostic.</li>
+            <li>Define the <strong>Lyapunov exponent</strong> and estimate it from two nearby trajectories using the renormalization (Benettin) method.</li>
+            <li>Build the right diagnostic plots — energy &amp; angular-momentum conservation; log-separation growth — that prove your integrator and your science are correct.</li>
+            <li>Frame and ship the deliverable: code, figures, and a short report that states the method, the error budget, and the result.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>The Capstone: Two Faces of the Same ODE</h2>
+        <p>For nine weeks you assembled the toolkit: Euler and its error (Wk 2), Runge–Kutta (Wk 3), adaptive step control (Wk 4), systems and phase space (Wk 5), stiffness and implicit methods (Wk 6), and chaos in the double pendulum and Lorenz system (Wk 9). The capstone fuses all of it into a single program with a single demand: <strong>be right for a long time</strong>. You will pick one of two tracks, both of which are just initial-value problems <em>q̈ = F(q)/m</em> integrated forward in time.</p>
+        <p><strong>Track A — N-body gravitational simulator.</strong> Integrate a small number of point masses (Sun + planets, or a three-body system) under mutual Newtonian gravity. The defining physics is <em>conservation</em>: total energy and angular momentum must not drift. The right tool is a <strong>symplectic integrator</strong>, and your headline diagnostic is the energy-drift curve over thousands of orbits.</p>
+        <p><strong>Track B — Double-pendulum Lyapunov study.</strong> Integrate one chaotic double pendulum, then a second one launched a hair's-breadth away, and measure how fast they diverge. The defining physics is <em>sensitive dependence</em>: the separation grows exponentially. The right tool is a high-accuracy adaptive solver (RK4(5)), and your headline number is the estimated <strong>largest Lyapunov exponent</strong>.</p>
+        <div class="eq">q̈ = a(q),&nbsp;&nbsp; a = F/m&nbsp;&nbsp; (the whole capstone)<small>Both tracks are second-order ODEs for positions q. Track A wants the geometry of the flow preserved; Track B wants the divergence of nearby flows measured.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>The two tracks are the two questions you can ask of any long simulation. Track A is a <strong>marathon runner's heartbeat</strong>: does the system stay healthy mile after mile (does a conserved quantity hold)? Track B is a <strong>weather forecast</strong>: how many days until two almost-identical forecasts disagree completely (how fast do errors blow up)? One prizes stability; the other measures instability — and you need different instruments for each.</div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Track A: Symplectic Integration &amp; Energy Diagnostics</h2>
+        <p>Gravity is conservative, so the true orbit conserves total energy <em>E = T + U</em> forever. A generic solver like RK4 does <em>not</em> respect this: its tiny per-step truncation errors are biased, so over thousands of orbits the energy <strong>drifts secularly</strong> (steadily up or down) and a bound planet slowly spirals in or flies off — even though each individual step looked accurate. The fix is a <strong>symplectic</strong> integrator, which preserves the phase-space geometry of Hamiltonian flow. The simplest is <strong>velocity Verlet</strong> (algebraically the leapfrog scheme):</p>
+        <div class="eq">v_half = v + (h/2) a(x)<br>x_new = x + h v_half<br>v_new = v_half + (h/2) a(x_new)<small>One force evaluation per step (reuse a(x_new) next step), second-order accurate, and time-reversible — the property that bounds energy error.</small></div>
+        <p>The magic is not that energy is conserved exactly — it isn't. Instead a symplectic method conserves a nearby <em>shadow</em> Hamiltonian, so the energy error <strong>oscillates within a fixed band</strong> rather than drifting. Over a million steps RK4's energy walks away linearly while Verlet's stays in its lane. That bounded oscillation is exactly what you plot to prove your simulator is trustworthy.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 210" role="img" aria-label="Energy error versus time: RK4 drifts steadily downward while velocity Verlet oscillates in a bounded band around zero">
+                <line x1="50" y1="105" x2="360" y2="105" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="20" x2="50" y2="190" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="355" y="122" fill="#a3a8c8" font-size="10" text-anchor="end">time (orbits) -></text>
+                <text x="20" y="30" fill="#a3a8c8" font-size="10">dE/E</text>
+                <text x="44" y="109" fill="#a3a8c8" font-size="9" text-anchor="end">0</text>
+                <!-- Verlet bounded oscillation around zero -->
+                <path d="M50,105 Q72,90 94,105 Q116,120 138,105 Q160,90 182,105 Q204,120 226,105 Q248,90 270,105 Q292,120 314,105 Q336,90 358,105" fill="none" stroke="#34d399" stroke-width="2.2"/>
+                <text x="120" y="84" fill="#34d399" font-size="11">Verlet (symplectic): bounded</text>
+                <!-- RK4 secular downward drift -->
+                <path d="M50,105 L358,182" fill="none" stroke="#fbbf24" stroke-width="2.2"/>
+                <text x="200" y="170" fill="#fbbf24" font-size="11">RK4: secular drift</text>
+            </svg>
+            <figcaption>Relative energy error vs. time for the same orbit. RK4 (amber) drifts steadily — the orbit decays. Velocity Verlet (green) oscillates in a bounded band, so the orbit stays physical over long runs. This plot is the core correctness diagnostic for Track A.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Judging your N-body code by how "smooth" or "pretty" the orbit looks. A decaying orbit can look perfectly elliptical for hundreds of revolutions before it visibly spirals in. <strong>Always plot the conserved quantities</strong> (energy and angular momentum) versus time — a downward-sloping energy line is a failing grade no matter how nice the trajectory looks. Equally: do not soften gravity to mask a blow-up unless you state the softening length; an unphysical close encounter at h too large is a bug, not a feature.</div>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Track B: Chaos and the Lyapunov Exponent</h2>
+        <p>A chaotic system shows <strong>sensitive dependence on initial conditions</strong>: two states that start separated by a tiny distance <em>d0</em> drift apart exponentially fast. Quantify it with the <strong>largest Lyapunov exponent</strong> lambda. If <em>d(t)</em> is the separation between two trajectories,</p>
+        <div class="eq">d(t) ~ d0 e^(lambda t)&nbsp;&nbsp;=>&nbsp;&nbsp; lambda = lim (1/t) ln( d(t)/d0 )<small>lambda &gt; 0 is the signature of chaos. Its reciprocal 1/lambda is the "predictability horizon" — the time for errors to grow by a factor e.</small></div>
+        <p>You cannot just let <em>d(t)</em> grow forever: once the trajectories are far apart, the separation saturates at the size of the attractor and the exponential law breaks. The standard fix is the <strong>Benettin renormalization</strong> method: integrate both trajectories for a short interval, measure the separation, accumulate ln(d/d0), then <em>pull the second trajectory back</em> along the same direction to distance d0 and repeat. Averaging the per-step logarithmic stretch gives lambda:</p>
+        <div class="eq">lambda ~ (1/(N tau)) * sum_k ln( d_k / d0 )<small>tau = renormalization interval, N steps, d_k = separation at end of step k before rescaling. Keeps the perturbation infinitesimal so you measure the local stretch rate, not the attractor's diameter.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="Log of trajectory separation versus time: a noisy line rising linearly with slope lambda, then flattening when separation saturates at the attractor size">
+                <line x1="50" y1="185" x2="360" y2="185" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="20" x2="50" y2="185" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="355" y="203" fill="#a3a8c8" font-size="10" text-anchor="end">time -></text>
+                <text x="18" y="32" fill="#a3a8c8" font-size="10">ln d(t)</text>
+                <!-- linear growth region -->
+                <line x1="55" y1="165" x2="240" y2="55" stroke="#818cf8" stroke-width="1.4" stroke-dasharray="5 4"/>
+                <text x="120" y="90" fill="#818cf8" font-size="11">slope = lambda</text>
+                <!-- noisy measured curve rising then saturating -->
+                <path d="M55,165 L72,158 L88,150 L104,145 L120,132 L136,128 L152,116 L168,110 L184,98 L200,92 L216,78 L232,70 L248,60 L264,56 L280,54 L296,52 L312,53 L328,52 L344,54" fill="none" stroke="#34d399" stroke-width="2"/>
+                <!-- saturation level -->
+                <line x1="248" y1="52" x2="358" y2="52" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="4 3"/>
+                <text x="300" y="46" fill="#fbbf24" font-size="10" text-anchor="middle">saturation</text>
+                <text x="150" y="178" fill="#a3a8c8" font-size="9">linear (chaotic) regime</text>
+            </svg>
+            <figcaption>ln of the separation between two nearby double-pendulum trajectories. The early linear region has slope equal to the largest Lyapunov exponent lambda; once the separation reaches the attractor size it saturates (amber), so you must fit lambda only in the linear regime (or use Benettin renormalization to avoid saturation entirely).</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of two dye droplets dripped a micron apart into a stirred coffee. For a moment they move together; then the swirling pulls them apart, doubling their gap again and again until they're smeared across the whole cup and can't separate further. The <em>doubling rate</em> while they're still close is lambda; the cup's diameter is the saturation ceiling. Benettin's trick is to keep re-injecting the droplets a micron apart so you always measure the local stretch, never the cup.</div>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>Framing the Deliverable</h2>
+        <p>A capstone is graded on whether the <em>science is defensible</em>, not on lines of code. Whatever track you pick, the deliverable is three things: working code, two or three diagnostic figures, and a one-page report. The report must answer four questions a reviewer always asks.</p>
+        <h3>The four questions every report must answer</h3>
+        <p><strong>1. What method, and why?</strong> Name the integrator (velocity Verlet for Track A; RK4(5) adaptive for Track B) and state its order and the property you rely on (symplecticity / high local accuracy). <strong>2. What is the error budget?</strong> For Track A, the energy-drift band; for Track B, the fit window and uncertainty on lambda. <strong>3. What is the result?</strong> A bounded-energy stable orbit, or a positive lambda with a number and units. <strong>4. How did you validate it?</strong> A convergence check: halve h (Track A) and confirm the energy band shrinks by ~4x (second order); or vary d0 and tau (Track B) and confirm lambda is stable.</p>
+        <div class="eq">deliverable = code + diagnostics(conservation OR divergence) + report(method, error, result, validation)<small>The diagnostic plot is the centerpiece — it is the evidence that converts a running program into a scientific result.</small></div>
+        <p>Scope it realistically: Track A with the inner Solar System or a figure-eight three-body orbit is plenty; Track B needs only a single double pendulum. Resist adding bodies or features until the diagnostics are clean. A small, correct, well-validated simulation beats a sprawling one whose energy quietly drifts.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — estimate a Lyapunov exponent and its horizon</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A double-pendulum run starts two trajectories at separation d0 = 1×10⁻⁹ (radians, in state-space norm). After renormalizing every tau = 0.5 s for N = 4 intervals, the measured end-of-interval separations (before each rescale) are d = [3.0×10⁻⁹, 2.7×10⁻⁹, 3.3×10⁻⁹, 2.5×10⁻⁹]. Estimate lambda and the predictability horizon.</p>
+        <ol>
+            <li><strong>Per-interval log stretch:</strong> ln(d_k/d0) for each: ln(3.0)=1.099, ln(2.7)=0.993, ln(3.3)=1.194, ln(2.5)=0.916.</li>
+            <li><strong>Sum:</strong> 1.099 + 0.993 + 1.194 + 0.916 = 4.202.</li>
+            <li><strong>Average rate:</strong> lambda = (1/(N·tau))·sum = 4.202 / (4 × 0.5 s) = 4.202 / 2.0 s = <strong>2.1 s⁻¹</strong>.</li>
+            <li><strong>Sanity check:</strong> lambda &gt; 0, so the system is chaotic — consistent with the divergence we saw in Week 9.</li>
+            <li><strong>Predictability horizon:</strong> 1/lambda ≈ 0.48 s — the time for an uncertainty to grow by a factor e. To predict 10× longer you'd need ln(10)/lambda ≈ 1.1 s more of <em>perfect</em> knowledge; errors of 10⁻⁹ swell to order-1 in only ~10/lambda ≈ 10 s. That is the quantitative meaning of "the double pendulum is unpredictable."</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a symplectic N-body core with an energy diagnostic</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This uses the same free Python + NumPy + SciPy + Matplotlib stack you set up in <strong>Week 1</strong> (the install <code>details</code> lives in Lecture 1) — no new tools needed. For the heavy inner loops, <code>Numba</code> (optional, introduced earlier for speed) can JIT the acceleration function, but it is not required for a small system.</p>
+        <p style="font-size:.9rem; color:var(--text2);">Below is a complete velocity-Verlet integrator for N bodies under gravity, with the all-important energy diagnostic. Run it, then plot <code>energy</code> vs time and confirm the relative drift stays in a bounded band.</p>
+        <pre><span class="c"># nbody_verlet.py — Capstone Track A core</span>
+import numpy as np
+import matplotlib.pyplot as plt
+
+G = 1.0                                  <span class="c"># work in scaled units</span>
+m = np.array([1.0, 3e-6, 9e-7])          <span class="c"># Sun, Earth-like, Venus-like</span>
+x = np.array([[0,0],[1.0,0],[0.72,0]])   <span class="c"># initial positions</span>
+v = np.array([[0,0],[0,1.0],[0,1.18]])   <span class="c"># initial velocities</span>
+
+def accel(x):
+    a = np.zeros_like(x)
+    for i in range(len(x)):
+        for j in range(len(x)):
+            if i == j: continue
+            d = x[j] - x[i]
+            r = np.hypot(*d) + 1e-9       <span class="c"># softening avoids /0</span>
+            a[i] += G * m[j] * d / r**3
+    return a
+
+def energy(x, v):
+    T = 0.5 * np.sum(m * np.sum(v**2, axis=1))
+    U = 0.0
+    for i in range(len(x)):
+        for j in range(i+1, len(x)):
+            U -= G*m[i]*m[j] / (np.hypot(*(x[j]-x[i])) + 1e-9)
+    return T + U
+
+h, steps = 1e-3, 200_000
+E = np.empty(steps); xs = np.empty((steps, len(x), 2))
+a = accel(x)
+for k in range(steps):                   <span class="c"># velocity Verlet</span>
+    v += 0.5*h*a
+    x += h*v
+    a = accel(x)
+    v += 0.5*h*a
+    E[k] = energy(x, v); xs[k] = x
+
+E0 = E[0]
+print("max relative energy drift:", np.max(np.abs((E-E0)/E0)))
+plt.plot((E-E0)/abs(E0)); plt.xlabel("step"); plt.ylabel("dE/E")
+plt.title("Energy drift (should be bounded, not secular)"); plt.show()</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Now the experiment: replace the Verlet loop with <code>scipy.integrate.solve_ivp(..., method='RK45')</code> over the same span and overlay its <code>dE/E</code>. You should see RK45 drift while Verlet stays bounded. For <strong>Track B</strong>, reuse your Week-9 double-pendulum RHS with <code>solve_ivp</code>, launch a twin at <code>y0 + 1e-9</code>, and accumulate <code>ln(sep/d0)</code> with renormalization every tau to estimate lambda.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Your capstone is a working miniature of professional practice. The symplectic energy-conservation idea scales straight into the large gravitational and molecular-dynamics codes of Course 4 (PDEs &amp; fields) and the statistical-mechanics samplers of Course 5, where the same Verlet step drives Hamiltonian Monte Carlo. The Lyapunov exponent reappears across the Quantum track (sensitivity of wavefunction evolution), the Plasma track (turbulent transport), and the Quant track, where a positive divergence rate is precisely why long-horizon market forecasts are worthless. After the (in-progress) Final Exam, you carry forward the one habit that defines a computational physicist: never trust a long simulation until a conserved quantity — or a measured divergence rate — proves it is doing physics, not accumulating error.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why is a symplectic integrator (velocity Verlet) preferred over RK4 for a long N-body gravitational run?</div>
+            <div class="opt"><b>A.</b> Its energy error stays in a bounded band instead of drifting secularly</div>
+            <div class="opt"><b>B.</b> It is higher order, so each step is more accurate</div>
+            <div class="opt"><b>C.</b> It conserves total energy exactly to machine precision</div>
+            <div class="opt"><b>D.</b> It never requires evaluating the gravitational force</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Symplectic methods preserve phase-space geometry, conserving a shadow Hamiltonian, so energy error oscillates within a bound rather than walking away. B is false (Verlet is only 2nd order, lower than RK4); C is false (energy is not conserved exactly, only bounded); D is false (it still needs the force a(x) each step).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A positive largest Lyapunov exponent lambda for a system means…</div>
+            <div class="opt"><b>A.</b> the system is at a stable fixed point</div>
+            <div class="opt"><b>B.</b> energy is being added to the system over time</div>
+            <div class="opt"><b>C.</b> nearby trajectories separate exponentially — the system is chaotic</div>
+            <div class="opt"><b>D.</b> the integrator is unstable and the step size is too large</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> lambda &gt; 0 is the defining signature of sensitive dependence on initial conditions. A would give lambda &lt; 0 (contraction); B confuses a dynamical-systems quantity with thermodynamics; D is a numerical artifact, not the physical exponent (and a real chaotic lambda persists as you refine h).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In the Benettin renormalization method, why do you pull the second trajectory back to separation d0 after each interval?</div>
+            <div class="opt"><b>A.</b> To keep the perturbation infinitesimal so you measure the local stretch rate, not the attractor's size</div>
+            <div class="opt"><b>B.</b> To save memory by storing fewer points</div>
+            <div class="opt"><b>C.</b> To force the two trajectories to converge</div>
+            <div class="opt"><b>D.</b> Because solve_ivp cannot integrate two trajectories at once</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Without rescaling, the separation saturates at the attractor diameter and the exponential law breaks; renormalizing keeps the gap small so each interval measures the true local divergence rate. B and D are irrelevant/false; C is backward — chaotic trajectories diverge, they are not forced to converge.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Your N-body orbit looks like a clean ellipse for 300 revolutions. What is the correct way to judge whether the simulation is trustworthy?</div>
+            <div class="opt"><b>A.</b> Trust it — a smooth-looking orbit is sufficient evidence</div>
+            <div class="opt"><b>B.</b> Plot total energy and angular momentum vs. time and check they don't drift</div>
+            <div class="opt"><b>C.</b> Increase the number of bodies until it looks more realistic</div>
+            <div class="opt"><b>D.</b> Use a larger step size so the run finishes faster</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A decaying orbit can look elliptical for hundreds of revolutions before visibly spiraling in; the conserved quantities are the real test. A is the exact mistake the lecture warns against; C adds complexity without validating anything; D makes accuracy and stability worse.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A double pendulum has lambda ≈ 2.0 s⁻¹. Roughly how long until an initial uncertainty grows by a factor of e?</div>
+            <div class="opt"><b>A.</b> about 2.0 s</div>
+            <div class="opt"><b>B.</b> about 20 s</div>
+            <div class="opt"><b>C.</b> it never grows; lambda &gt; 0 means errors shrink</div>
+            <div class="opt"><b>D.</b> about 0.5 s</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The predictability horizon is 1/lambda = 1/2.0 ≈ 0.5 s — the e-folding time. A inverts the relationship wrongly (that would need lambda = 0.5); B is off by an order of magnitude; C is false — positive lambda means errors <em>grow</em>, not shrink.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The capstone fuses the whole course into one long-running ODE: <b>Track A</b> (N-body, conservation) or <b>Track B</b> (double pendulum, divergence).</li>
+            <li>A <b>symplectic</b> integrator (velocity Verlet) keeps energy error <b>bounded</b>, while RK4 drifts secularly over long gravitational runs.</li>
+            <li>The <b>largest Lyapunov exponent</b> lambda &gt; 0 quantifies chaos; <b>1/lambda</b> is the predictability horizon.</li>
+            <li><b>Benettin renormalization</b> estimates lambda by repeatedly rescaling a nearby trajectory to avoid attractor saturation.</li>
+            <li>The deliverable is <b>code + a diagnostic plot (conservation or divergence) + a report</b> stating method, error budget, result, and validation.</li>
+        </ul>
+        <p class="next-up">Next up — the Final Exam (currently being built): a cumulative test across the whole ODEs &amp; Dynamics course, from Euler error to symplectic stability and chaos.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-chaos-lorenz.html"><div class="dir">← Week 9</div><div class="ttl">Chaos: Double Pendulum &amp; Lorenz</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 ODEs &amp; Dynamics</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

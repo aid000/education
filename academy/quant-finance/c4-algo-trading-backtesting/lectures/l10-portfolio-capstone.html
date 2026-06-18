@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C4 · Lecture 10 — Portfolio of Strategies &amp; Capstone Backtest</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C4 Algo Trading</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Portfolio of Strategies &amp; Capstone Backtest</h1>
+        <p class="sub">One good strategy is fragile; a basket of uncorrelated ones is a business — this is the week you assemble them into a single capstone backtester and ship the report.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why combining several imperfectly correlated strategies raises the portfolio Sharpe ratio even when no single strategy improves.</li>
+            <li>Compute the volatility and Sharpe of a blended return stream from the covariance of its components.</li>
+            <li>Allocate capital across strategies by risk budgeting — equal-risk and inverse-volatility weighting — rather than naive equal dollars.</li>
+            <li>Assemble a full capstone backtester: signal layer, walk-forward validation, realistic costs, and a one-page performance report.</li>
+            <li>Run a multi-strategy walk-forward backtest in Python with vectorbt and reconcile the blended equity curve against its parts.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>Why Hold a Portfolio of Strategies?</h2>
+        <p>Over the last nine weeks you built individual strategies — a momentum rule (Week 2), a pairs trade (Week 4), and others — each with its own edge and its own bad stretches. The hard truth is that <strong>any single strategy is fragile</strong>: it has regimes where it loses, drawdowns that test your nerve, and a real chance the edge quietly decays. Running one strategy is a bet; running several uncorrelated ones is a <em>business</em>.</p>
+        <p>The reason is the same diversification math behind a stock portfolio (Markowitz, Course 2), but applied to <strong>return streams</strong> instead of assets. If two strategies each earn the same expected return but stumble at <em>different</em> times, blending them keeps the average return while smoothing the path. A smoother path means a higher Sharpe ratio, smaller drawdowns, and — crucially — a strategy you can actually stick with through a rough quarter.</p>
+        <p>Treat each strategy as if it were a synthetic asset whose "price" is its equity curve. The daily P&amp;L stream of strategy <em>i</em> has a mean return μ<sub>i</sub>, a volatility σ<sub>i</sub>, and a correlation ρ<sub>ij</sub> with every other strategy. Everything about the combined book follows from those numbers.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of strategies as a relay team, not a single sprinter. A lone sprinter who pulls a hamstring loses the whole race. A relay of four runners — each strong on a different leg, each tiring at different moments — finishes reliably even when one has an off day. You don't need every runner to be world-class; you need them to fail at <em>different</em> times.</div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Diversification Across Uncorrelated Signals</h2>
+        <p>Put equal capital in two strategies with the same volatility σ and correlation ρ. The blended daily return is r<sub>p</sub> = ½r<sub>1</sub> + ½r<sub>2</sub>, and its variance follows directly from the rules of variance you met in Course 1:</p>
+        <div class="eq">σ<sub>p</sub><sup>2</sup> = ¼σ<sup>2</sup> + ¼σ<sup>2</sup> + 2·½·½·ρσ<sup>2</sup> = ½σ<sup>2</sup>(1 + ρ)<small>Two equal-weight, equal-vol strategies. The cross term carries the correlation — it is the only place ρ enters.</small></div>
+        <p>Read the extremes. If the strategies are <strong>perfectly correlated</strong> (ρ = 1), σ<sub>p</sub><sup>2</sup> = σ<sup>2</sup> — no benefit at all; you just own the same thing twice. If they are <strong>uncorrelated</strong> (ρ = 0), σ<sub>p</sub> = σ/√2 ≈ 0.707σ — you cut risk by ~30% for free. If they are <strong>negatively correlated</strong> (ρ &lt; 0), the risk falls even further. Expected return is unchanged at the average, so a lower σ at the same μ means a strictly higher Sharpe.</p>
+        <p>Generalize to N strategies that are each volatility σ, mutually uncorrelated, equally weighted. The portfolio volatility collapses as the now-familiar 1/√N:</p>
+        <div class="eq">σ<sub>p</sub> = σ / √N&nbsp;&nbsp;⟹&nbsp;&nbsp;Sharpe<sub>p</sub> = √N · Sharpe<sub>single</sub><small>Uncorrelated, equal-vol, equal-weight. Adding a 4th independent strategy doubles the Sharpe of a single one.</small></div>
+        <p>This is the single most valuable equation in the course: <strong>uncorrelated edges add Sharpe like the square root of their count.</strong> Four genuinely independent strategies, each with a mediocre Sharpe of 0.5, combine into a book with Sharpe 1.0. The catch lives entirely in the word <em>uncorrelated</em> — and in practice correlations are never zero and never stable.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not confuse <em>number</em> of strategies with diversification. Ten momentum strategies on ten tickers are nearly the same trade — their correlations cluster near 1, so √N buys you almost nothing. What diversifies is <strong>distinct return drivers</strong> (a trend-follower, a mean-reverter, a carry trade), not more copies of one idea. Always measure the correlation matrix; never assume it.</div>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Capital Allocation &amp; Risk Budgeting</h2>
+        <p>Once you have several strategies, how much capital should each get? The naive answer — <strong>equal dollars</strong> — is usually wrong, because a volatile strategy and a calm one with the same dollar allocation contribute wildly unequal <em>risk</em>. A book that is "1/3 in each" can in fact be 80% driven by its single jumpiest strategy.</p>
+        <p>The fix is to budget <strong>risk</strong>, not dollars. The simplest practical rule is <span class="key">inverse-volatility weighting</span>: give each strategy a weight proportional to 1/σ<sub>i</sub>, so the calm strategies get more capital and the wild ones get less, equalizing their dollar-risk contributions:</p>
+        <div class="eq">w<sub>i</sub> = (1/σ<sub>i</sub>) / Σ<sub>j</sub> (1/σ<sub>j</sub>)<small>Inverse-vol weighting. When all correlations are equal, this is also the equal-risk-contribution (risk-parity) solution.</small></div>
+        <p>A strategy's <strong>risk contribution</strong> is the share of total portfolio variance it is responsible for, accounting for its correlations with the others. Formally, the contribution of strategy <em>i</em> is w<sub>i</sub> times the partial derivative of portfolio volatility with respect to w<sub>i</sub>:</p>
+        <div class="eq">RC<sub>i</sub> = w<sub>i</sub> · (Σw)<sub>i</sub> / σ<sub>p</sub>,&nbsp;&nbsp; Σ<sub>i</sub> RC<sub>i</sub> = σ<sub>p</sub><small>Σ is the covariance matrix of strategy returns; (Σw)<sub>i</sub> is row i of Σw. Risk contributions sum to total portfolio vol.</small></div>
+        <p>An <strong>equal-risk-contribution</strong> (risk-parity) book chooses weights so every RC<sub>i</sub> is identical — no single strategy dominates the risk. Beyond that you can apply <strong>risk limits</strong>: cap any one strategy at, say, 40% of total risk, scale total exposure so the book targets a fixed annualized volatility (e.g. 10%), and de-lever when realized vol spikes. Kelly sizing (Week 8) sets the <em>aggregate</em> leverage; risk budgeting sets the <em>split</em> beneath it.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Risk budgeting is a household budget for danger, not for dollars. You wouldn't give your reckless teenager and your careful retiree the same credit limit just because they're both family members. You hand out spending power in proportion to how much trouble each can cause — that's exactly what dividing by σ<sub>i</sub> does.</div>
+    </section>
+
+    <!-- FIGURE 1 -->
+    <figure class="fig">
+        <svg viewBox="0 0 400 230" role="img" aria-label="Three equity-curve lines for two individual strategies and their blend; the two singles are jagged and the blended curve is smoother and ends highest">
+            <!-- axes -->
+            <line x1="42" y1="30" x2="42" y2="180" stroke="#bcae8c" stroke-width="1.3"/>
+            <line x1="42" y1="180" x2="372" y2="180" stroke="#bcae8c" stroke-width="1.3"/>
+            <text x="20" y="36" fill="#bcae8c" font-size="9" text-anchor="middle">equity</text>
+            <text x="360" y="196" fill="#bcae8c" font-size="9" text-anchor="middle">time</text>
+            <!-- Strategy A (gold, jagged, dips mid) -->
+            <path d="M42,150 L75,138 L108,156 L141,128 L174,150 L207,118 L240,138 L273,104 L306,120 L339,92 L372,100"
+                  fill="none" stroke="#fbbf24" stroke-width="1.6" opacity="0.85"/>
+            <!-- Strategy B (blue, jagged, dips at different times) -->
+            <path d="M42,150 L75,160 L108,134 L141,150 L174,120 L207,140 L240,108 L273,124 L306,98 L339,112 L372,86"
+                  fill="none" stroke="#60a5fa" stroke-width="1.6" opacity="0.85"/>
+            <!-- Blend (green, smooth, highest) -->
+            <path d="M42,150 L75,149 L108,145 L141,139 L174,135 L207,129 L240,123 L273,114 L306,109 L339,102 L372,93"
+                  fill="none" stroke="#34d399" stroke-width="2.6"/>
+            <!-- legend -->
+            <rect x="250" y="36" width="14" height="3" fill="#fbbf24"/>
+            <text x="268" y="40" fill="#bcae8c" font-size="9">Strategy A</text>
+            <rect x="250" y="50" width="14" height="3" fill="#60a5fa"/>
+            <text x="268" y="54" fill="#bcae8c" font-size="9">Strategy B</text>
+            <rect x="250" y="64" width="14" height="4" fill="#34d399"/>
+            <text x="268" y="69" fill="#bcae8c" font-size="9">Blend (½ + ½)</text>
+        </svg>
+        <figcaption>Two jagged strategies that drop at different times (gold, blue) combine into a smoother blended equity curve (green). The blend keeps the average return but cuts the volatility of the path — the diversification benefit of §10.2 made visible.</figcaption>
+    </figure>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>The Capstone: A Full Backtester</h2>
+        <p>The capstone — <strong>due this week</strong> — is the payoff of the whole course: a single, honest backtester that turns raw price data into a defensible performance report. It strings together every technique you've learned into four layers, each guarding against a way backtests lie.</p>
+        <h3>1. Signal layer</h3>
+        <p>Each strategy maps price history to a target position (long, short, flat, or a sized weight). Signals must use <strong>only information available at the time</strong> — no peeking at tomorrow's close. This is where look-ahead bias creeps in; lag every feature by one bar.</p>
+        <h3>2. Walk-forward validation</h3>
+        <p>From Week 9: never fit and test on the same data. Tune parameters on an in-sample window, then trade them <em>untouched</em> on the next out-of-sample window, rolling forward through history. The concatenated out-of-sample equity curve is the only curve you are allowed to report.</p>
+        <h3>3. Realistic costs</h3>
+        <p>Every trade pays the spread, commission, and slippage. A strategy that looks brilliant gross can be a loser net. Model costs as a charge per unit of <strong>turnover</strong> (Week 5):</p>
+        <div class="eq">net return ≈ gross return − turnover × (½ spread + commission + slippage)<small>Turnover = fraction of the book traded. High-frequency, high-turnover signals are punished hardest by costs.</small></div>
+        <h3>4. Performance report</h3>
+        <p>Reduce the out-of-sample, net-of-cost equity curve to numbers a reader can judge in thirty seconds: annualized return and volatility, <strong>Sharpe</strong> and Sortino, <strong>max drawdown</strong> and its recovery time, hit rate, turnover, and the per-strategy correlation matrix that justifies the blend.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Reporting the <em>in-sample</em>, <em>gross</em> Sharpe. It is almost always inflated by overfitting and by ignored costs, sometimes turning a true Sharpe of 0.3 into a fantasy 2.0. The grade — and reality — only rewards the out-of-sample, net-of-cost numbers. If you remember one rule from this course: <strong>the equity curve you trade is the one built on data the strategy never saw.</strong></div>
+    </section>
+
+    <!-- FIGURE 2 -->
+    <figure class="fig">
+        <svg viewBox="0 0 420 200" role="img" aria-label="A four-stage pipeline: signal layer feeds walk-forward validation, then realistic costs, then performance report, drawn as connected boxes with arrows">
+            <!-- Stage 1 -->
+            <rect x="14" y="70" width="86" height="56" rx="8" fill="rgba(251,191,36,.12)" stroke="#fbbf24" stroke-width="1.6"/>
+            <text x="57" y="92" fill="#fcd34d" font-size="11" font-weight="700" text-anchor="middle">1. Signal</text>
+            <text x="57" y="108" fill="#bcae8c" font-size="8.5" text-anchor="middle">price → target</text>
+            <text x="57" y="118" fill="#bcae8c" font-size="8.5" text-anchor="middle">position</text>
+            <!-- arrow 1->2 -->
+            <line x1="100" y1="98" x2="118" y2="98" stroke="#f4efe2" stroke-width="1.6"/>
+            <path d="M118,98 L110,94 L110,102 Z" fill="#f4efe2"/>
+            <!-- Stage 2 -->
+            <rect x="118" y="70" width="86" height="56" rx="8" fill="rgba(96,165,250,.12)" stroke="#60a5fa" stroke-width="1.6"/>
+            <text x="161" y="88" fill="#93c5fd" font-size="11" font-weight="700" text-anchor="middle">2. Walk-</text>
+            <text x="161" y="101" fill="#93c5fd" font-size="11" font-weight="700" text-anchor="middle">forward</text>
+            <text x="161" y="116" fill="#bcae8c" font-size="8.5" text-anchor="middle">out-of-sample</text>
+            <!-- arrow 2->3 -->
+            <line x1="204" y1="98" x2="222" y2="98" stroke="#f4efe2" stroke-width="1.6"/>
+            <path d="M222,98 L214,94 L214,102 Z" fill="#f4efe2"/>
+            <!-- Stage 3 -->
+            <rect x="222" y="70" width="86" height="56" rx="8" fill="rgba(245,158,11,.12)" stroke="#f59e0b" stroke-width="1.6"/>
+            <text x="265" y="92" fill="#f59e0b" font-size="11" font-weight="700" text-anchor="middle">3. Costs</text>
+            <text x="265" y="108" fill="#bcae8c" font-size="8.5" text-anchor="middle">spread +</text>
+            <text x="265" y="118" fill="#bcae8c" font-size="8.5" text-anchor="middle">slippage</text>
+            <!-- arrow 3->4 -->
+            <line x1="308" y1="98" x2="326" y2="98" stroke="#f4efe2" stroke-width="1.6"/>
+            <path d="M326,98 L318,94 L318,102 Z" fill="#f4efe2"/>
+            <!-- Stage 4 -->
+            <rect x="326" y="70" width="86" height="56" rx="8" fill="rgba(52,211,153,.12)" stroke="#34d399" stroke-width="1.6"/>
+            <text x="369" y="92" fill="#6ee7b7" font-size="11" font-weight="700" text-anchor="middle">4. Report</text>
+            <text x="369" y="108" fill="#bcae8c" font-size="8.5" text-anchor="middle">Sharpe, DD,</text>
+            <text x="369" y="118" fill="#bcae8c" font-size="8.5" text-anchor="middle">turnover</text>
+            <!-- title + portfolio note -->
+            <text x="210" y="34" fill="#f4efe2" font-size="12" font-weight="700" text-anchor="middle">The Capstone Backtester Pipeline</text>
+            <text x="210" y="160" fill="#a78bfa" font-size="9.5" text-anchor="middle">multiple strategies blended by risk budget (§10.3) flow through every stage together</text>
+            <line x1="40" y1="170" x2="380" y2="170" stroke="#3a2d52" stroke-width="1" stroke-dasharray="4 3"/>
+        </svg>
+        <figcaption>The four-stage capstone pipeline: signals become positions, walk-forward validation keeps the test honest, realistic costs are deducted, and the report distills it all to a few defensible numbers. A multi-strategy book runs all of its strategies through these stages together.</figcaption>
+    </figure>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — blending three strategies by risk budget</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">You have three out-of-sample strategy streams with annualized stats: a trend-follower (μ=8%, σ=16%), a mean-reverter (μ=6%, σ=8%), and a carry trade (μ=5%, σ=10%). Pairwise correlations are all ρ=0.1. Risk-free rate is 0. Build an inverse-volatility book and find its Sharpe.</p>
+        <ol>
+            <li><strong>Single-strategy Sharpes:</strong> 8/16 = <strong>0.50</strong>, 6/8 = <strong>0.75</strong>, 5/10 = <strong>0.50</strong>. Decent, none spectacular.</li>
+            <li><strong>Inverse-vol weights:</strong> 1/σ = 1/16, 1/8, 1/10 = 0.0625, 0.1250, 0.1000; sum = 0.2875. Weights w = (0.217, 0.435, 0.348). The calm mean-reverter rightly gets the most capital.</li>
+            <li><strong>Portfolio return:</strong> μ<sub>p</sub> = 0.217·8 + 0.435·6 + 0.348·5 = 1.74 + 2.61 + 1.74 = <strong>6.09%</strong>.</li>
+            <li><strong>Portfolio variance:</strong> Σ w<sub>i</sub><sup>2</sup>σ<sub>i</sub><sup>2</sup> = 0.217²·16² + 0.435²·8² + 0.348²·10² = 12.05 + 12.11 + 12.11 = 36.3 (note the equal risk contributions — that's the point). Cross terms: 2·ρ·Σ<sub>i&lt;j</sub> w<sub>i</sub>w<sub>j</sub>σ<sub>i</sub>σ<sub>j</sub> = 2·0.1·(0.217·0.435·16·8 + 0.217·0.348·16·10 + 0.435·0.348·8·10) = 2·0.1·(12.08 + 12.08 + 12.11) = 7.26. Total = <strong>43.6</strong>.</li>
+            <li><strong>Portfolio vol and Sharpe:</strong> σ<sub>p</sub> = √43.6 ≈ <strong>6.6%</strong>. Sharpe = 6.09 / 6.6 ≈ <strong>0.92</strong> — higher than the best single strategy (0.75) and far above the average. Low correlation plus risk budgeting bought roughly a 30% Sharpe lift for free.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a multi-strategy walk-forward backtest</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1/2 environment (pandas, NumPy, Matplotlib, vectorbt — the install <code>details</code> lives in <a href="l01-trading-pipeline.html" style="color:var(--accent2);">Lecture 1</a>). We build two simple strategy signals, blend them by inverse volatility, deduct costs on turnover, and report the out-of-sample Sharpe.</p>
+        <pre><span class="c"># capstone_portfolio.py — Lecture 10</span>
+import numpy as np, pandas as pd, vectorbt as vbt
+
+<span class="c"># 1. DATA — daily closes for one liquid instrument (offline CSV or vbt fetch)</span>
+price = pd.read_csv("prices.csv", index_col=0, parse_dates=True)["close"]
+ret   = price.pct_change().fillna(0.0)
+
+<span class="c"># 2. SIGNAL LAYER — two distinct return drivers, both lagged 1 bar (no look-ahead)</span>
+fast, slow = price.rolling(20).mean(), price.rolling(100).mean()
+mom   = np.sign(fast - slow).shift(1).fillna(0.0)          <span class="c"># trend-follower: +1/-1</span>
+z     = (price - price.rolling(20).mean()) / price.rolling(20).std()
+rev   = (-np.sign(z)).shift(1).fillna(0.0)                 <span class="c"># mean-reverter: fade extremes</span>
+
+<span class="c"># 3. RISK BUDGET — inverse-vol weights from a trailing window (recomputed daily)</span>
+pnl   = pd.DataFrame({"mom": mom * ret, "rev": rev * ret})
+vol   = pnl.rolling(60).std().shift(1)                     <span class="c"># trailing vol, lagged</span>
+w     = (1.0 / vol).div((1.0 / vol).sum(axis=1), axis=0).fillna(0.5)
+gross = (w * pnl).sum(axis=1)                              <span class="c"># blended gross return</span>
+
+<span class="c"># 4. COSTS — charge per unit of turnover (change in net position)</span>
+pos   = (w["mom"] * mom + w["rev"] * rev)
+cost  = pos.diff().abs().fillna(0.0) * 0.0005              <span class="c"># 5 bps round-turn proxy</span>
+net   = gross - cost
+
+<span class="c"># 5. WALK-FORWARD-STYLE REPORT — evaluate only the out-of-sample tail</span>
+oos   = net.iloc[252:]                                     <span class="c"># skip the first year (warm-up)</span>
+sharpe = oos.mean() / oos.std() * np.sqrt(252)
+equity = (1 + oos).cumprod()
+dd     = (equity / equity.cummax() - 1).min()
+print(f"OOS net Sharpe : {sharpe:5.2f}")
+print(f"max drawdown   : {dd:6.1%}")
+print(f"corr(mom,rev)  : {pnl['mom'].corr(pnl['rev']):5.2f}")  <span class="c"># justify the blend</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The blended <code>net</code> Sharpe should land above either single signal's <em>iff</em> the printed correlation is low. Swap in your own strategies, lengthen the warm-up, and replace the crude 5 bps cost with the spread+slippage model from Week 5 — that scaffold <em>is</em> the capstone. For production-grade walk-forward splits, vectorbt's <code>Splitter</code> automates the rolling in-sample / out-of-sample windows.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have an end-to-end research loop: hypothesize an edge, validate it walk-forward, cost it honestly, and blend it into a risk-budgeted book. From here the specialization branches into deeper risk management — Value-at-Risk and Expected Shortfall on the <em>portfolio</em> equity curve, factor attribution to learn <em>why</em> the book makes money, and execution modeling for when your size moves the market. The final exam (building now) will test the whole pipeline end to end. Everything you'll meet next — regime detection, alternative data, machine-learning signals — plugs into exactly the four-layer backtester you shipped this week.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Four strategies are mutually uncorrelated, each with volatility σ and Sharpe 0.5, held in equal weight. What is the portfolio Sharpe?</div>
+            <div class="opt"><b>A.</b> 0.5 (diversification can't raise Sharpe)</div>
+            <div class="opt"><b>B.</b> 1.0</div>
+            <div class="opt"><b>C.</b> 2.0</div>
+            <div class="opt"><b>D.</b> 0.25</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> For N uncorrelated, equal-vol, equal-weight strategies, Sharpe scales as √N times the single Sharpe: √4 · 0.5 = 2 · 0.5 = 1.0. A (no lift) ignores the diversification benefit; C uses √N=4 instead of 2; D divides instead of multiplying.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Two equal-weight strategies each have volatility σ. If their correlation is ρ = 1, the blended volatility is…</div>
+            <div class="opt"><b>A.</b> σ/√2</div>
+            <div class="opt"><b>B.</b> 0</div>
+            <div class="opt"><b>C.</b> σ</div>
+            <div class="opt"><b>D.</b> 2σ</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> σ<sub>p</sub>² = ½σ²(1+ρ) = ½σ²(2) = σ², so σ<sub>p</sub> = σ. Perfectly correlated strategies give no diversification — you own the same thing twice. A is the ρ=0 case; B would need ρ=−1; D wrongly adds volatilities.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Under inverse-volatility weighting, which strategy receives the largest capital allocation?</div>
+            <div class="opt"><b>A.</b> The one with the lowest volatility</div>
+            <div class="opt"><b>B.</b> The one with the highest past return</div>
+            <div class="opt"><b>C.</b> The one with the highest volatility</div>
+            <div class="opt"><b>D.</b> They all get equal capital by definition</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Weight is proportional to 1/σ, so the lowest-volatility (calmest) strategy gets the most dollars — equalizing each strategy's risk contribution. C is backwards; B confuses risk weighting with return chasing; D describes equal-dollar weighting, the very thing risk budgeting replaces.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Which equity curve is the <em>only</em> legitimate one to put in your capstone performance report?</div>
+            <div class="opt"><b>A.</b> The in-sample, gross-of-cost curve</div>
+            <div class="opt"><b>B.</b> The best single backtest run out of 50 tried</div>
+            <div class="opt"><b>C.</b> The full-sample curve with the optimal parameters</div>
+            <div class="opt"><b>D.</b> The out-of-sample, net-of-cost walk-forward curve</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Only the out-of-sample, net-of-cost curve reflects what you could actually have traded. A is inflated by overfitting and ignored costs; B is cherry-picking (selection bias); C fits and tests on the same data, the cardinal sin walk-forward exists to prevent.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You add a fifth strategy to a four-strategy book, but it is 0.95-correlated with an existing one. The expected effect on portfolio Sharpe is…</div>
+            <div class="opt"><b>A.</b> A large increase, because more strategies always help</div>
+            <div class="opt"><b>B.</b> The Sharpe must fall to zero</div>
+            <div class="opt"><b>C.</b> Little to none, because it adds almost no independent return driver</div>
+            <div class="opt"><b>D.</b> It guarantees the Sharpe doubles</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The √N benefit requires <em>uncorrelated</em> streams. A 0.95-correlated strategy is nearly a duplicate, so it contributes negligible diversification — just more of the same trade. A and D wrongly assume count alone drives Sharpe; B is false, since a near-duplicate doesn't destroy the existing edge.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Why a <b>portfolio of strategies</b> beats any single one: uncorrelated edges smooth the equity path without sacrificing return.</li>
+            <li>The diversification math — σ<sub>p</sub>² = ½σ²(1+ρ) for a pair, and <b>Sharpe scaling as √N</b> for N uncorrelated streams.</li>
+            <li><b>Risk budgeting</b> over equal dollars: inverse-volatility and equal-risk-contribution weighting, plus risk limits and a vol target.</li>
+            <li>The four-layer <b>capstone backtester</b>: signal → walk-forward validation → realistic costs → performance report.</li>
+            <li>That only the <b>out-of-sample, net-of-cost</b> equity curve is honest — and how to build and report one in pandas + vectorbt.</li>
+        </ul>
+        <p class="next-up">Next up — the <b>Final Exam</b> (currently building): an end-to-end test of the pipeline you assembled this week. The capstone project is due now — ship the report.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-walk-forward.html"><div class="dir">← Week 9</div><div class="ttl">Walk-Forward Validation</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Algo Trading</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

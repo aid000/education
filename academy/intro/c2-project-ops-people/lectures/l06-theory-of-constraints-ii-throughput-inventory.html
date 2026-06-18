@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 · Lecture 6 — Theory of Constraints II: Throughput, Inventory &amp; Drum-Buffer-Rope</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #f59e0b; --accent2: #fbbf24;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a2110 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(245,158,11,.14); border: 1px solid rgba(245,158,11,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        /* ── DISCUSSION (interactive prototype) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(192,132,252,.12); border: 1px solid rgba(192,132,252,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #1a1206; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Intro</a> / <a href="../index.html">C2 Project, Operations &amp; People Management</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Theory of Constraints II — Throughput, Inventory &amp; Drum-Buffer-Rope</h1>
+        <p class="sub">Last week you found the constraint; this week you learn the three numbers that tell you whether any change actually helps — and how to schedule the whole system around its slowest part.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define Goldratt's three operational measures — <strong>Throughput</strong>, <strong>Inventory</strong>, and <strong>Operating Expense</strong> — and state what each one should do.</li>
+            <li>Explain why a <em>local</em> optimum (a busy machine) can hurt the <em>global</em> goal (money out the door).</li>
+            <li>Describe <strong>Drum-Buffer-Rope</strong> scheduling and name what the drum, buffer, and rope each are.</li>
+            <li>Compute a system's throughput and judge whether a proposed improvement is worth doing.</li>
+            <li>Model a simple work pipeline in a spreadsheet / pandas to see where inventory piles up.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>The Goal, Restated: Make Money</h2>
+        <p>In Week 5 we read <strong>The Goal</strong> (Eliyahu Goldratt's business novel) and met the <span class="key">five focusing steps</span>: identify the constraint, exploit it, subordinate everything else to it, elevate it, then go back to step one. But a plant manager can't run a factory on intuition about "the bottleneck." He needs numbers that connect a local decision — "should we buy this machine?" — to the global goal of <strong>making money</strong>.</p>
+        <p>Goldratt's breakthrough was to reject the traditional accounting view (where keeping every machine and worker busy looks like efficiency) and replace it with just <strong>three operational measures</strong>. Every action is judged by its effect on these three, in priority order:</p>
+        <div class="eq">Throughput ↑&nbsp;&nbsp;·&nbsp;&nbsp;Inventory ↓&nbsp;&nbsp;·&nbsp;&nbsp;Operating Expense ↓<small>The three measures of The Goal. The arrows show the desired direction — and Throughput comes first.</small></div>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>The Three Measures (T, I, OE)</h2>
+        <p>Each measure has a precise definition. Get these straight and the rest of the lecture follows.</p>
+        <h3>Throughput (T)</h3>
+        <p>The rate at which the system <strong>generates money through sales</strong>. Crucial subtlety: it is money from <em>sold</em> goods, not produced goods. A warehouse full of finished product you haven't sold is not throughput — it's inventory. Roughly, T = sales revenue − truly variable cost (e.g. raw materials).</p>
+        <h3>Inventory (I)</h3>
+        <p>All the money the system has <strong>invested in things it intends to sell</strong> — raw materials, work-in-progress on the floor, and finished goods. In knowledge work the analog is the pile of started-but-unfinished tasks: half-written reports, code in review, tickets "in progress."</p>
+        <h3>Operating Expense (OE)</h3>
+        <p>All the money the system spends <strong>turning Inventory into Throughput</strong> — wages, rent, utilities, the cost of running the place.</p>
+        <div class="eq">Net Profit ∝ T − OE&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;Return on Investment ∝ (T − OE) / I<small>Profit and ROI are expressed entirely in T, I, and OE — which is why these three are enough.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 170" role="img" aria-label="Diagram showing money flowing in as Inventory, being processed using Operating Expense, and flowing out as Throughput from sales">
+                <!-- inventory in -->
+                <rect x="20" y="62" width="92" height="46" rx="6" fill="rgba(96,165,250,.18)" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="66" y="82" fill="#60a5fa" font-size="11" text-anchor="middle">Inventory</text>
+                <text x="66" y="98" fill="#a3a8c8" font-size="9" text-anchor="middle">money tied up</text>
+                <!-- arrow -->
+                <line x1="112" y1="85" x2="148" y2="85" stroke="#a3a8c8" stroke-width="1.5" marker-end="url(#ah)"/>
+                <!-- process box -->
+                <rect x="148" y="50" width="92" height="70" rx="6" fill="rgba(245,158,11,.16)" stroke="#f59e0b" stroke-width="1.8"/>
+                <text x="194" y="78" fill="#fbbf24" font-size="11" text-anchor="middle">the system</text>
+                <text x="194" y="94" fill="#a3a8c8" font-size="9" text-anchor="middle">runs on OE</text>
+                <text x="194" y="108" fill="#a3a8c8" font-size="9" text-anchor="middle">(wages, rent…)</text>
+                <!-- arrow out -->
+                <line x1="240" y1="85" x2="276" y2="85" stroke="#a3a8c8" stroke-width="1.5" marker-end="url(#ah)"/>
+                <!-- throughput out -->
+                <rect x="276" y="62" width="92" height="46" rx="6" fill="rgba(52,211,153,.18)" stroke="#34d399" stroke-width="1.5"/>
+                <text x="322" y="82" fill="#34d399" font-size="11" text-anchor="middle">Throughput</text>
+                <text x="322" y="98" fill="#a3a8c8" font-size="9" text-anchor="middle">money from sales</text>
+                <text x="194" y="32" fill="#e9ebf8" font-size="11" text-anchor="middle">Goal: maximize money OUT, minimize money IN &amp; spent</text>
+                <defs>
+                    <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#a3a8c8"/></marker>
+                </defs>
+            </svg>
+            <figcaption>The three measures as one flow: Inventory is money put in, Operating Expense is money spent processing it, and Throughput is money that comes back out — but only when something is actually <em>sold</em>.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Treating finished goods sitting in a warehouse as a "win." In traditional cost accounting, producing them looks like efficiency and even adds to reported asset value — but in ToC terms it is just <strong>Inventory</strong>, not Throughput, until a customer pays. Producing faster than you can sell raises I and OE while T stays flat: you are getting <em>worse</em>, not better.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Local Optima vs the Global Goal</h2>
+        <p>The deepest idea in The Goal is this: <strong>the sum of local optima is not the global optimum</strong>. If you optimize each machine, person, or department in isolation — keeping each one as busy as possible — you can easily make the <em>whole system</em> perform worse.</p>
+        <p>Why? Because a chain is only as strong as its weakest link. Any work a <span class="key">non-constraint</span> produces beyond what the constraint can consume does not become Throughput. It piles up as Inventory in front of the bottleneck, inflating I and OE while T is unchanged. The non-constraint <em>looks</em> efficient (100% utilized!) but is actively harming the goal.</p>
+        <div class="eq">utilizing a non-constraint ≠ activating it usefully<small>Goldratt's distinction: a resource can be 100% "utilized" producing things the system can't yet sell. Only work the constraint can absorb counts.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Picture a line of hikers on a narrow trail, tied loosely together. The group's speed is set entirely by the <strong>slowest hiker</strong> (the constraint). If the fast hikers at the front race ahead, the rope just stretches and a gap opens — that gap is <strong>Inventory</strong>. The group as a whole hasn't arrived any sooner. To go faster you must help the <em>slowest</em> hiker (carry some of their pack — that's "exploit"), and make everyone else march at <em>their</em> pace, not their own.</div>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>Drum-Buffer-Rope: Scheduling the Whole System</h2>
+        <p>So how do you make every non-constraint march at the constraint's pace? Goldratt's scheduling method is <strong>Drum-Buffer-Rope (DBR)</strong>, and the hiking analogy maps onto it exactly.</p>
+        <h3>🥁 Drum</h3>
+        <p>The <strong>constraint</strong> sets the beat for the entire system. Its pace is the system's pace — there is no point planning anything to run faster. The constraint's schedule <em>is</em> the master schedule.</p>
+        <h3>🛡️ Buffer</h3>
+        <p>A small amount of protective inventory (or time) placed <strong>just in front of the constraint</strong> so it never starves. The constraint is the most expensive thing to leave idle — an hour lost there is an hour lost for the whole system — so we deliberately keep a little work waiting for it. (There is usually also a shipping buffer to protect the promised due dates.)</p>
+        <h3>🪢 Rope</h3>
+        <p>A signal that <strong>ties the release of new raw material to the constraint's consumption</strong>. Material is fed in at the front only as fast as the constraint pulls it through — like a rope keeping the lead hiker from sprinting away. This caps the work-in-progress and stops inventory from exploding everywhere upstream.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 180" role="img" aria-label="Drum-Buffer-Rope schematic: raw material enters a gate, flows through fast upstream stations into a buffer in front of the constraint drum, then out as finished throughput; a rope links the gate to the drum">
+                <!-- flow line -->
+                <line x1="30" y1="90" x2="372" y2="90" stroke="#2a3052" stroke-width="2"/>
+                <!-- gate / release -->
+                <rect x="22" y="72" width="16" height="36" rx="3" fill="rgba(96,165,250,.25)" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="30" y="128" fill="#60a5fa" font-size="9" text-anchor="middle">gate</text>
+                <text x="30" y="139" fill="#a3a8c8" font-size="8" text-anchor="middle">release</text>
+                <!-- upstream fast stations -->
+                <circle cx="100" cy="90" r="12" fill="rgba(52,211,153,.2)" stroke="#34d399" stroke-width="1.5"/>
+                <circle cx="150" cy="90" r="12" fill="rgba(52,211,153,.2)" stroke="#34d399" stroke-width="1.5"/>
+                <text x="125" y="64" fill="#34d399" font-size="9" text-anchor="middle">fast non-constraints</text>
+                <!-- buffer -->
+                <rect x="196" y="78" width="34" height="24" rx="3" fill="rgba(251,191,36,.2)" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="213" y="116" fill="#fbbf24" font-size="9" text-anchor="middle">BUFFER</text>
+                <!-- drum (constraint) -->
+                <rect x="244" y="68" width="44" height="44" rx="5" fill="rgba(245,158,11,.3)" stroke="#f59e0b" stroke-width="2.2"/>
+                <text x="266" y="94" fill="#fbbf24" font-size="11" text-anchor="middle" font-weight="700">DRUM</text>
+                <text x="266" y="132" fill="#a3a8c8" font-size="8" text-anchor="middle">constraint</text>
+                <!-- output -->
+                <circle cx="340" cy="90" r="12" fill="rgba(52,211,153,.2)" stroke="#34d399" stroke-width="1.5"/>
+                <text x="340" y="116" fill="#34d399" font-size="9" text-anchor="middle">ship</text>
+                <!-- rope (dashed arc from drum back to gate) -->
+                <path d="M250,70 C200,20 70,20 30,70" fill="none" stroke="#c084fc" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <text x="140" y="22" fill="#c084fc" font-size="9" text-anchor="middle">ROPE - release paced by the drum</text>
+            </svg>
+            <figcaption>Drum-Buffer-Rope. The constraint (drum) sets the rhythm; a buffer protects it from ever starving; the rope feeds raw material in only as fast as the drum consumes it, so work-in-progress upstream stays low.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 6.5 -->
+    <section class="lec">
+        <h2><span class="n">6.5</span>Reading T, I, OE Together</h2>
+        <p>A good improvement moves the three measures in the right directions — or at least improves the priority ones without harming the rest. Use this as a decision filter before spending money:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Does it raise Throughput?</strong> Only changes at (or that elevate) the constraint do this. This is the first question, always.</li>
+            <li><strong>Does it lower Inventory?</strong> Faster flow and the rope reduce work-in-progress.</li>
+            <li><strong>Does it lower Operating Expense?</strong> Cheaper to run, fewer rush costs.</li>
+        </ul>
+        <p>The trap is judging by OE alone. A proposal that cuts cost (lower OE) but also cuts T because it slows the constraint is a <em>bad</em> deal — you saved a little and lost a lot. Throughput is unbounded upward; OE can only fall to zero. That asymmetry is why ToC ranks <strong>T first</strong>.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — should we buy the faster polisher?</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 4-station line makes one product. Capacities (units/hour): Cut 100, Drill 60, <strong>Polish 40</strong>, Pack 80. The product sells for $50, with $20 raw material. Operating Expense is $1,000/hour. A vendor offers a faster <em>Drill</em> (60 → 120) for $30k, or a faster <em>Polish</em> (40 → 70) for $30k. Which should you buy?</p>
+        <ol>
+            <li><strong>Find the constraint:</strong> the slowest station sets system output. Polish at 40 u/hr is the bottleneck — the whole line makes <strong>40 u/hr</strong>, no matter what the others can do.</li>
+            <li><strong>Throughput per unit:</strong> $50 sale − $20 material = $30 of Throughput per unit sold.</li>
+            <li><strong>Current Throughput:</strong> 40 u/hr × $30 = <strong>$1,200/hr</strong>. Net (T − OE) = 1,200 − 1,000 = $200/hr.</li>
+            <li><strong>Option A — faster Drill (60 → 120):</strong> Drill was <em>not</em> the constraint. The line is still capped by Polish at 40 u/hr. Throughput unchanged at $1,200/hr. This is a classic <em>local</em> improvement that does <strong>nothing</strong> for the global goal — money wasted.</li>
+            <li><strong>Option B — faster Polish (40 → 70):</strong> the new constraint becomes Drill at 60 u/hr. Throughput rises to 60 × $30 = <strong>$1,800/hr</strong>; net (T − OE) = 1,800 − 1,000 = $800/hr — a $600/hr gain that pays back $30k in ~50 hours.</li>
+            <li><strong>Decision:</strong> buy the Polisher. Then <em>re-run the five focusing steps</em>: the constraint has moved to Drill (60), so that is now where the next dollar of improvement belongs.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: find the bottleneck and watch inventory pile up</h3>
+        <p>You can model a pipeline two ways — pick whichever you prefer.</p>
+        <p style="margin-top:10px;"><strong>Option 1 — Trello / Notion (no code, free):</strong> make a board with one list per stage (To Do → Cut → Drill → Polish → Pack → Done). Add 20 cards and move one stage per "tick," but each list can only <em>complete</em> its station's capacity per tick. After a few ticks, watch cards stack up in the list just before your slowest stage — that visible pile <em>is</em> Inventory, and the stage it's waiting on is your drum. (Free Trello/Notion accounts cover this; no install needed.)</p>
+        <p style="margin-top:10px;"><strong>Option 2 — Python + pandas</strong> (you set the stack up in Week 1 — no need to reinstall):</p>
+        <pre><span class="c"># bottleneck.py — Lecture 6: find the constraint &amp; see WIP build up</span>
+import pandas as pd
+
+line = pd.DataFrame({
+    "station":  ["Cut", "Drill", "Polish", "Pack"],
+    "capacity": [100,    60,      40,       80],   <span class="c"># units/hour</span>
+})
+
+<span class="c"># the constraint = the minimum-capacity station</span>
+constraint = line.loc[line.capacity.idxmin()]
+throughput = line.capacity.min()
+print("Constraint (drum):", constraint.station, "@", throughput, "u/hr")
+
+<span class="c"># with no rope, each station runs flat-out: WIP accumulates before the drum</span>
+arriving = throughput_in = 60   <span class="c"># units/hr fed by upstream Drill</span>
+wip_growth = arriving - throughput            <span class="c"># 60 - 40 = 20 u/hr piling up</span>
+print("WIP building before Polish:", wip_growth, "u/hr  <- inventory!")
+
+<span class="c"># the 'rope': release only as fast as the drum consumes</span>
+release = throughput
+print("Rope-paced release:", release, "u/hr  -> WIP stops growing")</pre>
+        <p>Change the capacities and rerun. Notice that speeding up any station <em>except</em> the constraint leaves <code>throughput</code> unchanged — the same lesson as the worked example.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Drum-Buffer-Rope is the ancestor of the work-in-progress limits you set on a Kanban board, and the "pull" idea behind Lean manufacturing. When you cap how many tickets can sit "in progress," you are putting a rope on your team and protecting your real constraint — usually a single reviewer, tester, or decision-maker. In the Week 10 capstone you'll combine this with Scrum: run sprints, but use ToC to find and protect the one step that actually limits your delivery rate. Next week we switch from systems to <em>people</em> — because very often the constraint isn't a machine, it's how a manager develops the talent around them.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">6 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In Goldratt's Theory of Constraints, <strong>Throughput</strong> is best defined as the rate at which the system…</div>
+            <div class="opt"><b>A.</b> produces finished goods</div>
+            <div class="opt"><b>B.</b> generates money through <em>sales</em></div>
+            <div class="opt"><b>C.</b> keeps every machine busy</div>
+            <div class="opt"><b>D.</b> spends on wages and rent</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Throughput is money the system generates through <em>sales</em> — not production. Unsold finished goods are Inventory (A), not Throughput. (D) describes Operating Expense.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Money the system has invested in things it intends to sell (raw materials, work-in-progress, finished goods) is called…</div>
+            <div class="opt"><b>A.</b> Inventory</div>
+            <div class="opt"><b>B.</b> Throughput</div>
+            <div class="opt"><b>C.</b> Operating Expense</div>
+            <div class="opt"><b>D.</b> Net profit</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> That's Inventory (I). Operating Expense is the money spent turning Inventory into Throughput.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A factory speeds up a machine that is <em>not</em> the constraint, running it at 100% utilization. The most likely result is…</div>
+            <div class="opt"><b>A.</b> system Throughput rises proportionally</div>
+            <div class="opt"><b>B.</b> the constraint disappears</div>
+            <div class="opt"><b>C.</b> work-in-progress piles up before the constraint while Throughput stays flat</div>
+            <div class="opt"><b>D.</b> Operating Expense falls</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Output beyond what the constraint can consume becomes Inventory, raising I (and often OE) with no gain in T. A busy non-constraint is a local optimum that hurts the global goal.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In Drum-Buffer-Rope, the <strong>drum</strong> is…</div>
+            <div class="opt"><b>A.</b> the protective inventory in front of the bottleneck</div>
+            <div class="opt"><b>B.</b> the signal that releases new material</div>
+            <div class="opt"><b>C.</b> the fastest station in the line</div>
+            <div class="opt"><b>D.</b> the constraint, whose pace sets the rhythm for the whole system</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The drum is the constraint; its pace is the master schedule. The buffer (A) protects it from starving; the rope (B) paces material release.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The purpose of the <strong>rope</strong> in DBR is to…</div>
+            <div class="opt"><b>A.</b> tie material release to the constraint's consumption so WIP doesn't explode</div>
+            <div class="opt"><b>B.</b> keep the constraint 100% busy at all costs</div>
+            <div class="opt"><b>C.</b> increase the speed of upstream stations</div>
+            <div class="opt"><b>D.</b> measure operating expense</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The rope links the release gate to the drum: new work enters only as fast as the constraint pulls it through, capping work-in-progress upstream.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q6.</span> A line is capped by its Polish station at 40 u/hr; each unit yields $30 of Throughput. A vendor's upgrade would double the (non-constraint) Drill station's speed. The effect on system Throughput is…</div>
+            <div class="opt"><b>A.</b> it doubles</div>
+            <div class="opt"><b>B.</b> it rises to 60 u/hr</div>
+            <div class="opt"><b>C.</b> it is unchanged — Polish still caps the line at 40 u/hr</div>
+            <div class="opt"><b>D.</b> it cannot be determined</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Improving a non-constraint does nothing for system output; Polish still limits the line to 40 u/hr. Spend the money on the constraint instead.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The three measures of The Goal — <b>Throughput</b> (money from sales), <b>Inventory</b> (money tied up), <b>Operating Expense</b> (money spent processing) — and that net profit and ROI are written entirely in T, I, OE.</li>
+            <li>Why the sum of <b>local optima</b> is not the global optimum: a busy non-constraint just builds Inventory.</li>
+            <li><b>Drum-Buffer-Rope</b> — the constraint drums the beat, a buffer protects it, a rope paces material release.</li>
+            <li>How to use T-first as a <b>decision filter</b>, and to compute throughput and judge an improvement (the polisher example).</li>
+            <li>How to model a pipeline in Trello/Notion or pandas and watch <b>inventory pile up</b> before the constraint.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: <b>What Great Managers Do — First, Break All the Rules</b>. We turn from systems to people: the four keys great managers share, and the Q12 questions that predict team performance.</p>
+    </div>
+
+    <!-- ════════════════ DISCUSSION (interactive prototype) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 2 · Week 6</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="c2-l6-d2">
+            <p class="disc-prompt" id="prompt-c2l6">Find the bottleneck in a system you know (a study routine, a kitchen, a checkout line). Apply the five focusing steps — what would you <em>exploit</em> before spending any money?</p>
+
+            <textarea id="ans-c2l6" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-c2l6">Not saved yet</span>
+                <span class="toast" id="toast-c2l6"></span>
+            </div>
+
+            <div class="disc-model" id="model-c2l6" hidden>
+                <h4>Model response</h4>
+                <p>Take a <strong>morning coffee shop with one espresso machine</strong>. <em>Identify:</em> the line backs up not at the register or the milk station but at the single espresso machine — that's the constraint, the step everything waits on. <em>Exploit (before spending a cent):</em> make sure the machine is <strong>never idle</strong> — pre-grind and tamp the next shot while the current one pulls, stop pulling shots for orders that are still being modified, and don't let the barista leave the machine to bus tables. Stage cups and lids so no second is lost reaching for them. <em>Subordinate:</em> the register only takes orders as fast as the machine can serve them (a rope), and the milk-steaming is timed to finish exactly when the shot is ready (a buffer of one prepped order) so the machine never starves.</p>
+                <p><em>Elevate</em> comes <strong>only after</strong> exploitation is maxed — that's when buying a second machine is justified. And then <em>go back to step one</em>: with two machines, the constraint may move to the single cashier or the cleanup sink, and the focus shifts there.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Names a single, specific constraint (not "everything is slow")</li>
+                    <li>Lists concrete <em>exploit</em> actions that cost no money (eliminate idle time / waste at the constraint)</li>
+                    <li>Subordinates non-constraints to the constraint's pace (a rope/buffer) before proposing to <em>elevate</em> (spend)</li>
+                    <li>Mentions re-running step one because the constraint can move</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-theory-of-constraints-i-the-goal.html"><div class="dir">← Week 5</div><div class="ttl">Theory of Constraints I — The Goal &amp; the Five Focusing Steps</div></a>
+        <a href="l07-what-great-managers-do-first-break.html" class="next"><div class="dir">Week 7 →</div><div class="ttl">What Great Managers Do — First, Break All the Rules</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Project, Operations &amp; People Management</a> · <a href="../../index.html">Intro</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    // ── scroll progress bar ──
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my operations & management tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        // URL prefill works for short text; clipboard is the reliable fallback for long answers.
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
+    });
+</script>
+
+</body>
+</html>

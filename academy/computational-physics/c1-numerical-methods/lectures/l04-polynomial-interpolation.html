@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C1 · Lecture 4 — Polynomial Interpolation</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C1 Numerical Methods</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Polynomial Interpolation</h1>
+        <p class="sub">Given a handful of measured points, find the smooth curve that threads exactly through every one — and learn why reaching for a single high-degree polynomial can betray you.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the interpolation problem and why a unique degree-n polynomial passes through n+1 distinct points.</li>
+            <li>Build the interpolant in three equivalent ways: the Vandermonde system, the Lagrange form, and Newton's divided differences.</li>
+            <li>Explain why the Newton form is the practical choice for adding points incrementally.</li>
+            <li>Recognize the Runge phenomenon — wild oscillation of high-degree interpolants on equispaced nodes — and how to defeat it.</li>
+            <li>Use NumPy and SciPy to interpolate a physical data table and compare a global polynomial against a piecewise cubic spline.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>The Interpolation Problem &amp; the Vandermonde View</h2>
+        <p>You have a table of measurements: temperature at six depths in a borehole, refractive index at five wavelengths, the cross-section of a reaction at a dozen energies. You want a value <em>between</em> the tabulated points, or a smooth function you can differentiate, integrate, or feed into a simulation. <strong>Interpolation</strong> is the task of constructing a function that passes <em>exactly</em> through every data point. (Contrast this with fitting/regression, where the curve need only pass <em>near</em> noisy points — a later topic.)</p>
+        <p>The classic choice is a polynomial. Suppose we have n+1 points (x<sub>0</sub>, y<sub>0</sub>), …, (x<sub>n</sub>, y<sub>n</sub>) with <strong>distinct</strong> x-values. We seek a polynomial of degree at most n:</p>
+        <div class="eq">p(x) = a<sub>0</sub> + a<sub>1</sub>x + a<sub>2</sub>x² + … + a<sub>n</sub>x<sup>n</sup><small>n+1 unknown coefficients a<sub>0</sub>…a<sub>n</sub> — exactly matched to n+1 data constraints p(x<sub>i</sub>) = y<sub>i</sub>.</small></div>
+        <p>Writing the n+1 conditions p(x<sub>i</sub>) = y<sub>i</sub> as a linear system gives the famous <strong>Vandermonde matrix</strong>:</p>
+        <div class="eq">V a = y,&nbsp; with&nbsp; V<sub>ij</sub> = x<sub>i</sub><sup>j</sup><small>Each row is [1, x<sub>i</sub>, x<sub>i</sub>², …, x<sub>i</sub><sup>n</sup>]. Because the x<sub>i</sub> are distinct, det V ≠ 0, so the solution — the interpolating polynomial — exists and is unique.</small></div>
+        <p>That uniqueness is the cornerstone: <strong>through n+1 points with distinct abscissae there is exactly one polynomial of degree ≤ n</strong>. Two points fix a unique line, three a unique parabola, and so on. The three methods in this lecture all compute that <em>same</em> polynomial — they just differ in cost, numerical stability, and how easily you can extend them.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the coefficients as knobs on an equalizer with as many knobs as data points. Each data point is a constraint that locks one degree of freedom. With exactly as many knobs as constraints, there is one — and only one — setting that hits every target. The Vandermonde view says "turn the knobs by brute-force algebra"; Lagrange and Newton are smarter ways to reach the identical setting.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Solving V a = y directly is tempting but <strong>numerically dangerous</strong>: the Vandermonde matrix becomes badly ill-conditioned as n grows (its condition number explodes roughly geometrically), so the coefficients you recover can be swamped by round-off — exactly the conditioning issue from Lecture 1. Use it to understand <em>existence and uniqueness</em>, not as your everyday algorithm.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>The Lagrange Form: Interpolation by Construction</h2>
+        <p>Lagrange's idea sidesteps the matrix entirely. For each node x<sub>i</sub>, build a <strong>cardinal basis polynomial</strong> L<sub>i</sub>(x) that equals 1 at x<sub>i</sub> and 0 at every other node:</p>
+        <div class="eq">L<sub>i</sub>(x) = &prod;<sub>j&ne;i</sub> (x &minus; x<sub>j</sub>) / (x<sub>i</sub> &minus; x<sub>j</sub>)<small>The numerator vanishes at every node except x<sub>i</sub>; the denominator normalizes so L<sub>i</sub>(x<sub>i</sub>) = 1. Thus L<sub>i</sub>(x<sub>k</sub>) = 1 if k = i, else 0.</small></div>
+        <p>Because each L<sub>i</sub> is a "switch" that is on only at its own node, stacking them weighted by the data values gives the interpolant immediately:</p>
+        <div class="eq">p(x) = &sum;<sub>i=0</sub><sup>n</sup> y<sub>i</sub> L<sub>i</sub>(x)<small>Check: at x = x<sub>k</sub>, every term dies except y<sub>k</sub>L<sub>k</sub>(x<sub>k</sub>) = y<sub>k</sub>. So p(x<sub>k</sub>) = y<sub>k</sub> for all k — it interpolates by construction.</small></div>
+        <p>The Lagrange form is the cleanest <em>theoretical</em> object — it makes the existence proof a one-liner and underpins much of numerical integration (the weights in Newton-Cotes and Gaussian quadrature, Week 6, are integrals of these L<sub>i</sub>). Its drawback: if you add a new data point, every basis polynomial changes and you must rebuild from scratch. That is precisely what Newton's form fixes.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 210" role="img" aria-label="Three Lagrange basis polynomials for three nodes; each curve equals one at its own node and zero at the other two nodes">
+                <line x1="40" y1="150" x2="360" y2="150" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="40" y1="30" x2="40" y2="180" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="352" y="168" fill="#a3a8c8" font-size="10">x</text>
+                <text x="22" y="60" fill="#a3a8c8" font-size="10">1</text>
+                <line x1="36" y1="60" x2="44" y2="60" stroke="#a3a8c8" stroke-width="1"/>
+                <!-- nodes at x = 80, 200, 320 -->
+                <line x1="80" y1="147" x2="80" y2="153" stroke="#a3a8c8" stroke-width="1"/>
+                <line x1="200" y1="147" x2="200" y2="153" stroke="#a3a8c8" stroke-width="1"/>
+                <line x1="320" y1="147" x2="320" y2="153" stroke="#a3a8c8" stroke-width="1"/>
+                <text x="80" y="168" fill="#a3a8c8" font-size="10" text-anchor="middle">x0</text>
+                <text x="200" y="168" fill="#a3a8c8" font-size="10" text-anchor="middle">x1</text>
+                <text x="320" y="168" fill="#a3a8c8" font-size="10" text-anchor="middle">x2</text>
+                <!-- L0: 1 at x0(80,60), 0 at x1,x2 -->
+                <path d="M80,60 Q140,110 200,150 Q260,190 320,150" fill="none" stroke="#60a5fa" stroke-width="2"/>
+                <text x="92" y="54" fill="#60a5fa" font-size="11">L0(x)</text>
+                <!-- L1: 1 at x1(200,60), 0 at x0,x2 -->
+                <path d="M80,150 Q140,60 200,60 Q260,60 320,150" fill="none" stroke="#34d399" stroke-width="2"/>
+                <text x="210" y="54" fill="#34d399" font-size="11">L1(x)</text>
+                <!-- L2: 1 at x2(320,60), 0 at x0,x1 -->
+                <path d="M80,150 Q140,190 200,150 Q260,110 320,60" fill="none" stroke="#c084fc" stroke-width="2"/>
+                <text x="300" y="54" fill="#c084fc" font-size="11">L2(x)</text>
+                <circle cx="80" cy="60" r="3" fill="#60a5fa"/>
+                <circle cx="200" cy="60" r="3" fill="#34d399"/>
+                <circle cx="320" cy="60" r="3" fill="#c084fc"/>
+            </svg>
+            <figcaption>Lagrange cardinal polynomials for three nodes x0, x1, x2. Each L<sub>i</sub> peaks at 1 on its own node and crosses zero at the other two. The interpolant is the data-weighted sum y0·L0 + y1·L1 + y2·L2.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Newton's Divided-Difference Form</h2>
+        <p>Newton writes the <em>same</em> unique polynomial in a nested, incremental basis built from the nodes:</p>
+        <div class="eq">p(x) = c<sub>0</sub> + c<sub>1</sub>(x&minus;x<sub>0</sub>) + c<sub>2</sub>(x&minus;x<sub>0</sub>)(x&minus;x<sub>1</sub>) + … <small>Each term adds one more node-factor. The coefficients c<sub>k</sub> are the <strong>divided differences</strong> of the data.</small></div>
+        <p>The coefficients are computed by a recursive table. The zeroth differences are the data values; each higher difference is a slope-of-slopes:</p>
+        <div class="eq">f[x<sub>i</sub>] = y<sub>i</sub>,&nbsp;&nbsp; f[x<sub>i</sub>,…,x<sub>i+k</sub>] = ( f[x<sub>i+1</sub>,…,x<sub>i+k</sub>] &minus; f[x<sub>i</sub>,…,x<sub>i+k&minus;1</sub>] ) / (x<sub>i+k</sub> &minus; x<sub>i</sub>)<small>The Newton coefficient c<sub>k</sub> is the top entry of column k: c<sub>k</sub> = f[x<sub>0</sub>,…,x<sub>k</sub>].</small></div>
+        <p>Two big wins. First, <strong>incremental updates</strong>: to add a new point you only compute one new diagonal of the table and append a single term — the existing coefficients are untouched. That makes Newton's form the natural engine when data arrives over time or when you raise the degree adaptively. Second, <strong>cheap evaluation</strong>: the nested form is evaluated by Horner-like multiplication in O(n) operations once the coefficients are known.</p>
+        <p>There is also a beautiful link to calculus: the leading divided difference is a finite-sample stand-in for a derivative,</p>
+        <div class="eq">f[x<sub>0</sub>,…,x<sub>n</sub>] = f<sup>(n)</sup>(&xi;) / n!&nbsp; for some &xi; in the data interval<small>The same factor n! and a derivative show up in the interpolation error formula — see Section 4.4.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Newton's form is like writing a number in expanding place values: you start with a coarse guess (c<sub>0</sub>, the value at the first node), then add a correction proportional to the local slope, then a curvature correction, and so on. Each divided difference is the next "decimal place" of detail. Adding a new data point just tacks on one more place value without rewriting the ones you already trust.</div>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>The Runge Phenomenon &amp; the Spline Cure</h2>
+        <p>Naively, a higher-degree polynomial through more points should be more accurate. For <strong>equispaced</strong> nodes this can fail spectacularly. The interpolation error obeys</p>
+        <div class="eq">f(x) &minus; p(x) = f<sup>(n+1)</sup>(&xi;) / (n+1)! &middot; &prod;<sub>i</sub>(x &minus; x<sub>i</sub>)<small>The node product blows up near the ends of an equispaced grid, so even a smooth f can be interpolated terribly there.</small></div>
+        <p>The textbook demonstration is <strong>Runge's function</strong> f(x) = 1/(1 + 25x²) on [&minus;1, 1]. As you raise the degree with equispaced nodes, the interpolant develops violent oscillations near &plusmn;1 whose amplitude <em>grows without bound</em> — the opposite of convergence. This is the <strong>Runge phenomenon</strong>, and it is a property of the <em>node placement</em>, not of f.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="Runge's bell-shaped function compared with a degree ten equispaced polynomial interpolant that oscillates strongly and overshoots near the two ends of the interval">
+                <line x1="40" y1="120" x2="360" y2="120" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="200" y1="20" x2="200" y2="195" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="366" y="116" fill="#a3a8c8" font-size="10">x</text>
+                <text x="46" y="138" fill="#a3a8c8" font-size="10" text-anchor="middle">-1</text>
+                <text x="356" y="138" fill="#a3a8c8" font-size="10" text-anchor="middle">+1</text>
+                <text x="188" y="44" fill="#a3a8c8" font-size="10" text-anchor="end">1</text>
+                <!-- Runge function f: bell, peak at center (200,40), tails to ~0.04 at ends (40,117)/(360,117) -->
+                <path d="M48,117 Q120,113 160,95 Q190,55 200,40 Q210,55 240,95 Q280,113 352,117" fill="none" stroke="#34d399" stroke-width="2.4"/>
+                <text x="244" y="52" fill="#34d399" font-size="11">f(x) = 1/(1+25x^2)</text>
+                <!-- degree-10 interpolant: matches near center, oscillates/overshoots near ends -->
+                <path d="M48,170 Q70,40 92,90 Q112,118 132,108 Q160,98 200,40 Q240,98 268,108 Q288,118 308,90 Q330,40 352,170" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <text x="92" y="36" fill="#fbbf24" font-size="11">p10(x) equispaced</text>
+                <!-- equispaced node ticks on axis -->
+                <circle cx="48" cy="117" r="2.5" fill="#a3a8c8"/>
+                <circle cx="86" cy="116" r="2.5" fill="#a3a8c8"/>
+                <circle cx="124" cy="110" r="2.5" fill="#a3a8c8"/>
+                <circle cx="162" cy="93" r="2.5" fill="#a3a8c8"/>
+                <circle cx="200" cy="40" r="2.5" fill="#a3a8c8"/>
+                <circle cx="238" cy="93" r="2.5" fill="#a3a8c8"/>
+                <circle cx="276" cy="110" r="2.5" fill="#a3a8c8"/>
+                <circle cx="314" cy="116" r="2.5" fill="#a3a8c8"/>
+                <circle cx="352" cy="117" r="2.5" fill="#a3a8c8"/>
+            </svg>
+            <figcaption>The Runge phenomenon: a degree-10 equispaced interpolant (amber) hugs Runge's smooth bell (green) in the middle but overshoots wildly near the endpoints. Raising the degree makes the end oscillations worse, not better.</figcaption>
+        </figure>
+        <p>There are two standard cures. <strong>(1) Better nodes:</strong> cluster the nodes toward the endpoints using <strong>Chebyshev points</strong>, x<sub>k</sub> = cos(k&pi;/n); the node-product term is then tamed and high-degree interpolation converges beautifully. <strong>(2) Piecewise interpolation:</strong> abandon one global high-degree polynomial and instead glue together many low-degree pieces — this is a <strong>spline</strong>.</p>
+        <p>A <strong>cubic spline</strong> fits a separate cubic on each interval between data points, choosing the pieces so the curve and its first <em>and</em> second derivatives are continuous at every node. The result is smooth, non-oscillating, and uses only degree-3 polynomials no matter how many points you have — which is exactly why splines, not global polynomials, draw the smooth curves in plotting libraries, CAD surfaces, and animation paths.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Believing "more data points &rArr; higher-degree polynomial &rArr; better accuracy." On equispaced nodes the reverse can be true past a modest degree (roughly 8–12) because of Runge. For more than a handful of points, reach for a <strong>spline</strong> or <strong>Chebyshev nodes</strong> — do not crank up the degree of a single global, equispaced interpolant.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — Newton interpolation of a 3-point table</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A sensor logs a quantity at three times: (x, y) = (0, 1), (1, 3), (2, 7). Build the Newton interpolating polynomial and estimate the value at x = 1.5.</p>
+        <ol>
+            <li><strong>Zeroth differences (the data):</strong> f[0] = 1, f[1] = 3, f[2] = 7.</li>
+            <li><strong>First divided differences:</strong> f[0,1] = (3 &minus; 1)/(1 &minus; 0) = 2; &nbsp; f[1,2] = (7 &minus; 3)/(2 &minus; 1) = 4.</li>
+            <li><strong>Second divided difference:</strong> f[0,1,2] = (4 &minus; 2)/(2 &minus; 0) = 1.</li>
+            <li><strong>Assemble Newton form</strong> with c<sub>0</sub>=1, c<sub>1</sub>=2, c<sub>2</sub>=1: &nbsp; p(x) = 1 + 2(x&minus;0) + 1(x&minus;0)(x&minus;1) = 1 + 2x + x(x&minus;1) = x² + x + 1.</li>
+            <li><strong>Check the nodes:</strong> p(0)=1 ✓, p(1)=1+1+1=3 ✓, p(2)=4+2+1=7 ✓. The interpolant is unique, so this is also what Lagrange or Vandermonde would give.</li>
+            <li><strong>Evaluate at x = 1.5:</strong> p(1.5) = (1.5)² + 1.5 + 1 = 2.25 + 1.5 + 1 = <strong>4.75</strong>.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: global polynomial vs. cubic spline on a real table</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free Python + NumPy/SciPy/Matplotlib stack runs everything here. If you have not set it up yet, the <strong>Week 1</strong> lecture has the one-time install (<code>pip install numpy scipy matplotlib jupyter</code>) — reuse that environment; nothing new is needed for this lecture.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">We interpolate Runge's function on equispaced nodes to <em>see</em> the phenomenon, then contrast a global polynomial (<code>numpy.polyfit</code> on the nodes) with a SciPy cubic spline (<code>CubicSpline</code>). Watch the polynomial overshoot near the ends while the spline stays calm.</p>
+        <pre><span class="c"># interpolation.py — Lecture 4</span>
+import numpy as np
+from numpy.polynomial import polynomial as P
+from scipy.interpolate import CubicSpline, lagrange
+
+f = lambda x: 1.0 / (1.0 + 25.0 * x**2)     <span class="c"># Runge's function on [-1, 1]</span>
+
+n = 10
+nodes = np.linspace(-1, 1, n + 1)           <span class="c"># EQUISPACED -> triggers Runge</span>
+yvals = f(nodes)
+
+xx = np.linspace(-1, 1, 400)                <span class="c"># dense grid for evaluation</span>
+
+<span class="c"># (1) global degree-n interpolating polynomial through the nodes</span>
+poly = lagrange(nodes, yvals)               <span class="c"># SciPy's Lagrange interpolant</span>
+err_poly = np.max(np.abs(poly(xx) - f(xx)))
+
+<span class="c"># (2) piecewise cubic spline through the SAME nodes</span>
+spline = CubicSpline(nodes, yvals)
+err_spline = np.max(np.abs(spline(xx) - f(xx)))
+
+print(f"max |error| degree-{n} polynomial : {err_poly:.3f}")
+print(f"max |error| cubic spline          : {err_spline:.3f}")
+<span class="c"># polynomial error is large (overshoot near +/-1); spline error is tiny</span>
+
+<span class="c"># Bonus: Newton divided-difference coefficients, built incrementally</span>
+def divided_diff(x, y):
+    n = len(y); coef = np.array(y, dtype=float)
+    for k in range(1, n):
+        coef[k:] = (coef[k:] - coef[k-1:-1]) / (x[k:] - x[:-k])
+    return coef                              <span class="c"># coef[k] = f[x0,...,xk]</span>
+
+print("Newton coeffs:", divided_diff(np.array([0.,1.,2.]), np.array([1.,3.,7.])))
+<span class="c"># -> [1. 2. 1.]  matches the worked example (x^2 + x + 1)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Now swap the equispaced grid for <strong>Chebyshev nodes</strong> <code>nodes = np.cos(np.linspace(0, np.pi, n+1))</code> and rerun. Predict what happens to <code>err_poly</code> before you look — the same degree-10 polynomial should now track Runge's function almost perfectly.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Interpolation is the quiet workhorse beneath the rest of this specialization. Next week's <strong>numerical differentiation</strong> and Week 6's <strong>numerical integration</strong> both <em>are</em> "interpolate the data, then differentiate/integrate the interpolant" — the Newton-Cotes and Gaussian quadrature weights are integrals of the Lagrange basis you met today. In Course 2, dense-output ODE solvers hand you a spline so you can sample the trajectory between steps; in Course 4, spectral PDE methods lean on Chebyshev interpolation to dodge Runge entirely. <strong>Project checkpoint (this week):</strong> add an <code>interpolate_table()</code> utility to your capstone toolkit that ingests a physical data table (say tabulated material properties), returns both a Lagrange/Newton polynomial and a SciPy cubic spline, and reports the maximum disagreement between them across the interval — your first reusable building block for the final project.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> How many distinct polynomials of degree at most n pass exactly through n+1 points with distinct x-values?</div>
+            <div class="opt"><b>A.</b> exactly one</div>
+            <div class="opt"><b>B.</b> infinitely many</div>
+            <div class="opt"><b>C.</b> exactly two</div>
+            <div class="opt"><b>D.</b> none in general</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The Vandermonde matrix is invertible when the x<sub>i</sub> are distinct, so the interpolant exists and is unique. (B) and (C) contradict uniqueness; (D) is wrong because existence is guaranteed.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Which property makes a Lagrange basis polynomial L<sub>i</sub>(x) special at the nodes?</div>
+            <div class="opt"><b>A.</b> it equals the data value y<sub>i</sub> everywhere</div>
+            <div class="opt"><b>B.</b> it equals 1 at x<sub>i</sub> and 0 at every other node</div>
+            <div class="opt"><b>C.</b> it is the derivative of the interpolant</div>
+            <div class="opt"><b>D.</b> it is constant between nodes</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Each cardinal polynomial is a "switch": L<sub>i</sub>(x<sub>i</sub>) = 1, L<sub>i</sub>(x<sub>k≠i</sub>) = 0, so &Sigma; y<sub>i</sub>L<sub>i</sub> hits every data value. (A) confuses the basis with the data weight; (C) and (D) are unrelated.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The main practical advantage of Newton's divided-difference form over the Lagrange form is that…</div>
+            <div class="opt"><b>A.</b> it produces a different, more accurate polynomial</div>
+            <div class="opt"><b>B.</b> it avoids using the data values</div>
+            <div class="opt"><b>C.</b> adding a new data point requires only one extra term, not a full rebuild</div>
+            <div class="opt"><b>D.</b> it works even when two nodes share the same x-value</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Newton updates incrementally — one new divided-difference diagonal and one appended term. (A) is false: it is the same unique polynomial. (B) is nonsense, and (D) is false since distinct x-values are still required.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The Runge phenomenon refers to…</div>
+            <div class="opt"><b>A.</b> overflow when evaluating x<sup>n</sup> for large n</div>
+            <div class="opt"><b>B.</b> the spline failing to be continuous at nodes</div>
+            <div class="opt"><b>C.</b> Lagrange and Newton forms giving different answers</div>
+            <div class="opt"><b>D.</b> high-degree interpolants on equispaced nodes oscillating wildly near the endpoints</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The endpoint node-product term grows, so error explodes near the ends as degree rises. (A) is a floating-point issue, (B) describes a broken spline, and (C) is false — the interpolant is unique.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> To interpolate many points smoothly without Runge oscillations, the recommended approach is to…</div>
+            <div class="opt"><b>A.</b> keep raising the degree of a single equispaced global polynomial</div>
+            <div class="opt"><b>B.</b> use a piecewise low-degree spline (or Chebyshev nodes)</div>
+            <div class="opt"><b>C.</b> solve the Vandermonde system in higher precision only</div>
+            <div class="opt"><b>D.</b> remove half the data points</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A cubic spline glues degree-3 pieces with C² continuity, or Chebyshev nodes tame the node product. (A) worsens Runge; (C) does not fix the oscillation (it is a node-placement problem, not just round-off); (D) discards information.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>interpolation problem</b>: through n+1 points with distinct x-values there is exactly <b>one</b> polynomial of degree ≤ n (the Vandermonde view proves it but is ill-conditioned).</li>
+            <li>The <b>Lagrange form</b> builds the interpolant from cardinal "switch" polynomials and underlies quadrature weights.</li>
+            <li><b>Newton's divided differences</b> give the same polynomial but update incrementally and evaluate cheaply.</li>
+            <li>The <b>Runge phenomenon</b>: high-degree equispaced interpolation oscillates near the ends — a node-placement defect, not a flaw in f.</li>
+            <li>The cures — <b>Chebyshev nodes</b> and <b>piecewise cubic splines</b> — and a project utility that compares a global polynomial against a SciPy spline.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: numerical differentiation, where we differentiate an interpolant to turn data tables into derivatives, and meet the truncation–round-off trade-off again.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-root-finding-newton.html"><div class="dir">← Week 3</div><div class="ttl">Root Finding II — Newton &amp; Secant</div></a>
+        <a class="next" href="l05-numerical-differentiation.html"><div class="dir">Week 5 →</div><div class="ttl">Numerical Differentiation</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Numerical Methods</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

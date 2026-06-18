@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuclear Plant Ops &amp; Safety C5 · Lecture 6 — Decay Heat &amp; Loss-of-Flow Transients</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C5 Ops &amp; Safety</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Decay Heat &amp; Loss-of-Flow Transients</h1>
+        <p class="sub">Press SCRAM and the chain reaction dies in a heartbeat — but the core keeps pouring out megawatts of heat for days, and removing it becomes the single hardest problem in reactor safety.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why a scrammed reactor still produces substantial power, and where decay heat comes from physically.</li>
+            <li>Estimate decay-heat fraction over time using the standard ~7% initial / power-law decline rule of thumb.</li>
+            <li>Trace the timeline of a loss-of-flow accident (LOFA) and a station blackout (SBO) from trip to potential core damage.</li>
+            <li>Describe how natural circulation and passive backup cooling remove decay heat when forced flow is lost.</li>
+            <li>Articulate why decay-heat removal — not reactivity control — is the central safety challenge after shutdown.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Why Shutting Down Is Not Enough</h2>
+        <p>When an operator presses SCRAM, control rods drop into the core in seconds and the prompt fission chain reaction collapses. Fission power falls by more than 90% almost instantly. It is tempting to conclude that the safety problem is solved — the reactor is "off." It is not. The fuel that has been running for months is now loaded with hundreds of radioactive <strong>fission products</strong>, and those nuclei do not care that the chain reaction stopped. They keep decaying, and every decay deposits energy in the fuel as <strong>decay heat</strong>.</p>
+        <p>Decay heat has two main sources. First, the <strong>radioactive decay of fission products</strong> — beta particles and gamma rays from the unstable fragments left behind by fission, which thermalize right in the fuel pin. Second, a smaller contribution from <strong>delayed fissions</strong> driven by neutrons and the decay of heavy actinides bred during operation. The first dominates after shutdown.</p>
+        <p>The crucial number: immediately after a trip from full power, decay heat is roughly <strong>6–7% of the previous operating power</strong>. For a large 3000&nbsp;MW-thermal reactor, that is over 200&nbsp;MW of heat with the chain reaction completely dead — enough to boil away the entire coolant inventory in minutes if you do nothing.</p>
+        <div class="eq">P_decay(t=0+) ~ 0.07 * P_0<small>P_0 = power level before shutdown; the fission-product inventory is proportional to how long and how hard the fuel ran.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a cast-iron skillet pulled off a hot burner. Turn the stove off (that is the SCRAM) and the flame is gone instantly — but the skillet stays dangerously hot for a long time because of the thermal energy already stored in it. Decay heat is the reactor's "hot skillet": the source that produced it is gone, yet the heat keeps coming and must still be carried away.</div>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>How Decay Heat Decays: The Power Law</h2>
+        <p>Decay heat does not vanish on a single clean half-life because it is the sum of thousands of fission-product chains, each with its own decay constant. Short-lived isotopes burn off in seconds to minutes; long-lived ones linger for years. The net result is a smooth <strong>power-law decline</strong> rather than a single exponential. A widely used engineering approximation (a simplified form of the Way–Wigner correlation) captures it:</p>
+        <div class="eq">P_decay(t) / P_0 ~ 0.066 * t^(-0.2)<small>t in seconds after shutdown, valid from a few seconds to ~10^6 s; assumes long prior operation at steady power P_0.</small></div>
+        <p>Read what this curve tells you. At <strong>1 second</strong> after trip, decay heat is about 6.6% of full power. At <strong>1 hour</strong> (3600&nbsp;s) it has fallen to roughly 1.3%. At <strong>1 day</strong> (~86400&nbsp;s) it is near 0.7%, and after <strong>a week</strong> it is around 0.4%. The heat drops fast at first, then crawls — which is exactly why the first minutes after a trip are the most demanding for the cooling system, and why spent fuel must still be actively cooled for years.</p>
+        <p>The total energy you must remove is the integral of this curve. Because the exponent is small (0.2), the tail is "heavy": even though the instantaneous power is small after a day, the cumulative energy over the following weeks is substantial. This is the physics behind spent-fuel pools and long-term passive cooling requirements.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 320" role="img" aria-label="Decay heat as a percent of full power versus time after shutdown on a logarithmic time axis. The curve starts near 7 percent at one second and falls smoothly to under 0.5 percent after one week.">
+                <!-- axes -->
+                <line x1="60" y1="270" x2="530" y2="270" stroke="#94b8a2" stroke-width="1.5"/>
+                <line x1="60" y1="270" x2="60" y2="40" stroke="#94b8a2" stroke-width="1.5"/>
+                <text x="295" y="305" fill="#94b8a2" font-size="12" text-anchor="middle">Time after shutdown  (log scale)</text>
+                <text x="20" y="160" fill="#94b8a2" font-size="12" text-anchor="middle" transform="rotate(-90 20 160)">Decay heat  (% of full power)</text>
+                <!-- y ticks -->
+                <text x="52" y="252" fill="#94b8a2" font-size="10" text-anchor="end">1%</text>
+                <text x="52" y="180" fill="#94b8a2" font-size="10" text-anchor="end">4%</text>
+                <text x="52" y="100" fill="#94b8a2" font-size="10" text-anchor="end">7%</text>
+                <!-- x ticks (log decades) -->
+                <text x="100" y="286" fill="#94b8a2" font-size="10" text-anchor="middle">1 s</text>
+                <text x="210" y="286" fill="#94b8a2" font-size="10" text-anchor="middle">1 min</text>
+                <text x="330" y="286" fill="#94b8a2" font-size="10" text-anchor="middle">1 hr</text>
+                <text x="430" y="286" fill="#94b8a2" font-size="10" text-anchor="middle">1 day</text>
+                <text x="510" y="286" fill="#94b8a2" font-size="10" text-anchor="middle">1 wk</text>
+                <!-- decay curve: 7% near 1s falling to ~0.4% at 1 week -->
+                <path d="M 100,103 L 150,140 L 210,170 L 270,196 L 330,222 L 390,238 L 430,248 L 480,254 L 510,258"
+                      fill="none" stroke="#34d399" stroke-width="3"/>
+                <!-- markers -->
+                <circle cx="100" cy="103" r="3.5" fill="#fbbf24"/><text x="112" y="98" fill="#fbbf24" font-size="10" text-anchor="start">~6.6% at 1 s</text>
+                <circle cx="330" cy="222" r="3.5" fill="#60a5fa"/><text x="342" y="218" fill="#60a5fa" font-size="10" text-anchor="start">~1.3% at 1 hr</text>
+                <circle cx="510" cy="258" r="3.5" fill="#a78bfa"/><text x="500" y="250" fill="#a78bfa" font-size="10" text-anchor="end">~0.4% at 1 wk</text>
+                <!-- callout -->
+                <text x="290" y="60" fill="#6ee7b7" font-size="11" text-anchor="middle">P/P_0 ~ 0.066 * t^(-0.2)</text>
+            </svg>
+            <figcaption>Decay-heat power as a percent of full operating power versus time after shutdown (log time axis). The heat falls steeply in the first minutes, then declines slowly — the long, heavy tail is why fuel needs cooling for days, weeks, and beyond.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> assume "reactor tripped" means "no more heat to remove." The chain reaction stops, but decay heat is an independent, unstoppable source set by the fission-product inventory. You cannot SCRAM decay heat away — you can only carry it off with coolant. Treating a tripped core as thermally safe is the conceptual error behind several real-world severe accidents.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Loss-of-Flow and Station-Blackout Transients</h2>
+        <p>During normal operation, large reactor coolant pumps force coolant through the core fast enough to carry away full power. A <strong>loss-of-flow accident (LOFA)</strong> happens when that forced circulation is degraded or lost — a pump trips, a power bus fails, or a pipe breaks. The reactor will trip on low flow, killing fission power, but decay heat keeps arriving while the coolant slows. Now the question is whether the remaining flow (coasting pumps, then natural circulation) can carry off that decay heat before fuel temperatures climb past their limits.</p>
+        <p>The most demanding version is a <strong>station blackout (SBO)</strong>: loss of all off-site <em>and</em> on-site AC power. The pumps stop, instrument air may bleed down, and the only heat sinks left are whatever can run without AC power — battery-backed valves, steam-driven pumps, and ultimately passive natural circulation. SBO is a defining scenario in reactor safety analysis precisely because it strips away the active systems and forces the plant to survive on passive physics.</p>
+        <p>The core energy balance during any of these transients is simple to state:</p>
+        <div class="eq">m * c_p * dT/dt = P_decay(t) - Q_removed(t)<small>m c_p = thermal mass of fuel + coolant; if heat removed lags heat generated, dT/dt &gt; 0 and temperature rises.</small></div>
+        <p>If <strong>Q_removed &gt; P_decay</strong>, temperatures fall and the core is safe. If <strong>Q_removed &lt; P_decay</strong>, temperatures rise — and if they rise far enough, the coolant boils off, fuel cladding overheats and can react with steam, and the path toward core damage opens. The entire art of post-shutdown safety is keeping that inequality on the right side, with margin, using systems that do not depend on the power you just lost.</p>
+    </section>
+
+    <!-- FIGURE: transient timeline -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 250" role="img" aria-label="Timeline of a loss-of-flow transient. At time zero the pump trips and the reactor scrams, fission power collapses while decay heat persists, pumps coast down, natural circulation establishes, and passive cooling carries the heat away.">
+            <!-- baseline timeline -->
+            <line x1="40" y1="190" x2="525" y2="190" stroke="#94b8a2" stroke-width="2"/>
+            <polygon points="525,190 514,184 514,196" fill="#94b8a2"/>
+            <text x="500" y="215" fill="#94b8a2" font-size="11" text-anchor="middle">time -></text>
+            <!-- event ticks -->
+            <line x1="80" y1="183" x2="80" y2="197" stroke="#fbbf24" stroke-width="2"/>
+            <text x="80" y="60" fill="#fbbf24" font-size="10" text-anchor="middle">t = 0</text>
+            <text x="80" y="74" fill="#fbbf24" font-size="10" text-anchor="middle">pump trip</text>
+            <text x="80" y="88" fill="#fbbf24" font-size="10" text-anchor="middle">+ SCRAM</text>
+            <line x1="200" y1="183" x2="200" y2="197" stroke="#60a5fa" stroke-width="2"/>
+            <text x="200" y="60" fill="#60a5fa" font-size="10" text-anchor="middle">seconds</text>
+            <text x="200" y="74" fill="#60a5fa" font-size="10" text-anchor="middle">pump</text>
+            <text x="200" y="88" fill="#60a5fa" font-size="10" text-anchor="middle">coastdown</text>
+            <line x1="330" y1="183" x2="330" y2="197" stroke="#34d399" stroke-width="2"/>
+            <text x="330" y="60" fill="#34d399" font-size="10" text-anchor="middle">minutes</text>
+            <text x="330" y="74" fill="#34d399" font-size="10" text-anchor="middle">natural</text>
+            <text x="330" y="88" fill="#34d399" font-size="10" text-anchor="middle">circulation</text>
+            <line x1="460" y1="183" x2="460" y2="197" stroke="#a78bfa" stroke-width="2"/>
+            <text x="460" y="60" fill="#a78bfa" font-size="10" text-anchor="middle">hours+</text>
+            <text x="460" y="74" fill="#a78bfa" font-size="10" text-anchor="middle">passive</text>
+            <text x="460" y="88" fill="#a78bfa" font-size="10" text-anchor="middle">heat sink</text>
+            <!-- fission power curve: high then crashes at t=0 -->
+            <path d="M 50,110 L 80,110 L 90,165 L 110,178 L 525,178" fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+            <text x="55" y="104" fill="#fbbf24" font-size="10" text-anchor="start">fission power</text>
+            <!-- decay heat curve: starts at scram, declines slowly -->
+            <path d="M 90,150 L 130,158 L 200,164 L 330,170 L 460,174 L 525,175" fill="none" stroke="#34d399" stroke-width="2.5" stroke-dasharray="6 4"/>
+            <text x="150" y="146" fill="#34d399" font-size="10" text-anchor="start">decay heat (must be removed)</text>
+            <!-- power axis label -->
+            <text x="32" y="135" fill="#94b8a2" font-size="11" text-anchor="middle" transform="rotate(-90 32 135)">power</text>
+        </svg>
+        <figcaption>Loss-of-flow timeline. At t = 0 the pump trips and the reactor scrams, so <span style="color:#fbbf24">fission power</span> collapses almost instantly. <span style="color:#34d399">Decay heat</span> persists and declines only slowly, so cooling must transition from coasting pumps to natural circulation to a passive heat sink without ever letting heat removal fall below heat generation.</figcaption>
+    </figure>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>Natural Circulation &amp; Passive Backup Cooling</h2>
+        <p>When the pumps stop, physics offers a free backup: <strong>natural circulation</strong>. Heat from the core warms the coolant, making it less dense; cooler, denser coolant sits in the heat exchanger or steam generator above. Gravity does the rest — the warm fluid rises through the core and the cool fluid sinks, setting up a self-sustaining loop with no moving parts. The driving force is buoyancy from the density difference over the height between the heat source (core) and the heat sink:</p>
+        <div class="eq">Delta P_driving = (rho_cold - rho_hot) * g * H<small>H = elevation difference between core and heat sink; larger H and larger temperature difference give stronger natural-circulation flow.</small></div>
+        <p>Natural circulation is weak compared with full pumped flow — it carries perhaps a few percent of rated flow — but that is often exactly the right scale, because decay heat is also only a few percent of rated power. This matching is why modern plant designs deliberately place heat sinks high above the core: the taller the loop, the stronger the natural-circulation driving head when you need it most.</p>
+        <p><strong>Passive safety systems</strong> push this idea further. Gravity-driven water tanks, condensers that dump heat to a large elevated pool, and air-cooled containment shells are all designed to remove decay heat for hours to days <em>with no AC power, no pumps, and no operator action</em>. They trade the high capacity of active systems for the priceless property of working when everything else has failed — directly answering the station-blackout problem.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Natural circulation is a hot-air balloon for liquids. Warm the air (or coolant) and it becomes buoyant and rises on its own; cool it and it sinks. No fan, no pump — just the density difference and gravity. A reactor designed for natural circulation is one where the core can keep cooling itself the way a balloon keeps rising, as long as there is a hot bottom and a cold top.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — how fast does the coolant heat up in a station blackout?</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 3000&nbsp;MW-thermal reactor trips into a complete station blackout: no pumps, no active heat removal at all (Q_removed = 0). The reactor coolant system holds about m = 2.5&times;10⁵&nbsp;kg of water with c_p &approx; 5000&nbsp;J/(kg·K) at operating conditions. Estimate the coolant heat-up rate at 10&nbsp;seconds and at 1&nbsp;hour after trip.</p>
+        <ol>
+            <li><strong>Decay heat at 10 s:</strong> P/P_0 = 0.066 &times; 10^(&minus;0.2) = 0.066 &times; 0.631 = 0.0417, so P_decay = 0.0417 &times; 3000&nbsp;MW &approx; <strong>125 MW</strong>.</li>
+            <li><strong>Heat-up rate at 10 s:</strong> dT/dt = P_decay / (m c_p) = 125&times;10⁶ W / (2.5&times;10⁵ &times; 5000) = 1.25&times;10⁸ / 1.25&times;10⁹ = <strong>0.10 K/s</strong> — about 6&nbsp;K per minute.</li>
+            <li><strong>Decay heat at 1 hr:</strong> P/P_0 = 0.066 &times; 3600^(&minus;0.2) = 0.066 &times; 0.193 = 0.0127, so P_decay &approx; 0.0127 &times; 3000&nbsp;MW &approx; <strong>38 MW</strong>.</li>
+            <li><strong>Heat-up rate at 1 hr:</strong> dT/dt = 38&times;10⁶ / 1.25&times;10⁹ &approx; <strong>0.030 K/s</strong> — about 1.8&nbsp;K per minute.</li>
+            <li><strong>Interpretation:</strong> with zero heat removal, the coolant would reach boiling within minutes and the inventory would start to boil away — which is why some passive or backup heat sink must engage long before then. The early minutes dominate the challenge: the heat-up rate at 10&nbsp;s is more than 3&times; that at 1&nbsp;hr.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate a loss-of-flow heat-up in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">For the thermal-hydraulics weeks we use the free Python scientific stack — <code>NumPy</code> for arrays and <code>SciPy</code> for ODE integration (the industry code RELAP5-3D is license-gated, so we build a transparent lumped-parameter model instead). If you already set up the course environment in <strong>Week 1/2</strong>, you have everything you need; SciPy ships in that same conda/pip environment.</p>
+        <details class="install">
+            <summary>⬇ Need SciPy? (only if your Week-1 env skipped it)</summary>
+            <p>Add SciPy to the existing course environment — no new environment required:</p>
+            <pre>conda activate nuclear
+conda install -c conda-forge scipy</pre>
+            <p>Or with pip in your course venv:</p>
+            <pre>pip install scipy</pre>
+            <p><strong>Verify:</strong> <code>python -c "import numpy, scipy; print('ok')"</code></p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">We integrate the lumped energy balance dT/dt = (P_decay(t) &minus; Q_removed) / (m·c_p), using the power-law decay-heat model and a fixed passive heat-removal capacity.</p>
+        <pre><span class="c"># lofa_heatup.py — Lecture 6: decay-heat-driven coolant heat-up</span>
+import numpy as np
+from scipy.integrate import solve_ivp
+
+P0   = 3000e6        <span class="c"># pre-trip thermal power, W</span>
+m    = 2.5e5         <span class="c"># coolant mass, kg</span>
+cp   = 5000.0        <span class="c"># specific heat, J/(kg.K)</span>
+Q_passive = 30e6     <span class="c"># passive heat sink capacity, W (constant)</span>
+T0   = 560.0         <span class="c"># initial coolant temp, K</span>
+
+def decay_heat(t):
+    <span class="c"># Way-Wigner style power law; clamp t to avoid t=0 singularity</span>
+    t = np.maximum(t, 1.0)
+    return 0.066 * P0 * t**(-0.2)
+
+def dTdt(t, T):
+    return (decay_heat(t) - Q_passive) / (m * cp)
+
+sol = solve_ivp(dTdt, [1, 7200], [T0], dense_output=True,
+                t_eval=[1, 10, 60, 600, 3600, 7200])
+
+for t, T in zip(sol.t, sol.y[0]):
+    print(f"t = {t:7.0f} s   P_decay = {decay_heat(t)/1e6:6.1f} MW   T = {T:6.1f} K")
+
+<span class="c"># Early on decay heat >> Q_passive, so T climbs fast;</span>
+<span class="c"># once decay heat falls below the 30 MW sink, T peaks and turns over.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Try sweeping <code>Q_passive</code> from 20&nbsp;MW to 60&nbsp;MW: you will find a threshold capacity below which the coolant reaches boiling before decay heat drops enough — the quantitative version of "is the passive sink big enough?" that safety analysts compute for real plants.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#162a1f,#16221c); border-color:#2f5340;">
+        <h3 style="color:var(--accent2);">💬 Discussion</h3>
+        <p style="color:#cfeede;">Modern passive plants advertise that they can remove decay heat for roughly <strong>72 hours</strong> with no AC power and no operator action, relying on gravity-fed water and natural circulation. Active plants instead rely on diesel generators and pumps that can run essentially indefinitely as long as they keep working and have fuel. <strong>If you were arguing for one design philosophy over the other for decay-heat removal, which would you defend, and what is the key trade-off you would have to confront?</strong> Consider what each approach assumes about the worst-case scenario.</p>
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer; color:var(--accent2); font-weight:600; font-size:.9rem;">Show a model response</summary>
+            <div style="font-size:.9rem; color:#cfeede; margin-top:10px;">
+                <p style="margin-bottom:10px;">A strong answer recognizes that the two approaches optimize for different failure modes, so the "right" choice depends on which scenario you fear most.</p>
+                <p style="margin-bottom:10px;"><strong>Defending passive:</strong> The decisive advantage is that passive systems remove the failure mode that has caused the most severe real accidents — prolonged loss of all power. Natural circulation and gravity feed depend only on physics that cannot be switched off, so they survive a station blackout that would defeat diesels and pumps. The 72-hour grace period buys time to restore active cooling without any operator action or power. The trade-off you must confront: passive capacity is fixed and finite. After the grace period, you still need an active path (refilling tanks, restoring power), and natural circulation carries only a few percent of rated flow, so it works precisely because decay heat is small — it could not cool a core at full power.</p>
+                <p style="margin-bottom:10px;"><strong>Defending active:</strong> Diesels and pumps can run indefinitely and remove far more heat, giving margin and flexibility a fixed passive tank cannot. The trade-off: this depends on equipment continuing to function and on a fuel/maintenance supply chain — a common-cause event (flood, earthquake, sustained grid loss) can disable all of it at once, which is exactly the scenario passive systems are built to survive.</p>
+                <p style="font-size:.85rem; color:var(--accent2); border-top:1px dashed #2f5340; padding-top:10px; margin-top:6px;"><strong>✓ Self-check rubric:</strong> A complete answer (1) correctly states that decay heat, not reactivity, is the post-shutdown challenge; (2) ties passive cooling to the station-blackout failure mode; (3) names a concrete trade-off (finite grace period / low flow capacity vs. dependence on power and equipment); and (4) avoids claiming either approach is risk-free.</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Decay heat is the thread that ties this course together. In <strong>Week 7</strong> we turn these transients into numbers with probabilistic risk assessment — event trees and fault trees that quantify how likely a station blackout is to progress to core damage, and where to spend safety dollars. Later weeks connect decay-heat removal to <strong>spent-fuel management</strong> (the same power law, integrated over years) and to <strong>advanced reactor designs</strong> whose entire selling point is passive decay-heat removal. The lumped model you ran here is the conceptual seed of the full system codes used in licensing analyses.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Immediately after a reactor trips from full power, roughly what fraction of its previous thermal power does it still produce as decay heat?</div>
+            <div class="opt"><b>A.</b> About 6–7%</div>
+            <div class="opt"><b>B.</b> Essentially 0% — the chain reaction has stopped</div>
+            <div class="opt"><b>C.</b> About 50%</div>
+            <div class="opt"><b>D.</b> About 100% — unchanged from operation</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Decay heat starts at roughly 6–7% of pre-trip power. (B) ignores fission-product decay, the whole point of the lecture. (C) and (D) vastly overstate it — fission power itself collapses by &gt;90% at SCRAM; only the decay-heat remainder persists.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> What is the dominant physical source of decay heat in the seconds-to-hours after shutdown?</div>
+            <div class="opt"><b>A.</b> Residual prompt fission from neutrons still in the core</div>
+            <div class="opt"><b>B.</b> Friction from the coasting coolant pumps</div>
+            <div class="opt"><b>C.</b> Radioactive decay (beta and gamma) of fission products accumulated in the fuel</div>
+            <div class="opt"><b>D.</b> Chemical reaction between the cladding and coolant</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Beta and gamma decay of fission products thermalizing in the fuel dominates. (A) Prompt fission essentially ends at SCRAM. (B) Pump friction is negligible and stops anyway. (D) Cladding-steam reaction only occurs if the core has already overheated badly — it is a consequence, not the source.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Using P/P_0 ≈ 0.066·t^(−0.2), decay heat one hour (3600 s) after trip is closest to which fraction of full power?</div>
+            <div class="opt"><b>A.</b> About 6.6%</div>
+            <div class="opt"><b>B.</b> About 1.3%</div>
+            <div class="opt"><b>C.</b> About 0.07%</div>
+            <div class="opt"><b>D.</b> About 5%</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> 0.066 &times; 3600^(&minus;0.2) = 0.066 &times; 0.193 &approx; 0.0127, i.e. ~1.3%. (A) is the value near t = 1 s, not 1 hr. (C) is off by a factor of ~20. (D) ignores the power-law decline entirely.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> What primarily drives natural circulation cooling when the coolant pumps have stopped?</div>
+            <div class="opt"><b>A.</b> Magnetic forces on the coolant</div>
+            <div class="opt"><b>B.</b> Residual momentum from the stopped pumps</div>
+            <div class="opt"><b>C.</b> Electrostatic repulsion in the fluid</div>
+            <div class="opt"><b>D.</b> Buoyancy from the density difference between hot and cold coolant over the loop height</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Warm, less-dense coolant rises and cool, denser coolant sinks; the driving head is (rho_cold &minus; rho_hot)·g·H. (B) Residual momentum lasts only seconds during coastdown, not the sustained loop. (A) and (C) are not real mechanisms in this context.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why is a station blackout (loss of all AC power) considered a defining reactor-safety scenario?</div>
+            <div class="opt"><b>A.</b> It causes an immediate prompt-critical power excursion</div>
+            <div class="opt"><b>B.</b> It strips away the active pumps and systems, leaving decay-heat removal to passive physics and limited backups</div>
+            <div class="opt"><b>C.</b> It instantly stops decay heat, so no cooling is needed</div>
+            <div class="opt"><b>D.</b> It only matters for reactors that are shut down for refueling</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> SBO removes the AC-powered cooling systems, so the plant must remove decay heat with battery/steam-driven backups and passive natural circulation. (A) confuses it with a reactivity accident; SCRAM still works. (C) is backwards — decay heat continues regardless of power. (D) is false — SBO is most demanding for an operating core at full decay-heat load.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A scrammed reactor still produces <b>decay heat</b> (~6–7% of power initially) from <b>fission-product decay</b> — shutdown does not stop the heat.</li>
+            <li>Decay heat follows a <b>power-law decline</b> (P/P_0 ≈ 0.066·t^(−0.2)) with a heavy tail, so cooling is needed for days and beyond.</li>
+            <li>Traced <b>loss-of-flow</b> and <b>station-blackout</b> transients via the energy balance m·c_p·dT/dt = P_decay − Q_removed.</li>
+            <li>Explained <b>natural circulation</b> and <b>passive cooling</b> as buoyancy-driven backups that work without AC power.</li>
+            <li>Argued that <b>decay-heat removal</b>, not reactivity control, is the central post-shutdown safety challenge — and modeled it in Python.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Probabilistic Risk Assessment. We quantify how likely transients like station blackout are to progress to core damage, using event trees, fault trees, and the language of risk.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-eccs.html"><div class="dir">← Week 5</div><div class="ttl">Emergency Core Cooling Systems</div></a>
+        <a class="next" href="l07-probabilistic-risk-assessment.html"><div class="dir">Week 7 →</div><div class="ttl">Probabilistic Risk Assessment</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Ops &amp; Safety</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

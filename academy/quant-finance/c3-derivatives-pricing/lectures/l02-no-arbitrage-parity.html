@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C3 · Lecture 2 — No-Arbitrage &amp; Put-Call Parity</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C3 Derivatives</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>No-Arbitrage &amp; Put-Call Parity</h1>
+        <p class="sub">Before any model, one ironclad rule prices derivatives: two portfolios with identical future payoffs must cost the same today — or someone is handing out free money.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the <em>law of one price</em> and the <em>no-arbitrage principle</em>, and explain why they hold in liquid markets without any probability model.</li>
+            <li>Build a <em>replicating portfolio</em> and use it to derive the fair forward price F = S·e<sup>rT</sup>.</li>
+            <li>Derive and apply <em>put-call parity</em>: C − P = S − K·e<sup>−rT</sup>.</li>
+            <li>State the model-free <em>no-arbitrage bounds</em> that pin every European option between known limits.</li>
+            <li>Construct an explicit arbitrage trade — a conversion or reversal — when parity is violated.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>The Law of One Price &amp; No-Arbitrage</h2>
+        <p>Lecture 1 gave us payoff diagrams — the value of a call, a put, or a forward <em>at expiry</em>, as a function of the underlying price. The natural next question is: what should these contracts cost <strong>today</strong>, before we know how the underlying moves? Remarkably, much of the answer requires no forecast, no distribution, no model of the future at all. It follows from a single principle.</p>
+        <p>An <strong>arbitrage</strong> is a trade that costs nothing (or less than nothing) to enter and can never lose money, yet has a strictly positive chance of a payoff — a guaranteed "free lunch." The <span class="key">no-arbitrage principle</span> says such opportunities cannot persist: the instant one appears, traders pile in, and their buying and selling pushes prices until the gap closes. We therefore price every derivative <em>as if</em> no arbitrage exists, because in a liquid market it essentially doesn't.</p>
+        <p>A direct corollary is the <span class="key">law of one price</span>: if two portfolios deliver <strong>exactly the same cash flows in every future state of the world</strong>, they must trade at the same price now. If they didn't, you would buy the cheap one, sell the dear one, pocket the difference, and walk away with zero future risk — an arbitrage.</p>
+        <div class="eq">If payoff<sub>A</sub>(ω) = payoff<sub>B</sub>(ω) for every future state ω,&nbsp; then&nbsp; Price<sub>A</sub> = Price<sub>B</sub> today.<small>This is the engine behind every pricing result in this course. Notice there is no probability anywhere — it holds whatever the odds.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of two vending machines side by side. Both dispense the identical sealed bottle of water, guaranteed. If one charges \$1 and the other \$3, every shopper buys from the cheap machine and nobody touches the expensive one — so the \$3 price cannot survive. A derivative is just a "machine" that dispenses a state-dependent payoff; if you can build the same payoff more cheaply from other instruments, the expensive version must fall into line.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Replicating Portfolios &amp; the Forward Price</h2>
+        <p>The law of one price only bites if we can actually <em>build</em> a matching payoff. A <strong>replicating portfolio</strong> is a basket of simpler instruments — typically the underlying asset plus borrowing or lending cash — whose future value copies the contract we want to price. Once we have a replica, the contract's fair price is just the replica's cost. This "build it from parts" move is the single most important technique in derivatives.</p>
+        <p>The cleanest example is a <strong>forward contract</strong>: an agreement struck today to buy one unit of a non-dividend-paying asset at a fixed delivery price F at time T, with no money changing hands now. What F makes this contract fair (worth zero today)?</p>
+        <p>Replicate the forward's payoff with a self-financing trade you can do right now. Today, <strong>borrow S dollars</strong> at the continuously compounded risk-free rate r and use it to <strong>buy one share</strong> at its spot price S. You have spent nothing of your own — the loan funded the purchase. At time T you hold the share and owe the loan back with interest, S·e<sup>rT</sup>.</p>
+        <div class="eq">Borrow S, buy the asset&nbsp; ⟶ &nbsp;at time T: own 1 share, owe S·e<sup>rT</sup> cash<small>This "cash-and-carry" package has the identical payoff to being long a forward struck at F = S·e<sup>rT</sup>: in both cases you end up owning the share having paid that amount.</small></div>
+        <p>Delivering into a forward with price F leaves you owning the share having paid F. The carry package leaves you owning the share having paid S·e<sup>rT</sup>. Same asset, same final state — by the law of one price the forward must be costless only when its delivery price equals the carry cost:</p>
+        <div class="eq">F = S · e<sup>rT</sup><small>The fair forward price is the spot grown at the risk-free rate. Higher rates or longer maturities push F above spot; this gap is the <em>cost of carry</em>.</small></div>
+        <p>The logic is purely about <em>not leaving free money on the table</em>. If a dealer quoted a forward above S·e<sup>rT</sup>, you would sell the rich forward and run the carry package to deliver into it, banking the difference risk-free. If quoted below, you reverse every leg. Either way the quote is forced back to S·e<sup>rT</sup>.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The forward price is <strong>not</strong> the market's forecast of the future spot. F = S·e<sup>rT</sup> contains no view on whether the asset will rise or fall — it is a pure cost-of-carry relationship enforced by arbitrage. Two traders who violently disagree about tomorrow's price still agree on today's fair forward.</div>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Put-Call Parity</h2>
+        <p>Now apply replication to options. Consider two portfolios over a European call and put on the same asset, same strike K, same expiry T. Let C and P be the call and put prices today, S the spot.</p>
+        <p><strong>Portfolio A:</strong> own one call and lend K·e<sup>−rT</sup> in cash (which grows to exactly K at T). <strong>Portfolio B:</strong> own one put and one share of the underlying. Look at what each is worth at expiry, in the two possible regions of the final price S<sub>T</sub>:</p>
+        <table class="dist">
+            <thead><tr><th>At expiry T</th><th>If S<sub>T</sub> &gt; K</th><th>If S<sub>T</sub> ≤ K</th></tr></thead>
+            <tbody>
+                <tr><td><b>A:</b> call + cash K</td><td>(S<sub>T</sub> − K) + K = S<sub>T</sub></td><td>0 + K = K</td></tr>
+                <tr><td><b>B:</b> put + share</td><td>0 + S<sub>T</sub> = S<sub>T</sub></td><td>(K − S<sub>T</sub>) + S<sub>T</sub> = K</td></tr>
+            </tbody>
+        </table>
+        <p>In <em>every</em> future state the two portfolios deliver the same value — max(S<sub>T</sub>, K). By the law of one price they must cost the same today. Equating the costs gives the celebrated <strong>put-call parity</strong> for a non-dividend-paying asset:</p>
+        <div class="eq">C + K·e<sup>−rT</sup> = P + S&nbsp;&nbsp;⟺&nbsp;&nbsp; C − P = S − K·e<sup>−rT</sup><small>It ties together four instruments — call, put, stock, bond — with no assumption about volatility, drift, or the price distribution. It is exact, not approximate.</small></div>
+        <p>Parity is enormously useful in practice. Quote a call and parity instantly hands you the matching put (and vice versa), so you never need to model both. It also reveals a hidden bond: rearranged, a call minus a put is a <em>synthetic forward</em> on the stock. Desks use parity as a sanity check on their quotes and as a recipe for manufacturing whichever leg a client wants out of the legs they already hold.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 230" role="img" aria-label="Two payoff lines at expiry. Portfolio A, a call plus cash K, is flat at K for low prices then rises one-for-one above the strike. Portfolio B, a put plus a share, traces the identical kinked line, showing the two overlap everywhere.">
+                <!-- axes -->
+                <line x1="46" y1="185" x2="380" y2="185" stroke="#bcae8c" stroke-width="1.5"/>
+                <line x1="46" y1="30" x2="46" y2="185" stroke="#bcae8c" stroke-width="1.5"/>
+                <text x="370" y="203" fill="#bcae8c" font-size="10" text-anchor="middle">S_T</text>
+                <text x="30" y="40" fill="#bcae8c" font-size="10" text-anchor="middle">value</text>
+                <!-- strike marker -->
+                <line x1="170" y1="185" x2="170" y2="130" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="170" y="200" fill="#bcae8c" font-size="10" text-anchor="middle">K</text>
+                <!-- K level on axis -->
+                <line x1="46" y1="130" x2="170" y2="130" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="38" y="134" fill="#bcae8c" font-size="10" text-anchor="end">K</text>
+                <!-- Portfolio A line: flat at K then rises -->
+                <path d="M46,130 L170,130 L320,55" fill="none" stroke="#fbbf24" stroke-width="3"/>
+                <!-- Portfolio B line: identical, drawn dashed and slightly offset visually but same coords -->
+                <path d="M46,130 L170,130 L320,55" fill="none" stroke="#34d399" stroke-width="1.6" stroke-dasharray="6 5"/>
+                <!-- legend -->
+                <rect x="210" y="40" width="18" height="4" fill="#fbbf24"/>
+                <text x="234" y="44" fill="#fcd34d" font-size="10">A: call + cash K·e^(−rT)</text>
+                <rect x="210" y="58" width="18" height="4" fill="#34d399"/>
+                <text x="234" y="62" fill="#6ee7b7" font-size="10">B: put + share</text>
+                <!-- annotation of common payoff -->
+                <text x="250" y="92" fill="#bcae8c" font-size="9.5" text-anchor="middle">both = max(S_T , K)</text>
+            </svg>
+            <figcaption>Put-call parity, drawn. Portfolio A (call + cash that grows to K) and Portfolio B (put + share) trace the exact same kinked payoff, max(S<sub>T</sub>, K), at expiry — flat at K below the strike, rising one-for-one above it. Identical payoffs force identical prices today, which is parity.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>No-Arbitrage Bounds &amp; Building the Arbitrage</h2>
+        <p>Even before any model gives an exact price, no-arbitrage alone <em>boxes in</em> every option. For a European call on a non-dividend-paying stock, the price can never be negative (you can throw the option away), can never exceed the stock itself (the call delivers at most the stock, and only after paying K), and can never sit below its discounted intrinsic value (else the synthetic-forward leg of parity would be free money):</p>
+        <div class="eq">max(S − K·e<sup>−rT</sup>, 0) ≤ C ≤ S&nbsp;&nbsp;&nbsp;&nbsp; and&nbsp;&nbsp;&nbsp;&nbsp; max(K·e<sup>−rT</sup> − S, 0) ≤ P ≤ K·e<sup>−rT</sup><small>These hold with no distributional assumption. Any quote outside the box is itself an arbitrage.</small></div>
+        <p>The deepest payoff of this lecture is operational: when parity breaks, you can <strong>write down the exact trade</strong> that harvests the mispricing. Suppose the market shows the left side of parity rich — that is, the call-plus-bond package is dearer than the put-plus-share package:</p>
+        <div class="eq">C + K·e<sup>−rT</sup> &gt; P + S<small>The synthetic security on the left is overpriced relative to the one on the right.</small></div>
+        <p><strong>Sell the expensive side, buy the cheap side.</strong> This trade is called a <em>conversion</em>: <span class="key">write the call</span>, <span class="key">borrow K·e<sup>−rT</sup></span> (sell the bond), <span class="key">buy the put</span>, and <span class="key">buy the share</span>. The opening cash flow is C + K·e<sup>−rT</sup> − P − S &gt; 0 — a strictly positive amount in your pocket today. At expiry, as the parity table showed, the long put-plus-share exactly funds whatever the short call demands, and the loan is repaid from the K you set aside. Net future cash flow: <strong>zero in every state.</strong> Money today, no risk later — a textbook arbitrage. (If the inequality flips, you run the mirror trade, the <em>reversal</em>.)</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't forget the <strong>time value of money</strong> when checking parity. Comparing C − P directly against S − K (using the raw strike instead of the discounted strike K·e<sup>−rT</sup>) will make almost every quote look mispriced. The discounting is doing essential work — it is the bond leg of the replica.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — spotting and trading a parity violation</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A non-dividend stock trades at S = \$100. A 1-year European call and put, both struck at K = \$100, are quoted at C = \$10.00 and P = \$4.00. The risk-free rate is r = 5% (continuous). Is parity satisfied? If not, build the arbitrage.</p>
+        <ol>
+            <li><strong>Discount the strike:</strong> K·e<sup>−rT</sup> = 100·e<sup>−0.05·1</sup> = 100·0.95123 = <strong>\$95.123</strong>.</li>
+            <li><strong>Check parity, C − P vs S − K·e<sup>−rT</sup>:</strong> left side = 10.00 − 4.00 = <strong>6.00</strong>; right side = 100 − 95.123 = <strong>4.877</strong>. They disagree by \$1.123, so parity is <strong>violated</strong>.</li>
+            <li><strong>Identify the rich side:</strong> C − P (6.00) is too high relative to S − K·e<sup>−rT</sup> (4.877). Equivalently C + K·e<sup>−rT</sup> = 105.123 &gt; P + S = 104.00 — the call-plus-bond package is the expensive one.</li>
+            <li><strong>Run the conversion:</strong> write the call (+\$10.00), buy the put (−\$4.00), buy the share (−\$100), and borrow 95.123 (+\$95.123). Net cash <em>in</em> today = 10 − 4 − 100 + 95.123 = <strong>+\$1.123</strong>.</li>
+            <li><strong>Confirm no future risk:</strong> at T you owe the loan 95.123·e<sup>0.05</sup> = \$100 = K. If S<sub>T</sub> &gt; 100 the short call delivers your share for K = 100, paying the loan exactly; the put expires worthless. If S<sub>T</sub> ≤ 100 the put lets you sell the share for K = 100, again paying the loan; the call expires worthless. Either way you end flat — having kept the <strong>\$1.123 risk-free</strong>.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a put-call parity arbitrage checker</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This is an early week, so set up the course Python stack once with the install block below. We'll write a tiny function that takes live-style quotes, tests parity, and — when it breaks — prints the exact conversion or reversal to run, then verifies the payoff is zero in both expiry regions.</p>
+        <details class="install">
+            <summary>⬇ One-time setup — the C3 Python stack (all free)</summary>
+            <p>Create an isolated environment and install the free scientific stack used throughout this course:</p>
+            <pre>python3 -m venv quant-env
+source quant-env/bin/activate      <span class="c"># macOS / Linux  (quant-env\Scripts\activate on Windows)</span>
+pip install numpy scipy matplotlib jupyter</pre>
+            <p>Launch a notebook with <code>jupyter notebook</code>, or just run the script with <code>python parity_check.py</code>.</p>
+        </details>
+        <pre><span class="c"># parity_check.py — Lecture 2</span>
+import numpy as np
+
+def check_parity(C, P, S, K, r, T, tol=1e-6):
+    rhs   = S - K * np.exp(-r * T)        <span class="c"># S − K e^(−rT)</span>
+    lhs   = C - P                          <span class="c"># C − P</span>
+    gap   = lhs - rhs
+    print(f"C - P            = {lhs:8.4f}")
+    print(f"S - K*e^(-rT)    = {rhs:8.4f}")
+    print(f"parity gap       = {gap:8.4f}")
+    if abs(gap) &lt; tol:
+        print("=&gt; parity holds, no arbitrage."); return
+    side = "conversion (sell call+bond, buy put+share)" if gap &gt; 0 \
+           else "reversal (buy call+bond, sell put+share)"
+    print(f"=&gt; VIOLATION: run a {side}; lock-in = {abs(gap):.4f} per unit")
+
+    <span class="c"># verify the conversion nets zero in BOTH expiry regions</span>
+    for ST in (K * 0.8, K * 1.2):          <span class="c"># below and above the strike</span>
+        call = max(ST - K, 0); put = max(K - ST, 0)
+        <span class="c"># conversion: short call, long put, long share, short bond (owe K)</span>
+        payoff = -call + put + ST - K
+        print(f"   S_T={ST:6.1f}  expiry payoff = {payoff:+.4f}")
+
+check_parity(C=10.0, P=4.0, S=100.0, K=100.0, r=0.05, T=1.0)</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The parity gap prints <code>+1.1228</code>, the script flags a conversion, and the expiry payoff is <code>+0.0000</code> for both S<sub>T</sub> = 80 and S<sub>T</sub> = 120 — confirming the lock-in is risk-free. Feed it your own quotes; if the gap ever drifts past transaction costs, you've found a (fleeting) free lunch.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>No-arbitrage is the load-bearing wall of the whole specialization. Next week we let the stock move in a one-period <strong>binomial tree</strong> and replicate an option with a delta of shares plus a bond — the same "build it from parts" move, now state by state — which leads to <strong>risk-neutral pricing</strong>. Push the tree to a continuous limit and you reach <strong>Black–Scholes</strong> (Week 5), whose formula <em>automatically</em> satisfies the parity you derived here by hand. The conversion/reversal logic also underlies real desk activity: market-makers quote calls and puts off a single volatility surface precisely because parity chains them together, and any drift is arbitraged away in seconds.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The fair forward price of a non-dividend-paying asset, F = S·e<sup>rT</sup>, is best described as…</div>
+            <div class="opt"><b>A.</b> the market's forecast of the spot price at time T</div>
+            <div class="opt"><b>B.</b> the spot price grown at the risk-free rate — a pure cost-of-carry relationship</div>
+            <div class="opt"><b>C.</b> always equal to the spot price S</div>
+            <div class="opt"><b>D.</b> the expected payoff discounted at the asset's growth rate</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> F = S·e<sup>rT</sup> comes from the cash-and-carry replication and contains no forecast (A is the classic misconception). It equals S only when rT = 0 (C is false in general). It is not a discounted expected payoff — no probabilities enter at all (D is wrong).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Put-call parity for a non-dividend stock states that C − P equals…</div>
+            <div class="opt"><b>A.</b> S − K·e<sup>−rT</sup></div>
+            <div class="opt"><b>B.</b> S − K</div>
+            <div class="opt"><b>C.</b> K·e<sup>−rT</sup> − S</div>
+            <div class="opt"><b>D.</b> S + K·e<sup>−rT</sup></div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Parity is C − P = S − K·e<sup>−rT</sup>. Choice B forgets to discount the strike (the most common error). C has the sign of the whole expression flipped. D adds rather than subtracts the bond, which doesn't replicate anything.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Why must two portfolios with identical payoffs in every future state have the same price today?</div>
+            <div class="opt"><b>A.</b> Because their expected returns must match under the real-world probabilities</div>
+            <div class="opt"><b>B.</b> Because otherwise you could buy the cheaper and sell the dearer for a risk-free profit — an arbitrage</div>
+            <div class="opt"><b>C.</b> Because regulators require derivative prices to be consistent</div>
+            <div class="opt"><b>D.</b> Because volatility is the same for both</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> This is the law of one price, enforced by no-arbitrage: any price gap between identical-payoff portfolios is itself a free lunch that traders instantly close. It needs no probabilities (A), no regulator (C), and says nothing about volatility (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> You observe S = \$50, K = \$50, r = 4%, T = 1 yr, C = \$6, P = \$4. Is there an arbitrage, and on which side?</div>
+            <div class="opt"><b>A.</b> No arbitrage; parity holds exactly</div>
+            <div class="opt"><b>B.</b> Yes — C − P is too low; buy the call-plus-bond side (a reversal)</div>
+            <div class="opt"><b>C.</b> Cannot tell without knowing the volatility</div>
+            <div class="opt"><b>D.</b> Yes — C − P is too high; sell the call-plus-bond side (a conversion)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> C − P = 2.00; S − K·e<sup>−rT</sup> = 50 − 50·e<sup>−0.04</sup> = 50 − 48.04 = 1.96. Since 2.00 &gt; 1.96, the call-plus-bond side is rich, so you sell it (write call, sell bond) and buy the put-plus-share side — a conversion. B has the direction backwards; A is false because the sides differ; volatility is irrelevant to parity, so C is wrong.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Which of these is a valid model-free no-arbitrage bound on a European call (non-dividend stock)?</div>
+            <div class="opt"><b>A.</b> C can exceed the stock price S whenever volatility is high</div>
+            <div class="opt"><b>B.</b> C must equal its intrinsic value S − K at all times</div>
+            <div class="opt"><b>C.</b> C ≥ max(S − K·e<sup>−rT</sup>, 0) and C ≤ S, with no distributional assumption</div>
+            <div class="opt"><b>D.</b> C can be negative if the option is far out of the money</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A call is bounded below by its discounted intrinsic value (and 0) and above by the stock itself — both follow from no-arbitrage alone. The call can never exceed S (A is false) nor go negative (D is false, you can always discard it). It generally trades above intrinsic value because of time value, so B is wrong.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>no-arbitrage principle</b> and <b>law of one price</b> — identical future payoffs force identical prices today, with no probability model needed.</li>
+            <li>How a <b>replicating portfolio</b> (cash-and-carry) prices a forward: <b>F = S·e<sup>rT</sup></b>, a cost of carry, not a forecast.</li>
+            <li><b>Put-call parity</b>, C − P = S − K·e<sup>−rT</sup>, derived by matching call+bond against put+share state by state.</li>
+            <li>The model-free <b>no-arbitrage bounds</b> that box every European option between known limits.</li>
+            <li>How to <b>construct the arbitrage</b> — a conversion or reversal — when parity is violated, and verify it nets zero at expiry.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: the one-period binomial model and risk-neutral pricing, where replication moves from a fixed payoff to a state-by-state delta of shares plus a bond.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-options-payoffs.html"><div class="dir">← Week 1</div><div class="ttl">Options, Forwards &amp; Payoff Diagrams</div></a>
+        <a class="next" href="l03-binomial-one-period.html"><div class="dir">Week 3 →</div><div class="ttl">One-Period Binomial &amp; Risk-Neutral Pricing</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Derivatives</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

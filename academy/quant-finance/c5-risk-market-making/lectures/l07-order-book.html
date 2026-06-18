@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C5 · Lecture 7 — Market Microstructure &amp; the Limit Order Book</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C5 Risk &amp; MM</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Market Microstructure &amp; the Limit Order Book</h1>
+        <p class="sub">Underneath every quoted price sits a living queue of orders — and learning to read that queue is the difference between trading the market and being traded by it.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain what market microstructure studies and why the mechanics of <em>how</em> a trade happens matter as much as <em>what</em> you trade.</li>
+            <li>Read a limit order book — its bid and ask queues, depth at each level, and the price–time priority rule that orders them.</li>
+            <li>Distinguish a <strong>market order</strong> (demand liquidity, pay the spread) from a <strong>limit order</strong> (supply liquidity, earn the spread).</li>
+            <li>Define the bid–ask spread, mid price, and tick size, and explain why the spread is a cost to takers and a reward to makers.</li>
+            <li>Trace how an incoming marketable order "walks the book," consumes depth, and creates slippage and price impact.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>What Is Market Microstructure?</h2>
+        <p>Most of this specialization treats a price as a single number that drifts and diffuses — a clean <em>P</em> in a stochastic differential equation. <strong>Market microstructure</strong> zooms all the way in and asks the uncomfortable question that number hides: <em>how does a price actually come to exist?</em> There is no auctioneer shouting one fair value. Instead there are thousands of separate buy and sell intentions, each with its own price and size, sitting in an electronic queue and getting matched by a deterministic set of rules.</p>
+        <p>That distinction has teeth. A portfolio model might say "buy 100,000 shares at the screen price." Microstructure says: there is no single screen price — there is a best offer with limited size, then a worse offer, then a worse one still. The moment you try to buy that much, you move the very price you wanted. The gap between the idealized price and what you actually pay is born entirely in the order book. Microstructure is the study of <span class="key">how prices and liquidity are formed by the matching of individual orders</span>, and it governs your real-world transaction costs.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of an airline seat map, not a single "ticket price." A few cheap seats are left, then a tier of pricier ones, then business class. If you need ten seats <em>right now</em>, you sweep up the cheap ones and spill into the expensive tiers — your <em>average</em> price is worse than the headline fare. The order book is that seat map for an asset, refreshed many times per second.</div>
+        <p>Two roles recur throughout the lecture. A <strong>liquidity taker</strong> wants to trade immediately and accepts whatever prices are resting in the book. A <strong>liquidity provider</strong> (or maker) posts patient orders and waits to be filled. Every trade is a handshake between exactly one of each — a structure we will build on next week when <em>you</em> become the maker.</p>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>The Limit Order Book: Bids, Asks, Depth &amp; Priority</h2>
+        <p>The <strong>limit order book</strong> (LOB) is the central data structure of a modern electronic market. It is two sorted lists of resting <em>limit orders</em> — promises to trade a stated quantity at no worse than a stated price:</p>
+        <ul style="margin-left:20px; font-size:.95rem; margin-bottom:14px;">
+            <li>The <span class="key">bid</span> side: buyers, each willing to pay up to some price. Sorted high-to-low — the highest bid is the <strong>best bid</strong>.</li>
+            <li>The <span class="key">ask</span> (offer) side: sellers, each willing to sell down to some price. Sorted low-to-high — the lowest ask is the <strong>best ask</strong>.</li>
+        </ul>
+        <p>The best bid always sits <em>below</em> the best ask. Why? If a buyer were ever willing to pay as much as a seller demanded, they would simply trade and both orders would vanish from the book. So the book's two sides never overlap; the visible gap between them is the spread (§7.3). The quantity resting at each price level is the <strong>depth</strong>, and the stack of several levels is the <em>shape</em> of the book — a thick book absorbs large orders cheaply, a thin one does not.</p>
+        <p>When two orders compete, the exchange needs a tie-breaker. The near-universal rule is <span class="key">price–time priority</span>: better-priced orders fill first; among orders at the <em>same</em> price, the one that arrived <em>earliest</em> fills first.</p>
+        <div class="eq">priority rank&nbsp; = &nbsp;(better price)&nbsp; then &nbsp;(earlier timestamp)<small>A buy order at \$100.02 beats one at \$100.01. Two buys both at \$100.02 fill in arrival order — first in, first out.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 420 250" role="img" aria-label="A limit order book diagram. Red ask bars on the left grow taller upward in price from 100.03 to 100.06, green bid bars on the right grow taller downward in price from 100.02 to 100.00, with a labeled spread gap between the best ask 100.03 and best bid 100.02 and a mid price line at 100.025.">
+                <!-- title labels -->
+                <text x="120" y="20" fill="#f87171" font-size="12" font-weight="700" text-anchor="middle">ASKS (sellers)</text>
+                <text x="320" y="20" fill="#34d399" font-size="12" font-weight="700" text-anchor="middle">BIDS (buyers)</text>
+                <!-- center price axis -->
+                <line x1="210" y1="34" x2="210" y2="230" stroke="#3a3119" stroke-width="1"/>
+                <!-- ask levels: price decreasing top->bottom toward best ask near the gap -->
+                <!-- row y positions: 100.06=46, 100.05=74, 100.04=102, 100.03=130 (best ask) -->
+                <rect x="120" y="40"  width="80" height="18" fill="#7f1d1d"/>
+                <rect x="100" y="68"  width="100" height="18" fill="#991b1b"/>
+                <rect x="130" y="96"  width="70" height="18" fill="#b91c1c"/>
+                <rect x="90"  y="124" width="110" height="18" fill="#ef4444"/>
+                <text x="206" y="53"  fill="#fca5a5" font-size="9.5" text-anchor="end">100.06 · 60</text>
+                <text x="206" y="81"  fill="#fca5a5" font-size="9.5" text-anchor="end">100.05 · 80</text>
+                <text x="206" y="109" fill="#fca5a5" font-size="9.5" text-anchor="end">100.04 · 50</text>
+                <text x="206" y="137" fill="#fecaca" font-size="9.5" font-weight="700" text-anchor="end">100.03 · 90 ◄ best ask</text>
+                <!-- bid levels: best bid near gap top, price decreasing downward -->
+                <!-- 100.02=158 (best bid), 100.01=186, 100.00=214 -->
+                <rect x="220" y="154" width="120" height="18" fill="#065f46"/>
+                <rect x="220" y="182" width="85"  height="18" fill="#047857"/>
+                <rect x="220" y="210" width="100" height="18" fill="#059669"/>
+                <text x="224" y="167" fill="#6ee7b7" font-size="9.5" font-weight="700">best bid ► 100.02 · 100</text>
+                <text x="224" y="195" fill="#a7f3d0" font-size="9.5">100.01 · 70</text>
+                <text x="224" y="223" fill="#a7f3d0" font-size="9.5">100.00 · 95</text>
+                <!-- spread gap bracket between best ask (y=124..142) and best bid (y=154..172) -->
+                <line x1="60" y1="142" x2="60" y2="154" stroke="#fbbf24" stroke-width="1.4"/>
+                <line x1="56" y1="142" x2="64" y2="142" stroke="#fbbf24" stroke-width="1.4"/>
+                <line x1="56" y1="154" x2="64" y2="154" stroke="#fbbf24" stroke-width="1.4"/>
+                <text x="58" y="138" fill="#fcd34d" font-size="9" text-anchor="middle">spread</text>
+                <text x="58" y="166" fill="#fcd34d" font-size="9" text-anchor="middle">0.01</text>
+                <!-- mid price line -->
+                <line x1="48" y1="148" x2="372" y2="148" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="4 3"/>
+                <text x="372" y="145" fill="#93c5fd" font-size="9.5" text-anchor="end">mid 100.025</text>
+            </svg>
+            <figcaption>A snapshot of a limit order book. Sellers' asks (red) sit above buyers' bids (green); bar length is the depth (size) at each price. The best ask (100.03) and best bid (100.02) sandwich the 0.01 spread, and the mid price (100.025, dashed) is their average.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>The "price" on a ticker is usually the <strong>last traded price</strong> or the <strong>mid</strong> — neither is a price you can actually transact at for size. You buy at the ask and sell at the bid. Treating the mid as your fill price quietly ignores half the spread on every trade, which for a high-turnover strategy can dwarf the alpha you were chasing.</div>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Orders, the Spread &amp; Tick Size</h2>
+        <p>There are two atomic order types, and their difference is the heart of microstructure.</p>
+        <h3>Limit order — supply liquidity</h3>
+        <p>A <strong>limit order</strong> states a price you will not cross. A buy limit at 100.02 means "buy, but pay no more than 100.02." If no one is selling that cheaply, it does not trade — it <em>rests</em> in the book, adding depth and waiting its turn under price–time priority. You control your price but not whether (or when) you fill. A resting limit order <em>provides</em> liquidity.</p>
+        <h3>Market order — demand liquidity</h3>
+        <p>A <strong>market order</strong> states a size and says "fill me now, at whatever prices are resting." It crosses the spread immediately, matching against the best opposing limit orders. You control execution certainty but not price. A market order <em>consumes</em> liquidity.</p>
+        <p>The <strong>bid–ask spread</strong> is the gap between best ask and best bid, and the <strong>mid price</strong> is their average:</p>
+        <div class="eq">spread = best ask − best bid&nbsp;&nbsp;&nbsp;&nbsp; mid = (best ask + best bid) / 2<small>A taker who buys at the ask and immediately sells at the bid loses the full spread — the maker's profit and the taker's round-trip cost.</small></div>
+        <p>The spread is not arbitrary noise; it is the price of immediacy. The taker pays it to trade <em>now</em>; the maker earns it as compensation for the risk of posting a passive quote (it might get filled just as the market moves against them — the <em>adverse selection</em> we tackle next week). Half the spread, measured from the mid, is the natural per-trade cost estimate:</p>
+        <div class="eq">taker cost per share ≈ spread / 2&nbsp;&nbsp;(relative to mid)</div>
+        <p>The smallest allowed price increment is the <strong>tick size</strong>. It quantizes the book: with a one-cent tick, prices live on a 100.01, 100.02, 100.03 grid and the spread can never be smaller than one tick. Tick size shapes behavior — too large and the spread is forced wide (costly for takers); too small and queues fragment across many near-identical prices, weakening price–time priority's protection of patient orders.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A limit order is listing your used bike for \$200 and waiting for a buyer; a market order is walking into a pawn shop and taking whatever they offer right now. The first lets you name your price but might never sell; the second guarantees a sale but at the worse, immediate price. The pawn shop's markup <em>is</em> the spread.</div>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>Walking the Book: Slippage &amp; Price Impact</h2>
+        <p>A market order larger than the depth at the best level cannot fill at one price. It <strong>walks the book</strong>: it takes all the size at the best level, then the next level, then the next, until its quantity is satisfied. Each successive level is a worse price, so the order's <em>average</em> execution price is worse than the best quote it started at.</p>
+        <p>Two related costs emerge. <span class="key">Slippage</span> is the difference between the price you expected (say, the mid or the best quote) and the volume-weighted average price you actually got. <span class="key">Price impact</span> is the fact that after your order clears those levels, the new best quote has <em>moved</em> — you have shifted the price by consuming liquidity.</p>
+        <div class="eq">VWAP<sub>fill</sub> = ( Σ<sub>levels</sub> price<sub>i</sub> × qty<sub>i</sub> ) / ( Σ<sub>levels</sub> qty<sub>i</sub> )<small>The fill price is the depth-weighted average of every level the order ate. The bigger the order relative to depth, the further it climbs and the worse the VWAP.</small></div>
+        <p>This is why a thick, deep book is precious: it lets large orders trade near the touch with little impact. A thin book means even a modest order skips several ticks, and the realized cost can swamp a strategy's edge. Estimating impact <em>before</em> sending an order — and slicing a big order into small child orders over time to limit it — is a core execution discipline.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 220" role="img" aria-label="A staircase showing a 200-share buy market order walking up three ask levels: 90 shares at 100.03, then 50 at 100.04, then 60 at 100.05, with a dashed line marking the resulting volume-weighted average fill price near 100.038 above the starting best ask.">
+                <text x="210" y="18" fill="#bcae8c" font-size="11" text-anchor="middle">A 200-share buy walks the ask side</text>
+                <!-- axes -->
+                <line x1="50" y1="180" x2="395" y2="180" stroke="#bcae8c" stroke-width="1.3"/>
+                <line x1="50" y1="40"  x2="50"  y2="180" stroke="#bcae8c" stroke-width="1.3"/>
+                <text x="44" y="46" fill="#bcae8c" font-size="9" text-anchor="end">price</text>
+                <text x="392" y="172" fill="#bcae8c" font-size="9" text-anchor="end">cumulative shares</text>
+                <!-- step 1: 0->90 shares at 100.03 (y=140) -->
+                <line x1="50"  y1="140" x2="160" y2="140" stroke="#ef4444" stroke-width="2.5"/>
+                <line x1="160" y1="140" x2="160" y2="110" stroke="#ef4444" stroke-width="1.4" stroke-dasharray="3 2"/>
+                <text x="105" y="133" fill="#fca5a5" font-size="9" text-anchor="middle">90 @ 100.03</text>
+                <!-- step 2: 90->140 shares at 100.04 (y=110) -->
+                <line x1="160" y1="110" x2="245" y2="110" stroke="#ef4444" stroke-width="2.5"/>
+                <line x1="245" y1="110" x2="245" y2="80"  stroke="#ef4444" stroke-width="1.4" stroke-dasharray="3 2"/>
+                <text x="202" y="103" fill="#fca5a5" font-size="9" text-anchor="middle">50 @ 100.04</text>
+                <!-- step 3: 140->200 shares at 100.05 (y=80) -->
+                <line x1="245" y1="80"  x2="345" y2="80"  stroke="#ef4444" stroke-width="2.5"/>
+                <text x="295" y="73" fill="#fca5a5" font-size="9" text-anchor="middle">60 @ 100.05</text>
+                <!-- VWAP line at 100.038 -> map to y. price grid: 100.03=140,100.04=110,100.05=80 => 0.01->30px; 100.038 => 140-0.8*30=116 -->
+                <line x1="50" y1="116" x2="345" y2="116" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5 3"/>
+                <text x="345" y="112" fill="#fcd34d" font-size="9.5" text-anchor="end">VWAP ≈ 100.038</text>
+                <!-- best-ask reference -->
+                <line x1="50" y1="140" x2="50" y2="140" />
+                <text x="54" y="156" fill="#6ee7b7" font-size="9">start: best ask 100.03</text>
+                <!-- x tick labels -->
+                <text x="160" y="193" fill="#bcae8c" font-size="8.5" text-anchor="middle">90</text>
+                <text x="245" y="193" fill="#bcae8c" font-size="8.5" text-anchor="middle">140</text>
+                <text x="345" y="193" fill="#bcae8c" font-size="8.5" text-anchor="middle">200</text>
+            </svg>
+            <figcaption>Walking the book: a 200-share market buy clears 90 shares at 100.03, 50 at 100.04, and 60 at 100.05. Its VWAP fill (≈100.038, gold dashed) sits above the starting best ask — the difference from the mid is the slippage, and the book's new best ask is now 100.05.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Assuming an entire large order fills at the best quote. The displayed best ask only has the depth shown at that level. Sizing trades off the top-of-book price — rather than off cumulative depth — systematically <em>underestimates</em> execution cost, and the error grows precisely when liquidity is thinnest and you can least afford it.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — cost of a 200-share market buy</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Use the ask side from the figure. Best bid is 100.02, so mid = (100.03 + 100.02)/2 = 100.025. You send a market buy for 200 shares. Find the VWAP, the slippage vs. mid, and the new best ask.</p>
+        <ol>
+            <li><strong>List the depth you'll consume (price–time priority, cheapest asks first):</strong> 90 @ 100.03, then 50 @ 100.04, then 60 @ 100.05. That is 90 + 50 + 60 = <strong>200 shares</strong> — exactly your order.</li>
+            <li><strong>Dollar cost of each slice:</strong> 90 × 100.03 = 9 002.70; 50 × 100.04 = 5 002.00; 60 × 100.05 = 6 003.00. Total = <strong>\$20 007.70</strong>.</li>
+            <li><strong>VWAP = total cost / shares:</strong> 20 007.70 / 200 = <strong>100.0385</strong> per share.</li>
+            <li><strong>Slippage vs. mid:</strong> 100.0385 − 100.025 = <strong>0.0135 per share</strong>, i.e. 200 × 0.0135 = <strong>\$2.70</strong> worse than trading the whole lot at the mid.</li>
+            <li><strong>New top of book:</strong> the 100.03 and 100.04 levels are fully gone and 100.05 is partially eaten (60 of its 80 taken). The best ask is now <strong>100.05</strong> with 20 shares left — you moved the price up two ticks. A patient trader who had posted a limit buy at 100.02 instead would have paid the mid-or-better and earned, not paid, the spread — but might never have filled.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate walking the book</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1/2 environment (NumPy + Jupyter — the install block lives in the early lectures if you skipped it). We'll represent an ask book as price/size levels and write a function that walks it for a market buy, returning the VWAP, slippage, and the resulting best ask.</p>
+        <details class="install">
+            <summary>⬇ Need the environment? (reuse the early-week setup)</summary>
+            <p>If you already built <code>quant-env</code>, just activate it. Otherwise:</p>
+            <pre>python3 -m venv quant-env
+source quant-env/bin/activate      <span class="c"># macOS / Linux  (quant-env\Scripts\activate on Windows)</span>
+pip install numpy scipy matplotlib pandas jupyter</pre>
+        </details>
+        <pre><span class="c"># walk_book.py — Lecture 7</span>
+import numpy as np
+
+<span class="c"># ask side, cheapest first: (price, size). Best bid given separately.</span>
+asks = [(100.03, 90), (100.04, 50), (100.05, 80), (100.06, 60)]
+best_bid = 100.02
+mid = (asks[0][0] + best_bid) / 2          <span class="c"># 100.025</span>
+
+def market_buy(asks, qty):
+    cost, filled, remaining = 0.0, 0, list(asks)
+    while qty &gt; 0 and remaining:
+        price, size = remaining[0]
+        take = min(qty, size)              <span class="c"># can't take more than the level holds</span>
+        cost += take * price
+        qty  -= take
+        filled += take
+        if take == size:
+            remaining.pop(0)               <span class="c"># level fully consumed</span>
+        else:
+            remaining[0] = (price, size - take)
+    vwap = cost / filled
+    new_best_ask = remaining[0][0] if remaining else None
+    return vwap, cost, new_best_ask
+
+vwap, cost, new_ask = market_buy(asks, 200)
+print(f"VWAP fill     : {vwap:.4f}")        <span class="c"># 100.0385</span>
+print(f"total cost    : {cost:.2f}")        <span class="c"># 20007.70</span>
+print(f"slippage/share: {vwap - mid:+.4f}") <span class="c"># +0.0135 vs mid</span>
+print(f"new best ask  : {new_ask}")         <span class="c"># 100.05 (20 left)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Sweep the order size — <code>for q in [50, 200, 500]: print(q, market_buy(asks, q)[0])</code> — and watch the VWAP climb as the order eats deeper into the book. Plotting VWAP vs. order size with Matplotlib traces an empirical <em>price-impact curve</em>, the exact object an execution algorithm tries to minimize.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now own the board on which the rest of this course is played. <strong>Next week</strong> you flip sides and become the <em>maker</em>: posting two-sided limit quotes, capturing the spread, and managing inventory and adverse selection — the foundation of the Avellaneda–Stoikov market-making framework. Later in the course, <strong>execution algorithms</strong> (TWAP/VWAP, implementation shortfall) attack exactly the slippage and price-impact curves we sketched here, and the order book's microsecond dynamics connect back to the <strong>Poisson arrival</strong> and <strong>Brownian motion</strong> models from Course 1. Read the book, and you read the market's intentions before the price prints.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> An order book shows a best bid of 50.10 and a best ask of 50.14. What is the bid–ask spread and the mid price?</div>
+            <div class="opt"><b>A.</b> spread 0.04, mid 50.12</div>
+            <div class="opt"><b>B.</b> spread 0.02, mid 50.12</div>
+            <div class="opt"><b>C.</b> spread 0.04, mid 50.14</div>
+            <div class="opt"><b>D.</b> spread 100.24, mid 0.04</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Spread = ask − bid = 50.14 − 50.10 = 0.04; mid = (50.14 + 50.10)/2 = 50.12. B halves the spread incorrectly; C uses the ask as the mid; D adds the two prices instead of subtracting/averaging.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> You want to be filled <em>immediately</em> and are willing to accept whatever price is resting. Which order type, and what is its effect on liquidity?</div>
+            <div class="opt"><b>A.</b> A limit order; it provides liquidity</div>
+            <div class="opt"><b>B.</b> A market order; it provides liquidity</div>
+            <div class="opt"><b>C.</b> A market order; it consumes liquidity</div>
+            <div class="opt"><b>D.</b> A limit order; it consumes liquidity</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A market order crosses the spread for immediate execution and removes resting depth, so it <em>consumes</em> (takes) liquidity. A limit order rests and <em>provides</em> liquidity, so A is the right description of the wrong tool here, and D mislabels a limit order. B mislabels a market order's liquidity effect.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Two buy limit orders both rest at 100.02; order X arrived at 9:30:01 and order Y at 9:30:02. A matching sell arrives. Under price–time priority, who fills first?</div>
+            <div class="opt"><b>A.</b> Y, because later orders are prioritized</div>
+            <div class="opt"><b>B.</b> X, because at equal price the earlier order has priority</div>
+            <div class="opt"><b>C.</b> Whichever is larger in size</div>
+            <div class="opt"><b>D.</b> They split the fill equally regardless of time</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Price–time priority breaks ties at the same price by arrival time — first in, first out — so the earlier order X fills first. A reverses the rule; C and D invent size-based or pro-rata rules that the standard price–time book does not use.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The ask side is 100 @ 25.00, then 80 @ 25.02, then 200 @ 25.05. You send a market buy for 150 shares. What is your approximate VWAP?</div>
+            <div class="opt"><b>A.</b> 25.00, since you start at the best ask</div>
+            <div class="opt"><b>B.</b> 25.05, the deepest level</div>
+            <div class="opt"><b>C.</b> 25.0107</div>
+            <div class="opt"><b>D.</b> 25.0233</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Take 100 @ 25.00 = 2500.00 and 50 @ 25.02 = 1251.00; total 3751.00 over 150 shares = 25.0107. A ignores that 150 &gt; 100 so you walk past the top level; B uses a level you never reach; D over-weights the 25.02 level (e.g. wrongly taking 100 there).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why does a market maker posting a passive limit order earn the spread as compensation?</div>
+            <div class="opt"><b>A.</b> Because limit orders always fill instantly</div>
+            <div class="opt"><b>B.</b> Because exchanges forbid market orders</div>
+            <div class="opt"><b>C.</b> Because the mid price is the true value, so resting orders are riskless</div>
+            <div class="opt"><b>D.</b> Because they bear the risk of being filled just as the market moves against them (adverse selection)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The maker supplies immediacy and is exposed to adverse selection — getting filled precisely when informed flow pushes the price against the quote — so the spread is their compensation. A is false (limit orders may never fill); B is false (market orders are central); C is false (resting orders are not riskless, which is the whole point).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Market microstructure</b> explains how a price is <em>formed</em> by matching individual orders — and why your real cost differs from the screen price.</li>
+            <li>The <b>limit order book</b> stacks bids (high-to-low) against asks (low-to-high), ordered by <b>price–time priority</b>, with depth at each level.</li>
+            <li>A <b>limit order</b> supplies liquidity and earns the spread; a <b>market order</b> consumes liquidity and pays it for immediacy.</li>
+            <li>The <b>spread</b> = ask − bid, the <b>mid</b> is their average, and <b>tick size</b> quantizes the price grid and floors the spread.</li>
+            <li>A large market order <b>walks the book</b>, fills at a worse <b>VWAP</b>, and creates <b>slippage and price impact</b> that scale with order size over depth.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: Market-Making Basics — post two-sided quotes, capture the spread, and manage inventory and adverse selection with the Avellaneda–Stoikov model.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-risk-parity-factors.html"><div class="dir">← Week 6</div><div class="ttl">Risk Parity &amp; Factor Models</div></a>
+        <a class="next" href="l08-market-making-basics.html"><div class="dir">Week 8 →</div><div class="ttl">Market-Making Basics</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Risk &amp; MM</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

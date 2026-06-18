@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C3 · Lecture 3 — One-Period Binomial &amp; Risk-Neutral Pricing</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C3 Derivatives</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3</span>
+        <h1>One-Period Binomial &amp; Risk-Neutral Pricing</h1>
+        <p class="sub">Squeeze the future into two outcomes and a startling truth falls out: an option's price has nothing to do with how likely the stock is to rise.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Set up the one-period binomial model with up/down factors u and d over a single time step Δt.</li>
+            <li>Build a <em>replicating portfolio</em> — Δ shares plus a bond — that exactly matches an option's two payoffs.</li>
+            <li>Solve for the hedge ratio Δ and price the option by no-arbitrage as the cost of that portfolio.</li>
+            <li>Derive the risk-neutral probability q = (e<sup>rΔt</sup> − d)/(u − d) and the pricing formula C = e<sup>−rΔt</sup>[qC<sub>u</sub> + (1−q)C<sub>d</sub>].</li>
+            <li>Explain the headline result: the real-world probability of an up-move never enters the price.</li>
+        </ul>
+    </div>
+
+    <!-- 3.1 -->
+    <section class="lec">
+        <h2><span class="n">3.1</span>The One-Period Binomial World</h2>
+        <p>To price a derivative we need a model of how the underlying can move. The simplest honest model says: over one time step Δt the stock can do exactly two things — go <strong>up</strong> by a factor u or <strong>down</strong> by a factor d. Crude as it is, this two-outcome world contains the entire logic of modern option pricing in its purest form. Master it and the rest of the course is repetition at larger scale.</p>
+        <p>Let the stock start at price <span class="key">S</span>. After one step it is either <span class="key">S·u</span> (the up state) or <span class="key">S·d</span> (the down state), with u &gt; d. Alongside the stock there is a risk-free bank account paying continuously compounded rate <span class="key">r</span>; one dollar grows to e<sup>rΔt</sup> over the step. A European derivative pays <strong>C<sub>u</sub></strong> in the up state and <strong>C<sub>d</sub></strong> in the down state — for a call with strike K, C<sub>u</sub> = max(Su − K, 0) and C<sub>d</sub> = max(Sd − K, 0).</p>
+        <div class="eq">Up state: S → Su, derivative pays C<sub>u</sub><br>Down state: S → Sd, derivative pays C<sub>d</sub><br>Bond: 1 → e<sup>rΔt</sup> in both states<small>Two risky outcomes, one riskless growth factor. The question: what is the derivative worth <em>today</em>?</small></div>
+        <p>For the model to forbid free money, the bond's growth must sit strictly <em>between</em> the two stock outcomes: <strong>d &lt; e<sup>rΔt</sup> &lt; u</strong>. If the stock beat the bond in both states you would borrow and buy it for a sure profit; if it lost in both you would short it. That sandwich condition is the no-arbitrage requirement from Week 2, and it is exactly what makes the pricing below work.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="A one-period binomial tree: a node at price S branches up to S times u with payoff C-up and down to S times d with payoff C-down">
+                <!-- branches -->
+                <line x1="92" y1="110" x2="250" y2="48" stroke="#34d399" stroke-width="2"/>
+                <line x1="92" y1="110" x2="250" y2="172" stroke="#f59e0b" stroke-width="2"/>
+                <!-- root node -->
+                <circle cx="78" cy="110" r="20" fill="rgba(251,191,36,.15)" stroke="#fbbf24" stroke-width="2"/>
+                <text x="78" y="106" fill="#fcd34d" font-size="13" text-anchor="middle">S</text>
+                <text x="78" y="120" fill="#bcae8c" font-size="9" text-anchor="middle">today</text>
+                <!-- up node -->
+                <circle cx="266" cy="48" r="20" fill="rgba(52,211,153,.15)" stroke="#34d399" stroke-width="2"/>
+                <text x="266" y="52" fill="#6ee7b7" font-size="12" text-anchor="middle">Su</text>
+                <!-- down node -->
+                <circle cx="266" cy="172" r="20" fill="rgba(245,158,11,.15)" stroke="#f59e0b" stroke-width="2"/>
+                <text x="266" y="176" fill="#fbbf24" font-size="12" text-anchor="middle">Sd</text>
+                <!-- payoffs -->
+                <text x="334" y="52" fill="#6ee7b7" font-size="12" text-anchor="middle">pays Cu</text>
+                <text x="334" y="176" fill="#fbbf24" font-size="12" text-anchor="middle">pays Cd</text>
+                <!-- branch labels -->
+                <text x="168" y="68" fill="#6ee7b7" font-size="11" text-anchor="middle">up (×u)</text>
+                <text x="168" y="156" fill="#fbbf24" font-size="11" text-anchor="middle">down (×d)</text>
+            </svg>
+            <figcaption>The one-period binomial tree. From today's price S the stock jumps to Su (up) or Sd (down) over the step Δt; the derivative pays C<sub>u</sub> or C<sub>d</sub> respectively. Everything in this lecture lives on this single fork.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 3.2 -->
+    <section class="lec">
+        <h2><span class="n">3.2</span>The Replicating Portfolio</h2>
+        <p>Here is the trick that unlocks everything. Instead of guessing the option's value, we <strong>build a copy of it</strong> from things whose prices we already know — the stock and the bond. If a portfolio pays <em>exactly</em> what the option pays in <em>every</em> future state, then by no-arbitrage it must cost <em>exactly</em> what the option costs today. Otherwise you could buy the cheaper one, sell the dearer, and pocket a riskless difference.</p>
+        <p>So consider a portfolio held today of <strong>Δ shares</strong> of the stock and <strong>B dollars</strong> in the bank account. After one step it is worth:</p>
+        <div class="eq">Up: Δ·Su + B·e<sup>rΔt</sup> = C<sub>u</sub><br>Down: Δ·Sd + B·e<sup>rΔt</sup> = C<sub>d</sub><small>Two unknowns (Δ, B), two equations — one per future state. We demand the portfolio match the option in both.</small></div>
+        <p>This is just two linear equations. Subtract the second from the first: the bond term cancels (it grows the same in both states), leaving Δ·S(u − d) = C<sub>u</sub> − C<sub>d</sub>. Solve:</p>
+        <div class="eq">Δ = (C<sub>u</sub> − C<sub>d</sub>) / (Su − Sd)<small>The hedge ratio: how many shares mimic the option's exposure. It is the "spread of payoffs" divided by the "spread of stock prices."</small></div>
+        <p>That Δ is the single most important number a derivatives desk computes. It is the option's sensitivity to the stock — the <strong>delta</strong> you will meet again as a calculus derivative in the Black–Scholes lecture — and it is literally how many shares a trader buys to hedge each option sold. Plug Δ back into either equation to get B, the borrowing or lending that completes the copy.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Replication is <strong>mixing a paint color from primaries</strong>. You can't buy "option-green" directly, but you can blend a measured amount of stock-yellow with bond-blue until the result is indistinguishable from option-green in every light (every future state). Once the blend matches perfectly, its cost <em>is</em> the option's fair price — no opinion about the future required.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Δ is <strong>not</strong> a probability and is not bounded to [0, 1] in general (for a short or a put it is negative). It counts <em>shares</em>, set purely by the ratio of payoff-spread to price-spread. Confusing the hedge ratio with the up-probability is one of the most common beginner errors — they are different objects that happen to both appear in this model.</div>
+    </section>
+
+    <!-- 3.3 -->
+    <section class="lec">
+        <h2><span class="n">3.3</span>Pricing &amp; the Risk-Neutral Probability</h2>
+        <p>The option's price today must equal the cost of the replicating portfolio: <strong>C = Δ·S + B</strong>. Substitute the solved Δ and B and grind through the algebra, and the messy expression collapses into something beautiful:</p>
+        <div class="eq">C = e<sup>−rΔt</sup> [ q·C<sub>u</sub> + (1 − q)·C<sub>d</sub> ],&nbsp;&nbsp; where&nbsp; q = (e<sup>rΔt</sup> − d) / (u − d)<small>Discount the average of the two payoffs — but weight them with q, not the true probability.</small></div>
+        <p>Read this slowly, because it is the central formula of the course. The price is a <strong>discounted expected payoff</strong>: take a weighted average of C<sub>u</sub> and C<sub>d</sub>, then pull it back to today with the discount factor e<sup>−rΔt</sup>. The weight <span class="key">q</span> is called the <strong>risk-neutral probability</strong> (or pseudo-probability). Because d &lt; e<sup>rΔt</sup> &lt; u under no-arbitrage, q lands strictly between 0 and 1 — it behaves like a probability, even though it is manufactured purely from u, d, r, and Δt.</p>
+        <p>Why "risk-neutral"? Notice what q does to the <em>stock itself</em>. Under q, the expected one-step stock price is q·Su + (1−q)·Sd = S·e<sup>rΔt</sup> — the stock is expected to grow at exactly the risk-free rate, as if no one demanded extra return for bearing risk. In the real world investors do demand a premium, so the true up-probability is generally higher. q is the artificial measure under which <em>every</em> asset drifts at r, and under which discounted prices are "fair bets."</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 210" role="img" aria-label="Two number lines: the real-world up-probability p sits on the left, the risk-neutral probability q sits between d and the bond growth and u, showing the stock drifts at the risk-free rate under q">
+                <!-- title -->
+                <text x="200" y="22" fill="#bcae8c" font-size="11" text-anchor="middle">where does the bond's growth sit between the two stock outcomes?</text>
+                <!-- number line -->
+                <line x1="40" y1="110" x2="360" y2="110" stroke="#bcae8c" stroke-width="1.6"/>
+                <!-- ticks: d, e^rdt, u -->
+                <line x1="70" y1="103" x2="70" y2="117" stroke="#f59e0b" stroke-width="2"/>
+                <line x1="230" y1="100" x2="230" y2="120" stroke="#60a5fa" stroke-width="2.4"/>
+                <line x1="340" y1="103" x2="340" y2="117" stroke="#34d399" stroke-width="2"/>
+                <text x="70" y="135" fill="#fbbf24" font-size="11" text-anchor="middle">d</text>
+                <text x="230" y="138" fill="#93c5fd" font-size="11" text-anchor="middle">e^(rΔt)</text>
+                <text x="340" y="135" fill="#6ee7b7" font-size="11" text-anchor="middle">u</text>
+                <text x="70" y="150" fill="#bcae8c" font-size="8.5" text-anchor="middle">down outcome</text>
+                <text x="340" y="150" fill="#bcae8c" font-size="8.5" text-anchor="middle">up outcome</text>
+                <!-- q as fraction of the way from d to u -->
+                <line x1="70" y1="78" x2="230" y2="78" stroke="#a78bfa" stroke-width="2.2"/>
+                <line x1="70" y1="74" x2="70" y2="82" stroke="#a78bfa" stroke-width="2.2"/>
+                <line x1="230" y1="74" x2="230" y2="82" stroke="#a78bfa" stroke-width="2.2"/>
+                <text x="150" y="70" fill="#c4b5fd" font-size="10" text-anchor="middle">numerator: e^(rΔt) − d</text>
+                <line x1="70" y1="62" x2="340" y2="62" stroke="#6b6450" stroke-width="1.4" stroke-dasharray="4 3"/>
+                <text x="240" y="55" fill="#bcae8c" font-size="10" text-anchor="middle">denominator: u − d</text>
+                <!-- formula -->
+                <text x="200" y="185" fill="#fcd34d" font-size="12.5" text-anchor="middle">q = (e^(rΔt) − d) / (u − d)   ∈ (0, 1)</text>
+            </svg>
+            <figcaption>The risk-neutral probability q is the fraction of the way the bond's growth e<sup>rΔt</sup> sits between the down-factor d and the up-factor u. The no-arbitrage sandwich d &lt; e<sup>rΔt</sup> &lt; u guarantees q lands in (0, 1), so it behaves like a genuine probability.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 3.4 -->
+    <section class="lec">
+        <h2><span class="n">3.4</span>The Punchline: Real Probabilities Vanish</h2>
+        <p>Look hard at the pricing formula and notice what is <em>missing</em>: the real-world probability that the stock goes up — call it p — appears <strong>nowhere</strong>. Two traders who violently disagree about whether the stock will rise (one thinks p = 0.9, the other p = 0.1) must nonetheless quote the <em>same</em> option price, or one of them is offering free money to the other. This is the most counterintuitive idea in derivatives, and it is worth pausing on.</p>
+        <p>How can the price ignore the very thing everyone argues about? Because we are not <em>forecasting</em> the option — we are <strong>manufacturing</strong> it from the stock and the bond. The replicating portfolio reproduces the option's payoff in both states no matter how the dice fall, so its cost depends only on today's stock price and the geometry of the move (u, d, r), not on the odds. The real-world drift is already baked into the stock price you can see on the screen; pricing the option <em>relative</em> to that observable price needs no further opinion.</p>
+        <div class="eq">price depends on:&nbsp; S, u, d, r, Δt, payoff<br>price does NOT depend on:&nbsp; p (the real up-probability)<small>Relative pricing: the derivative is valued against the traded underlying, not forecast from scratch.</small></div>
+        <p>This is why q is a <em>pseudo</em>-probability, not a belief. It is the unique weighting that makes the no-arbitrage math close. The deep theorem behind it — the First Fundamental Theorem of Asset Pricing — says "no arbitrage" is equivalent to "there exists a risk-neutral measure under which discounted prices are fair." Every pricing engine you build later, from binomial trees to Monte-Carlo to Black–Scholes, is computing an expectation under <em>this</em> measure, never under real-world probabilities.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not conclude "real probabilities are useless." They are essential for <em>risk management</em> — your expected profit, value-at-risk, and the actual chance the option finishes in the money all live under the real measure p. Risk-neutral pricing answers "what is the fair price and hedge?"; real-world probability answers "what will probably happen to my P&amp;L?" Different questions, different measures — never mix them in one calculation.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — pricing a one-period call</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A stock trades at S = $100. Over one step it either rises to $120 (u = 1.2) or falls to $90 (d = 0.9). The risk-free rate gives a step growth of e<sup>rΔt</sup> = 1.05. Price a European call with strike K = $105 by (a) replication and (b) the risk-neutral formula, and confirm they agree.</p>
+        <ol>
+            <li><strong>Payoffs:</strong> Up state Su = 120 ⟹ C<sub>u</sub> = max(120 − 105, 0) = <strong>15</strong>. Down state Sd = 90 ⟹ C<sub>d</sub> = max(90 − 105, 0) = <strong>0</strong>.</li>
+            <li><strong>Check no-arbitrage:</strong> d = 0.9 &lt; 1.05 &lt; 1.2 = u. ✓ The bond's growth is sandwiched, so a fair price exists.</li>
+            <li><strong>Hedge ratio:</strong> Δ = (C<sub>u</sub> − C<sub>d</sub>)/(Su − Sd) = (15 − 0)/(120 − 90) = 15/30 = <strong>0.5</strong> shares per call.</li>
+            <li><strong>Solve the bond from the down equation:</strong> Δ·Sd + B·1.05 = C<sub>d</sub> ⟹ 0.5·90 + 1.05B = 0 ⟹ 45 + 1.05B = 0 ⟹ B = −45/1.05 ≈ <strong>−42.857</strong> (borrow $42.86).</li>
+            <li><strong>Price by replication:</strong> C = Δ·S + B = 0.5·100 − 42.857 = 50 − 42.857 = <strong>$7.14</strong>.</li>
+            <li><strong>Risk-neutral probability:</strong> q = (e<sup>rΔt</sup> − d)/(u − d) = (1.05 − 0.9)/(1.2 − 0.9) = 0.15/0.30 = <strong>0.5</strong>.</li>
+            <li><strong>Price by formula:</strong> C = e<sup>−rΔt</sup>[q·C<sub>u</sub> + (1−q)·C<sub>d</sub>] = (1/1.05)[0.5·15 + 0.5·0] = 7.5/1.05 = <strong>$7.14</strong>. ✓ Identical.</li>
+            <li><strong>The punchline in action:</strong> nothing above used the <em>real</em> chance of an up-move. Even if up-moves are 80% likely, the fair price is still $7.14 — because the call is built from half a share minus a loan, not forecast.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a one-period binomial pricer</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Using the same free NumPy stack from <a href="../../c1-probability-stochastic/lectures/l01-probability-expectation.html" style="color:var(--accent2);">Week 1's setup</a> (the one-time install block lives there). We'll code the formula once and — crucially — <em>prove</em> the price ignores the real probability by re-pricing under several made-up values of p.</p>
+        <pre><span class="c"># binomial_one_period.py — Lecture 3</span>
+import numpy as np
+
+S, K   = 100.0, 105.0       <span class="c"># spot and strike</span>
+u, d   = 1.2, 0.9           <span class="c"># up / down factors</span>
+growth = 1.05               <span class="c"># e^(r*dt) over one step</span>
+
+Cu = max(S*u - K, 0.0)      <span class="c"># 15.0</span>
+Cd = max(S*d - K, 0.0)      <span class="c"># 0.0</span>
+
+<span class="c"># --- replication ---</span>
+delta = (Cu - Cd) / (S*u - S*d)         <span class="c"># 0.5 shares</span>
+B     = (Cd - delta*S*d) / growth       <span class="c"># bond position, -42.857</span>
+price_replicate = delta*S + B
+
+<span class="c"># --- risk-neutral formula ---</span>
+q = (growth - d) / (u - d)              <span class="c"># 0.5</span>
+price_rn = (q*Cu + (1 - q)*Cd) / growth
+
+print(f"delta           = {delta:.4f}")
+print(f"price (replicate)= {price_replicate:.4f}")
+print(f"price (risk-neut)= {price_rn:.4f}")   <span class="c"># same number: 7.1429</span>
+
+<span class="c"># --- the punchline: real-world p does NOT change the price ---</span>
+for p in [0.1, 0.5, 0.8]:
+    real_world_expected = (p*Cu + (1-p)*Cd) / growth   <span class="c"># the WRONG way</span>
+    print(f"p={p}:  real-world disc. E[payoff]={real_world_expected:.4f}"
+          f"   fair price still={price_rn:.4f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Both methods print <code>7.1429</code> — replication and the risk-neutral formula are the same calculation wearing two hats. The loop drives the lesson home: the naïve "discount the real-world expected payoff" answer swings with p, but the <em>arbitrage-free</em> price never moves. Change u, d, or growth and watch q and the price respond; change p and watch the fair price sit perfectly still.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>This single fork is the seed of everything ahead. <strong>Next week</strong> we glue many one-period steps into a <em>multi-period binomial tree</em>, pricing American and path-dependent options by working backward node-by-node — each node is exactly the calculation you just learned. Let the steps shrink and grow numerous and the tree converges to <strong>Black–Scholes</strong> (later in C3): the hedge ratio Δ becomes the calculus derivative ∂C/∂S, and the discounted risk-neutral expectation becomes an integral against a lognormal density. The same risk-neutral measure powers the <strong>Monte-Carlo pricers</strong> of the simulation course — there you'll sample paths under q and average discounted payoffs, the continuous cousin of q·C<sub>u</sub> + (1−q)·C<sub>d</sub>.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext">
+        <h3>💬 Discussion</h3>
+        <p>This week is a discussion week. Post a thoughtful reply and respond to a classmate.</p>
+        <p style="margin-top:10px;"><strong>Prompt:</strong> Two analysts look at the same stock. Ana is convinced it will rise (she'd put the real-world up-probability at 80%); Ben thinks it's a coin flip (50%). They are asked to quote the fair price of the same one-period European call. The risk-neutral formula says they must quote the <em>identical</em> price. Does this mean their opinions about the stock are worthless? If the price ignores their views, where — if anywhere — do those views legitimately matter to a trader, and how would you explain to a skeptical newcomer why "ignore your forecast" is the <em>right</em> way to price, not a flaw in the model?</p>
+        <details style="margin-top:14px;">
+            <summary style="cursor:pointer; color:var(--violet); font-weight:600; font-size:.9rem;">Show a model response</summary>
+            <div style="margin-top:12px; font-size:.9rem; color:#cdc0e6;">
+                <p>Their opinions are not worthless — they're simply answering a <em>different question</em> than the pricing formula asks. Ana and Ben must quote the same fair price (about $7.14 in our example) because the call can be <em>replicated</em>: half a share funded partly by borrowing reproduces the call's payoff in both future states regardless of whether the stock actually rises. Since the copy costs the same to assemble for both analysts, no-arbitrage forces a single price. If Ana quoted higher because she's bullish, Ben could sell her the call, build the cheaper replicating portfolio, and lock in a riskless profit no matter what the stock does. The bullishness leaks out instantly.</p>
+                <p style="margin-top:10px;">So where do their views matter? In <strong>three places, all outside the pricing step</strong>: (1) <em>Position-taking</em> — Ana, believing p = 0.8, expects positive P&amp;L from simply <em>buying</em> the fairly-priced call; her edge is in the trade, not the price. (2) <em>Risk management</em> — the true probability governs value-at-risk, expected shortfall, and the real chance of finishing in the money, all of which live under the real measure p, never under q. (3) <em>Capital and sizing</em> — how much to bet (think Kelly) depends on real odds. The clean way to explain it to a newcomer: pricing answers "what does it cost to manufacture this payoff?" — a question of carpentry, not prophecy — while forecasting answers "will I make money holding it?" The model isn't blind to opinion; it just refuses to let opinion contaminate a price that arbitrage has already pinned down.</p>
+                <p style="margin-top:12px; padding-top:10px; border-top:1px dashed #3a2d52;"><strong>✓ Self-check rubric — a strong answer should:</strong></p>
+                <ul style="margin:6px 0 0 18px;">
+                    <li>Invoke <strong>replication / no-arbitrage</strong> as the reason the price is forecast-independent (not just assert it).</li>
+                    <li>Give a concrete <strong>arbitrage</strong> that punishes any analyst who lets their view move the quote.</li>
+                    <li>Separate the <strong>risk-neutral measure q</strong> (pricing/hedging) from the <strong>real measure p</strong> (P&amp;L, VaR, sizing).</li>
+                    <li>Name at least one legitimate place real-world views matter (position-taking, risk, or bet-sizing).</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In the one-period binomial model, the replicating portfolio is built from…</div>
+            <div class="opt"><b>A.</b> two different options on the same stock</div>
+            <div class="opt"><b>B.</b> Δ shares of the stock plus a position in the risk-free bond</div>
+            <div class="opt"><b>C.</b> the real-world probability p and the strike K</div>
+            <div class="opt"><b>D.</b> a forecast of next period's price</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The whole method copies the option from <em>traded, priced</em> instruments: Δ shares of stock and B dollars in the bond. (A) uses other derivatives we haven't priced; (C) and (D) bring in forecasts, but the entire point is that no forecast is needed.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A stock at S = 100 moves to Su = 120 or Sd = 80. A call pays C<sub>u</sub> = 20 and C<sub>d</sub> = 0. The hedge ratio Δ is…</div>
+            <div class="opt"><b>A.</b> 0.50</div>
+            <div class="opt"><b>B.</b> 0.25</div>
+            <div class="opt"><b>C.</b> 1.00</div>
+            <div class="opt"><b>D.</b> 0.20</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Δ = (C<sub>u</sub> − C<sub>d</sub>)/(Su − Sd) = (20 − 0)/(120 − 80) = 20/40 = 0.5. Answer D (0.20) wrongly divides by S instead of the price spread; B and C mis-handle the numerator or denominator.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> With u = 1.25, d = 0.80, and a one-step growth e<sup>rΔt</sup> = 1.04, the risk-neutral probability q is…</div>
+            <div class="opt"><b>A.</b> 0.80</div>
+            <div class="opt"><b>B.</b> 0.50</div>
+            <div class="opt"><b>C.</b> about 0.533</div>
+            <div class="opt"><b>D.</b> impossible — this set allows arbitrage</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> q = (1.04 − 0.80)/(1.25 − 0.80) = 0.24/0.45 ≈ 0.533. Since 0.80 &lt; 1.04 &lt; 1.25, the no-arbitrage sandwich holds and q is a valid probability in (0,1), so D is wrong; A and B don't satisfy the formula.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why does the real-world probability of an up-move not appear in the option's price?</div>
+            <div class="opt"><b>A.</b> Because up and down moves are always equally likely</div>
+            <div class="opt"><b>B.</b> Because the option is replicated from the stock and bond, so its price is fixed by no-arbitrage regardless of the odds</div>
+            <div class="opt"><b>C.</b> Because the real probability is too hard to estimate</div>
+            <div class="opt"><b>D.</b> Because options are always priced at zero in this model</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The replicating portfolio matches the payoff in every state, so arbitrage pins the price to the cost of that copy — independent of p. (A) is false (q need not equal p or 0.5); (C) is irrelevant — even with a perfect estimate p still wouldn't enter; (D) is nonsense.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Under the risk-neutral measure, the expected one-step return on the <em>stock</em> equals…</div>
+            <div class="opt"><b>A.</b> the up-factor u</div>
+            <div class="opt"><b>B.</b> whatever the real-world drift is</div>
+            <div class="opt"><b>C.</b> zero</div>
+            <div class="opt"><b>D.</b> the risk-free rate r</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> By construction q makes q·Su + (1−q)·Sd = S·e<sup>rΔt</sup>, i.e. the stock is expected to grow at the risk-free rate — the defining feature of the "risk-neutral" world. (B) is the <em>real</em> measure; (A) and (C) are not what the formula yields.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Set up the <b>one-period binomial</b>: S jumps to Su or Sd, a bond grows by e<sup>rΔt</sup>, and no-arbitrage requires <b>d &lt; e<sup>rΔt</sup> &lt; u</b>.</li>
+            <li>Built a <b>replicating portfolio</b> of Δ shares + a bond that matches the option's payoff in both states.</li>
+            <li>Solved the <b>hedge ratio</b> Δ = (C<sub>u</sub> − C<sub>d</sub>)/(Su − Sd) — the shares a desk holds to hedge each option.</li>
+            <li>Derived the price C = e<sup>−rΔt</sup>[q·C<sub>u</sub> + (1−q)C<sub>d</sub>] with the <b>risk-neutral probability</b> q = (e<sup>rΔt</sup> − d)/(u − d).</li>
+            <li>Internalized the punchline: the <b>real-world probability p never enters the price</b> — pricing is replication, not forecasting.</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: chaining many one-period forks into a <b>multi-period binomial tree</b>, pricing American and path-dependent options by backward induction.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l02-no-arbitrage-parity.html"><div class="dir">← Week 2</div><div class="ttl">No-Arbitrage &amp; Put-Call Parity</div></a>
+        <a class="next" href="l04-binomial-trees.html"><div class="dir">Week 4 →</div><div class="ttl">Multi-Period Binomial Trees</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Derivatives</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

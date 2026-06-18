@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reactor Physics C2 · Lecture 10 — Capstone: A Criticality Calculation in OpenMC</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C2 Reactor Physics</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Capstone: A Criticality Calculation in OpenMC</h1>
+        <p class="sub">Everything you learned this course — cross sections, diffusion, the six factors, criticality — converges here: a real Monte Carlo reactor model that tells you, to three decimals, whether your core lives or dies.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Assemble a complete criticality model — materials, geometry, and a fission source — using the OpenMC Python API.</li>
+            <li>Explain what an eigenvalue (k-eigenvalue) Monte Carlo calculation does and why fission-source iteration converges to k-eff.</li>
+            <li>Run the calculation with batches and inactive cycles, and read k-eff with its statistical uncertainty correctly.</li>
+            <li>Score and interpret a spatial flux mesh tally, and compare the simulated flux shape to the analytic diffusion (cosine/Bessel) estimate.</li>
+            <li>Frame and deliver the capstone: a documented, converged criticality study that reconciles Monte Carlo with hand calculation.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>The Capstone Question: Does This Core Go Critical?</h2>
+        <p>For nine weeks you built the reactor-physics toolkit one piece at a time. You wrote down the neutron transport equation, simplified it to diffusion theory, solved the one-group equation in a bare reactor, defined the multiplication factor <span class="key">k-eff</span>, factored it into the four and six factors, watched neutrons slow down, split energy into groups, and studied how the core responds in time and to feedback. The capstone fuses all of it into a single deliverable: <strong>take a real fuel-and-moderator configuration and determine whether it is critical, and why.</strong></p>
+        <p>The central quantity is the <strong>effective multiplication factor</strong> k-eff — the ratio of neutrons produced in one fission generation to those in the previous generation:</p>
+        <div class="eq">k_eff = (neutrons produced in generation i+1) / (neutrons produced in generation i)<small>k &lt; 1 subcritical (chain dies), k = 1 critical (steady), k &gt; 1 supercritical (chain grows).</small></div>
+        <p>By hand, you estimate k-eff from idealized diffusion theory: a bare homogeneous reactor is critical when the <strong>material buckling</strong> equals the <strong>geometric buckling</strong>. But a real core is heterogeneous — fuel pins, gaps, cladding, water — and the energy dependence of cross sections is brutal (resonances, thermal upscatter, fast leakage). The analytic answer is a sketch. The capstone asks you to compute the <em>true</em> answer with a Monte Carlo code and then explain the gap between the two.</p>
+        <p>The free, open-source tool of choice is <strong>OpenMC</strong>: a continuous-energy Monte Carlo neutron-transport code with a clean Python API. It does not discretize energy or make the diffusion approximation — it literally tracks millions of simulated neutrons through your geometry, sampling real reaction probabilities from nuclear data libraries. That makes it the reference standard against which your hand calculation is judged.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Diffusion theory is a weather forecast made with a single equation on the back of an envelope: fast, insightful, roughly right. OpenMC is the full atmospheric simulation that resolves individual clouds. The envelope tells you it will probably rain; the simulation tells you it will rain 4&nbsp;mm between 2 and 4&nbsp;pm over the north field. The capstone is about earning the right to trust the envelope by checking it against the simulation.</div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Building the Model: Materials, Geometry, Source</h2>
+        <p>Every OpenMC criticality model rests on three pillars. Get any one wrong and k-eff is meaningless.</p>
+        <p><strong>Materials.</strong> A material is a list of nuclides with their concentrations, plus a density. For a thermal reactor you must enrich the uranium (raise the U-235 fraction) and tell OpenMC to use a <strong>thermal scattering law</strong> (S(alpha,beta)) for hydrogen bound in water — ordinary free-gas scattering badly mis-models how a slow neutron exchanges energy with H in H2O. This single setting can shift k-eff by hundreds of pcm.</p>
+        <p><strong>Geometry.</strong> OpenMC uses constructive solid geometry: you define <em>surfaces</em> (planes, cylinders, spheres), combine half-spaces into <em>cells</em>, and fill each cell with a material or another universe. A fuel pin is a fuel cylinder inside a cladding annulus inside a water-filled square — repeated on a lattice to make an assembly. The outer boundary needs a boundary condition: <strong>vacuum</strong> (neutrons leak out and are lost) or <strong>reflective</strong> (neutrons bounce back, mimicking an infinite array).</p>
+        <p><strong>Source.</strong> A criticality calculation is an eigenvalue problem, so the source is the <em>fission</em> source itself. You seed it with a guess — a box or point of starting sites — and the calculation iterates the source to its converged shape. You never specify a fixed source strength; k-eff is a ratio and is independent of how many neutrons you start with.</p>
+        <div class="eq">L phi + A phi = (1/k) F phi<small>Eigenvalue form: leakage + absorption balanced against fission/k. The largest eigenvalue k is k-eff; its eigenfunction is the converged flux shape.</small></div>
+        <p>OpenMC solves this by the <strong>power-iteration / fission-source-iteration</strong> method. Each cycle (batch) tracks a population of neutrons; the fission sites they create become the source for the next cycle. The source shape relaxes toward the fundamental eigenmode, and the generation-to-generation neutron ratio converges to k-eff. The early cycles, before the source settles, are discarded as <strong>inactive batches</strong>.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> start scoring tallies (or trusting k-eff) before the fission source has converged. If you set too few inactive batches, the leftover memory of your arbitrary initial source biases k-eff and the flux shape. Always plot the per-batch <strong>Shannon entropy</strong> of the source distribution and confirm it has flattened <em>before</em> the active batches begin. Skipping this is the single most common reason a student's k-eff disagrees with the reference.</div>
+    </section>
+
+    <!-- FIGURE 1: fission source iteration -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 250" role="img" aria-label="Fission source iteration: an arbitrary initial source relaxes over inactive batches toward the converged fundamental mode, after which active batches accumulate k-eff and tallies.">
+            <text x="280" y="22" fill="#6ee7b7" font-size="13" text-anchor="middle" font-weight="bold">Fission-source iteration converges to k-eff</text>
+            <!-- baseline -->
+            <line x1="50" y1="200" x2="520" y2="200" stroke="#94b8a2" stroke-width="1.5"/>
+            <text x="285" y="232" fill="#94b8a2" font-size="11" text-anchor="middle">batch number  -></text>
+            <text x="30" y="120" fill="#94b8a2" font-size="11" text-anchor="middle" transform="rotate(-90 30 120)">k estimate</text>
+            <!-- target k=1 line -->
+            <line x1="50" y1="110" x2="520" y2="110" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="5 4"/>
+            <text x="512" y="105" fill="#a78bfa" font-size="10" text-anchor="end">converged k-eff</text>
+            <!-- inactive region shading boundary -->
+            <line x1="230" y1="60" x2="230" y2="200" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <text x="140" y="52" fill="#fbbf24" font-size="11" text-anchor="middle">inactive batches</text>
+            <text x="140" y="66" fill="#fbbf24" font-size="9" text-anchor="middle">(discarded)</text>
+            <text x="375" y="52" fill="#34d399" font-size="11" text-anchor="middle">active batches</text>
+            <text x="375" y="66" fill="#34d399" font-size="9" text-anchor="middle">(accumulate k &amp; tallies)</text>
+            <!-- convergence curve: noisy then settles -->
+            <path d="M 55,175 L 70,150 L 85,165 L 100,135 L 115,148 L 130,125 L 150,128 L 170,118 L 195,114 L 230,111"
+                  fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+            <path d="M 230,111 L 255,108 L 280,113 L 305,109 L 330,112 L 355,108 L 380,111 L 405,110 L 430,109 L 460,111 L 490,110 L 515,110"
+                  fill="none" stroke="#34d399" stroke-width="2.5"/>
+            <!-- start marker -->
+            <circle cx="55" cy="175" r="4" fill="#60a5fa"/>
+            <text x="60" y="190" fill="#60a5fa" font-size="9" text-anchor="start">arbitrary start</text>
+        </svg>
+        <figcaption>The k estimate from an arbitrary initial guess (blue dot) wanders during the inactive batches (amber) while the fission source relaxes to the fundamental mode, then settles onto the converged value during the active batches (green), which alone contribute to the reported k-eff &plusmn; uncertainty.</figcaption>
+    </figure>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Reading the Output: k-eff and Its Uncertainty</h2>
+        <p>OpenMC reports k-eff as a value <em>and</em> a standard deviation, because Monte Carlo is a statistical experiment: every neutron history is a random sample, and the answer carries sampling noise. A typical result reads <span class="key">k-eff = 1.00214 &plusmn; 0.00038</span>. Both numbers matter.</p>
+        <p>The reported uncertainty is the standard deviation of the mean over the active batches. It shrinks with the total number of simulated particles N, but only as the square root:</p>
+        <div class="eq">sigma_k ~ 1 / sqrt(N)<small>To halve the uncertainty you must run 4x more particles. Doubling batches or particles-per-batch both increase N.</small></div>
+        <p>Conventionally we quote reactivity differences in <strong>pcm</strong> (per cent mille, units of 1e-5 in k). An uncertainty of 0.00038 in k is 38&nbsp;pcm — comparable to a small control adjustment, so it sets the resolution of any comparison you make. When you claim "this configuration is critical," you mean k-eff is statistically indistinguishable from 1: the interval k &plusmn; 2&sigma; brackets 1.0.</p>
+        <p>Two diagnostics decide whether the number is trustworthy. First, the <strong>Shannon entropy</strong> of the fission source must have converged before the active batches (Section 10.2). Second, the active-batch k-eff values should look like white noise around a stable mean with no drift. If either fails, the uncertainty is optimistic and the central value may be biased — re-run with more inactive batches.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Reporting k-eff without its uncertainty is like a poll saying "52% support" with no margin of error — useless for deciding an election. A k-eff of 1.0007 &plusmn; 0.0009 and one of 1.0007 &plusmn; 0.0001 tell completely different stories: the first cannot distinguish critical from slightly super- or subcritical; the second pins it down. In reactor safety, the error bar <em>is</em> the result.</div>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>The Flux Shape and the Diffusion Check</h2>
+        <p>k-eff is one number, but the flux distribution is the physics. A mesh tally records where fissions and reactions occur, giving you the spatial neutron flux phi(r). For a bare, near-homogeneous core the converged shape should match the analytic fundamental mode you derived from one-group diffusion theory — and confirming that match is the heart of the capstone.</p>
+        <p>For a bare cylindrical reactor of radius R and height H, separable diffusion theory gives a flux that is a cosine along the axis and a zeroth-order Bessel function in radius:</p>
+        <div class="eq">phi(r,z) = phi_0 * J0(2.405 r / R~) * cos(pi z / H~)<small>R~, H~ are the dimensions plus the extrapolation distance. The 2.405 is the first zero of J0; together they set the geometric buckling B^2.</small></div>
+        <p>The reactor is critical when the geometric buckling (fixed by size and shape) equals the material buckling (fixed by composition):</p>
+        <div class="eq">B_g^2 = (2.405/R~)^2 + (pi/H~)^2  ;   k_inf / (1 + L^2 B_g^2) = 1 at criticality<small>Diffusion estimate of k-eff. Match this against the OpenMC value; the difference reveals what diffusion theory misses.</small></div>
+        <p>When you overlay the OpenMC mesh-tally flux on the analytic cosine/Bessel curve, expect agreement in the bulk and deviations near boundaries and material interfaces — exactly where diffusion theory's assumptions (isotropic scattering, slowly varying flux, no leakage gradients) break down. The capstone deliverable explains those deviations physically: leakage hardens the spectrum near the edge, the extrapolation distance is approximate, and heterogeneity bends the local flux around absorbers. Diffusion gets the gross shape; Monte Carlo gets the truth.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 300" role="img" aria-label="Axial flux profile: smooth analytic cosine curve overlaid with OpenMC mesh-tally points that agree in the core center and dip below the cosine near the leaky boundaries.">
+                <text x="280" y="22" fill="#6ee7b7" font-size="13" text-anchor="middle" font-weight="bold">Axial flux: diffusion estimate vs OpenMC tally</text>
+                <!-- axes -->
+                <line x1="60" y1="250" x2="520" y2="250" stroke="#94b8a2" stroke-width="1.5"/>
+                <line x1="60" y1="250" x2="60" y2="45" stroke="#94b8a2" stroke-width="1.5"/>
+                <text x="290" y="282" fill="#94b8a2" font-size="11" text-anchor="middle">axial position z  (bottom -> top)</text>
+                <text x="28" y="150" fill="#94b8a2" font-size="11" text-anchor="middle" transform="rotate(-90 28 150)">flux phi(z)</text>
+                <text x="56" y="60" fill="#94b8a2" font-size="9" text-anchor="end">max</text>
+                <text x="56" y="250" fill="#94b8a2" font-size="9" text-anchor="end">0</text>
+                <!-- analytic cosine curve -->
+                <path d="M 80,250 L 110,175 L 150,110 L 200,75 L 250,62 L 290,60 L 330,62 L 380,75 L 430,110 L 470,175 L 500,250"
+                      fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+                <text x="350" y="100" fill="#60a5fa" font-size="11" text-anchor="start">cos(pi z / H~)</text>
+                <!-- OpenMC tally points (slightly lower near edges) -->
+                <circle cx="110" cy="185" r="3.5" fill="#34d399"/>
+                <circle cx="150" cy="116" r="3.5" fill="#34d399"/>
+                <circle cx="200" cy="78" r="3.5" fill="#34d399"/>
+                <circle cx="250" cy="64" r="3.5" fill="#34d399"/>
+                <circle cx="290" cy="62" r="3.5" fill="#34d399"/>
+                <circle cx="330" cy="64" r="3.5" fill="#34d399"/>
+                <circle cx="380" cy="78" r="3.5" fill="#34d399"/>
+                <circle cx="430" cy="116" r="3.5" fill="#34d399"/>
+                <circle cx="470" cy="185" r="3.5" fill="#34d399"/>
+                <text x="250" y="135" fill="#34d399" font-size="11" text-anchor="middle">OpenMC mesh tally</text>
+                <!-- boundary deviation callout -->
+                <line x1="470" y1="185" x2="470" y2="175" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="500" y="210" fill="#fbbf24" font-size="9" text-anchor="middle">tally dips below</text>
+                <text x="500" y="222" fill="#fbbf24" font-size="9" text-anchor="middle">cosine at leaky edge</text>
+            </svg>
+            <figcaption>The analytic <span style="color:#60a5fa">cosine</span> from one-group diffusion theory and the <span style="color:#34d399">OpenMC mesh-tally</span> flux agree across the core interior; near the leaky boundaries the simulated flux dips slightly below the idealized cosine, exposing where the diffusion approximation weakens.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — reconciling OpenMC with the diffusion estimate</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Your capstone core is a small bare cylinder. Diffusion inputs: k_inf = 1.18, diffusion area L&sup2; = 60&nbsp;cm&sup2;. Geometry: extrapolated radius R~ = 35&nbsp;cm, extrapolated height H~ = 70&nbsp;cm. OpenMC reports k-eff = 1.0042 &plusmn; 0.0006. Are they consistent?</p>
+        <ol>
+            <li><strong>Geometric buckling:</strong> B_g&sup2; = (2.405/35)&sup2; + (pi/70)&sup2; = (0.06871)&sup2; + (0.04488)&sup2; = 0.004721 + 0.002014 = <strong>0.006735 cm&#8315;&sup2;</strong>.</li>
+            <li><strong>Diffusion k-eff:</strong> k = k_inf / (1 + L&sup2;B_g&sup2;) = 1.18 / (1 + 60 &times; 0.006735) = 1.18 / (1 + 0.4041) = 1.18 / 1.4041 = <strong>0.8404</strong>.</li>
+            <li><strong>Compare:</strong> OpenMC's 1.0042 is far above the diffusion 0.8404 — a gap of ~16000 pcm. That is not noise (the uncertainty is only 60&nbsp;pcm); it is a real modeling difference.</li>
+            <li><strong>Diagnose:</strong> the one-group diffusion estimate badly underpredicts here because a small core leaks heavily and the single-group constants (especially L&sup2; and k_inf collapsed from a real spectrum) are crude. Continuous-energy OpenMC captures resonance absorption, fast leakage, and thermal upscatter that the one-group lump cannot.</li>
+            <li><strong>Capstone takeaway:</strong> when the gap is this large, do not "trust the simulation blindly" either — re-extract few-group constants from the OpenMC spectrum (Week 7) and the diffusion estimate moves much closer. The deliverable is the <em>reconciliation</em>, not a single number.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a full criticality run in OpenMC</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the same free stack from <strong>Week 1</strong> — Python with <code>OpenMC</code>, <code>NumPy</code>, and <code>Matplotlib</code>, all installed via conda (the one-time setup <code>details</code> lives in the Week-1/2 lectures). Below is a complete, runnable eigenvalue model: a single reflective fuel pin cell. Replace the cell with your capstone lattice, but the skeleton — materials, geometry, settings, run, read — is identical.</p>
+        <pre><span class="c"># capstone_keff.py - Week 10 criticality calculation</span>
+import openmc
+
+<span class="c"># --- 1. MATERIALS -------------------------------------------------</span>
+fuel = openmc.Material(name="UO2 3% enriched")
+fuel.add_nuclide("U235", 0.03)
+fuel.add_nuclide("U238", 0.97)
+fuel.add_nuclide("O16",  2.0)
+fuel.set_density("g/cm3", 10.4)
+
+water = openmc.Material(name="light water")
+water.add_nuclide("H1", 2.0)
+water.add_nuclide("O16", 1.0)
+water.set_density("g/cm3", 1.0)
+water.add_s_alpha_beta("c_H_in_H2O")   <span class="c"># thermal scattering law - essential!</span>
+
+materials = openmc.Materials([fuel, water])
+materials.export_to_xml()
+
+<span class="c"># --- 2. GEOMETRY (one reflective pin cell) ------------------------</span>
+fuel_or = openmc.ZCylinder(r=0.41)                 <span class="c"># fuel radius, cm</span>
+pitch = 1.26
+box = openmc.model.RectangularPrism(pitch, pitch, boundary_type="reflective")
+
+fuel_cell  = openmc.Cell(fill=fuel,  region=-fuel_or)
+water_cell = openmc.Cell(fill=water, region=+fuel_or &amp; -box)
+root = openmc.Universe(cells=[fuel_cell, water_cell])
+geometry = openmc.Geometry(root)
+geometry.export_to_xml()
+
+<span class="c"># --- 3. SETTINGS: eigenvalue mode + fission source ----------------</span>
+settings = openmc.Settings()
+settings.run_mode = "eigenvalue"
+settings.batches = 130          <span class="c"># total cycles</span>
+settings.inactive = 30          <span class="c"># discarded while source converges</span>
+settings.particles = 20000      <span class="c"># neutrons per batch</span>
+settings.source = openmc.IndependentSource(
+    space=openmc.stats.Point((0, 0, 0)))   <span class="c"># initial guess</span>
+settings.entropy_mesh = openmc.RegularMesh()  <span class="c"># monitor convergence</span>
+settings.entropy_mesh.lower_left  = (-pitch/2, -pitch/2, -1)
+settings.entropy_mesh.upper_right = ( pitch/2,  pitch/2,  1)
+settings.entropy_mesh.dimension = (4, 4, 1)
+settings.export_to_xml()
+
+<span class="c"># --- 4. RUN, then read k-eff from the results ---------------------</span>
+openmc.run()
+sp = openmc.StatePoint(f"statepoint.{settings.batches}.h5")
+k = sp.keff
+print(f"k-eff = {k.nominal_value:.5f} +/- {k.std_dev:.5f}")
+<span class="c"># Typical output for this lattice: k-eff = 1.3 (infinite, reflected -> k_inf)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Because the cell is fully reflective, this returns k_inf (no leakage). For your capstone, switch the outer boundary to <code>vacuum</code> and build a finite core to see leakage pull k-eff down — then add a mesh tally (<code>openmc.Tally</code> with a <code>MeshFilter</code> and a <code>flux</code> score) to extract the flux shape for the diffusion comparison in Section&nbsp;10.4.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>This capstone is the doorway, not the destination. The same OpenMC workflow scales directly to the professional reactor-analysis pipeline: depletion (burning fuel over a cycle and tracking how k-eff and isotopics evolve), control-rod worth and reactivity coefficient studies that connect straight back to <strong>Week 9</strong>'s feedback, and few-group constant generation that feeds the fast deterministic core simulators used in licensing. Beyond fission, the same Monte Carlo machinery underpins fusion-blanket neutronics, medical-isotope production, and shielding design. The <strong>Final Exam</strong> will test your command of the full C2 arc — transport, diffusion, criticality, kinetics, feedback — with this criticality study as the integrative spine.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In an OpenMC eigenvalue calculation, why are the first batches marked "inactive" and discarded?</div>
+            <div class="opt"><b>A.</b> They run with fewer particles to save time</div>
+            <div class="opt"><b>B.</b> The fission source is still relaxing from the arbitrary initial guess toward the converged fundamental mode</div>
+            <div class="opt"><b>C.</b> They compute k_inf, while active batches compute k-eff</div>
+            <div class="opt"><b>D.</b> They are used only to test the random number generator</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Inactive batches let the fission source converge before k-eff and tallies are accumulated. (A) is false — particle count per batch is fixed by <code>settings.particles</code>. (C) k_inf vs k-eff is a geometry/boundary distinction, not an active/inactive one. (D) is invented.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> An OpenMC run reports k-eff = 0.99850 &plusmn; 0.00040. The best interpretation is:</div>
+            <div class="opt"><b>A.</b> The core is slightly subcritical (about 150 pcm below 1), and the uncertainty of 40 pcm is small enough to say so with confidence</div>
+            <div class="opt"><b>B.</b> The configuration is definitively supercritical</div>
+            <div class="opt"><b>C.</b> The result is meaningless because Monte Carlo cannot resolve criticality</div>
+            <div class="opt"><b>D.</b> The uncertainty is irrelevant once you have the central value</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The central value is 0.99850 (150 pcm below 1) and the 2&sigma; band [0.99770, 0.99930] sits entirely below 1.0, so the core is confidently slightly subcritical. (B) is wrong — the value is below 1. (C) is false — sub-100 pcm resolution is routine. (D) contradicts good practice; the uncertainty is the result's resolution.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> You want to halve the statistical uncertainty on k-eff. Roughly what must you do?</div>
+            <div class="opt"><b>A.</b> Run about 2x more total particles</div>
+            <div class="opt"><b>B.</b> Halve the number of inactive batches</div>
+            <div class="opt"><b>C.</b> Switch the boundary from vacuum to reflective</div>
+            <div class="opt"><b>D.</b> Run about 4x more total particles</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Monte Carlo error scales as 1/sqrt(N), so halving sigma needs 4x the particles. (A) 2x only cuts sigma by 1/sqrt(2). (B) cutting inactive batches risks an unconverged, biased source — it does not reduce active-batch noise. (C) changing the boundary changes the physics (k-eff itself), not the statistics.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why must you add a thermal scattering law (e.g. <code>c_H_in_H2O</code>) for hydrogen in the water?</div>
+            <div class="opt"><b>A.</b> It speeds up the simulation by skipping low-energy neutrons</div>
+            <div class="opt"><b>B.</b> Free-gas scattering mis-models how slow neutrons exchange energy with chemically bound hydrogen, biasing k-eff</div>
+            <div class="opt"><b>C.</b> It is required only for fast reactors with no moderator</div>
+            <div class="opt"><b>D.</b> It converts the water into a fission source</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Bound-atom (S(alpha,beta)) scattering correctly captures molecular binding and thermal motion of H in H2O; omitting it can shift k-eff by hundreds of pcm in a thermal system. (A) it does not skip neutrons. (C) it matters precisely <em>because</em> there is a moderator. (D) water is not a fissile source.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Your OpenMC mesh-tally flux matches the analytic cosine in the core interior but dips below it near the boundary. What does this reveal?</div>
+            <div class="opt"><b>A.</b> The simulation has a bug and must be rerun</div>
+            <div class="opt"><b>B.</b> Diffusion theory is exact everywhere, so the tally must be wrong</div>
+            <div class="opt"><b>C.</b> The diffusion approximation weakens near leaky boundaries and interfaces, where Monte Carlo is more accurate</div>
+            <div class="opt"><b>D.</b> The fission source never converged</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Diffusion theory assumes a slowly varying, near-isotropic flux; that fails near boundaries where leakage gradients are steep, so the true (Monte Carlo) flux deviates from the idealized cosine. (A) interior agreement shows the run is healthy. (B) diffusion is an approximation, not exact. (D) a converged interior shape rules out an unconverged source.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Framed the capstone around <b>k-eff</b> and built a complete OpenMC model from <b>materials, geometry, and a fission source</b>.</li>
+            <li>Explained <b>fission-source (power) iteration</b>, why inactive batches are discarded, and how <b>Shannon entropy</b> confirms convergence.</li>
+            <li>Read k-eff <b>with its statistical uncertainty</b>, knowing sigma scales as 1/sqrt(N) and that 38 pcm sets your comparison resolution.</li>
+            <li>Scored a <b>mesh-tally flux</b> and compared it to the analytic <b>cosine/Bessel</b> diffusion shape, locating where the approximation breaks down.</li>
+            <li>Reconciled the Monte Carlo and diffusion estimates — the real <b>capstone deliverable</b> is the explained gap, not a lone number.</li>
+        </ul>
+        <p class="next-up">Next up — the C2 Final Exam (currently building). It integrates the whole arc: transport, diffusion, the four/six factors, criticality, kinetics, and feedback — anchored by the criticality study you just learned to run.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-reactivity-feedback.html"><div class="dir">← Week 9</div><div class="ttl">Reactivity Feedback</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Reactor Physics</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

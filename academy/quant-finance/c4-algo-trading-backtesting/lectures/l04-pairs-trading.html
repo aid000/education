@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C4 · Lecture 4 — Pairs Trading &amp; Cointegration</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C4 Algo Trading</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Pairs Trading &amp; Cointegration</h1>
+        <p class="sub">Two stocks that wander apart but always drift back let you bet on the gap closing — a market-neutral trade built on a statistical leash called cointegration.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain the core idea of <em>pairs trading</em> — going long one asset and short another so the position profits when their relationship reverts, not when the market rises or falls.</li>
+            <li>Recall what <em>cointegration</em> means and why it is stronger than mere correlation for building a stationary spread.</li>
+            <li>Construct the spread between two cointegrated assets and estimate the <em>hedge ratio</em> by ordinary least-squares regression.</li>
+            <li>Turn the spread into a <em>z-score</em> and design concrete entry, exit, and stop rules around it.</li>
+            <li>Identify the dominant risk — the cointegration relationship breaking down — and how to detect and defend against it.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>What Pairs Trading Actually Bets On</h2>
+        <p>Last week's mean-reversion strategies bet that a <em>single</em> series — a price, a return, an oscillator — would snap back to its own average. <strong>Pairs trading</strong> applies the same instinct to the <em>difference between two related assets</em>. Pick two securities driven by the same economic forces — two refiners, two payment networks, a stock and its sector ETF — and their prices should march together. When one temporarily races ahead of the other, you <strong>short the rich one and buy the cheap one</strong>, then wait for the gap to close.</p>
+        <p>The beauty is that the trade is roughly <span class="key">market-neutral</span>. You are long one asset and short another of similar size, so if the whole market jumps or crashes, the two legs largely cancel. What remains is a bet purely on the <em>relative</em> mispricing — the spread — closing. That is a fundamentally different, and often less crowded, source of return than simply being long the market.</p>
+        <p>The catch is that "they move together" is a vibe, not a strategy. We need a precise, testable statement that the gap between them is bounded and keeps returning to a stable level. That statement is <strong>cointegration</strong>.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of two dogs being walked on a single leash by the same owner. Each dog wanders freely — neither path is predictable on its own (each is a random walk). But the leash means the <em>distance between them</em> can never grow without bound; stretch it and it snaps back. Pairs trading bets on the leash: when the dogs drift far apart, you wager they will close the gap.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Cointegration, Recapped</h2>
+        <p>In the time-series course you met <span class="key">stationarity</span>: a series whose mean and variance don't drift over time. A raw stock price is <em>not</em> stationary — it is a random walk that can wander anywhere. Differencing it (taking returns) makes it stationary; we call such a price series <strong>integrated of order one</strong>, written I(1).</p>
+        <p>Here is the subtle part. Two series can each individually be I(1) random walks, yet a particular <em>linear combination</em> of them can be stationary — I(0). When that happens, the two series are <strong>cointegrated</strong>. The combination that is stationary is exactly the spread we want to trade.</p>
+        <div class="eq">If P<sub>A</sub>, P<sub>B</sub> are each I(1) but&nbsp; S<sub>t</sub> = P<sub>A,t</sub> − β·P<sub>B,t</sub> is I(0),<br>then A and B are <span style="color:#34d399">cointegrated</span> with hedge ratio β.<small>Each price wanders forever; the combination S<sub>t</sub> does not — it has a stable mean and bounded swings.</small></div>
+        <p>Why insist on cointegration rather than just <strong>correlation</strong>? Correlation measures whether two series move <em>together day to day</em>. Two independent random walks that happen to trend the same way can show high correlation for a long stretch — pure coincidence that evaporates without warning. Correlation says nothing about whether the gap stays bounded. Cointegration is the stronger, structural claim: there is a genuine long-run equilibrium tying the two together, and deviations from it are temporary.</p>
+        <p>The practical test (Engle–Granger): regress one price on the other, take the residuals, and run a stationarity test (the augmented Dickey–Fuller test) on those residuals. If the test rejects the "random walk" null, the residual — the spread — is stationary and the pair is cointegrated.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Screening pairs by <strong>correlation alone</strong> is the classic rookie error. High correlation with no cointegration gives you a spread that <em>looks</em> tame in-sample but has no force pulling it back — it can drift to infinity and bankrupt the trade. Always test for cointegration on the levels, not just correlation on the returns.</div>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Building the Spread &amp; Estimating the Hedge Ratio</h2>
+        <p>To form the spread we need the number <strong>β</strong>, the <span class="key">hedge ratio</span>: how many units (or dollars) of asset B to short for every unit of asset A you hold, so that the combined position has no net directional drift. We estimate it by <strong>ordinary least-squares regression</strong> of one price on the other:</p>
+        <div class="eq">P<sub>A,t</sub> = α + β·P<sub>B,t</sub> + ε<sub>t</sub>&nbsp;&nbsp;⟹&nbsp;&nbsp; S<sub>t</sub> = P<sub>A,t</sub> − β·P<sub>B,t</sub> = α + ε<sub>t</sub><small>β is the OLS slope; the spread S<sub>t</sub> is just the regression residual (plus the constant α). The intercept α sets the spread's mean.</small></div>
+        <p>The slope β answers: "when B moves one dollar, how much does A move on average?" Shorting β units of B against one unit of A neutralizes that co-movement, leaving only the stationary residual. If A and B are genuinely cointegrated, that residual ε<sub>t</sub> is mean-reverting — exactly the tradeable signal.</p>
+        <p>Once you have the spread series, summarize it by its own historical <strong>mean</strong> μ and <strong>standard deviation</strong> σ. These let you measure, at any moment, how far the spread has stretched from equilibrium in units of its own typical wobble — the <strong>z-score</strong>:</p>
+        <div class="eq">z<sub>t</sub> = (S<sub>t</sub> − μ) / σ<small>z<sub>t</sub> = 0 means the spread is at its average; z<sub>t</sub> = +2 means it is 2 standard deviations rich (A too expensive vs B).</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Computing μ and σ over your <em>whole</em> dataset, including the future, is <strong>look-ahead bias</strong>. In a live or backtested system you must compute the z-score from a <em>rolling or expanding window</em> that only uses data available up to time t. A spread that looks beautifully reverting with hindsight statistics can be untradeable in real time.</div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 600 260" role="img" aria-label="Top panel shows two random-walk price paths A and B wandering together; bottom panel shows their spread oscillating around a flat mean line with shaded plus and minus two sigma bands">
+            <!-- TOP PANEL: two cointegrated prices -->
+            <text x="14" y="20" fill="#bcae8c" font-size="11">Prices: A and B wander together (each non-stationary)</text>
+            <line x1="40" y1="120" x2="580" y2="120" stroke="#3a3119" stroke-width="1"/>
+            <!-- price A (gold) -->
+            <path d="M40,95 L80,86 L120,98 L160,74 L200,82 L240,60 L280,70 L320,52 L360,64 L400,48 L440,58 L480,44 L520,52 L560,40"
+                  fill="none" stroke="#fbbf24" stroke-width="2"/>
+            <!-- price B (blue), tracking A with a gap that opens and closes -->
+            <path d="M40,108 L80,102 L120,106 L160,92 L200,88 L240,80 L280,76 L320,72 L360,68 L400,66 L440,62 L480,60 L520,56 L560,54"
+                  fill="none" stroke="#60a5fa" stroke-width="2"/>
+            <text x="566" y="40" fill="#fbbf24" font-size="11">A</text>
+            <text x="566" y="56" fill="#60a5fa" font-size="11">B</text>
+            <!-- BOTTOM PANEL: the spread (stationary) -->
+            <text x="14" y="158" fill="#bcae8c" font-size="11">Spread S = A − βB: stationary, reverts to its mean</text>
+            <!-- +2 sigma / -2 sigma bands -->
+            <rect x="40" y="186" width="520" height="44" fill="rgba(52,211,153,.07)"/>
+            <line x1="40" y1="186" x2="560" y2="186" stroke="#34d399" stroke-width="1" stroke-dasharray="4 4"/>
+            <line x1="40" y1="230" x2="560" y2="230" stroke="#34d399" stroke-width="1" stroke-dasharray="4 4"/>
+            <!-- mean line -->
+            <line x1="40" y1="208" x2="560" y2="208" stroke="#bcae8c" stroke-width="1.2"/>
+            <!-- spread path oscillating around mean -->
+            <path d="M40,208 L80,196 L120,214 L160,190 L200,222 L240,200 L280,228 L320,204 L360,188 L400,216 L440,198 L480,224 L520,202 L560,210"
+                  fill="none" stroke="#fcd34d" stroke-width="2"/>
+            <text x="563" y="190" fill="#34d399" font-size="10">+2σ</text>
+            <text x="563" y="234" fill="#34d399" font-size="10">−2σ</text>
+            <text x="563" y="206" fill="#bcae8c" font-size="10">μ</text>
+        </svg>
+        <figcaption>Cointegration in one picture. Top: prices A (gold) and B (blue) each wander like random walks, sometimes drifting apart. Bottom: the spread S = A − βB is stationary — it oscillates around a fixed mean μ inside ±2σ bands. Pairs trading sells the spread near the top band and buys it near the bottom.</figcaption>
+    </figure>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>Z-Score Trading Rules &amp; the Breakdown Risk</h2>
+        <p>With a z-score in hand, the strategy becomes a clean set of thresholds. A common rule set:</p>
+        <table class="dist">
+            <thead><tr><th>Signal</th><th>z-score condition</th><th>Action</th></tr></thead>
+            <tbody>
+                <tr><td><b>Entry (short spread)</b></td><td>z<sub>t</sub> ≥ +2</td><td>Short A, buy β·B — bet the rich gap narrows</td></tr>
+                <tr><td><b>Entry (long spread)</b></td><td>z<sub>t</sub> ≤ −2</td><td>Buy A, short β·B — bet the cheap gap widens back</td></tr>
+                <tr><td><b>Exit</b></td><td>|z<sub>t</sub>| ≤ 0.5 (or z crosses 0)</td><td>Close both legs — spread is back near equilibrium</td></tr>
+                <tr><td><b>Stop</b></td><td>|z<sub>t</sub>| ≥ 3.5</td><td>Cut the loss — the relationship may be broken</td></tr>
+            </tbody>
+        </table>
+        <p>The logic mirrors §4.3: a large positive z means A is expensive relative to B, so you short the spread; a large negative z means A is cheap, so you buy it. You harvest the move back toward z = 0. Entry at ±2 and exit near 0 means each round trip earns roughly the swing from the band to the mean, scaled by your position size.</p>
+        <p>Now the central danger. Everything above assumes the spread <em>keeps</em> reverting. The dominant risk in pairs trading is <strong>cointegration breakdown</strong>: the structural link that held the pair together dissolves. A merger, a regulatory change, a product failure, a credit downgrade — any of these can make A and B permanently re-rate relative to each other. The spread then doesn't revert; it walks off to a new level and never comes back.</p>
+        <div class="eq">A widening spread is ambiguous:<br>temporary dislocation (add / hold) &nbsp;<span style="color:#f59e0b">vs.</span>&nbsp; structural break (cut)<small>The same z = +3 could be the best entry of the year — or the moment the leash snapped. The stop exists precisely because you cannot tell in real time.</small></div>
+        <p>This is why a <strong>hard stop</strong> on z (e.g. |z| ≥ 3.5) and a <strong>time stop</strong> (exit if the trade hasn't reverted within N days) are not optional decorations — they are the strategy's survival mechanism. Pairs trading without stops is the textbook "picking up pennies in front of a steamroller": many small wins punctuated by the occasional ruinous loss when a pair de-couples for good. You should also periodically <em>re-test</em> cointegration and re-estimate β on a rolling basis, retiring any pair whose ADF test stops rejecting.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The breakdown risk is the leash <em>breaking</em>, not just stretching. As long as the leash holds, every stretch is an opportunity. But you can't see the frayed strand until it snaps — so you back away (stop out) whenever the dogs run unusually far, because that is exactly when a snapped leash and a mere long stretch look identical.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — sizing and a round-trip on a cointegrated pair</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A regression of A on B over the past year gives slope β = 0.80 and intercept α = $5.00. The residual spread S<sub>t</sub> = P<sub>A</sub> − 0.80·P<sub>B</sub> has mean μ = $5.00 and standard deviation σ = $1.20. Today P<sub>A</sub> = $52.00 and P<sub>B</sub> = $55.00.</p>
+        <ol>
+            <li><strong>Compute today's spread:</strong> S = 52.00 − 0.80·55.00 = 52.00 − 44.00 = <strong>$8.00</strong>.</li>
+            <li><strong>Z-score it:</strong> z = (S − μ)/σ = (8.00 − 5.00)/1.20 = 3.00/1.20 = <strong>+2.5</strong>. The spread is 2.5σ rich, comfortably past the +2 entry threshold.</li>
+            <li><strong>Direction:</strong> z is large and positive ⟹ A is expensive relative to B ⟹ <strong>short the spread</strong>: short 1 unit of A, buy β = 0.80 units of B per unit of A.</li>
+            <li><strong>Dollar-neutral check:</strong> short $52.00 of A vs. long 0.80·$55.00 = $44.00 of B. Roughly balanced; the residual $8 directional tilt is the deliberate bet on the spread, not on the market.</li>
+            <li><strong>Exit:</strong> two weeks later the gap has closed and S = $5.30, so z = (5.30 − 5.00)/1.20 = <strong>+0.25</strong> — below the 0.5 exit band. Close both legs. The spread fell from $8.00 to $5.30, a <strong>$2.70 per-unit gain</strong> on the short-spread position (you sold the spread at 8.00, bought it back at 5.30).</li>
+            <li><strong>Risk note:</strong> had the spread instead climbed to S = $9.20, z = (9.20−5.00)/1.20 = 3.5 — the hard stop fires and you exit for a loss, on the suspicion the cointegration may have broken.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: test cointegration and z-score a spread</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1/2 environment (pandas + NumPy + Matplotlib — the full install <code>details</code> lives in the early lectures). This lecture adds <strong>statsmodels</strong> for the OLS hedge ratio and the cointegration test, so a one-line install note is below.</p>
+        <details class="install">
+            <summary>⬇ New tool this week: statsmodels</summary>
+            <p>Activate your existing <code>quant-env</code>, then add statsmodels (it pulls in the Engle–Granger <code>coint</code> test and OLS):</p>
+            <pre>pip install statsmodels</pre>
+        </details>
+        <pre><span class="c"># pairs_demo.py — Lecture 4</span>
+import numpy as np, pandas as pd
+import statsmodels.api as sm
+from statsmodels.tsa.stattools import coint
+
+<span class="c"># --- load two price series (replace with your own CSV / data feed) ---</span>
+<span class="c"># df has a DatetimeIndex and columns "A" and "B" (adjusted close prices)</span>
+df = pd.read_csv("pair_prices.csv", index_col=0, parse_dates=True).dropna()
+A, B = df["A"], df["B"]
+
+<span class="c"># --- 1. cointegration test (Engle-Granger) ---</span>
+score, pvalue, _ = coint(A, B)
+print(f"coint p-value: {pvalue:.4f}")          <span class="c"># p &lt; 0.05 -&gt; cointegrated</span>
+
+<span class="c"># --- 2. hedge ratio beta via OLS: A = alpha + beta*B ---</span>
+X = sm.add_constant(B)                          <span class="c"># adds the intercept column</span>
+beta = sm.OLS(A, X).fit().params["B"]
+spread = A - beta * B
+
+<span class="c"># --- 3. z-score on a ROLLING window (no look-ahead) ---</span>
+win  = 30
+mu   = spread.rolling(win).mean()
+sd   = spread.rolling(win).std()
+z    = (spread - mu) / sd
+
+<span class="c"># --- 4. signal: short spread at z&gt;=+2, long at z&lt;=-2, flat near 0 ---</span>
+pos = pd.Series(0, index=z.index)
+pos[z &gt;=  2.0] = -1                              <span class="c"># short the spread</span>
+pos[z &lt;= -2.0] =  1                              <span class="c"># long the spread</span>
+pos = pos.where((z.abs() &gt; 0.5)).ffill().fillna(0)   <span class="c"># hold until exit band</span>
+
+<span class="c"># spread P&amp;L of holding the position from t-1 to t</span>
+pnl = pos.shift(1) * spread.diff()
+print("beta:", round(beta, 3), " total spread P&amp;L:", round(pnl.sum(), 2))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Note the rolling <code>mu</code>/<code>sd</code>: the z-score at time t uses only the prior 30 observations, so the backtest is honest. In Week 5 you will feed exactly this signal into a proper backtester that adds transaction costs, borrow fees on the short leg, and the hard/time stops from §4.4.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have a complete signal: test for cointegration, estimate β, z-score the spread, and fire on thresholds. But a signal is not a strategy until it survives <strong>realistic frictions</strong>. Next week (Building a Backtester) you will wrap this exact pairs logic into an event-driven engine with commissions, short-borrow costs, slippage, and the stops above — and measure it with the Sharpe and drawdown metrics from Course 1. <strong>Capstone milestone for this checkpoint week:</strong> submit a screened, cointegration-tested candidate pair plus a documented z-score rule set (entry/exit/stop levels), which becomes the seed strategy you will backtest end-to-end and defend in the final project. Further out, the same algebra generalizes from two assets to baskets via the Johansen test and to statistical-arbitrage portfolios in the advanced course.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why is cointegration a better screening criterion for a pairs trade than correlation alone?</div>
+            <div class="opt"><b>A.</b> Correlation is impossible to compute for stock prices</div>
+            <div class="opt"><b>B.</b> Cointegration guarantees both stocks will always rise</div>
+            <div class="opt"><b>C.</b> Cointegration implies a stationary, mean-reverting spread, whereas high correlation can occur between two unrelated random walks whose gap drifts without bound</div>
+            <div class="opt"><b>D.</b> Correlation only works for bonds, not stocks</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Cointegration is the structural claim that a linear combination of the (non-stationary) prices is stationary — a bounded, reverting spread. Correlation only describes co-movement and can be spuriously high for independent random walks (A and D are simply false; B confuses cointegration with a directional bet — the spread reverts, the prices need not rise).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Two price series P<sub>A</sub> and P<sub>B</sub> are each individually I(1) random walks. They are cointegrated when…</div>
+            <div class="opt"><b>A.</b> some linear combination S = P<sub>A</sub> − βP<sub>B</sub> is stationary, I(0)</div>
+            <div class="opt"><b>B.</b> their daily returns have correlation above 0.9</div>
+            <div class="opt"><b>C.</b> both prices are trending upward over the sample</div>
+            <div class="opt"><b>D.</b> their variances are exactly equal</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> That is the definition: individually non-stationary series whose linear combination is stationary. High return correlation (B) is neither necessary nor sufficient; a shared uptrend (C) is often the source of <em>spurious</em> correlation, not cointegration; equal variances (D) are unrelated to the concept.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> You regress P<sub>A</sub> on P<sub>B</sub> and get slope β = 1.5. To form a market-neutral spread you should…</div>
+            <div class="opt"><b>A.</b> ignore β and trade one share of each</div>
+            <div class="opt"><b>B.</b> hold 1 unit of A against 1.5 units of B (S = P<sub>A</sub> − 1.5·P<sub>B</sub>)</div>
+            <div class="opt"><b>C.</b> hold 1.5 units of A against 1 unit of B</div>
+            <div class="opt"><b>D.</b> short both A and B equally</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The hedge ratio β is the OLS slope: for every unit of A, take β = 1.5 units of B on the opposite side, so the spread S = P<sub>A</sub> − 1.5·P<sub>B</sub> is the stationary residual. Trading one share each (A) leaves a net directional exposure; (C) inverts the ratio; (D) shorting both is not a spread trade at all.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The spread's z-score reaches +2.4. Under the standard rule set, you should…</div>
+            <div class="opt"><b>A.</b> buy the spread (long A, short B), betting it widens further</div>
+            <div class="opt"><b>B.</b> do nothing until z exceeds +5</div>
+            <div class="opt"><b>C.</b> close any existing position immediately</div>
+            <div class="opt"><b>D.</b> short the spread (short A, buy βB), betting the rich gap reverts toward the mean</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> A high positive z means A is expensive relative to B, so you short the spread and profit as it falls back toward zero. Buying it (A) bets the wrong way; +2.4 already clears the +2 entry, so waiting for +5 (B) misses the trade; closing (C) is the exit rule (|z| near 0), not the entry.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> What is the single biggest risk that justifies a hard stop in a pairs trade?</div>
+            <div class="opt"><b>A.</b> The cointegration relationship breaks down structurally, so the spread walks off and never reverts</div>
+            <div class="opt"><b>B.</b> Both stocks pay a dividend on the same day</div>
+            <div class="opt"><b>C.</b> The market index rises sharply</div>
+            <div class="opt"><b>D.</b> The two stocks become more correlated</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A merger, downgrade, or regime change can dissolve the equilibrium that tied the pair together; the spread then trends away indefinitely, turning a "reverting" trade into an unbounded loss — exactly what the stop guards against. A broad market move (C) is hedged away by the market-neutral construction; greater correlation (D) is benign or helpful; synchronized dividends (B) are a minor accounting detail.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Pairs trading</b> goes long one asset and short a related one, profiting from the <b>relative</b> mispricing closing — a market-neutral bet on the spread, not on market direction.</li>
+            <li><b>Cointegration</b> means two I(1) prices have a stationary linear combination; it is the structural, testable claim that mere correlation cannot make.</li>
+            <li>The <b>hedge ratio β</b> is the OLS slope of one price on the other, and the <b>spread</b> is the regression residual S = P<sub>A</sub> − βP<sub>B</sub>.</li>
+            <li>The <b>z-score</b> (S − μ)/σ on a rolling window drives concrete entry (±2), exit (near 0), and stop (±3.5) rules — avoiding look-ahead bias.</li>
+            <li>The dominant risk is <b>cointegration breakdown</b>; hard stops, time stops, and rolling re-tests of the ADF/coint statistic are the survival mechanism.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: Building a Backtester. You'll wrap this pairs signal into an event-driven engine with costs and stops, and produce your first capstone-ready backtest of the cointegrated pair you screened this week.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-mean-reversion.html"><div class="dir">← Week 3</div><div class="ttl">Mean-Reversion Strategies</div></a>
+        <a class="next" href="l05-building-backtester.html"><div class="dir">Week 5 →</div><div class="ttl">Building a Backtester</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Algo Trading</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

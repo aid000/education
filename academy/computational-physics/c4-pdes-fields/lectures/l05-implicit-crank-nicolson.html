@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C4 · Lecture 5 — Implicit Methods &amp; Crank-Nicolson</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Implicit Methods &amp; Crank-Nicolson</h1>
+        <p class="sub">When the explicit step demands a punishingly small Δt, you stop guessing the future from the past and instead solve for it — trading a linear system per step for the freedom to march as boldly as accuracy allows.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain the difference between explicit and implicit time-stepping and why implicit schemes evaluate spatial derivatives at the <em>new</em> time level.</li>
+            <li>Derive the backward-Euler scheme for the heat equation and show by von Neumann analysis that it is <strong>unconditionally stable</strong>.</li>
+            <li>State the Crank-Nicolson scheme as the average of forward and backward Euler, and explain why it is second-order accurate in time and stable.</li>
+            <li>Recognize that one implicit step requires solving a <strong>tridiagonal linear system</strong> and use the Thomas algorithm to do it in O(N) work.</li>
+            <li>Reason about the stability-vs-accuracy-vs-cost trade-off and choose a scheme for a given problem.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>Explicit vs Implicit: Who Knows the Future?</h2>
+        <p>Last week we discretized the 1-D heat equation <span class="key">u<sub>t</sub> = α u<sub>xx</sub></span> with the FTCS (forward-time, centered-space) scheme and found a harsh price: the CFL-type stability limit forced the diffusion number r = αΔt/Δx² ≤ 1/2. Halving the grid spacing Δx <em>quarters</em> the allowed time step. For a fine spatial mesh that is ruinous.</p>
+        <p>The root cause is that FTCS is <strong>explicit</strong>: the new value u<sub>i</sub><sup>n+1</sup> is written purely in terms of <em>old</em>, already-known values at time level n. Each new point is a plain formula you evaluate — fast, but it only "sees" information that has had time Δt to travel one grid cell, so a too-large step lets errors outrun the physics and blow up.</p>
+        <div class="eq">explicit (FTCS):&nbsp; u<sub>i</sub><sup>n+1</sup> = u<sub>i</sub><sup>n</sup> + r ( u<sub>i+1</sub><sup>n</sup> − 2u<sub>i</sub><sup>n</sup> + u<sub>i−1</sub><sup>n</sup> )<small>Right-hand side uses only time level n — nothing to solve, but stability demands r ≤ 1/2.</small></div>
+        <p>An <strong>implicit</strong> scheme instead evaluates the spatial second derivative at the <em>new</em> time level n+1. Now the unknown u<sub>i</sub><sup>n+1</sup> appears on both sides and is coupled to its new neighbors. You can no longer read it off; you must <em>solve</em> for all the new values together. That coupling is exactly what buys stability: every point feels every other point instantly, mimicking the infinite signal speed of diffusion.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Explicit stepping is like predicting tomorrow's weather using only today's measurements and a fixed rule — quick, but if you leap too far ahead the forecast diverges into nonsense. Implicit stepping is like saying "find the temperatures tomorrow that are <em>self-consistent</em> with each other and with today." You solve a puzzle whose pieces all constrain one another, so no single piece can run away. The puzzle costs effort, but the answer never explodes.</div>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>Backward Euler and Unconditional Stability</h2>
+        <p>The simplest implicit scheme is <strong>backward Euler</strong> (BTCS: backward-time, centered-space). Keep the centered second difference but evaluate it at time n+1:</p>
+        <div class="eq">u<sub>i</sub><sup>n+1</sup> − u<sub>i</sub><sup>n</sup> = r ( u<sub>i+1</sub><sup>n+1</sup> − 2u<sub>i</sub><sup>n+1</sup> + u<sub>i−1</sub><sup>n+1</sup> )<small>r = αΔt/Δx². The three unknowns at level n+1 are coupled — this is one row of a linear system.</small></div>
+        <p>Rearranging so all the unknowns sit on the left gives, for each interior node i,</p>
+        <div class="eq">−r u<sub>i−1</sub><sup>n+1</sup> + (1 + 2r) u<sub>i</sub><sup>n+1</sup> − r u<sub>i+1</sub><sup>n+1</sup> = u<sub>i</sub><sup>n</sup><small>A tridiagonal system A u<sup>n+1</sup> = u<sup>n</sup>, with diagonal 1+2r and off-diagonals −r.</small></div>
+        <p>To test stability we use <strong>von Neumann analysis</strong>: substitute a Fourier mode u<sub>i</sub><sup>n</sup> = G<sup>n</sup> e<sup>i k x</sup> and solve for the <em>amplification factor</em> G, the amount each mode is multiplied by per step. Using the identity 2 − 2cos(kΔx) = 4 sin²(kΔx/2), backward Euler gives:</p>
+        <div class="eq">G = 1 / ( 1 + 4r sin²(kΔx / 2) )<small>The denominator is &ge; 1 for every wavenumber k and every r &gt; 0, so |G| &le; 1 always.</small></div>
+        <p>Because |G| ≤ 1 for <em>all</em> step sizes and all modes, backward Euler is <strong>unconditionally stable</strong>. You may take Δt as large as you like and the solution will never blow up. This is the whole point of going implicit: stability is no longer a leash on Δt.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 230" role="img" aria-label="Two stencils side by side: explicit FTCS uses three old points to update one new point; backward Euler couples three new points to one old point.">
+                <!-- left: explicit stencil -->
+                <text x="105" y="24" fill="#a5b4fc" font-size="13" text-anchor="middle" font-weight="bold">Explicit (FTCS)</text>
+                <!-- time axis labels -->
+                <text x="20" y="70" fill="#a3a8c8" font-size="10">n+1</text>
+                <text x="28" y="160" fill="#a3a8c8" font-size="10">n</text>
+                <!-- old level nodes -->
+                <circle cx="60" cy="155" r="6" fill="#60a5fa"/>
+                <circle cx="105" cy="155" r="6" fill="#60a5fa"/>
+                <circle cx="150" cy="155" r="6" fill="#60a5fa"/>
+                <!-- new node -->
+                <circle cx="105" cy="65" r="6" fill="#fbbf24"/>
+                <!-- connections from 3 old to 1 new -->
+                <line x1="60" y1="155" x2="105" y2="65" stroke="#60a5fa" stroke-width="1.5"/>
+                <line x1="105" y1="155" x2="105" y2="65" stroke="#60a5fa" stroke-width="1.5"/>
+                <line x1="150" y1="155" x2="105" y2="65" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="105" y="185" fill="#a3a8c8" font-size="9" text-anchor="middle">i-1   i   i+1</text>
+                <text x="105" y="210" fill="#60a5fa" font-size="10" text-anchor="middle">solve = none (plain formula)</text>
+                <!-- divider -->
+                <line x1="210" y1="34" x2="210" y2="200" stroke="#2a3052" stroke-width="1.5"/>
+                <!-- right: implicit stencil -->
+                <text x="315" y="24" fill="#a5b4fc" font-size="13" text-anchor="middle" font-weight="bold">Implicit (backward Euler)</text>
+                <text x="232" y="70" fill="#a3a8c8" font-size="10">n+1</text>
+                <text x="240" y="160" fill="#a3a8c8" font-size="10">n</text>
+                <!-- new level nodes (3 coupled) -->
+                <circle cx="270" cy="65" r="6" fill="#fbbf24"/>
+                <circle cx="315" cy="65" r="6" fill="#fbbf24"/>
+                <circle cx="360" cy="65" r="6" fill="#fbbf24"/>
+                <!-- old node -->
+                <circle cx="315" cy="155" r="6" fill="#60a5fa"/>
+                <!-- connections among new and to old -->
+                <line x1="270" y1="65" x2="315" y2="155" stroke="#fbbf24" stroke-width="1.5"/>
+                <line x1="315" y1="65" x2="315" y2="155" stroke="#fbbf24" stroke-width="1.5"/>
+                <line x1="360" y1="65" x2="315" y2="155" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="315" y="100" fill="#a3a8c8" font-size="9" text-anchor="middle">i-1   i   i+1</text>
+                <text x="315" y="210" fill="#fbbf24" font-size="10" text-anchor="middle">solve = tridiagonal system</text>
+            </svg>
+            <figcaption>Stencils. Explicit FTCS (left) builds one new point from three old points — a direct formula. Backward Euler (right) couples three <em>new</em> points to one old point, so every node's new value is unknown and they must be solved together as a tridiagonal system.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>"Unconditionally stable" does <strong>not</strong> mean "accurate for any Δt." Backward Euler is only <em>first</em> order in time (error ∝ Δt). A huge step gives a stable but badly smeared, inaccurate answer — sharp features get artificially damped. Stability keeps the run from exploding; it says nothing about how close you are to the true solution.</div>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>Crank-Nicolson: Second-Order and Stable</h2>
+        <p>Forward Euler evaluates the spatial term entirely at time n; backward Euler entirely at n+1. Both are first-order in time because they are "lopsided." The <strong>Crank-Nicolson</strong> scheme takes the symmetric average of the two — it evaluates the second derivative as the mean of its values at n and n+1:</p>
+        <div class="eq">(u<sub>i</sub><sup>n+1</sup> − u<sub>i</sub><sup>n</sup>) / Δt = (α/2) [ δ<sub>xx</sub> u<sub>i</sub><sup>n+1</sup> + δ<sub>xx</sub> u<sub>i</sub><sup>n</sup> ]<small>δ<sub>xx</sub> u<sub>i</sub> = (u<sub>i+1</sub> − 2u<sub>i</sub> + u<sub>i−1</sub>)/Δx² is the centered second difference. Averaging the two levels centers the scheme in time.</small></div>
+        <p>Centering in time at the midpoint n+1/2 is what makes the truncation error symmetric and cancels the leading O(Δt) term, leaving <strong>second-order accuracy in both time and space</strong>: error ∝ Δt² + Δx². Collecting unknowns to the left with r = αΔt/Δx² gives another tridiagonal system, now with a non-trivial right-hand side:</p>
+        <div class="eq">−(r/2) u<sub>i−1</sub><sup>n+1</sup> + (1+r) u<sub>i</sub><sup>n+1</sup> − (r/2) u<sub>i+1</sub><sup>n+1</sup> = (r/2) u<sub>i−1</sub><sup>n</sup> + (1−r) u<sub>i</sub><sup>n</sup> + (r/2) u<sub>i+1</sub><sup>n</sup><small>Both sides are tridiagonal; the left matrix A is solved once per step against a known right-hand vector.</small></div>
+        <p>Von Neumann analysis of Crank-Nicolson gives an amplification factor that is the ratio of the forward and backward factors:</p>
+        <div class="eq">G = ( 1 − 2r sin²(kΔx/2) ) / ( 1 + 2r sin²(kΔx/2) )<small>For any r &gt; 0 the magnitude |G| &le; 1, so Crank-Nicolson is also unconditionally stable.</small></div>
+        <p>So Crank-Nicolson keeps backward Euler's unconditional stability <em>and</em> upgrades the time accuracy from first to second order — the best of both worlds, at the same per-step cost of one tridiagonal solve.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Crank-Nicolson is unconditionally <em>stable</em> but not unconditionally <em>non-oscillatory</em>. For high-frequency modes when r is large, G approaches −1: stable, yet the mode flips sign each step, producing decaying "wiggles" near sharp initial data. Backward Euler damps these instead (its G stays in [0,1)). If your initial condition is discontinuous, expect ringing from Crank-Nicolson unless you keep r modest or smooth the start.</div>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>The Cost of Going Implicit: Solving a Tridiagonal System</h2>
+        <p>Implicit schemes are not free: every step you must solve A u<sup>n+1</sup> = b for the whole vector of unknowns at once. For the 1-D heat equation that matrix A is <strong>tridiagonal</strong> — nonzero only on the main diagonal and the two adjacent diagonals — because each node couples only to its immediate neighbors.</p>
+        <p>A general dense solve costs O(N³), which would make implicit stepping hopeless. But a tridiagonal system is solved by the <strong>Thomas algorithm</strong> (a specialized Gaussian elimination) in just O(N) operations — one forward sweep to eliminate the sub-diagonal, one backward sweep to back-substitute:</p>
+        <div class="eq">cost per step:&nbsp; explicit ~ O(N)&nbsp;&nbsp;|&nbsp;&nbsp; implicit (tridiagonal) ~ O(N)<small>Same per-step order. The implicit step has a larger constant (a solve, not a formula), but allows a far larger Δt.</small></div>
+        <p>So the real comparison is total cost to reach a final time T. Explicit: many cheap steps (Δt ≤ Δx²/2α). Implicit: few expensive steps (Δt set by accuracy, not stability). When the stability limit is much smaller than the accuracy you need, implicit wins decisively. When you need fine time resolution anyway (e.g. a fast-moving wave), explicit's cheaper step can be competitive.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 210" role="img" aria-label="A tridiagonal matrix shown as a grid where only the main diagonal and the two neighboring diagonals are filled, all other entries zero.">
+                <text x="190" y="22" fill="#a5b4fc" font-size="13" text-anchor="middle" font-weight="bold">Tridiagonal matrix A</text>
+                <!-- grid 5x5 -->
+                <g stroke="#2a3052" stroke-width="1">
+                    <rect x="90" y="40" width="200" height="40" fill="none"/>
+                    <rect x="90" y="80" width="200" height="40" fill="none"/>
+                    <rect x="90" y="120" width="200" height="40" fill="none"/>
+                    <rect x="90" y="160" width="200" height="0" fill="none"/>
+                </g>
+                <!-- 5 columns x 4 rows cells -->
+                <g stroke="#2a3052" stroke-width="1" fill="none">
+                    <line x1="130" y1="40" x2="130" y2="160"/>
+                    <line x1="170" y1="40" x2="170" y2="160"/>
+                    <line x1="210" y1="40" x2="210" y2="160"/>
+                    <line x1="250" y1="40" x2="250" y2="160"/>
+                </g>
+                <!-- filled diagonal band: rows 0..2, color cells -->
+                <!-- row0 (y40-80): cols 0,1 -->
+                <rect x="90" y="40" width="40" height="40" fill="rgba(129,140,248,.45)"/>
+                <rect x="130" y="40" width="40" height="40" fill="rgba(96,165,250,.4)"/>
+                <!-- row1 (y80-120): cols 0,1,2 -->
+                <rect x="90" y="80" width="40" height="40" fill="rgba(96,165,250,.4)"/>
+                <rect x="130" y="80" width="40" height="40" fill="rgba(129,140,248,.45)"/>
+                <rect x="170" y="80" width="40" height="40" fill="rgba(96,165,250,.4)"/>
+                <!-- row2 (y120-160): cols 1,2,3 -->
+                <rect x="130" y="120" width="40" height="40" fill="rgba(96,165,250,.4)"/>
+                <rect x="170" y="120" width="40" height="40" fill="rgba(129,140,248,.45)"/>
+                <rect x="210" y="120" width="40" height="40" fill="rgba(96,165,250,.4)"/>
+                <!-- zeros annotation -->
+                <text x="255" y="65" fill="#a3a8c8" font-size="14" text-anchor="middle">0</text>
+                <text x="110" y="145" fill="#a3a8c8" font-size="14" text-anchor="middle">0</text>
+                <!-- legend -->
+                <rect x="90" y="178" width="14" height="14" fill="rgba(129,140,248,.45)"/>
+                <text x="110" y="190" fill="#a3a8c8" font-size="10">diagonal (1+2r)</text>
+                <rect x="215" y="178" width="14" height="14" fill="rgba(96,165,250,.4)"/>
+                <text x="235" y="190" fill="#a3a8c8" font-size="10">off-diagonals (-r)</text>
+            </svg>
+            <figcaption>The implicit step's matrix A is tridiagonal: each interior node couples only to its left and right neighbor, so all entries off the three central diagonals are zero. The Thomas algorithm exploits this to solve it in O(N) work.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — one backward-Euler step by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Heat equation on 5 nodes (i = 0..4), spacing Δx = 0.25, with fixed ends u<sub>0</sub> = u<sub>4</sub> = 0 (Dirichlet). Diffusivity α = 1. Initial interior values u<sub>1</sub><sup>0</sup> = 0, u<sub>2</sub><sup>0</sup> = 1, u<sub>3</sub><sup>0</sup> = 0 (a spike). Take a step Δt = 0.0625 with backward Euler and find the new interior values.</p>
+        <ol>
+            <li><strong>Diffusion number:</strong> r = αΔt/Δx² = 1·0.0625 / 0.0625 = <strong>1.0</strong>. (Explicit FTCS would be unstable here since r &gt; 1/2 — but backward Euler is fine.)</li>
+            <li><strong>Build the 3×3 system</strong> for the interior unknowns. Each row: −r u<sub>i−1</sub> + (1+2r) u<sub>i</sub> − r u<sub>i+1</sub> = u<sub>i</sub><sup>0</sup>. With 1+2r = 3 and r = 1, and boundary terms = 0:
+                <div class="eq" style="margin:8px 0;">3u<sub>1</sub> − u<sub>2</sub> = 0&nbsp;;&nbsp; −u<sub>1</sub> + 3u<sub>2</sub> − u<sub>3</sub> = 1&nbsp;;&nbsp; −u<sub>2</sub> + 3u<sub>3</sub> = 0</div></li>
+            <li><strong>Symmetry:</strong> the spike is symmetric, so u<sub>1</sub> = u<sub>3</sub>. From row 1: u<sub>2</sub> = 3u<sub>1</sub>.</li>
+            <li><strong>Substitute into row 2:</strong> −u<sub>1</sub> + 3(3u<sub>1</sub>) − u<sub>1</sub> = 1 → 7u<sub>1</sub> = 1 → u<sub>1</sub> = u<sub>3</sub> = <strong>1/7 ≈ 0.1429</strong>.</li>
+            <li><strong>Center:</strong> u<sub>2</sub> = 3·(1/7) = <strong>3/7 ≈ 0.4286</strong>. Check: the peak dropped from 1 to 0.43 and the neighbors rose from 0 to 0.14 — heat spread outward and total stayed bounded. Stable and physical even though r = 1.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: backward Euler vs Crank-Nicolson on a diffusing spike</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Uses the free Python + NumPy/SciPy/Matplotlib stack from the <strong>Week 1 setup</strong> (see the install <code>&lt;details&gt;</code> in Lecture 1 — no new tools needed here). We build the tridiagonal matrices once with <code>scipy.sparse</code> and use its banded solver, which runs the Thomas algorithm internally.</p>
+        <pre><span class="c"># implicit_heat.py — Lecture 5</span>
+import numpy as np
+import scipy.sparse as sp
+import scipy.sparse.linalg as spla
+import matplotlib.pyplot as plt
+
+N  = 201                       <span class="c"># grid points on [0,1]</span>
+dx = 1.0 / (N - 1)
+alpha, dt, T = 1.0, 1e-3, 0.05
+r  = alpha * dt / dx**2        <span class="c"># ~10  -> explicit would explode!</span>
+nsteps = int(T / dt)
+
+x = np.linspace(0, 1, N)
+u = np.where(np.abs(x - 0.5) &lt; 0.05, 1.0, 0.0)   <span class="c"># a narrow box (sharp data)</span>
+
+<span class="c"># interior tridiagonal builders (Dirichlet u=0 at both ends)</span>
+main = np.ones(N); off = np.zeros(N - 1)
+
+def tridiag(d, o):             <span class="c"># build sparse tridiagonal</span>
+    return sp.diags([o, d, o], [-1, 0, 1], format="csc")
+
+<span class="c"># backward Euler:  (I + r*L) u^{n+1} = u^n,  L = -tridiag(2,-1)/...</span>
+A_be = tridiag((1 + 2*r) * main, -r * off)
+<span class="c"># Crank-Nicolson:  A_cn u^{n+1} = B_cn u^n</span>
+A_cn = tridiag((1 + r) * main, -(r/2) * off)
+B_cn = tridiag((1 - r) * main,  (r/2) * off)
+
+def fix_bc(M):                 <span class="c"># pin boundary rows to identity</span>
+    M = M.tolil(); M[0, :] = 0; M[0, 0] = 1
+    M[-1, :] = 0; M[-1, -1] = 1; return M.tocsc()
+
+A_be, A_cn = fix_bc(A_be), fix_bc(A_cn)
+
+u_be, u_cn = u.copy(), u.copy()
+for _ in range(nsteps):
+    u_be = spla.spsolve(A_be, u_be)                 <span class="c"># one O(N) solve</span>
+    rhs  = B_cn @ u_cn; rhs[0] = rhs[-1] = 0.0
+    u_cn = spla.spsolve(A_cn, rhs)
+
+plt.plot(x, u_be, label="backward Euler")
+plt.plot(x, u_cn, label="Crank-Nicolson")
+plt.legend(); plt.xlabel("x"); plt.ylabel("u"); plt.show()
+<span class="c"># Both stay bounded at r~10 (explicit FTCS would diverge instantly).</span>
+<span class="c"># Watch CN show faint ringing near the box edges; BE is smoother but more damped.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Experiment: shrink <code>dt</code> until r ≤ 0.5 and add a third curve using explicit FTCS — confirm all three now agree, and that above r = 0.5 only the implicit pair survives. Then time the loops (Python's <code>time.perf_counter</code>) and compare total cost to reach T for each scheme.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Implicit time-stepping is the workhorse of stiff field simulation. <strong>Next week (Lecture 6)</strong> we make these tridiagonal systems honest by handling real boundary conditions — Dirichlet, Neumann, and periodic — which change the corner entries of A. In <strong>2-D and 3-D</strong> the matrix is no longer tridiagonal but sparse-banded; operator-splitting methods like <em>ADI</em> (alternating-direction implicit) restore a sequence of cheap tridiagonal solves. The very same θ-method family (θ = 0 explicit, θ = 1 backward Euler, θ = 1/2 Crank-Nicolson) reappears in Course 2's stiff ODE solvers, and Crank-Nicolson is the standard integrator for the time-dependent Schrödinger equation in the Quantum track — there its unitarity keeps probability conserved exactly. The sparse linear solves you meet here are the bridge to Course 3's iterative methods (conjugate gradient, multigrid) once the grids get large.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> What fundamentally distinguishes an implicit scheme from an explicit one for the heat equation?</div>
+            <div class="opt"><b>A.</b> It uses a finer spatial grid</div>
+            <div class="opt"><b>B.</b> It evaluates the spatial derivative term at the new time level n+1, coupling the unknowns</div>
+            <div class="opt"><b>C.</b> It ignores the boundary conditions</div>
+            <div class="opt"><b>D.</b> It is always faster per step</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Implicit schemes evaluate u<sub>xx</sub> at level n+1, so the new unknowns are coupled and must be solved together. A is unrelated (grid choice is independent). C is false — boundaries still matter. D is wrong: an implicit step is <em>more</em> expensive per step (it requires a solve), not less.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Backward Euler for the heat equation is "unconditionally stable." This means…</div>
+            <div class="opt"><b>A.</b> the solution is accurate for any Δt</div>
+            <div class="opt"><b>B.</b> it conserves energy exactly</div>
+            <div class="opt"><b>C.</b> |G| ≤ 1 for every mode and every Δt, so it never blows up regardless of step size</div>
+            <div class="opt"><b>D.</b> it requires no linear solve</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Its amplification factor G = 1/(1 + 4r sin²(kΔx/2)) has magnitude ≤ 1 for all r and all k. A confuses stability with accuracy (it's only first-order accurate). B is false — it is dissipative, not conservative. D is false — it still needs a tridiagonal solve.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The Crank-Nicolson scheme is best described as…</div>
+            <div class="opt"><b>A.</b> the average of forward Euler and backward Euler, giving second-order accuracy in time</div>
+            <div class="opt"><b>B.</b> the same as FTCS but with a smaller step</div>
+            <div class="opt"><b>C.</b> a purely explicit scheme</div>
+            <div class="opt"><b>D.</b> a method that is only first-order in space</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Crank-Nicolson averages the spatial term at n and n+1 (the θ = 1/2 case), centering it in time for O(Δt²) accuracy. B is wrong — it is a distinct, implicit scheme. C is wrong — it is implicit (needs a solve). D is wrong — the centered second difference is second-order in space.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why is one backward-Euler (or Crank-Nicolson) step on the 1-D heat equation still only O(N) work despite needing a linear solve?</div>
+            <div class="opt"><b>A.</b> The matrix is dense, so an O(N³) solve is unavoidable</div>
+            <div class="opt"><b>B.</b> The matrix is tridiagonal and the Thomas algorithm solves it in O(N)</div>
+            <div class="opt"><b>C.</b> It avoids solving any system by inverting term by term</div>
+            <div class="opt"><b>D.</b> NumPy caches the answer from the previous step</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Each node couples only to its two neighbors, so A is tridiagonal; the Thomas algorithm (a banded Gaussian elimination) solves it in O(N). A is the opposite — it is not dense. C makes no sense — the coupling cannot be inverted entry-by-entry. D is fabricated; the right-hand side changes each step.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You must reach a final time T on a very fine spatial mesh where the explicit stability limit forces an absurdly small Δt. Which scheme is the natural choice, and why?</div>
+            <div class="opt"><b>A.</b> Explicit FTCS, because each step is a plain formula</div>
+            <div class="opt"><b>B.</b> Explicit FTCS with r exactly equal to 1, to maximize the step</div>
+            <div class="opt"><b>C.</b> No method can handle a fine mesh efficiently</div>
+            <div class="opt"><b>D.</b> An implicit scheme (e.g. Crank-Nicolson), since its unconditional stability lets Δt be set by accuracy, not the CFL-type limit</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> When the stability limit is far stricter than the accuracy you need, an implicit scheme's unconditional stability lets you take big steps and win on total cost. A loses because the tiny forced Δt means a huge step count. B is wrong — r = 1 violates the r ≤ 1/2 explicit limit and diverges. C is false — implicit methods exist precisely for this case.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Explicit vs implicit</b>: explicit reads the new value from old neighbors; <b>implicit</b> evaluates the spatial term at n+1, coupling all unknowns so they must be solved together.</li>
+            <li><b>Backward Euler</b> (BTCS) has amplification factor G = 1/(1 + 4r sin²(kΔx/2)), so |G| ≤ 1 always — it is <b>unconditionally stable</b>, but only first-order in time.</li>
+            <li><b>Crank-Nicolson</b> averages forward and backward Euler (θ = 1/2): <b>second-order in time and space</b> and still unconditionally stable, at the same per-step cost.</li>
+            <li>An implicit step requires solving a <b>tridiagonal system</b>, done in O(N) by the <b>Thomas algorithm</b> — same per-step order as explicit but with a bigger constant.</li>
+            <li>The real choice is a <b>stability–accuracy–cost</b> trade-off: implicit wins when the explicit stability limit is far smaller than the step accuracy actually demands.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: Boundary Conditions — Dirichlet, Neumann, and periodic boundaries, and exactly how each one reshapes the corners of your tridiagonal matrix.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-cfl-stability.html"><div class="dir">← Week 4</div><div class="ttl">Stability &amp; the CFL Condition</div></a>
+        <a class="next" href="l06-boundary-conditions.html"><div class="dir">Week 6 →</div><div class="ttl">Boundary Conditions</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

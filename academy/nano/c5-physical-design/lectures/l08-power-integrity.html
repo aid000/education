@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Lecture 8 — Power Integrity</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C5 Physical Design</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>Power Integrity</h1>
+        <p class="sub">Keeping the supply clean and the metal alive — IR drop, electromigration, and decoupling.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Distinguish static IR drop (average) from dynamic IR drop (transient sag) across the power-delivery network.</li>
+            <li>Explain electromigration as a long-term reliability limit set by current density J.</li>
+            <li>Describe how decoupling capacitors supply transient current and smooth dynamic droop.</li>
+            <li>Relate simultaneous switching and power-gating inrush to current spikes on the PDN.</li>
+            <li>Apply the standard EM fix: widen a wire to lower its current density.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>IR Drop (Static &amp; Dynamic)</h2>
+        <p>The <strong>power-delivery network</strong> (PDN) — the package bumps, power rings, and metal straps that carry VDD and VSS to every cell — has resistance. Push current through resistance and you lose voltage: <span class="key">IR drop</span>. By the time the supply reaches a cell deep in the die, it is a little below the ideal rail.</p>
+        <div class="eq">V<sub>drop</sub> = I · R<sub>PDN</sub> &nbsp;&nbsp;[V]<small>Current drawn by the logic, times the resistance of the metal path back to the source.</small></div>
+        <p>IR drop has two flavors. <span class="key">Static IR drop</span> is the steady, average drop assuming an average current draw. <span class="key">Dynamic IR drop</span> is the transient sag that appears the instant many cells switch together and yank a current spike out of the grid faster than the package can supply it.</p>
+        <div class="eq">static IR drop → average draw&nbsp;&nbsp;·&nbsp;&nbsp;dynamic IR drop → transient switching sag</div>
+        <p>Why it matters: a cell's speed depends on its supply voltage. Too much droop means the cell sees a <em>lower</em> VDD, so it switches <strong>slower</strong> — eroding timing margin — and in the worst case the voltage sags low enough to corrupt logic outright.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 230" role="img" aria-label="IR drop across a die: power fed from the edges, the center showing the largest voltage drop">
+                <defs>
+                    <radialGradient id="hot" cx="50%" cy="50%" r="58%">
+                        <stop offset="0%" stop-color="#7a3a18"/>
+                        <stop offset="45%" stop-color="#3a3530"/>
+                        <stop offset="100%" stop-color="#143028"/>
+                    </radialGradient>
+                </defs>
+                <text x="180" y="20" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="700">IR drop across the die</text>
+                <!-- die -->
+                <rect x="70" y="40" width="220" height="150" rx="8" fill="url(#hot)" stroke="#243648" stroke-width="1.5"/>
+                <!-- grid lines -->
+                <g stroke="#2d4256" stroke-width="1">
+                    <line x1="114" y1="40" x2="114" y2="190"/>
+                    <line x1="158" y1="40" x2="158" y2="190"/>
+                    <line x1="202" y1="40" x2="202" y2="190"/>
+                    <line x1="246" y1="40" x2="246" y2="190"/>
+                    <line x1="70" y1="78" x2="290" y2="78"/>
+                    <line x1="70" y1="115" x2="290" y2="115"/>
+                    <line x1="70" y1="152" x2="290" y2="152"/>
+                </g>
+                <!-- edge feeds -->
+                <g fill="#34d399">
+                    <rect x="58" y="55" width="10" height="10" rx="2"/>
+                    <rect x="58" y="160" width="10" height="10" rx="2"/>
+                    <rect x="292" y="55" width="10" height="10" rx="2"/>
+                    <rect x="292" y="160" width="10" height="10" rx="2"/>
+                </g>
+                <text x="40" y="50" fill="#34d399" font-size="10" text-anchor="middle">VDD in</text>
+                <text x="320" y="50" fill="#34d399" font-size="10" text-anchor="middle">VDD in</text>
+                <!-- hot center -->
+                <circle cx="180" cy="115" r="20" fill="#b45309" opacity="0.85"/>
+                <text x="180" y="112" fill="#fff5e6" font-size="10" text-anchor="middle">low V</text>
+                <text x="180" y="124" fill="#fff5e6" font-size="9" text-anchor="middle">(max drop)</text>
+                <!-- edge label -->
+                <text x="105" y="60" fill="#9fe6c4" font-size="9">full VDD at edges</text>
+                <text x="180" y="210" fill="#94a8bc" font-size="10" text-anchor="middle">Edges near full rail · center droops most (longest metal path)</text>
+            </svg>
+            <figcaption>VDD enters from the package at the die edges; the center sees the most IR drop because current travels the longest, most resistive path to reach it — a low-voltage "hot spot" in the middle.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>The PDN is a city's water system. <strong>Static</strong> IR drop is the baseline pressure loss along the pipes from the reservoir to your block. <strong>Dynamic</strong> IR drop is the sudden pressure crash when everyone on the street turns on their shower at the same instant — the mains simply can't refill the pipes fast enough.</div>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>Electromigration (EM)</h2>
+        <p><strong>Electromigration</strong> is a wear-out mechanism. When a wire carries a high <span class="key">current density</span> for a long time, the moving electrons literally transfer momentum to the metal atoms and nudge them along — a slow "electron wind." Over months and years, atoms pile up in some places (hillocks) and vacate others, opening up <span class="key">voids</span> that eventually become opens or shorts.</p>
+        <div class="eq">EM risk ∝ current density J = I / A<small>I is the current through the wire; A is its cross-sectional area. High J ⟹ faster wear-out.</small></div>
+        <p>The key idea: EM is a <strong>long-term reliability limit</strong>, not an instantaneous failure. A wire that violates its EM budget does not blow the moment power is applied — it degrades gradually and may fail after the part has shipped. So design rules cap the <em>maximum current density</em> a given metal layer may carry.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 200" role="img" aria-label="Electromigration in a wire: high current density moves metal atoms and forms a void">
+                <text x="180" y="20" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="700">Electromigration: a void forms</text>
+                <!-- wire body -->
+                <rect x="40" y="70" width="280" height="44" rx="6" fill="#1c2c3e" stroke="#3a5070" stroke-width="1.5"/>
+                <!-- current arrow -->
+                <defs><marker id="aE" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#22d3ee"/></marker></defs>
+                <line x1="55" y1="92" x2="120" y2="92" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aE)"/>
+                <text x="70" y="60" fill="#22d3ee" font-size="11">high J (current density)</text>
+                <!-- migrating atoms -->
+                <g fill="#94a8bc">
+                    <circle cx="150" cy="92" r="4"/>
+                    <circle cx="168" cy="100" r="4"/>
+                    <circle cx="232" cy="84" r="4"/>
+                    <circle cx="250" cy="98" r="4"/>
+                    <circle cx="268" cy="90" r="4"/>
+                </g>
+                <!-- void -->
+                <ellipse cx="200" cy="92" rx="16" ry="14" fill="#0a121a" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3 3"/>
+                <text x="200" y="96" fill="#fbbf24" font-size="10" text-anchor="middle">void</text>
+                <text x="200" y="150" fill="#94a8bc" font-size="10" text-anchor="middle">Atoms drift in the electron wind; a void grows toward an open.</text>
+                <text x="180" y="172" fill="#f0e1a7" font-size="10" text-anchor="middle">Long-term reliability limit — caps the current a wire may carry.</text>
+            </svg>
+            <figcaption>Sustained high current density slowly transports metal atoms along the wire, opening a void that can become an open circuit over the product's lifetime.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>Decoupling Capacitors</h2>
+        <p>The package can't deliver a current spike instantly — the inductance and resistance of the path get in the way. The fix is to keep a local charge reservoir right next to the hungry logic: a <span class="key">decoupling capacitor</span> (decap). When a block switches and demands a burst of current, the nearby decap dumps its stored charge <em>immediately</em>, before the slower PDN can respond.</p>
+        <div class="eq">decap supplies transient I ⟹ less dynamic IR drop<small>The local capacitor sources the switching spike, so the rail near the logic doesn't sag.</small></div>
+        <p>Decaps are sprinkled into the empty whitespace of the floorplan — especially in regions of dense, high-activity logic. The closer the decap is to the switching cells, the more effectively it smooths the <strong>dynamic</strong> droop.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 200" role="img" aria-label="Decoupling capacitor placed next to a switching logic block supplying transient current">
+                <text x="180" y="20" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="700">Decap buffers a switching block</text>
+                <!-- VDD rail -->
+                <line x1="30" y1="50" x2="330" y2="50" stroke="#34d399" stroke-width="2.5"/>
+                <text x="30" y="42" fill="#34d399" font-size="10">VDD rail</text>
+                <!-- logic block -->
+                <rect x="210" y="95" width="100" height="60" rx="6" fill="#1c2c3e" stroke="#3a5070" stroke-width="1.5"/>
+                <text x="260" y="122" fill="#e8f0f8" font-size="11" text-anchor="middle">switching</text>
+                <text x="260" y="138" fill="#e8f0f8" font-size="11" text-anchor="middle">logic</text>
+                <line x1="260" y1="50" x2="260" y2="95" stroke="#3a5070" stroke-width="2"/>
+                <!-- decap symbol -->
+                <line x1="90" y1="50" x2="90" y2="100" stroke="#67e8f9" stroke-width="2"/>
+                <line x1="72" y1="100" x2="108" y2="100" stroke="#e8f0f8" stroke-width="2.5"/>
+                <line x1="72" y1="110" x2="108" y2="110" stroke="#e8f0f8" stroke-width="2.5"/>
+                <line x1="90" y1="110" x2="90" y2="160" stroke="#67e8f9" stroke-width="2"/>
+                <line x1="74" y1="160" x2="106" y2="160" stroke="#94a8bc" stroke-width="2"/>
+                <text x="90" y="180" fill="#67e8f9" font-size="11" text-anchor="middle">decap</text>
+                <!-- transient current arrow from decap to logic -->
+                <defs><marker id="aD" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#fbbf24"/></marker></defs>
+                <path d="M112,78 q70,-14 130,28" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#aD)"/>
+                <text x="180" y="62" fill="#fbbf24" font-size="10" text-anchor="middle">transient charge</text>
+            </svg>
+            <figcaption>A decoupling capacitor sits near the switching block as a local charge tank. It sources the instantaneous current spike, so the rail doesn't sag while the slower package catches up.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Keep four things straight. (1) IR drop has <strong>both</strong> a static and a dynamic component. (2) Electromigration is a long-term <strong>reliability</strong> limit driven by <em>current density</em> — not an instant failure. (3) Decaps fix <strong>dynamic</strong> droop; they do <em>not</em> help static IR drop much. (4) Excessive IR drop <strong>slows</strong> timing — a lower supply voltage makes cells slower, not faster.</div>
+    </section>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>Dynamic Power &amp; Rush Current</h2>
+        <p>Dynamic power is burned whenever nodes toggle. The trouble for the PDN is not the average — it's the <em>spikiness</em>. When a large bank of flops or a wide datapath <strong>switches simultaneously</strong> on a clock edge, the instantaneous current can dwarf the average draw, and that spike is exactly what creates dynamic IR drop.</p>
+        <p>A second source is <span class="key">rush (inrush) current</span>: when a power-gated block is switched back on, its starved internal rail recharges all at once, pulling a large gulp of current the moment the power switches close.</p>
+        <div class="eq">simultaneous switching + power-gating inrush ⟹ current spikes<small>A robust PDN (low resistance) plus local decaps keep the supply stable through them.</small></div>
+        <p>The defense is two-fold: a <strong>robust PDN</strong> with low resistance and plenty of metal, and <strong>decaps</strong> placed to absorb the spikes locally. Power-gating switches are also turned on in staged sequences (daisy-chained) to spread inrush over time instead of all at once.</p>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">EM checking flags a power wire: it carries a current I, but its current density J = I / A exceeds the design-rule limit J<sub>max</sub>. How do you fix it without changing the current it must deliver?</p>
+        <ol>
+            <li><strong>What EM depends on:</strong> current <em>density</em> J = I / A, not current alone. A is the wire's cross-sectional area (width × thickness).</li>
+            <li><strong>Constraint:</strong> the wire still has to carry the same current I — so we can't simply lower I.</li>
+            <li><strong>The lever:</strong> increase A. On a fixed metal layer the thickness is fixed, so we widen the wire. Double the width ⟹ double A.</li>
+            <li><strong>Result:</strong> J = I / (2A) = ½ of before — the current density is <strong>halved</strong>, bringing it back under J<sub>max</sub>.</li>
+            <li><strong>Takeaway:</strong> widening is the standard fix for EM-critical power and signal wires (often combined with adding parallel straps for big rails).</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: PDN / IR-drop analysis in OpenROAD</h3>
+        <p>OpenROAD's <code>analyze_power_grid</code> (PDNSim) reports the voltage drop across the power grid for a placed design. Run it for both the static and the dynamic (vectorless) cases, then read the worst-drop and worst-current numbers.</p>
+        <pre><span class="c"># inside the OpenROAD shell, after placement + PDN insertion</span>
+read_db design.odb
+set_pdnsim_net_voltage -net VDD -voltage 0.80
+
+<span class="c"># static IR drop — average current</span>
+analyze_power_grid -net VDD -outfile static_ir.rpt
+
+<span class="c"># dynamic IR drop — transient switching</span>
+analyze_power_grid -net VDD -dynamic -outfile dynamic_ir.rpt</pre>
+        <p>Open the reports and find <code>Worstcase voltage</code> and <code>Average IR drop</code>. Compare static vs. dynamic — the dynamic worst-drop should be larger. Where the drop is worst (usually the die center), the fix is more straps, wider metal, or more decaps nearby.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> IR drop is…</div>
+            <div class="opt"><b>A.</b> the voltage lost across the PDN; excessive drop slows or fails cells</div>
+            <div class="opt"><b>B.</b> crosstalk between neighboring signals</div>
+            <div class="opt"><b>C.</b> the skew between clock arrival times</div>
+            <div class="opt"><b>D.</b> leakage current only</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> IR drop is the V = I·R loss across the power-delivery network. Too much droop lowers a cell's supply, slowing it (less timing margin) or breaking it.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Electromigration is…</div>
+            <div class="opt"><b>A.</b> an instantaneous short circuit</div>
+            <div class="opt"><b>B.</b> metal erosion from high current density over time — a reliability limit</div>
+            <div class="opt"><b>C.</b> a crosstalk glitch</div>
+            <div class="opt"><b>D.</b> a routing-congestion issue</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Sustained high current density slowly moves metal atoms, forming voids/opens over the product lifetime. It's a long-term reliability limit, not an instant failure.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Decoupling capacitors…</div>
+            <div class="opt"><b>A.</b> fix static IR drop only</div>
+            <div class="opt"><b>B.</b> supply transient current locally, reducing dynamic IR drop</div>
+            <div class="opt"><b>C.</b> increase electromigration</div>
+            <div class="opt"><b>D.</b> shield signals against crosstalk</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A decap is a local charge reservoir that sources the switching current spike instantly, smoothing dynamic droop. It does little for static drop.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> To reduce electromigration in a wire you…</div>
+            <div class="opt"><b>A.</b> widen it (lowering the current density)</div>
+            <div class="opt"><b>B.</b> narrow it</div>
+            <div class="opt"><b>C.</b> raise its current</div>
+            <div class="opt"><b>D.</b> add a decap to it</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> EM depends on current density J = I/A. Widening increases A, so for the same current J drops — the standard fix for EM-critical wires.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Dynamic IR drop is worst during…</div>
+            <div class="opt"><b>A.</b> steady idle</div>
+            <div class="opt"><b>B.</b> power-off</div>
+            <div class="opt"><b>C.</b> a single gate toggling</div>
+            <div class="opt"><b>D.</b> simultaneous switching (current spikes)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> When many cells switch on the same edge, the instantaneous current spike outpaces the package, sagging the rail. Idle and single-gate activity barely move it.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>IR drop</b> is the V = I·R loss across the PDN, with a <b>static</b> (average) and a <b>dynamic</b> (transient) component; excess droop slows cells.</li>
+            <li><b>Electromigration</b> is a long-term reliability limit set by <b>current density J = I/A</b> — high J slowly opens voids.</li>
+            <li><b>Decoupling caps</b> are local charge reservoirs that source transient current and smooth <b>dynamic</b> droop (not static).</li>
+            <li><b>Simultaneous switching</b> and power-gating <b>inrush</b> cause the current spikes; a robust PDN plus decaps absorb them.</li>
+            <li>The standard EM fix is to <b>widen the wire</b> (more area ⟹ lower J), and you can read it all in an OpenROAD IR-drop report.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: ECO Flows — making targeted post-route engineering change orders to fix timing, IR, and EM violations without disturbing the rest of the design.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l07-signal-integrity.html"><div class="dir">← Week 7</div><div class="ttl">Signal Integrity</div></a>
+        <a href="l09-eco-flows.html" class="next"><div class="dir">Week 9 →</div><div class="ttl">ECO Flows</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Physical Design</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

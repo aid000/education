@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C1 · Lecture 7 — From Random Walks to Brownian Motion</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C1 Probability</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>From Random Walks to Brownian Motion</h1>
+        <p class="sub">Take a coin-flip walk, shrink the steps to nothing, speed up the clock just right — and a jagged staircase melts into the smooth, unpredictable curve that prices the entire derivatives market.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Set up a symmetric random walk and recall that its variance grows linearly in the number of steps.</li>
+            <li>Apply the diffusive rescaling — divide space by √n and time by n — that keeps the walk from collapsing or exploding.</li>
+            <li>State Donsker's functional Central Limit Theorem in plain words: the whole rescaled <em>path</em> converges, not just its endpoint.</li>
+            <li>Explain why the limit has continuous paths, independent Gaussian increments, and a standard deviation that scales like √t.</li>
+            <li>Build a rescaled-walk simulation in NumPy and watch √t volatility scaling appear before your eyes.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>The Random Walk We Already Know</h2>
+        <p>In Week 5 we met the <strong>simple symmetric random walk</strong>: start at zero, and at each tick take a step of +1 or −1, each with probability ½, independently. After n steps the position is the sum of the steps:</p>
+        <div class="eq">S<sub>n</sub> = X<sub>1</sub> + X<sub>2</sub> + … + X<sub>n</sub>,&nbsp;&nbsp; X<sub>i</sub> = ±1 with prob ½<small>Each step has mean 0 and variance 1, so E[S<sub>n</sub>] = 0 and — because the steps are independent — Var(S<sub>n</sub>) = n.</small></div>
+        <p>That last fact is the whole game. The <strong>variance grows linearly in time</strong>, so the typical <em>distance</em> the walk wanders from the origin grows like the square root of the number of steps, √n. Doubling the time does not double how far you typically drift — it multiplies the spread by only √2 ≈ 1.41. This is the discrete ancestor of the "square-root-of-time" rule every risk desk uses to scale daily volatility up to a yearly figure.</p>
+        <p>A random walk is the canonical toy model of a price that has no predictable drift — a <span class="key">fair game</span> (a martingale, from Week 6). Each tick is an unforecastable shock; the question this week is what happens when the ticks become infinitely frequent and infinitely small, as they effectively are for a price quoted to the microsecond.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Picture a slightly drunk person leaving a lamppost, flipping a coin at every step to decide left or right. After 100 steps they are <em>typically</em> about 10 steps away (√100), not 100 — the back-and-forth keeps cancelling. After 400 steps, typically 20 away. To wander twice as far they need <strong>four times</strong> as long. That stubborn √n is the same square root that haunted Monte-Carlo accuracy in Lecture 2.</p></div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>The Diffusive Rescaling — Zooming Out Correctly</h2>
+        <p>We want a <em>continuous-time</em> object. The naive move is to cram more and more steps into a fixed time interval [0, 1] and watch what the path does. Split the interval into n tiny time-steps of length Δt = 1/n, and let the walk take one ±1 step each. But there is a trap: if we leave the step size at ±1, then by time 1 the walk has variance n → ∞, and the path blows up. If instead we shrink the step size too aggressively, the path collapses to a flat line. We need the <em>Goldilocks</em> scaling.</p>
+        <p>The variance bookkeeping tells us exactly what to do. With n steps the total variance is n × (step variance). To pin the variance at time 1 to a finite value, each step must have variance 1/n — that is, a step <strong>size of 1/√n</strong>. So we rescale <span class="key">space by √n</span> while we rescale <span class="key">time by n</span>:</p>
+        <div class="eq">W<sub>n</sub>(t) = S<sub>⌊nt⌋</sub> / √n<small>At time t we have used about nt steps, so Var(W<sub>n</sub>(t)) = (nt) × (1/√n)² = nt/n = t. The variance grows like t, not like nt — finite and clean.</small></div>
+        <p>Notice the asymmetry: time and space are <em>not</em> rescaled by the same factor. Time is divided by n; space only by √n. This unequal squashing — squeeze time hard, squeeze space gently — is the signature of <strong>diffusion</strong>, and it is precisely what produces the famous √t spread. Get the exponents wrong and you get either a frozen line or an explosion; only the ½-power on space survives.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 230" role="img" aria-label="Three increasingly fine random walk paths overlaid: a coarse 8-step zigzag, a finer 32-step path, and a very fine path that looks like a continuous jagged curve, all spanning the same time axis from 0 to 1 and ending near the same height">
+                <!-- axes -->
+                <line x1="40" y1="115" x2="380" y2="115" stroke="#bcae8c" stroke-width="1.3"/>
+                <line x1="40" y1="20" x2="40" y2="210" stroke="#bcae8c" stroke-width="1.3"/>
+                <text x="36" y="16" fill="#bcae8c" font-size="10" text-anchor="end">W(t)</text>
+                <text x="378" y="130" fill="#bcae8c" font-size="10" text-anchor="end">t=1</text>
+                <text x="44" y="128" fill="#bcae8c" font-size="10">0</text>
+                <!-- coarse: 8 steps (amber) -->
+                <polyline points="40,115 82,90 124,118 166,95 208,128 250,100 292,135 334,108 376,150" fill="none" stroke="#f59e0b" stroke-width="2.4"/>
+                <!-- finer: 32 steps (blue) -->
+                <polyline points="40,115 50,108 61,118 71,104 82,112 92,99 103,109 113,95 124,103 134,118 145,108 155,122 166,110 176,128 187,116 197,132 208,120 218,136 229,124 239,142 250,128 260,146 271,134 281,150 292,138 302,152 313,140 323,154 334,143 344,157 355,146 365,158 376,150" fill="none" stroke="#60a5fa" stroke-width="1.7"/>
+                <!-- finest: ~64 steps (green) jagged near-continuous -->
+                <polyline points="40,115 45,111 50,116 56,109 61,114 66,107 71,113 77,118 82,110 87,121 92,112 98,108 103,116 108,124 113,114 119,126 124,118 129,113 134,123 140,131 145,121 150,128 155,135 161,127 166,134 171,141 176,132 182,138 187,144 192,135 197,142 203,148 208,139 213,131 218,140 224,147 229,138 234,144 239,150 245,142 250,135 255,143 260,149 266,140 271,147 276,153 282,144 287,138 292,146 298,152 303,143 308,149 313,141 319,148 324,154 329,146 334,143 340,150 345,156 350,148 355,154 361,146 366,152 371,148 376,150" fill="none" stroke="#34d399" stroke-width="1.1"/>
+                <!-- legend -->
+                <rect x="250" y="28" width="14" height="3" fill="#f59e0b"/>
+                <text x="268" y="32" fill="#bcae8c" font-size="9.5">8 steps</text>
+                <rect x="250" y="44" width="14" height="3" fill="#60a5fa"/>
+                <text x="268" y="48" fill="#bcae8c" font-size="9.5">32 steps</text>
+                <rect x="250" y="60" width="14" height="3" fill="#34d399"/>
+                <text x="268" y="64" fill="#bcae8c" font-size="9.5">64 steps</text>
+            </svg>
+            <figcaption>The diffusive rescaling in action. As the number of steps grows (amber → blue → green), each step shrinks like 1/√n, so all three paths span the same time axis and reach a similar height — they do not collapse or explode. The path gets ever more jagged yet stays bounded: in the limit it becomes a continuous, nowhere-smooth curve.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Donsker's Theorem — the Whole Path Converges</h2>
+        <p>The ordinary Central Limit Theorem of Lecture 2 told us about a single number: the rescaled <em>endpoint</em> W<sub>n</sub>(1) = S<sub>n</sub>/√n converges in distribution to a Normal(0, 1). That is already suggestive, but a price is not one number — it is an entire trajectory in time. We want the whole <em>function</em> t ↦ W<sub>n</sub>(t) to settle down to a limiting random function.</p>
+        <p>That stronger statement is <strong>Donsker's theorem</strong>, also called the <span class="key">functional Central Limit Theorem</span> or the <em>invariance principle</em>. In plain words:</p>
+        <div class="eq">W<sub>n</sub>(·) = S<sub>⌊n·⌋</sub> / √n&nbsp; ⟹&nbsp; B(·)&nbsp;&nbsp; as n → ∞<small>The entire rescaled random-walk path converges to a limiting random path B, called standard Brownian motion (or the Wiener process).</small></div>
+        <p>Two words in that sentence carry enormous weight. <strong>Functional</strong> means we are taking a limit of whole paths, not just endpoints — the convergence holds for the maximum, the time of the maximum, the area under the path, every continuous feature at once. <strong>Invariance</strong> means the limit does not care about the <em>microscopic</em> details of the steps: ±1 coin flips, ±2 with some skip, draws from any distribution with mean 0 and finite variance — they <em>all</em> rescale to the <em>same</em> Brownian motion. Just as the plain CLT erased the shape of the parent distribution, Donsker erases the shape of the individual step.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The plain CLT is a single still photo of the finish line — where did the walker end up? Donsker is the <em>entire film</em> of the journey, and it says every walker's film, no matter how their individual footsteps differed, edits down to the same archetypal movie once you zoom out. That universality is why one model — Brownian motion — underlies the pricing of options on thousands of unrelated assets.</p></div>
+        <p>This is the deep reason Brownian motion is the default continuous-time model for an efficient price. You do not need to know the exact mechanism of every tick — the order-book microstructure, the queue jumps, the cancellations. As long as the increments are roughly independent with finite variance, the aggregate, viewed from far enough away, looks like Brownian motion.</p>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>What the Limit Looks Like — Three Defining Features</h2>
+        <p>The object Donsker hands us, standard Brownian motion B(t), inherits three properties directly from the random walk it came from. These will be the formal axioms of Week 8; here we see <em>where they come from</em>.</p>
+        <h3>1. Gaussian increments with √t scaling</h3>
+        <p>Over an interval of length t, the limiting position B(t) is the rescaled sum of about nt independent steps. By the CLT that sum is Gaussian, and from §7.2 its variance is t. So:</p>
+        <div class="eq">B(t) − B(s) ~ Normal(0,&nbsp; t − s),&nbsp;&nbsp; SD = √(t − s)<small>The standard deviation of a Brownian increment is the square root of the elapsed time. Daily vol × √252 ≈ annual vol is exactly this rule.</small></div>
+        <h3>2. Independent increments</h3>
+        <p>Because the random-walk steps were independent, non-overlapping chunks of the path are independent. What the price does between Monday and Tuesday is independent of what it does between Thursday and Friday — the formal version of "the past is already priced in."</p>
+        <h3>3. Continuous but nowhere-smooth paths</h3>
+        <p>Each rescaled step has size 1/√n → 0, so no single jump survives in the limit: the path is <strong>continuous</strong>. Yet over any tiny interval Δt the wiggle has size √Δt, which is <em>much larger</em> than Δt itself. The ratio (wiggle)/(time) = √Δt / Δt = 1/√Δt → ∞, so the path has <strong>no well-defined slope anywhere</strong> — it is continuous but nowhere differentiable.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> say "Brownian motion has variance √t." Its <em>variance</em> is t (it grows <em>linearly</em>); the <em>standard deviation</em> is √t. Likewise, never scale volatility by adding it over time — variances add, so volatilities add <em>in quadrature</em>. Two independent daily moves of vol σ combine to σ√2, not 2σ. Forgetting this is the single most common √t error on a trading desk.</div>
+        <p>Because the path has no slope, the ordinary derivative dB/dt does not exist, and ordinary calculus breaks down on it. Repairing calculus for these jagged paths is the job of <strong>Itô calculus</strong> later in the specialization — the engine of the Black–Scholes equation.</p>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 400 220" role="img" aria-label="A Brownian motion sample path starting at zero, wandering jaggedly, with a shaded cone widening like plus or minus the square root of t around the zero line, and dashed envelope curves labelled plus root t and minus root t">
+            <!-- axes -->
+            <line x1="40" y1="110" x2="382" y2="110" stroke="#bcae8c" stroke-width="1.3"/>
+            <line x1="40" y1="18" x2="40" y2="205" stroke="#bcae8c" stroke-width="1.3"/>
+            <text x="36" y="16" fill="#bcae8c" font-size="10" text-anchor="end">B(t)</text>
+            <text x="380" y="124" fill="#bcae8c" font-size="10" text-anchor="end">t</text>
+            <text x="44" y="123" fill="#bcae8c" font-size="10">0</text>
+            <!-- +sqrt(t) envelope (upper) : starts at 110, sqrt-shaped up to ~40 -->
+            <path d="M40,110 Q120,72 210,58 T380,40" fill="none" stroke="#60a5fa" stroke-width="1.4" stroke-dasharray="4 3"/>
+            <!-- -sqrt(t) envelope (lower) : mirror -->
+            <path d="M40,110 Q120,148 210,162 T380,180" fill="none" stroke="#60a5fa" stroke-width="1.4" stroke-dasharray="4 3"/>
+            <!-- shaded cone between envelopes -->
+            <path d="M40,110 Q120,72 210,58 T380,40 L380,180 Q300,170 210,162 T40,110 Z" fill="rgba(96,165,250,.07)" stroke="none"/>
+            <!-- sample Brownian path (gold) -->
+            <polyline points="40,110 52,104 64,112 76,100 88,107 100,95 112,103 124,90 136,98 148,85 160,94 172,80 184,92 196,78 208,88 220,73 232,84 244,70 256,82 268,95 280,86 292,99 304,90 316,104 328,96 340,108 352,99 364,112 376,103" fill="none" stroke="#fbbf24" stroke-width="2"/>
+            <!-- labels -->
+            <text x="332" y="36" fill="#93c5fd" font-size="10">+√t</text>
+            <text x="332" y="194" fill="#93c5fd" font-size="10">−√t</text>
+            <text x="250" y="64" fill="#fcd34d" font-size="9.5">one sample path</text>
+        </svg>
+        <figcaption>A standard Brownian motion sample path (gold) starting at the origin, with the ±√t standard-deviation cone (blue, dashed) widening around it. The path is continuous yet infinitely jagged, and its typical excursion grows like √t — the same square-root-of-time spread inherited straight from the random walk's Var(S<sub>n</sub>) = n.</figcaption>
+    </figure>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — from a coin-flip walk to a √t volatility quote</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A toy price model takes one ±1 tick every minute, independently, with no drift. The market is open 390 minutes a day. Treat the rescaled walk as Brownian motion and find the standard deviation of the daily move, then the implied move over a 4-hour window.</p>
+        <ol>
+            <li><strong>One tick's moments:</strong> a ±1 step has mean 0 and variance 1, so its standard deviation is 1 "price unit" per minute of variance.</li>
+            <li><strong>Variance adds over independent ticks:</strong> over a full day of n = 390 ticks, Var(S<sub>390</sub>) = 390 × 1 = <strong>390</strong>. The position itself has mean 0 — no drift.</li>
+            <li><strong>Standard deviation = √(variance):</strong> SD of the daily move = √390 ≈ <strong>19.7</strong> price units. Note we take the square root of <em>time</em>, not of variance-of-variance — this is the √t rule.</li>
+            <li><strong>Scale to a 4-hour window (240 minutes):</strong> Var = 240, so SD = √240 ≈ <strong>15.5</strong> units. Crucially, 4 hours is roughly ⅗ of the day, yet its SD is √(240/390) ≈ <strong>0.78</strong> of the daily SD — not 0.62. Spread scales with √time, so most of a day's "movement budget" is spent quickly.</li>
+            <li><strong>Sanity / quadrature check:</strong> two independent 4-hour windows back-to-back give Var = 240 + 240 = 480, SD = √480 ≈ 21.9 — which equals √2 × 15.5, the volatilities adding in quadrature, not 2 × 15.5 = 31. The √t scaling is internally consistent.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: rescale a walk and watch √t appear</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1 environment (NumPy + Matplotlib — install block is in <a href="l01-probability-expectation.html" style="color:var(--accent2);">Lecture 1</a> if you skipped it). We build the diffusive rescaling directly: take ±1 steps, divide space by √n, and confirm that the spread at time t scales like √t — the fingerprint of the Brownian limit.</p>
+        <details class="install">
+            <summary>⬇ Need the environment? (reuse Week-1 setup)</summary>
+            <p>If you built <code>quant-env</code> in Lecture 1, just activate it. Otherwise:</p>
+            <pre>python3 -m venv quant-env
+source quant-env/bin/activate      <span class="c"># macOS / Linux  (quant-env\Scripts\activate on Windows)</span>
+pip install numpy scipy matplotlib jupyter</pre>
+        </details>
+        <pre><span class="c"># rw_to_bm.py — Lecture 7: diffusive rescaling of a random walk</span>
+import numpy as np
+
+rng = np.random.default_rng(7)
+N_paths = 100_000           <span class="c"># how many walks we simulate</span>
+n       = 2_000             <span class="c"># steps per unit of time (the "n" we send to infinity)</span>
+
+<span class="c"># ±1 steps; cumulative sum is the walk S_k along each path</span>
+steps = rng.choice([-1.0, 1.0], size=(N_paths, n))
+S     = np.cumsum(steps, axis=1)
+
+<span class="c"># diffusive rescaling: W_n(t) = S_floor(n t) / sqrt(n)</span>
+W = S / np.sqrt(n)
+
+<span class="c"># sample the rescaled path at t = 0.25, 0.50, 1.00</span>
+for t in (0.25, 0.50, 1.00):
+    col = int(t * n) - 1
+    sd  = W[:, col].std()
+    print(f"t={t:.2f}  empirical SD={sd:.4f}   sqrt(t)={np.sqrt(t):.4f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The two columns line up: the standard deviation of the rescaled walk at time t is ≈ √t (0.50, 0.71, 1.00). The endpoint <code>W[:,-1]</code> is also bell-shaped and Normal(0, 1) — Donsker in miniature. Bump <code>n</code> to 20,000 and the path you'd plot looks visibly continuous; the √t fit only tightens. That is the entire content of this week in four printed numbers.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You have just built Brownian motion from scratch. <strong>Week 8</strong> takes the limit object and states its axioms cleanly, then explores its strange properties — quadratic variation, the reflection principle, hitting times. From there the specialization adds a <em>drift</em> and a <em>volatility</em> to get the geometric Brownian motion that <strong>Course 3</strong>'s Black–Scholes model uses to price options — where the √t you met today becomes the time-to-expiry scaling of an option's value. The non-differentiable paths force a new calculus (<strong>Itô calculus</strong>), and the universality from Donsker is why a single diffusion can model assets whose tick-level mechanics are wildly different. Every continuous-time pricing model downstream rests on the bridge you crossed in this lecture.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> For a simple symmetric ±1 random walk, after n independent steps the variance of the position S<sub>n</sub> is…</div>
+            <div class="opt"><b>A.</b> √n</div>
+            <div class="opt"><b>B.</b> n</div>
+            <div class="opt"><b>C.</b> n²</div>
+            <div class="opt"><b>D.</b> 1, independent of n</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Each ±1 step has variance 1, and variances of independent steps add, so Var(S<sub>n</sub>) = n. The <em>standard deviation</em> is √n (A), which is the typical distance, not the variance. n² (C) would require the steps to be perfectly correlated; (D) ignores that more steps mean more spread.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> To turn the random walk into a sensible continuous-time limit on [0, 1] using n steps, how must you rescale space and time?</div>
+            <div class="opt"><b>A.</b> Divide both space and time by n</div>
+            <div class="opt"><b>B.</b> Divide space by n and time by √n</div>
+            <div class="opt"><b>C.</b> Divide space by √n and time by n</div>
+            <div class="opt"><b>D.</b> Leave space alone and divide time by n</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> This is the diffusive scaling: W<sub>n</sub>(t) = S<sub>⌊nt⌋</sub>/√n. Space is squeezed gently (√n) so the variance at time t lands at t. Equal scaling (A) makes the path collapse; reversing the exponents (B) makes it explode; (D) leaves variance growing like n and blowing up.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Donsker's theorem (the functional CLT) strengthens the ordinary CLT by guaranteeing convergence of…</div>
+            <div class="opt"><b>A.</b> only the rescaled endpoint W<sub>n</sub>(1)</div>
+            <div class="opt"><b>B.</b> the entire rescaled path, not just the endpoint</div>
+            <div class="opt"><b>C.</b> the variance of the steps to zero</div>
+            <div class="opt"><b>D.</b> the parent distribution to a uniform</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The "functional" in functional CLT means the whole path t ↦ W<sub>n</sub>(t) converges to Brownian motion, so functionals like the maximum or area converge too. The endpoint alone (A) is just the ordinary CLT. (C) and (D) describe nothing Donsker claims.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For standard Brownian motion, the standard deviation of the increment B(t) − B(s) over an interval of length t − s is…</div>
+            <div class="opt"><b>A.</b> t − s</div>
+            <div class="opt"><b>B.</b> (t − s)²</div>
+            <div class="opt"><b>C.</b> √(t − s)</div>
+            <div class="opt"><b>D.</b> 1, for any interval</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The increment is Normal(0, t − s), so its <em>variance</em> is t − s and its <em>standard deviation</em> is √(t − s) — the √t scaling. (A) is the variance, not the SD; (B) and (D) are not how diffusion spreads.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why is a Brownian motion path continuous but nowhere differentiable?</div>
+            <div class="opt"><b>A.</b> Each rescaled step → 0 (so it's continuous), but the wiggle over Δt is of size √Δt ≫ Δt, so the slope blows up</div>
+            <div class="opt"><b>B.</b> Because the path has occasional finite jumps that break the derivative</div>
+            <div class="opt"><b>C.</b> Because the increments are correlated, creating sharp corners</div>
+            <div class="opt"><b>D.</b> Because variance is infinite at every point</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Steps shrink like 1/√n so no jump survives — the path is continuous. But over a tiny Δt the typical move is √Δt, and the slope (√Δt)/Δt = 1/√Δt → ∞, so no derivative exists. Brownian motion has <em>no</em> jumps (B is false); its increments are <em>independent</em>, not correlated (C); its variance at time t is finite and equal to t (D is false).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The simple symmetric random walk has <b>Var(S<sub>n</sub>) = n</b>, so its typical drift grows like <b>√n</b> — the discrete root of square-root-of-time.</li>
+            <li>The <b>diffusive rescaling</b> divides space by √n and time by n, so W<sub>n</sub>(t) = S<sub>⌊nt⌋</sub>/√n has variance t — finite, not exploding or collapsing.</li>
+            <li><b>Donsker's theorem</b> (the functional CLT) says the whole rescaled <b>path</b> converges to standard Brownian motion, regardless of the step distribution.</li>
+            <li>The limit has <b>Gaussian increments</b> with SD = √(t − s), <b>independent increments</b>, and <b>continuous but nowhere-differentiable</b> paths.</li>
+            <li>You reproduced the <b>√t scaling</b> in NumPy by rescaling a coin-flip walk — Donsker in four printed numbers.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: Brownian motion and its properties — the axioms made formal, plus quadratic variation, the reflection principle, and the hitting times that price barrier options.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-martingales.html"><div class="dir">← Week 6</div><div class="ttl">Martingales &amp; Fair Games</div></a>
+        <a class="next" href="l08-brownian-motion.html"><div class="dir">Week 8 →</div><div class="ttl">Brownian Motion &amp; Its Properties</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Probability</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

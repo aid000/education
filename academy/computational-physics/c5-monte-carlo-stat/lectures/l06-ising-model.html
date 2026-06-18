@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C5 · Lecture 6 — The 2D Ising Model</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C5 Monte Carlo &amp; Stat</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>The 2D Ising Model</h1>
+        <p class="sub">A grid of arrows that each only "talk" to their neighbors — yet together they spontaneously decide to point the same way, and a computer can watch them do it.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Describe the 2D Ising model: spins on a lattice, nearest-neighbor coupling, and the Hamiltonian.</li>
+            <li>Compute the local energy change &Delta;E for flipping a single spin and explain why only its four neighbors matter.</li>
+            <li>State the single-spin Metropolis acceptance rule and connect it to the Boltzmann weight from Week 5.</li>
+            <li>Define the magnetization as the order parameter and interpret what it tells you about the phase.</li>
+            <li>Implement an Ising Monte Carlo sweep in Python with periodic boundaries and measure &lt;|M|&gt;.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Spins on a Lattice: the Model of a Magnet</h2>
+        <p>Why is a bar magnet magnetic, and why does it abruptly <em>lose</em> its magnetism when you heat it past a certain temperature? The simplest model that captures this is the <strong>Ising model</strong>: a stripped-down cartoon of a magnetic material. Place a tiny magnetic moment — a <strong>spin</strong> — on every site of a square grid. Each spin is allowed only two states, "up" or "down," written as a number:</p>
+        <div class="eq">s<sub>i</sub> = +1 (up)&nbsp;&nbsp;or&nbsp;&nbsp; s<sub>i</sub> = -1 (down)<small>The i-th spin. On an L &times; L lattice there are N = L<sup>2</sup> spins, so 2<sup>N</sup> possible configurations.</small></div>
+        <p>This is a brutal simplification of real quantum spins, but it is exactly enough. Real materials have spins that can point in any direction; Ising keeps only the two states that matter most and throws away everything else. The payoff is that the model is simple enough to simulate yet rich enough to show a genuine <strong>phase transition</strong> — the magnet-to-non-magnet change — which is the headline result we build toward next week.</p>
+        <p>Crucially, a spin does not interact with the whole lattice. It only feels its <strong>nearest neighbors</strong>: on a square lattice that is the four sites directly up, down, left, and right. Magnetism, like a rumor, spreads locally — each spin pressures only its immediate neighbors, and order has to ripple outward from there.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 240" role="img" aria-label="A 4 by 4 grid of up and down spins drawn as arrows, with the four nearest neighbors of a central spin highlighted">
+                <!-- grid of spins: up = green arrow up, down = amber arrow down -->
+                <!-- row coords y: 40,90,140,190 ; col coords x: 60,120,180,240 -->
+                <!-- draw highlight square around center spin at (180,140) neighbors -->
+                <line x1="180" y1="140" x2="180" y2="90" stroke="#818cf8" stroke-width="2"/>
+                <line x1="180" y1="140" x2="180" y2="190" stroke="#818cf8" stroke-width="2"/>
+                <line x1="180" y1="140" x2="120" y2="140" stroke="#818cf8" stroke-width="2"/>
+                <line x1="180" y1="140" x2="240" y2="140" stroke="#818cf8" stroke-width="2"/>
+                <!-- arrows: function via small lines. up arrow: vertical line + head up -->
+                <!-- Row 1 (y around 40) -->
+                <g stroke="#34d399" stroke-width="2.4" fill="none">
+                    <path d="M60,50 v-18 M55,40 l5,-8 l5,8"/>
+                    <path d="M120,50 v-18 M115,40 l5,-8 l5,8"/>
+                    <path d="M240,50 v-18 M235,40 l5,-8 l5,8"/>
+                </g>
+                <g stroke="#fbbf24" stroke-width="2.4" fill="none">
+                    <path d="M180,32 v18 M175,42 l5,8 l5,-8"/>
+                </g>
+                <!-- Row 2 (y around 90) -->
+                <g stroke="#34d399" stroke-width="2.4" fill="none">
+                    <path d="M60,100 v-18 M55,90 l5,-8 l5,8"/>
+                    <path d="M180,100 v-18 M175,90 l5,-8 l5,8"/>
+                </g>
+                <g stroke="#fbbf24" stroke-width="2.4" fill="none">
+                    <path d="M120,82 v18 M115,92 l5,8 l5,-8"/>
+                    <path d="M240,82 v18 M235,92 l5,8 l5,-8"/>
+                </g>
+                <!-- Row 3 (y around 140) center -->
+                <g stroke="#34d399" stroke-width="2.4" fill="none">
+                    <path d="M120,150 v-18 M115,140 l5,-8 l5,8"/>
+                    <path d="M240,150 v-18 M235,140 l5,-8 l5,8"/>
+                </g>
+                <g stroke="#fbbf24" stroke-width="2.4" fill="none">
+                    <path d="M60,132 v18 M55,142 l5,8 l5,-8"/>
+                </g>
+                <!-- center spin highlighted (up, accent) -->
+                <circle cx="180" cy="140" r="13" fill="none" stroke="#a5b4fc" stroke-width="1.5" stroke-dasharray="3 3"/>
+                <g stroke="#a5b4fc" stroke-width="2.8" fill="none">
+                    <path d="M180,150 v-18 M174,140 l6,-9 l6,9"/>
+                </g>
+                <!-- Row 4 (y around 190) -->
+                <g stroke="#34d399" stroke-width="2.4" fill="none">
+                    <path d="M120,200 v-18 M115,190 l5,-8 l5,8"/>
+                </g>
+                <g stroke="#fbbf24" stroke-width="2.4" fill="none">
+                    <path d="M60,182 v18 M55,192 l5,8 l5,-8"/>
+                    <path d="M180,182 v18 M175,192 l5,8 l5,-8"/>
+                    <path d="M240,182 v18 M235,192 l5,8 l5,-8"/>
+                </g>
+                <text x="290" y="138" fill="#a5b4fc" font-size="11">spin s_i</text>
+                <text x="290" y="154" fill="#a3a8c8" font-size="10">+ 4 neighbors</text>
+                <text x="20" y="222" fill="#34d399" font-size="10">up = +1</text>
+                <text x="100" y="222" fill="#fbbf24" font-size="10">down = -1</text>
+            </svg>
+            <figcaption>An Ising lattice of up (green) and down (amber) spins. The highlighted central spin (violet) couples only to its four nearest neighbors — the bonds drawn in indigo. Magnetic order is built entirely from these local interactions.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>The Hamiltonian: Energy of a Configuration</h2>
+        <p>Physics decides what happens by counting <strong>energy</strong>. Every full configuration of all N spins has a total energy given by the <strong>Hamiltonian</strong>. For the Ising model with no external field it is a sum over all nearest-neighbor pairs:</p>
+        <div class="eq">E = -J &middot; &Sigma;<sub>&lt;i,j&gt;</sub> s<sub>i</sub> s<sub>j</sub><small>The sum runs over each neighboring pair once; J &gt; 0 is the coupling strength. We set J = 1 and k_B = 1 as our energy and temperature units.</small></div>
+        <p>Read the minus sign carefully. When two neighbors <strong>agree</strong> (both +1 or both -1), the product s<sub>i</sub>s<sub>j</sub> = +1, and the term contributes <strong>-J</strong> — low energy. When they <strong>disagree</strong>, the product is -1 and the term contributes <strong>+J</strong> — high energy. Because nature seeks low energy, the model has a built-in preference: <strong>neighbors want to align</strong>. That alignment tendency, fighting against the randomizing kick of temperature, is the entire drama.</p>
+        <p>If we add an external magnetic field h that pulls spins toward up, the Hamiltonian gains a second term, -h&Sigma;<sub>i</sub>s<sub>i</sub>. This lecture sticks with h = 0, where the up and down states are perfectly symmetric — which is what makes spontaneous symmetry breaking so striking.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a packed stadium where everyone can either stand or sit, and each person only cares about matching the four people immediately around them. There is social "energy" in disagreeing with a neighbor. At low excitement (cold) the whole crowd settles into one state — a giant wave of all-standing or all-sitting. Crank up the excitement (heat) and people flip at random, with no agreement across the stadium. The Ising lattice is exactly this crowd, and J is how strongly each person feels the pressure to conform.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not double-count the bonds. The sum &Sigma;<sub>&lt;i,j&gt;</sub> is over <em>distinct pairs</em>, so each bond appears once. If you instead loop over every site and add up all four of its neighbor products, you count every bond <strong>twice</strong> and must divide the total by 2. Mixing these conventions silently halves or doubles your energy.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Single-Spin Metropolis Updates &amp; the Local Energy Change</h2>
+        <p>We cannot enumerate all 2<sup>N</sup> configurations — for a modest 32 &times; 32 lattice that is 2<sup>1024</sup> states, more than the atoms in the universe. Instead we use the <strong>Metropolis algorithm</strong> from Week 5 to sample configurations in proportion to their Boltzmann weight e<sup>-E/T</sup>. The genius move for Ising is that we propose the tiniest possible change: <strong>flip one spin</strong>.</p>
+        <p>Here is why one spin is so cheap. Flipping spin i changes the energy only through the bonds touching i — its four neighbors. Every other bond is untouched. So the energy change is local. Let s<sub>i</sub> be the current value and let the four neighbor spins sum to S = s<sub>up</sub> + s<sub>down</sub> + s<sub>left</sub> + s<sub>right</sub>. Flipping s<sub>i</sub> to -s<sub>i</sub> gives:</p>
+        <div class="eq">&Delta;E = 2 J s<sub>i</sub> S<small>S is the sum of the four neighbor spins (an even integer from -4 to +4). No global recomputation needed.</small></div>
+        <p>To see this, the four bonds touching site i contribute -J s<sub>i</sub> S before the flip and -J(-s<sub>i</sub>)S = +J s<sub>i</sub> S after. The difference is &Delta;E = (+J s<sub>i</sub>S) - (-J s<sub>i</sub>S) = 2 J s<sub>i</sub> S. With J = 1 the possible values of &Delta;E are just {-8, -4, 0, +4, +8}. We then apply the Metropolis rule:</p>
+        <div class="eq">accept the flip with probability P = min(1, e<sup>-&Delta;E / T</sup>)<small>If &Delta;E &le; 0 (lowers or keeps energy) always accept. If &Delta;E &gt; 0, accept only if a uniform random number r &lt; e^(-&Delta;E/T).</small></div>
+        <p>Sweeping once through all N spins (in order or at random) is called one <strong>Monte Carlo sweep</strong>, the natural unit of simulation time. Because &Delta;E takes only a handful of values, we can precompute the few possible Boltzmann factors e<sup>-&Delta;E/T</sup> once and just look them up — a classic speed trick.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 200" role="img" aria-label="A central down-spin surrounded by its four neighbor spins, with the neighbor-sum S and the energy change Delta E equals 2 J s S shown">
+                <!-- center spin (down, candidate to flip) -->
+                <circle cx="160" cy="100" r="18" fill="rgba(129,140,248,.18)" stroke="#818cf8" stroke-width="1.5"/>
+                <g stroke="#fbbf24" stroke-width="3" fill="none">
+                    <path d="M160,88 v22 M153,100 l7,11 l7,-11"/>
+                </g>
+                <text x="112" y="150" fill="#a5b4fc" font-size="11" text-anchor="middle">s_i = -1</text>
+                <!-- bonds -->
+                <line x1="160" y1="82" x2="160" y2="48" stroke="#818cf8" stroke-width="2"/>
+                <line x1="160" y1="118" x2="160" y2="152" stroke="#818cf8" stroke-width="2"/>
+                <line x1="142" y1="100" x2="104" y2="100" stroke="#818cf8" stroke-width="2"/>
+                <line x1="178" y1="100" x2="216" y2="100" stroke="#818cf8" stroke-width="2"/>
+                <!-- top neighbor up -->
+                <g stroke="#34d399" stroke-width="2.6" fill="none">
+                    <path d="M160,48 v-18 M154,38 l6,-9 l6,9"/>
+                </g>
+                <!-- bottom neighbor up -->
+                <g stroke="#34d399" stroke-width="2.6" fill="none">
+                    <path d="M160,170 v-18 M154,160 l6,-9 l6,9"/>
+                </g>
+                <!-- left neighbor up -->
+                <g stroke="#34d399" stroke-width="2.6" fill="none">
+                    <path d="M104,110 v-18 M98,100 l6,-9 l6,9"/>
+                </g>
+                <!-- right neighbor down -->
+                <g stroke="#fbbf24" stroke-width="2.6" fill="none">
+                    <path d="M216,92 v18 M210,102 l6,9 l6,-9"/>
+                </g>
+                <!-- annotations -->
+                <text x="260" y="60" fill="#a3a8c8" font-size="11">S = (+1)+(+1)</text>
+                <text x="260" y="76" fill="#a3a8c8" font-size="11">+(+1)+(-1) = +2</text>
+                <text x="260" y="108" fill="#a5b4fc" font-size="12">dE = 2 J s_i S</text>
+                <text x="260" y="126" fill="#34d399" font-size="11">= 2(1)(-1)(2) = -4</text>
+                <text x="260" y="148" fill="#34d399" font-size="10">dE &lt; 0 -> always accept</text>
+            </svg>
+            <figcaption>Local energy change for flipping the central spin. Only the four neighbor bonds matter; with neighbor sum S = +2 and s_i = -1, &Delta;E = 2 J s_i S = -4. Since &Delta;E &lt; 0, the flip is accepted unconditionally.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>Magnetization: the Order Parameter</h2>
+        <p>How do we tell, from the configuration, whether the lattice is a magnet or not? We measure the <strong>magnetization</strong>: the net alignment of all spins, usually reported per spin so it lives between -1 and +1.</p>
+        <div class="eq">M = (1/N) &Sigma;<sub>i</sub> s<sub>i</sub><small>M = +1: all spins up. M = -1: all spins down. M = 0: equal numbers of up and down (no net order).</small></div>
+        <p>M is the model's <strong>order parameter</strong> — a single number that flags which phase the system is in. At low temperature the alignment tendency wins: almost all spins agree, so |M| is close to 1 and the lattice is a magnet. At high temperature thermal kicks scramble the spins, up and down balance out, and M hovers near 0 — no magnetism. Between them lies the <strong>critical temperature</strong> T<sub>c</sub>, where the order parameter collapses; for the 2D square lattice the exact value (Onsager, 1944) is:</p>
+        <div class="eq">T<sub>c</sub> = 2J / ln(1 + &radic;2) &asymp; 2.269 J<small>One of the few exactly solved interacting models — a gold-standard benchmark for any Monte Carlo code.</small></div>
+        <p>One subtlety at h = 0: because up and down are perfectly symmetric, a long run below T<sub>c</sub> can tunnel between the all-up and all-down states, so the <em>signed</em> average &lt;M&gt; drifts toward 0 even in the ordered phase. The fix is to track the <strong>absolute</strong> magnetization &lt;|M|&gt;, which stays near 1 below T<sub>c</sub> and falls toward 0 above it. That curve, plotted next week, is the fingerprint of the phase transition.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Measuring M before the system has <strong>equilibrated</strong>. A simulation started from a random (or all-up) configuration needs a burn-in of many sweeps to reach typical configurations at temperature T. Averaging in measurements from those early, atypical sweeps biases your estimate. Always discard an equilibration window first, then average.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — one Metropolis update by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A spin s<sub>i</sub> = +1 sits among neighbors {up=+1, down=-1, left=+1, right=+1}. We run the simulation at temperature T = 2.0 (with J = 1). Decide whether the proposed flip is accepted, given that the random number generator returns r = 0.37.</p>
+        <ol>
+            <li><strong>Neighbor sum:</strong> S = (+1) + (-1) + (+1) + (+1) = <strong>+2</strong>.</li>
+            <li><strong>Energy change:</strong> &Delta;E = 2 J s<sub>i</sub> S = 2(1)(+1)(+2) = <strong>+4</strong>. The flip <em>raises</em> energy (it would break a majority-aligned site), so it is not automatic.</li>
+            <li><strong>Acceptance probability:</strong> since &Delta;E &gt; 0, P = e<sup>-&Delta;E/T</sup> = e<sup>-4/2.0</sup> = e<sup>-2</sup> &asymp; <strong>0.135</strong>.</li>
+            <li><strong>Compare to the random draw:</strong> we accept iff r &lt; P. Here r = 0.37 and P = 0.135, so r &gt; P &rarr; the flip is <strong>rejected</strong>. The spin stays +1.</li>
+            <li><strong>Sanity check:</strong> at this temperature an energy-raising flip of +4 is accepted only ~13.5% of the time, so most such proposals are refused — exactly the behavior that keeps the lattice ordered when T is low. Had T been very large, e<sup>-4/T</sup> &rarr; 1 and the flip would almost always pass, scrambling order.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate a 2D Ising magnet</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This uses the same free Python + NumPy + Matplotlib stack you installed in <strong>Week 1</strong> (see the install panel in Lecture 1 if you need it). <code>Numba</code> is optional — it just speeds up the loop with a <code>@njit</code> decorator if you have it. The code below runs fine on plain NumPy.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:12px;">We build an L &times; L lattice with <strong>periodic boundaries</strong> (the modulo <code>%</code> wraps edges so every spin has four neighbors), run Metropolis sweeps, and measure the average absolute magnetization at one temperature.</p>
+        <pre><span class="c"># ising2d.py — Lecture 6</span>
+import numpy as np
+
+def delta_E(s, i, j, L, J=1.0):
+    <span class="c"># neighbor sum with periodic boundaries (wrap with %)</span>
+    nb = s[(i+1)%L, j] + s[(i-1)%L, j] + s[i, (j+1)%L] + s[i, (j-1)%L]
+    return 2.0 * J * s[i, j] * nb
+
+def sweep(s, T, L):
+    <span class="c"># one Monte Carlo sweep: attempt N=L*L single-spin flips</span>
+    for _ in range(L * L):
+        i, j = np.random.randint(L), np.random.randint(L)
+        dE = delta_E(s, i, j, L)
+        if dE &lt;= 0 or np.random.random() &lt; np.exp(-dE / T):
+            s[i, j] *= -1          <span class="c"># accept the flip</span>
+    return s
+
+L, T = 32, 2.0
+s = np.random.choice([-1, 1], size=(L, L))   <span class="c"># random start</span>
+
+for _ in range(1000):        <span class="c"># equilibrate: discard these sweeps</span>
+    sweep(s, T, L)
+
+mags = []
+for _ in range(2000):        <span class="c"># measure</span>
+    sweep(s, T, L)
+    mags.append(abs(s.sum()) / (L * L))      <span class="c"># |M| per spin</span>
+
+print(f"T={T}  &lt;|M|&gt; = {np.mean(mags):.3f}")
+<span class="c"># T=2.0 is below Tc=2.269, so expect &lt;|M|&gt; well above 0 (ordered)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Try it: loop T from 1.0 to 3.5 in steps of 0.1, record &lt;|M|&gt; at each, and plot with Matplotlib. You will see the magnetization plunge from near 1 toward 0 around T &asymp; 2.27 — your first measured phase transition. (Next week we make that curve sharp.)</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#16213a,#172a3a); border-color:#2d4a60;">
+        <h3 style="color:var(--blue);">💬 Discussion</h3>
+        <p style="color:#cfe2f5;">At h = 0 the Ising Hamiltonian treats "all up" and "all down" identically — the energy is unchanged if you flip <em>every</em> spin at once. Yet below T<sub>c</sub> a real magnet (and a long-enough simulation) settles into <em>one</em> of these two states, not a 50/50 blur. How can a perfectly symmetric model produce an asymmetric outcome? And why do we measure &lt;|M|&gt; rather than &lt;M&gt; to detect the ordered phase? Argue from energy, probability, and the practical behavior of a finite-time simulation.</p>
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer; color:var(--blue); font-weight:600; font-size:.88rem;">Show a model response</summary>
+            <div style="font-size:.9rem; color:#cfe2f5; margin-top:10px;">
+                <p style="margin-bottom:10px;">This is <strong>spontaneous symmetry breaking</strong>. The Hamiltonian is symmetric under flipping all spins, so the all-up and all-down states have identical energy and are equally probable in principle. But to get from one to the other, the system must pass through configurations with a domain wall slicing across the whole lattice — a high-energy barrier that grows with system size. Below T<sub>c</sub>, thermal kicks almost never supply enough energy to cross it, so the system is effectively trapped in whichever well it fell into first. The symmetry is unbroken for the model as a whole but broken for any single realization — like a pencil balanced on its tip that must fall <em>some</em> direction.</p>
+                <p style="margin-bottom:10px;">This directly explains the &lt;|M|&gt; choice. In an infinite system the two states never mix, so &lt;M&gt; would be +M&#8320; or -M&#8320;. But in a <em>finite</em> simulation run long enough, the system occasionally does tunnel between all-up and all-down, and those rare crossings drag the signed average &lt;M&gt; toward 0 even deep in the ordered phase — falsely suggesting no magnetism. Taking the absolute value per measurement removes the sign ambiguity: &lt;|M|&gt; stays near 1 below T<sub>c</sub> and falls toward 0 above it, faithfully tracking the order whether or not the run tunneled.</p>
+                <p style="font-size:.84rem; color:var(--green);"><strong>&#10003; Self-check rubric:</strong> A strong answer (1) names spontaneous symmetry breaking and ties it to the global spin-flip symmetry of the h = 0 Hamiltonian; (2) explains the trapping via a domain-wall energy barrier that grows with size; (3) connects &lt;|M|&gt; vs &lt;M&gt; to finite-time tunneling between the two ordered states; (4) notes that in the true thermodynamic (infinite) limit the symmetry breaking becomes exact.</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have a working magnet. <strong>Next week</strong> we plot &lt;|M|&gt;, the energy, the heat capacity, and the magnetic susceptibility versus temperature and watch them peak or collapse at T<sub>c</sub> &asymp; 2.269 — the language of <em>critical phenomena</em>, universality, and critical exponents. We will also meet a sharp practical problem: near T<sub>c</sub>, single-spin Metropolis suffers <em>critical slowing down</em>, motivating cluster algorithms (Wolff, Swendsen-Wang) later in the course. The same lattice-Monte-Carlo machinery reappears in lattice field theory in the Quantum track, in spin-glass and optimization problems (simulated annealing), and in image and network models far outside physics — the Ising model is the fruit fly of computational statistical mechanics.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In the Ising Hamiltonian E = -J &Sigma; s<sub>i</sub>s<sub>j</sub> with J &gt; 0, two neighboring spins that <em>agree</em> contribute…</div>
+            <div class="opt"><b>A.</b> +J (high energy), because agreement is penalized</div>
+            <div class="opt"><b>B.</b> -J (low energy), because the model favors alignment</div>
+            <div class="opt"><b>C.</b> exactly 0, since equal spins cancel</div>
+            <div class="opt"><b>D.</b> a value that depends on temperature T</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Agreeing spins give s<sub>i</sub>s<sub>j</sub> = +1, so the term is -J(+1) = -J, the low-energy state. A is the disagreeing case; C is wrong because the product is +1 not 0; D is wrong because the Hamiltonian itself has no T (temperature enters only through the Boltzmann acceptance).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A spin s<sub>i</sub> = -1 has neighbor spins summing to S = -4 (all four neighbors are down). The energy change to flip it is &Delta;E = 2J s<sub>i</sub> S =…</div>
+            <div class="opt"><b>A.</b> +8</div>
+            <div class="opt"><b>B.</b> 0</div>
+            <div class="opt"><b>C.</b> -4</div>
+            <div class="opt"><b>D.</b> +8J with the wrong sign convention</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> &Delta;E = 2(1)(-1)(-4) = +8. Flipping a spin that already agrees with all four neighbors breaks four bonds, raising energy by 8J — the most expensive possible flip. B and C use the wrong arithmetic; D misstates the convention (with J = 1 the answer is simply +8).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Why does flipping a single spin let us compute &Delta;E from only four neighbors instead of recomputing the whole lattice energy?</div>
+            <div class="opt"><b>A.</b> Because spins far away are always parallel</div>
+            <div class="opt"><b>B.</b> Because the magnetization is conserved by a flip</div>
+            <div class="opt"><b>C.</b> Because periodic boundaries remove all distant bonds</div>
+            <div class="opt"><b>D.</b> Because the interaction is nearest-neighbor, so only bonds touching that spin change</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The Hamiltonian couples only nearest neighbors, so a single flip alters just the four bonds at that site; every other bond is unchanged. A is false (distant spins are not fixed); B is false (a flip changes M by 2/N); C is false (periodic boundaries add bonds, they do not remove distant interactions).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Under the Metropolis rule at temperature T, a proposed flip with &Delta;E = +4 is accepted with probability…</div>
+            <div class="opt"><b>A.</b> 1, always</div>
+            <div class="opt"><b>B.</b> 0, never</div>
+            <div class="opt"><b>C.</b> e<sup>-4/T</sup></div>
+            <div class="opt"><b>D.</b> 4/T</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> For &Delta;E &gt; 0 the acceptance is min(1, e<sup>-&Delta;E/T</sup>) = e<sup>-4/T</sup>. A applies only when &Delta;E &le; 0; B is wrong because energy-raising moves are still sometimes accepted (that is what lets the system explore); D is not a probability and can exceed 1.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why do we usually report &lt;|M|&gt; (the average absolute magnetization) rather than &lt;M&gt; when detecting the ordered phase?</div>
+            <div class="opt"><b>A.</b> |M| is faster to compute than M</div>
+            <div class="opt"><b>B.</b> M can exceed 1, but |M| cannot</div>
+            <div class="opt"><b>C.</b> Magnetization is only defined as a positive quantity</div>
+            <div class="opt"><b>D.</b> At h = 0 a finite run can tunnel between all-up and all-down, dragging &lt;M&gt; toward 0 even when ordered</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The h = 0 model is symmetric, so a long finite-time run occasionally flips between the two ordered states; the signed average &lt;M&gt; then washes out to 0 and hides the order, while &lt;|M|&gt; stays near 1. A is irrelevant; B is false (both lie in [-1, 1]); C is false (M can be negative, e.g. all spins down gives M = -1).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>2D Ising model</b>: two-state spins on a square lattice coupling only to <b>nearest neighbors</b>.</li>
+            <li>The <b>Hamiltonian</b> E = -J &Sigma; s<sub>i</sub>s<sub>j</sub>, where the minus sign makes neighbors prefer to <b>align</b>.</li>
+            <li>The <b>local energy change</b> &Delta;E = 2 J s<sub>i</sub> S for a single-spin flip, and the <b>Metropolis</b> acceptance min(1, e<sup>-&Delta;E/T</sup>).</li>
+            <li><b>Magnetization</b> M = (1/N)&Sigma; s<sub>i</sub> as the <b>order parameter</b>, tracked as &lt;|M|&gt; to handle symmetry.</li>
+            <li>How to <b>implement</b> Ising Monte Carlo with periodic boundaries, equilibration, and measurement in NumPy.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Phase Transitions &amp; Critical Phenomena — measuring the heat capacity and susceptibility, finding T<sub>c</sub> &asymp; 2.269, and meeting critical slowing down.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-metropolis-hastings.html"><div class="dir">← Week 5</div><div class="ttl">The Metropolis-Hastings Algorithm</div></a>
+        <a class="next" href="l07-phase-transitions.html"><div class="dir">Week 7 →</div><div class="ttl">Phase Transitions &amp; Critical Phenomena</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Monte Carlo &amp; Stat</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

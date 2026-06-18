@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C1 · Lecture 8 — Brownian Motion &amp; Its Properties</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C1 Probability</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>Brownian Motion &amp; Its Properties</h1>
+        <p class="sub">The jagged, never-smooth, never-repeating path that a stock price seems to trace — turned into a precise mathematical object that the whole of modern finance is built on.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the three defining axioms of standard Brownian motion: W₀ = 0, independent Gaussian increments, and continuous paths.</li>
+            <li>Derive the mean E[Wₜ] = 0, the variance Var(Wₜ) = t, and the covariance Cov(Wₛ, Wₜ) = min(s, t).</li>
+            <li>Explain why a Brownian path is continuous everywhere yet differentiable nowhere — and why that means "velocity" is undefined.</li>
+            <li>Compute the quadratic variation of Brownian motion and see why it equals t (not zero).</li>
+            <li>Preview geometric Brownian motion as the standard model for a positive asset price.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>From the Random Walk to a Definition</h2>
+        <p>Last week we took a symmetric random walk, shrank each step in size, took the steps faster and faster, and watched the jagged staircase converge to a single continuous curve. That limiting object is <strong>standard Brownian motion</strong>, written Wₜ (the "W" honors Wiener, who made it rigorous). It is the continuous-time cousin of the coin-flip walk, and it is the single most important stochastic process in quantitative finance.</p>
+        <p>Rather than re-derive it as a limit each time, we pin it down with three axioms. A process {Wₜ : t ≥ 0} is a <span class="key">standard Brownian motion</span> if:</p>
+        <div class="eq">(1)&nbsp; W₀ = 0<br>(2)&nbsp; increments are independent and W<sub>t</sub> − W<sub>s</sub> ~ Normal(0, t − s)&nbsp; for s &lt; t<br>(3)&nbsp; the path t ↦ W<sub>t</sub> is continuous<small>Three short rules generate the entire object — start at zero, move by independent Gaussian increments whose variance is the elapsed time, and never jump.</small></div>
+        <p>Unpack axiom (2). Over a window of length t − s, the displacement is normally distributed, centered at zero, with variance equal to the <em>length of the window</em>. So a one-second move has variance 1, a four-second move has variance 4, and its standard deviation is √4 = 2. The spread grows like the <strong>square root of time</strong> — the same √n from the Central Limit Theorem (Lecture 2), now wearing a √t costume. "Independent increments" means what happens on a disjoint future window is statistically unrelated to the past: the process has no memory of its direction.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Imagine a speck of pollen jittered by invisible water molecules — the original physical Brownian motion. Each collision nudges it a tiny random amount, independent of the last. Watch for one second and it has wandered some distance; watch for four seconds and it has wandered twice as far on average, not four times. A traded price is jostled the same way by a relentless stream of small, independent buy and sell orders.</div>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>Mean, Variance, and Covariance</h2>
+        <p>The three axioms hand us every moment we need. Since W₀ = 0 and Wₜ = Wₜ − W₀ ~ Normal(0, t), the first two moments are immediate:</p>
+        <div class="eq">E[W<sub>t</sub>] = 0&nbsp;&nbsp;&nbsp;&nbsp; Var(W<sub>t</sub>) = t&nbsp;&nbsp;&nbsp;&nbsp; SD(W<sub>t</sub>) = √t<small>On average the process goes nowhere, but its typical distance from the start grows like √t — never linearly.</small></div>
+        <p>The zero mean says Brownian motion is <span class="key">driftless</span>: it has no built-in tendency to rise or fall. (A real stock does drift; we add that back with geometric Brownian motion in §8.4.) The variance growing linearly in t is the statement that uncertainty about where the price will be compounds with the horizon.</p>
+        <h3>Covariance: how two time-points are linked</h3>
+        <p>How related are the values at two different times s and t? Take s &lt; t and split Wₜ into the past piece plus a fresh, independent increment: Wₜ = Wₛ + (Wₜ − Wₛ). Then</p>
+        <div class="eq">Cov(W<sub>s</sub>, W<sub>t</sub>) = Cov(W<sub>s</sub>, W<sub>s</sub>) + Cov(W<sub>s</sub>, W<sub>t</sub> − W<sub>s</sub>) = Var(W<sub>s</sub>) + 0 = s = min(s, t)<small>The future increment is independent of the past, so its covariance with Wₛ is zero — only the shared history remains.</small></div>
+        <p>The clean result <strong>Cov(Wₛ, Wₜ) = min(s, t)</strong> is worth memorizing: two times share exactly the variance accumulated up to the <em>earlier</em> of them. This is the algebra behind correlated returns over overlapping windows, and it is the kernel you feed into a covariance matrix when simulating many correlated price paths.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Brownian motion is <strong>not</strong> a sequence of independent values — the <em>increments</em> are independent, the <em>levels</em> are not. Wₜ and Wₛ are strongly correlated because they share the path up to time min(s, t). Confusing "independent increments" with "independent positions" leads to badly underestimating how persistent a price level is.</div>
+    </section>
+
+    <!-- FIGURE 1 -->
+    <figure class="fig">
+        <svg viewBox="0 0 400 230" role="img" aria-label="Three simulated Brownian motion paths starting at zero and spreading out over time, bounded by dashed plus and minus square-root-t envelope curves">
+            <!-- axes -->
+            <line x1="44" y1="115" x2="376" y2="115" stroke="#bcae8c" stroke-width="1.3"/>
+            <line x1="44" y1="20" x2="44" y2="210" stroke="#bcae8c" stroke-width="1.3"/>
+            <text x="210" y="225" fill="#bcae8c" font-size="10" text-anchor="middle">time t</text>
+            <text x="20" y="68" fill="#bcae8c" font-size="10" text-anchor="middle" transform="rotate(-90 20 68)">W<tspan baseline-shift="sub">t</tspan></text>
+            <text x="38" y="119" fill="#bcae8c" font-size="9" text-anchor="end">0</text>
+            <!-- +/- sqrt(t) envelope (dashed) -->
+            <path d="M44,115 C140,82 240,62 376,42" fill="none" stroke="#a78bfa" stroke-width="1.3" stroke-dasharray="4 3"/>
+            <path d="M44,115 C140,148 240,168 376,188" fill="none" stroke="#a78bfa" stroke-width="1.3" stroke-dasharray="4 3"/>
+            <text x="372" y="36" fill="#a78bfa" font-size="9" text-anchor="end">+√t</text>
+            <text x="372" y="200" fill="#a78bfa" font-size="9" text-anchor="end">−√t</text>
+            <!-- path 1 (gold) -->
+            <polyline fill="none" stroke="#fbbf24" stroke-width="1.6"
+                points="44,115 77,104 110,120 143,98 176,110 209,86 242,100 275,74 308,92 341,70 376,84"/>
+            <!-- path 2 (green) -->
+            <polyline fill="none" stroke="#34d399" stroke-width="1.6"
+                points="44,115 77,126 110,118 143,138 176,128 209,150 242,140 275,160 308,148 341,168 376,158"/>
+            <!-- path 3 (blue) -->
+            <polyline fill="none" stroke="#60a5fa" stroke-width="1.6"
+                points="44,115 77,112 110,108 143,118 176,112 209,108 242,118 275,110 308,122 341,114 376,126"/>
+        </svg>
+        <figcaption>Three independent Brownian paths, all starting at W₀ = 0. They spread apart over time; the dashed violet curves are the ±√t one-standard-deviation envelope, showing the square-root-of-time growth of uncertainty.</figcaption>
+    </figure>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>Two Strange Properties: No Derivative, Finite Quadratic Variation</h2>
+        <p>Brownian motion is continuous — you can draw it without lifting your pen — but it is <strong>nowhere differentiable</strong>. At no instant does the path have a well-defined slope, so the "velocity" dW/dt simply does not exist. The reason is the √t scaling. Over a tiny window Δt the typical move is of size √Δt, so the difference quotient is</p>
+        <div class="eq">ΔW / Δt&nbsp; ~&nbsp; √Δt / Δt&nbsp; =&nbsp; 1 / √Δt&nbsp; →&nbsp; ∞&nbsp;&nbsp;(as Δt → 0)<small>The numerator shrinks like √Δt while the denominator shrinks like Δt — faster — so the slope blows up. No limit exists, in any direction.</small></div>
+        <p>This is why finance can't use ordinary calculus on prices and needs the special machinery of stochastic calculus (next week). You cannot write "rate of change of the price" — the path is infinitely wiggly at every scale, more like a coastline than a smooth trajectory.</p>
+        <h3>Quadratic variation</h3>
+        <p>Ordinary smooth functions have zero <em>quadratic variation</em>: chop [0, t] into n pieces, square each increment, sum them, and the total vanishes as the mesh shrinks. Brownian motion is different. Each squared increment (ΔW)² has expected value Δt, and there are t/Δt of them, so the squares sum to t and — remarkably — do <strong>not</strong> vanish but converge to t with certainty:</p>
+        <div class="eq">[W]<sub>t</sub> = lim<sub>n→∞</sub> Σ (W<sub>t<sub>k+1</sub></sub> − W<sub>t<sub>k</sub></sub>)² = t<small>Written informally as (dW)² = dt — the rule that powers Itô's lemma. Squared Brownian increments behave like time itself.</small></div>
+        <p>The slogan <strong>(dW)² = dt</strong> is the single most useful identity in the entire course. It says that while the path's signed moves average out to zero, its <em>squared</em> moves accumulate deterministically — which is exactly why variance (and therefore risk and option value) builds up predictably even though direction does not.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of "realized variance" that a trader computes by summing squared minute-by-minute returns over a day. As you sample more finely, the <em>sum of squared moves</em> settles down to a stable number (the day's variance budget) even though the <em>direction</em> of the price stays completely unpredictable. That stable number is quadratic variation in action — and it is what variance swaps are written on.</p></div>
+    </section>
+
+    <!-- FIGURE 2 -->
+    <figure class="fig">
+        <svg viewBox="0 0 400 210" role="img" aria-label="A jagged Brownian path with a zoom inset showing that magnifying any segment reveals the same kind of jaggedness, illustrating non-differentiability">
+            <!-- main panel border -->
+            <rect x="30" y="20" width="180" height="150" fill="none" stroke="#3a3119" stroke-width="1"/>
+            <text x="120" y="14" fill="#bcae8c" font-size="10" text-anchor="middle">a Brownian path</text>
+            <!-- jagged path in main panel -->
+            <polyline fill="none" stroke="#fbbf24" stroke-width="1.5"
+                points="34,95 46,80 58,108 70,72 82,100 94,66 106,112 118,84 130,120 142,90 154,132 166,104 178,140 190,116 206,150"/>
+            <!-- box highlighting a segment to zoom -->
+            <rect x="94" y="60" width="24" height="58" fill="none" stroke="#34d399" stroke-width="1.2"/>
+            <!-- connector lines to inset -->
+            <line x1="118" y1="60" x2="250" y2="30" stroke="#34d399" stroke-width=".9" stroke-dasharray="3 3"/>
+            <line x1="118" y1="118" x2="250" y2="180" stroke="#34d399" stroke-width=".9" stroke-dasharray="3 3"/>
+            <!-- inset panel -->
+            <rect x="250" y="30" width="120" height="150" fill="none" stroke="#34d399" stroke-width="1.2"/>
+            <text x="310" y="200" fill="#34d399" font-size="10" text-anchor="middle">zoom in: still jagged</text>
+            <!-- jagged path in inset (same wiggly character) -->
+            <polyline fill="none" stroke="#60a5fa" stroke-width="1.5"
+                points="254,118 264,86 274,132 284,70 294,110 304,52 314,140 324,92 334,150 344,80 354,120 364,60"/>
+        </svg>
+        <figcaption>Self-similar roughness: zooming into any segment of a Brownian path reveals the same jaggedness, never resolving into a smooth line. This is the visual face of "nowhere differentiable" — there is no slope at any point, at any scale.</figcaption>
+    </figure>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>From W to a Price: Geometric Brownian Motion</h2>
+        <p>Standard Brownian motion can go negative and has no drift, so it cannot be a stock price directly — a share can't be worth −$3, and over the long run equities tend to rise. The fix is to make the <em>log</em> of the price a Brownian motion with drift. The result is <strong>geometric Brownian motion (GBM)</strong>, the workhorse price model behind Black–Scholes:</p>
+        <div class="eq">S<sub>t</sub> = S<sub>0</sub> · exp[ (μ − ½σ²) t + σ W<sub>t</sub> ]<small>μ is the drift (expected growth rate), σ is the volatility. The exponential keeps Sₜ strictly positive; the σWₜ term injects the Brownian randomness.</small></div>
+        <p>Two design choices make GBM the natural model. First, the exponential guarantees <span class="key">Sₜ &gt; 0</span> always. Second, returns are <em>multiplicative</em>: a 1% move means the same dollar fraction whether the price is $10 or $1000, which matches how markets actually behave. The peculiar −½σ² term is the fingerprint of the (dW)² = dt rule from §8.3 — it's the correction Itô's lemma forces on us when we exponentiate a Brownian motion, and we'll derive it properly next week.</p>
+        <p>Under GBM, log-returns over a window are exactly normal with variance σ²·(elapsed time) — so the √t scaling of Brownian motion becomes the <strong>√t scaling of volatility</strong> that lets a quant convert a daily volatility into an annual one by multiplying by √252.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The drift of the price is μ, but the average growth rate of the <em>log</em> price is μ − ½σ². Forgetting that −½σ² "volatility drag" makes you overstate expected compounded returns: a high-volatility asset with the same μ compounds more slowly. This term is not optional bookkeeping — it falls straight out of quadratic variation.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — probabilities and overlap with Wₜ</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A standard Brownian motion Wₜ models the cumulative random shock to a desk's P&amp;L (in $ millions), with time measured in years. Answer three questions using only the axioms.</p>
+        <ol>
+            <li><strong>Spread at t = 4:</strong> W₄ ~ Normal(0, 4), so SD(W₄) = √4 = <strong>2</strong>. A one-year horizon had SD = 1; quadrupling the horizon only <em>doubled</em> the spread — the √t law.</li>
+            <li><strong>Tail probability:</strong> P(W₄ &gt; 3) standardizes to Z = 3 / 2 = 1.5, so P(Z &gt; 1.5) ≈ <strong>0.067</strong> — about a 6.7% chance the cumulative shock exceeds +$3M by year 4.</li>
+            <li><strong>Covariance of two horizons:</strong> Cov(W₂, W₄) = min(2, 4) = <strong>2</strong>. The correlation is 2 / (√2·√4) = 2 / 2.828 ≈ <strong>0.71</strong> — the two times are strongly linked because year 4 contains all of year 2's path.</li>
+            <li><strong>Increment is fresh:</strong> the move from year 2 to year 4 is W₄ − W₂ ~ Normal(0, 2), and it is <em>independent</em> of W₂. So knowing the P&amp;L at year 2 tells you nothing about the next two years' increment — only about the level it starts from.</li>
+            <li><strong>Sanity check:</strong> Var(W₄) = Var(W₂) + Var(W₄ − W₂) = 2 + 2 = 4 ✓ — variances of independent increments add, exactly as axiom (2) promises.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate Brownian motion and check (dW)² = dt</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1 environment (NumPy + Matplotlib — install block is in <a href="l01-probability-expectation.html" style="color:var(--accent2);">Lecture 1</a> if you skipped it). We build a path by accumulating Gaussian increments, then numerically confirm the variance grows like t and the quadratic variation lands on t.</p>
+        <details class="install">
+            <summary>⬇ Need the environment? (reuse Week-1 setup)</summary>
+            <p>If you built <code>quant-env</code> in Lecture 1, just activate it. Otherwise:</p>
+            <pre>python3 -m venv quant-env
+source quant-env/bin/activate      <span class="c"># macOS / Linux  (quant-env\Scripts\activate on Windows)</span>
+pip install numpy scipy matplotlib jupyter</pre>
+        </details>
+        <pre><span class="c"># brownian.py — Lecture 8</span>
+import numpy as np
+
+rng = np.random.default_rng(8)
+T, n = 1.0, 10_000            <span class="c"># one unit of time, 10k steps</span>
+dt = T / n                    <span class="c"># mesh size</span>
+
+<span class="c"># increments: each ~ Normal(0, dt)  ->  W_t - W_s ~ Normal(0, t-s)</span>
+dW = rng.normal(0.0, np.sqrt(dt), size=n)
+W  = np.concatenate(([0.0], np.cumsum(dW)))   <span class="c"># W_0 = 0</span>
+
+print("W_T  (should vary, mean 0):", round(W[-1], 4))
+print("Var across many paths -> t:")          <span class="c"># build 50k endpoints</span>
+ends = rng.normal(0.0, np.sqrt(T), size=50_000)
+print("   empirical Var(W_T) =", round(ends.var(), 4), " theory =", T)
+
+<span class="c"># quadratic variation: sum of squared increments -> t</span>
+qv = np.sum(dW**2)
+print("quadratic variation   =", round(qv, 4), " theory =", T)   <span class="c"># ~ 1.0</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The empirical Var(W_T) sits at ≈ 1.0 (= T) and the quadratic variation <code>np.sum(dW**2)</code> also lands near 1.0 — not zero. Halve <code>dt</code> (double <code>n</code>) and the signed sum <code>W[-1]</code> stays wild, but the sum of <em>squares</em> tightens around T. That contrast — noisy direction, deterministic squared-variation — is the whole engine of Itô calculus.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The identity (dW)² = dt you just verified numerically is the seed of <strong>Itô's lemma</strong> (Week 9) — the chain rule for functions of Brownian motion, and the step that turns S₀·exp[(μ−½σ²)t + σWₜ] into the stochastic differential equation dS = μS dt + σS dW. From there, replacing the drift μ with the risk-free rate gives the <strong>Black–Scholes</strong> option-pricing formula in Course 3, and the same Brownian engine drives interest-rate and credit models later in the program. <span style="color:#fff;">Capstone milestone for this checkpoint week:</span> commit a reusable <code>simulate_gbm(S0, mu, sigma, T, n_steps, n_paths)</code> function plus a fan-chart plot of 100 simulated price paths — this is the core simulator your final project's Monte-Carlo option pricer and risk dashboard will both call.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> For a standard Brownian motion Wₜ, what is the variance of the position at time t = 9?</div>
+            <div class="opt"><b>A.</b> 3</div>
+            <div class="opt"><b>B.</b> 9</div>
+            <div class="opt"><b>C.</b> 81</div>
+            <div class="opt"><b>D.</b> 0</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Axiom (2) gives Wₜ ~ Normal(0, t), so Var(W₉) = t = 9. The value 3 (A) is the standard deviation √9, not the variance; 81 (C) is t² (a common slip); 0 (D) is the mean E[W₉], not the variance.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> What is Cov(W₃, W₇) for a standard Brownian motion?</div>
+            <div class="opt"><b>A.</b> 7</div>
+            <div class="opt"><b>B.</b> 10</div>
+            <div class="opt"><b>C.</b> 3</div>
+            <div class="opt"><b>D.</b> 21</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Cov(Wₛ, Wₜ) = min(s, t) = min(3, 7) = 3 — two times share the variance accumulated up to the earlier one. 7 (A) is max(s,t); 10 (B) is the sum s+t; 21 (D) is the product s·t. Only the minimum is correct.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Why is a Brownian path nowhere differentiable?</div>
+            <div class="opt"><b>A.</b> Because the path is discontinuous and jumps</div>
+            <div class="opt"><b>B.</b> Because over a window Δt the move scales like √Δt, so ΔW/Δt ~ 1/√Δt blows up as Δt → 0</div>
+            <div class="opt"><b>C.</b> Because E[Wₜ] = 0 forces a flat path</div>
+            <div class="opt"><b>D.</b> Because the increments are correlated</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The typical increment is of size √Δt, so the difference quotient is √Δt/Δt = 1/√Δt → ∞ and no slope exists. The path is in fact continuous, so (A) is false; a zero mean (C) does not flatten an individual path; the increments are independent, not correlated (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The quadratic variation of standard Brownian motion over [0, t] equals…</div>
+            <div class="opt"><b>A.</b> 0, just like a smooth function</div>
+            <div class="opt"><b>B.</b> t²</div>
+            <div class="opt"><b>C.</b> √t</div>
+            <div class="opt"><b>D.</b> t</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Summing squared increments gives Σ(ΔW)² → t, captured by the slogan (dW)² = dt. Smooth functions do have zero quadratic variation (A), but Brownian motion does not — that's exactly what makes it special. t² (B) and √t (C) are not the limit; the sum converges to t itself.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In geometric Brownian motion Sₜ = S₀·exp[(μ − ½σ²)t + σWₜ], why is the exponential used instead of modeling Sₜ as Brownian motion directly?</div>
+            <div class="opt"><b>A.</b> To keep the price strictly positive and make returns multiplicative</div>
+            <div class="opt"><b>B.</b> To make the path differentiable</div>
+            <div class="opt"><b>C.</b> To remove all randomness from the price</div>
+            <div class="opt"><b>D.</b> To force the variance to stop growing with time</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The exponential guarantees Sₜ &gt; 0 (a price can't go negative) and makes returns proportional rather than additive, matching real markets. It does not smooth the path — exp of a jagged function is still jagged (B); the σWₜ term keeps the randomness (C); and uncertainty still grows with the horizon (D).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined <b>standard Brownian motion</b> by three axioms: W₀ = 0, independent Gaussian increments with Wₜ − Wₛ ~ Normal(0, t−s), and continuous paths.</li>
+            <li>Derived <b>E[Wₜ] = 0</b>, <b>Var(Wₜ) = t</b> (the √t spread), and <b>Cov(Wₛ, Wₜ) = min(s, t)</b> from the independent-increment structure.</li>
+            <li>Explained why the path is <b>continuous but nowhere differentiable</b> — ΔW/Δt ~ 1/√Δt → ∞ — so ordinary calculus fails.</li>
+            <li>Computed the <b>quadratic variation</b> as t, the rule <b>(dW)² = dt</b>, and confirmed it numerically in NumPy.</li>
+            <li>Previewed <b>geometric Brownian motion</b> S₀·exp[(μ−½σ²)t + σWₜ] as the positive, multiplicative price model behind Black–Scholes — and built the capstone's <code>simulate_gbm</code> milestone.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: Itô calculus — the chain rule for Brownian motion, where (dW)² = dt does its real work and GBM's −½σ² term finally gets derived.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-rw-to-brownian.html"><div class="dir">← Week 7</div><div class="ttl">From Random Walks to Brownian Motion</div></a>
+        <a class="next" href="l09-ito-calculus.html"><div class="dir">Week 9 →</div><div class="ttl">Intro to Itô Calculus</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Probability</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

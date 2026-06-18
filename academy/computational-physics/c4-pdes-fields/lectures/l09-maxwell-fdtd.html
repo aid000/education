@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C4 · Lecture 9 — Maxwell's Equations &amp; the FDTD Method</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Maxwell's Equations &amp; the FDTD Method</h1>
+        <p class="sub">Two coupled curl equations, a clever staggered grid, and a leapfrog in time — enough to watch a pulse of light march across your screen.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Write Maxwell's two curl equations as a coupled first-order time-marching system for E and H.</li>
+            <li>Explain why the Yee grid staggers E and H in both space and time, and what that buys you.</li>
+            <li>Derive the leapfrog update equations for a 1D FDTD scheme from centered differences.</li>
+            <li>State and apply the Courant (CFL) stability condition for FDTD and predict what happens when it is violated.</li>
+            <li>Implement a 1D FDTD pulse in Python + NumPy and watch it propagate at the speed of light.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>Maxwell's Curl Equations as a Time-Marching System</h2>
+        <p>Electromagnetics in source-free, non-magnetic, linear media is governed by just two of Maxwell's equations — the two <em>curl</em> laws. Faraday's law says a changing magnetic field drives a curling electric field; Ampère's law (with Maxwell's displacement-current term) says a changing electric field drives a curling magnetic field. The two divergence laws are automatically preserved if we start from divergence-free fields, so the curl pair is all we need to step forward in time:</p>
+        <div class="eq">&part;<b>H</b>/&part;t = &minus;(1/&mu;) &nabla; &times; <b>E</b>&nbsp;&nbsp;&nbsp;&nbsp; &part;<b>E</b>/&part;t = (1/&epsilon;) &nabla; &times; <b>H</b><small>Faraday (left) and Ampère (right). Each field's time derivative is set by the spatial curl of the other — a coupled, self-propagating system.</small></div>
+        <p>The structure is the key insight. <strong>E feeds H, and H feeds E.</strong> Neither field evolves alone; each is the engine for the other. This mutual feedback is exactly what a propagating electromagnetic wave is — a disturbance in E creates H one instant later, which recreates E a little further along, and the pattern walks through space at the speed of light <span class="key">c = 1/&radic;(&mu;&epsilon;)</span>.</p>
+        <p>To keep the algebra honest we will work in 1D: a wave traveling along x, with the field polarized so only <strong>E<sub>z</sub></strong> and <strong>H<sub>y</sub></strong> are nonzero. The curls collapse to single spatial derivatives:</p>
+        <div class="eq">&part;E<sub>z</sub>/&part;t = (1/&epsilon;) &part;H<sub>y</sub>/&part;x&nbsp;&nbsp;&nbsp;&nbsp; &part;H<sub>y</sub>/&part;t = (1/&mu;) &part;E<sub>z</sub>/&part;x<small>The 1D transverse-EM mode. Two fields, two first-order PDEs, coupled through a single spatial derivative each.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of two children on a seesaw who can only push, never pull. When E rises it gives H a shove; the shoved H then shoves E a step further down the board. Light is that endless, self-sustaining exchange of pushes — neither child moves on their own, but together they send the motion traveling all the way down the plank.</div>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>The Yee Grid: Staggering E and H in Space and Time</h2>
+        <p>Both update equations are built from a <em>spatial derivative of the other field</em>. The most accurate, cheapest way to approximate a first derivative is a <strong>centered difference</strong>, which is second-order accurate. But a centered difference of a quantity defined at the grid points lands <em>between</em> the points. K. S. Yee's 1966 insight was to embrace that: don't fight the half-step — put the two fields on grids offset by half a cell, so each derivative naturally lands where the other field lives.</p>
+        <p>So we store <strong>E<sub>z</sub></strong> at integer spatial nodes <span class="key">i</span> and <strong>H<sub>y</sub></strong> at half-integer nodes <span class="key">i + 1/2</span>. We do the same in time: E is known at integer time levels <span class="key">n</span>, and H at half-integer levels <span class="key">n + 1/2</span>. Every derivative we ever need is then a clean, centered difference of values that already exist on the grid — no interpolation, no averaging.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 200" role="img" aria-label="The 1D Yee grid: E z stored at integer space nodes and integer time, H y stored at half-integer space nodes and half-integer time, interleaved like a brick wall">
+                <!-- space axis -->
+                <line x1="40" y1="160" x2="400" y2="160" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="380" y="185" fill="#a3a8c8" font-size="11">space x</text>
+                <!-- E nodes at integer i -->
+                <circle cx="70" cy="160" r="5" fill="#818cf8"/>
+                <circle cx="190" cy="160" r="5" fill="#818cf8"/>
+                <circle cx="310" cy="160" r="5" fill="#818cf8"/>
+                <text x="70" y="180" fill="#a5b4fc" font-size="10" text-anchor="middle">i-1</text>
+                <text x="190" y="180" fill="#a5b4fc" font-size="10" text-anchor="middle">i</text>
+                <text x="310" y="180" fill="#a5b4fc" font-size="10" text-anchor="middle">i+1</text>
+                <!-- H nodes at half-integer -->
+                <rect x="124" y="155" width="10" height="10" fill="#fbbf24"/>
+                <rect x="244" y="155" width="10" height="10" fill="#fbbf24"/>
+                <text x="129" y="148" fill="#fbbf24" font-size="10" text-anchor="middle">i-1/2</text>
+                <text x="249" y="148" fill="#fbbf24" font-size="10" text-anchor="middle">i+1/2</text>
+                <!-- legend -->
+                <circle cx="60" cy="40" r="5" fill="#818cf8"/>
+                <text x="72" y="44" fill="#a5b4fc" font-size="11">Ez at integer nodes (time n)</text>
+                <rect x="55" y="65" width="10" height="10" fill="#fbbf24"/>
+                <text x="72" y="74" fill="#fbbf24" font-size="11">Hy at half-integer nodes (time n+1/2)</text>
+                <!-- update arrows -->
+                <path d="M190,150 L132,150" stroke="#34d399" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+                <path d="M190,150 L246,150" stroke="#34d399" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+                <text x="190" y="115" fill="#34d399" font-size="10" text-anchor="middle">Ez(i) updated from Hy on either side</text>
+                <defs>
+                    <marker id="ah" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#34d399"/></marker>
+                </defs>
+            </svg>
+            <figcaption>The 1D Yee grid. E<sub>z</sub> (circles) sits at integer nodes; H<sub>y</sub> (squares) sits at the half-integer nodes between them. A centered spatial difference of H<sub>y</sub> lands exactly on an E<sub>z</sub> node, and vice-versa — so every update is a clean second-order difference with no interpolation.</figcaption>
+        </figure>
+        <p>In 2D and 3D the same idea places each field component on its own offset sub-grid, so that a discrete curl of one field always evaluates exactly where the other field is stored. The 3D version forms the famous interlocking "Yee cell," but the 1D picture above already contains the whole idea.</p>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>The Leapfrog Update</h2>
+        <p>Now turn the two PDEs into update formulas. Replace each derivative with a centered difference about the staggered point. Start with Faraday's law, evaluated at the half-integer node <span class="key">i + 1/2</span> and the integer time level <span class="key">n</span> — exactly where the time derivative of H is centered:</p>
+        <div class="eq">H<sub>y</sub>[i+1/2]<sup>n+1/2</sup> = H<sub>y</sub>[i+1/2]<sup>n&minus;1/2</sup> + (&Delta;t / &mu;&Delta;x) (E<sub>z</sub>[i+1]<sup>n</sup> &minus; E<sub>z</sub>[i]<sup>n</sup>)<small>Update H half a step using the spatial difference of the current E. The time difference is centered on level n; the space difference is centered on node i+1/2.</small></div>
+        <p>Then Ampère's law, evaluated at the integer node <span class="key">i</span> and the half-integer time level <span class="key">n + 1/2</span>, advances E using the H values we just computed:</p>
+        <div class="eq">E<sub>z</sub>[i]<sup>n+1</sup> = E<sub>z</sub>[i]<sup>n</sup> + (&Delta;t / &epsilon;&Delta;x) (H<sub>y</sub>[i+1/2]<sup>n+1/2</sup> &minus; H<sub>y</sub>[i&minus;1/2]<sup>n+1/2</sup>)<small>Update E a full step using the freshly-updated H. Again both differences are centered, hence second-order accurate.</small></div>
+        <p>The pattern is a <strong>leapfrog</strong>: H jumps from n&minus;1/2 to n+1/2 over the standing E at level n; then E jumps from n to n+1 over the standing H at level n+1/2. The two fields perpetually hop over one another, each using the other's most recent value. Because every difference is centered, the whole scheme is <strong>second-order accurate in both space and time</strong> — remarkable for something so cheap. It is also explicit: each new value is an instant formula, no linear system to solve.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not update all of E and then all of H using the same old arrays as if it were one big simultaneous step. The leapfrog only works — and only stays second-order — if you update H first, then use those <em>new</em> H values immediately when updating E (or vice versa, consistently). Mixing in stale values, or trying to advance both fields to the same time level at once, breaks the staggering and degrades or destabilizes the scheme.</div>
+    </section>
+
+    <!-- 9.4 -->
+    <section class="lec">
+        <h2><span class="n">9.4</span>The Courant Stability Condition</h2>
+        <p>FDTD is explicit, and like every explicit hyperbolic scheme it is only <em>conditionally stable</em>: the time step must not be too large relative to the cell size. The governing rule is the <strong>Courant&ndash;Friedrichs&ndash;Lewy (CFL) condition</strong>. The physical idea is a numerical "speed limit": in one time step, information on the grid must not be asked to travel farther than the scheme can carry it. The fastest physical signal is light at speed c, so we require that c &Delta;t not exceed the cell size &Delta;x. In 1D:</p>
+        <div class="eq">S = c &Delta;t / &Delta;x &le; 1&nbsp;&nbsp;&nbsp;&nbsp;(in d dimensions: c &Delta;t &le; &Delta;x / &radic;d)<small>S is the Courant number. Stability requires S &le; 1 in 1D; in 3D with equal cells the bound tightens to 1/&radic;3.</small></div>
+        <p>If <span class="key">S &gt; 1</span>, a numerical wave would have to outrun light on the grid — physically impossible — and the scheme responds by blowing up: high-frequency modes grow exponentially and the fields overflow within a few dozen steps. If S is far <em>below</em> 1 the run is stable but wastefully slow and slightly more dispersive. The sweet spot in 1D is the <strong>magic time step</strong> S = 1, where c &Delta;t = &Delta;x and the discrete scheme propagates the pulse with essentially zero numerical dispersion.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 210" role="img" aria-label="Two stencils on a space-time grid: when the Courant number S is at most 1 the physical light cone stays inside the numerical domain of dependence and the scheme is stable; when S exceeds 1 the light cone escapes and the scheme is unstable">
+                <!-- left: stable -->
+                <text x="105" y="22" fill="#34d399" font-size="12" text-anchor="middle">S le 1: stable</text>
+                <line x1="30" y1="170" x2="190" y2="170" stroke="#a3a8c8" stroke-width="1.2"/>
+                <line x1="110" y1="40" x2="110" y2="170" stroke="#a3a8c8" stroke-width="1.2"/>
+                <text x="183" y="188" fill="#a3a8c8" font-size="10">x</text>
+                <text x="118" y="48" fill="#a3a8c8" font-size="10">t</text>
+                <!-- numerical domain (wide triangle) -->
+                <path d="M110,80 L60,170 L160,170 Z" fill="rgba(129,140,248,.18)" stroke="#818cf8" stroke-width="1.4"/>
+                <!-- physical light cone (narrow, inside) -->
+                <path d="M110,80 L88,170 L132,170 Z" fill="rgba(52,211,153,.25)" stroke="#34d399" stroke-width="1.4"/>
+                <text x="110" y="200" fill="#34d399" font-size="9" text-anchor="middle">light cone inside grid stencil</text>
+                <!-- right: unstable -->
+                <text x="320" y="22" fill="#fbbf24" font-size="12" text-anchor="middle">S gt 1: unstable</text>
+                <line x1="245" y1="170" x2="405" y2="170" stroke="#a3a8c8" stroke-width="1.2"/>
+                <line x1="325" y1="40" x2="325" y2="170" stroke="#a3a8c8" stroke-width="1.2"/>
+                <text x="398" y="188" fill="#a3a8c8" font-size="10">x</text>
+                <text x="333" y="48" fill="#a3a8c8" font-size="10">t</text>
+                <!-- numerical domain (narrow triangle) -->
+                <path d="M325,80 L305,170 L345,170 Z" fill="rgba(129,140,248,.18)" stroke="#818cf8" stroke-width="1.4"/>
+                <!-- physical light cone (wide, escapes) -->
+                <path d="M325,80 L265,170 L385,170 Z" fill="rgba(251,191,36,.22)" stroke="#fbbf24" stroke-width="1.4"/>
+                <text x="325" y="200" fill="#fbbf24" font-size="9" text-anchor="middle">light cone escapes -> blow up</text>
+            </svg>
+            <figcaption>The CFL condition as nested cones on the space&ndash;time grid. Stability requires the physical light cone (green/amber) to lie <em>inside</em> the numerical domain of dependence (indigo). When S &le; 1 it does; when S &gt; 1 the physical signal outruns the grid stencil and the solution diverges.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — sizing &Delta;x and &Delta;t for a 1D simulation</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">You want to simulate a vacuum pulse with wavelength around &lambda; = 600 nm (visible light) on a 1D grid. Choose a cell size, then the largest stable time step, and find how many steps it takes the pulse to cross a 30-&micro;m domain.</p>
+        <ol>
+            <li><strong>Resolve the wavelength:</strong> a standard rule of thumb is &ge; 10 cells per wavelength. Take &Delta;x = &lambda;/20 = 600 nm / 20 = <strong>30 nm</strong> for a comfortable margin.</li>
+            <li><strong>Apply the CFL bound:</strong> in 1D, &Delta;t &le; &Delta;x / c. With c = 3.0&times;10<sup>8</sup> m/s, &Delta;t &le; (30&times;10<sup>&minus;9</sup>) / (3.0&times;10<sup>8</sup>) = <strong>1.0&times;10<sup>&minus;16</sup> s</strong> (0.1 fs).</li>
+            <li><strong>Pick the magic step:</strong> set S = 1 exactly, so &Delta;t = &Delta;x / c = 1.0&times;10<sup>&minus;16</sup> s. This both maximizes speed and minimizes numerical dispersion in 1D.</li>
+            <li><strong>Domain crossing time:</strong> light crosses 30 &micro;m in t = (30&times;10<sup>&minus;6</sup>) / (3.0&times;10<sup>8</sup>) = 1.0&times;10<sup>&minus;13</sup> s.</li>
+            <li><strong>Step count:</strong> number of steps = t / &Delta;t = (1.0&times;10<sup>&minus;13</sup>) / (1.0&times;10<sup>&minus;16</sup>) = <strong>1000 steps</strong>. Equivalently, with S = 1 the pulse advances exactly one cell per step, and 30 &micro;m / 30 nm = 1000 cells — the two ways of counting agree, a nice sanity check.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a 1D FDTD pulse in NumPy</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the same free Python + NumPy + Matplotlib stack from the Week 1/2 setup (see the install panel in the early lectures). No new packages are needed — vectorized NumPy slicing is all it takes to implement the leapfrog. We work in dimensionless "natural units" where c = 1, &Delta;x = 1, so the magic step is simply &Delta;t = 1.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:8px;">The whole solver is the two leapfrog lines inside the loop. Each is a single vectorized difference of neighboring array cells — the discrete curl.</p>
+        <pre><span class="c"># fdtd1d.py - Lecture 9: 1D FDTD pulse in vacuum (c = dx = 1, magic step dt = 1)</span>
+import numpy as np
+import matplotlib.pyplot as plt
+
+N      = 400                 <span class="c"># number of spatial cells</span>
+steps  = 350                 <span class="c"># time steps to run</span>
+S      = 1.0                 <span class="c"># Courant number c*dt/dx (1.0 = magic step)</span>
+
+Ez = np.zeros(N)             <span class="c"># E at integer nodes 0..N-1</span>
+Hy = np.zeros(N)             <span class="c"># H at half-integer nodes (stored index = i+1/2)</span>
+
+def source(n):               <span class="c"># a soft Gaussian pulse injected at the left</span>
+    t0, spread = 40.0, 12.0
+    return np.exp(-((n - t0) / spread) ** 2)
+
+for n in range(steps):
+    <span class="c"># update H from spatial difference of E  (Faraday)</span>
+    Hy[:-1] += S * (Ez[1:] - Ez[:-1])
+    <span class="c"># update E from spatial difference of H  (Ampere), using the NEW H</span>
+    Ez[1:]  += S * (Hy[1:] - Hy[:-1])
+    Ez[5]   += source(n)     <span class="c"># inject the pulse near the left boundary</span>
+
+plt.plot(Ez, color="#818cf8")
+plt.title("Ez after %d steps - the pulse has marched right" % steps)
+plt.xlabel("cell index i"); plt.ylabel("Ez")
+plt.tight_layout(); plt.show()</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Run it and you will see a clean Gaussian bump sitting to the right of where it was launched — the pulse propagated at one cell per step, exactly c. Now experiment: set <code>S = 1.05</code> and rerun. Within a few dozen steps the field explodes to <code>inf</code> — that is the CFL condition biting. Drop to <code>S = 0.5</code> and the pulse survives but you will see it broaden slightly as numerical dispersion smears the sharp edges. Reflections off the hard <code>Ez[0]</code> and <code>Ez[N-1]</code> boundaries are the motivation for the absorbing boundary conditions you would add next.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>This 1D leapfrog is the seed of a workhorse used across optics, antenna design, radar cross-section prediction, photonics, and biomedical microwave imaging. Next week's capstone (Week 10) puts FDTD side-by-side with the implicit heat-equation solver you built earlier, contrasting explicit-but-conditionally-stable wave marching against unconditionally-stable diffusion. To make FDTD genuinely useful you would add <em>absorbing boundary conditions</em> (the perfectly matched layer) so waves leave the domain without reflecting, dielectric and dispersive materials via spatially varying &epsilon; and &mu;, and the full 3D Yee cell. The same Courant-number thinking governs the acoustic and seismic wave solvers of geophysics and the lattice schemes of computational plasma physics in the Plasma track.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#152033,#16263c); border-color:#2d4a60;">
+        <h3 style="color:var(--blue);">💬 Discussion</h3>
+        <p style="color:#cfe2f5;">In 1D the "magic time step" S = 1 gives <em>exact</em>, dispersion-free propagation, yet in 2D and 3D no single time step can make all directions dispersion-free at once, and we are forced to use S strictly below the stability bound (1/&radic;2 in 2D, 1/&radic;3 in 3D). Why does dimensionality break the magic? Argue physically and numerically: what is special about a wave that can only travel along one axis, and what changes when a wave can travel diagonally across the grid? In your answer, connect the stability bound to the idea of a numerical light cone, and explain why a diagonal direction is the "worst case" the CFL condition must protect against.</p>
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer;color:var(--blue);font-weight:600;font-size:.9rem;">Show a model response</summary>
+            <div style="margin-top:12px;font-size:.9rem;color:#cfe2f5;">
+                <p style="margin-bottom:10px;">In 1D a wave has only one direction to go, and the grid is perfectly aligned with it: a signal travels along the same line of cells the stencil is built from. With S = 1, the numerical domain of dependence (one cell per step) coincides <em>exactly</em> with the physical light cone (c &Delta;t = &Delta;x), so the discrete update reproduces the continuous solution with no leftover dispersion error — the bump moves precisely one cell per step and keeps its shape.</p>
+                <p style="margin-bottom:10px;">In 2D/3D the grid is anisotropic relative to the wave. A wave heading along an axis sees cell spacing &Delta;x, but a wave heading diagonally must cover &radic;2 (or &radic;3) times the distance between the grid samples it actually uses, so the effective resolution and effective speed differ by direction. No single &Delta;t can match the light cone for both axial and diagonal travel simultaneously, so some numerical dispersion is unavoidable and the "magic" is lost.</p>
+                <p style="margin-bottom:10px;">For stability, the CFL condition demands the physical light cone fit inside the numerical domain of dependence in <em>every</em> direction. The diagonal is the worst case because along it the physical signal can reach grid points that are only &Delta;x/&radic;d away in the limiting direction while still traveling at full speed c. To keep even that fastest-effective direction inside the stencil, the bound tightens to c &Delta;t &le; &Delta;x/&radic;d. Hence 1/&radic;2 in 2D and 1/&radic;3 in 3D.</p>
+                <p style="background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.3);border-radius:8px;padding:10px 12px;color:#bfeedd;"><strong style="color:var(--green);">✓ Self-check rubric.</strong> A strong answer (1) states the 1D S=1 coincidence of numerical and physical light cones giving zero dispersion; (2) explains why diagonal propagation makes the grid anisotropic so one &Delta;t cannot serve all directions; (3) ties the stability bound c&Delta;t &le; &Delta;x/&radic;d to keeping the light cone inside the numerical domain of dependence in the worst-case (diagonal) direction; and (4) correctly gives 1/&radic;2 (2D) and 1/&radic;3 (3D).</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Which two of Maxwell's equations does FDTD time-march, and why are the other two not stepped?</div>
+            <div class="opt"><b>A.</b> The two divergence (Gauss) laws; the curl laws are redundant.</div>
+            <div class="opt"><b>B.</b> The two curl laws (Faraday and Ampère); the divergence laws are preserved automatically if the initial fields satisfy them.</div>
+            <div class="opt"><b>C.</b> Only Faraday's law; Ampère's law is solved separately as a static problem each step.</div>
+            <div class="opt"><b>D.</b> All four, simultaneously, as one coupled linear system.</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The curl laws give &part;E/&part;t and &part;H/&part;t, the time-stepping engine. The divergence laws contain no time derivative; they are constraints that stay satisfied if the start is divergence-free. A is backwards (the divergence laws cannot march time), C drops half the physics, and D mischaracterizes FDTD as implicit when it is explicit.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> On the Yee grid, why are E and H stored at points offset by half a cell in both space and time?</div>
+            <div class="opt"><b>A.</b> To halve the memory needed for the field arrays.</div>
+            <div class="opt"><b>B.</b> So that a centered (second-order) difference of one field lands exactly where the other field is stored, needing no interpolation.</div>
+            <div class="opt"><b>C.</b> To make the scheme implicit and therefore unconditionally stable.</div>
+            <div class="opt"><b>D.</b> Because Maxwell's equations require E and H to be measured at different physical locations.</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The half-cell offset makes every needed derivative a clean centered difference of existing samples, giving second-order accuracy for free. A is false (staggering does not save memory), C is false (FDTD stays explicit and only conditionally stable), and D confuses a numerical convenience with a physical requirement — E and H coexist everywhere.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The leapfrog update advances the fields by…</div>
+            <div class="opt"><b>A.</b> solving a large linear system for E and H together at each step.</div>
+            <div class="opt"><b>B.</b> updating E and H to the same time level simultaneously using only old values.</div>
+            <div class="opt"><b>C.</b> alternately stepping H over the current E, then E over the just-updated H, each a half-step apart.</div>
+            <div class="opt"><b>D.</b> integrating each field independently, ignoring the other.</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> H hops from n&minus;1/2 to n+1/2 over E at level n, then E hops from n to n+1 over the new H at n+1/2 — the defining leapfrog interleaving. A describes an implicit solver (FDTD is explicit), B breaks the staggering and degrades the scheme, and D ignores the coupling that makes a wave propagate at all.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In 1D, the Courant number is S = c&Delta;t/&Delta;x. What happens if you choose &Delta;t so that S = 1.2?</div>
+            <div class="opt"><b>A.</b> The simulation is unstable: errors grow exponentially and the fields overflow within a few dozen steps.</div>
+            <div class="opt"><b>B.</b> The simulation runs fine but 20% slower.</div>
+            <div class="opt"><b>C.</b> The pulse travels at 1.2c, which is physically correct on a grid.</div>
+            <div class="opt"><b>D.</b> Nothing changes; the Courant number only affects accuracy, never stability.</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> S &gt; 1 violates the CFL condition: the physical signal would have to outrun the numerical domain of dependence, so high-frequency modes amplify each step and the run diverges. B and D wrongly treat the bound as cosmetic, and C asserts faster-than-light propagation, which the grid cannot support.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A 1D FDTD scheme uses centered differences in both space and time. What is its order of accuracy, and how does it relate to the "magic" step S = 1?</div>
+            <div class="opt"><b>A.</b> First-order in space, first-order in time; S = 1 has no special property.</div>
+            <div class="opt"><b>B.</b> Second-order in space, first-order in time; S = 1 maximizes numerical dispersion.</div>
+            <div class="opt"><b>C.</b> Fourth-order overall; S = 1 makes it unstable.</div>
+            <div class="opt"><b>D.</b> Second-order in both space and time; at S = 1 the 1D scheme propagates with essentially zero numerical dispersion.</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Centered differences are second-order, so the scheme is second-order in space and time. At the 1D magic step S = 1 the numerical and physical light cones coincide, eliminating dispersion. A understates the order, B inverts the dispersion behavior, and C both overstates the order and wrongly calls S = 1 unstable (S = 1 is exactly the 1D stability boundary and the optimum).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Maxwell's two <b>curl laws</b> form a coupled first-order system where E feeds H and H feeds E — the engine of wave propagation.</li>
+            <li>The <b>Yee grid</b> staggers E and H by half a cell in space and time so every derivative is a clean centered difference with no interpolation.</li>
+            <li>The <b>leapfrog update</b> alternately hops H over E and E over H, giving an explicit, second-order scheme in space and time.</li>
+            <li>The <b>Courant (CFL) condition</b> S = c&Delta;t/&Delta;x &le; 1 (1/&radic;d in d dimensions) sets the stability speed limit; S &gt; 1 blows up.</li>
+            <li>A <b>1D FDTD pulse</b> in NumPy is just two vectorized difference lines, and at S = 1 it marches one cell per step at exactly c.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10 Capstone: put the explicit FDTD wave solver next to the implicit heat-equation solver and compare stability, accuracy, and cost head-to-head.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-poisson-relaxation.html"><div class="dir">← Week 8</div><div class="ttl">Poisson/Laplace &amp; Relaxation</div></a>
+        <a class="next" href="l10-capstone-heat-fdtd.html"><div class="dir">Week 10 →</div><div class="ttl">Capstone: Heat / FDTD</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C1 · Lecture 1 — Floating-Point Arithmetic &amp; Numerical Error</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C1 Numerical Methods</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>Floating-Point Arithmetic &amp; Numerical Error</h1>
+        <p class="sub">A computer can't store most numbers exactly. Knowing exactly how it fails is the first skill of every computational physicist.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain how floating-point numbers are stored and define machine epsilon.</li>
+            <li>Distinguish round-off error from truncation error.</li>
+            <li>Compute absolute and relative error and state what "order of convergence" means.</li>
+            <li>Recognize catastrophic cancellation and why a smaller step is not always better.</li>
+            <li>Use NumPy to observe machine epsilon and the round-off / truncation trade-off in a finite-difference derivative.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>Why a Computer Can't Store Most Numbers</h2>
+        <p>There are infinitely many real numbers between 0 and 1, but a computer word has finitely many bits. So almost every real number is <em>rounded</em> to the nearest one a computer can represent. The standard format, IEEE 754 <strong>double precision</strong>, splits 64 bits into a sign, an exponent, and a 52-bit fraction (mantissa):</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 120" role="img" aria-label="IEEE 754 double layout: 1 sign bit, 11 exponent bits, 52 fraction bits, 64 total">
+                <rect x="30" y="40" width="24" height="44" fill="rgba(192,132,252,.5)" stroke="#c084fc" stroke-width="1.5"/>
+                <rect x="54" y="40" width="96" height="44" fill="rgba(96,165,250,.4)" stroke="#60a5fa" stroke-width="1.5"/>
+                <rect x="150" y="40" width="200" height="44" fill="rgba(129,140,248,.3)" stroke="#818cf8" stroke-width="1.5"/>
+                <text x="42" y="32" fill="#c084fc" font-size="10" text-anchor="middle">sign</text>
+                <text x="42" y="100" fill="#a3a8c8" font-size="10" text-anchor="middle">1 bit</text>
+                <text x="102" y="32" fill="#60a5fa" font-size="10" text-anchor="middle">exponent</text>
+                <text x="102" y="100" fill="#a3a8c8" font-size="10" text-anchor="middle">11 bits</text>
+                <text x="250" y="32" fill="#a5b4fc" font-size="10" text-anchor="middle">fraction (mantissa)</text>
+                <text x="250" y="100" fill="#a3a8c8" font-size="10" text-anchor="middle">52 bits</text>
+                <text x="190" y="113" fill="#a3a8c8" font-size="10" text-anchor="middle">64 bits total · ~15–16 significant decimal digits</text>
+            </svg>
+            <figcaption>IEEE 754 double precision. The 52-bit fraction (plus an implicit leading 1) gives 53 bits of significand — about 15–16 decimal digits of precision.</figcaption>
+        </figure>
+        <p>The spacing between representable numbers near 1.0 is the <strong>machine epsilon</strong>:</p>
+        <div class="eq">ε = 2<sup>−52</sup> ≈ 2.22 × 10<sup>−16</sup><small>The gap between 1.0 and the next larger representable double — the relative resolution of the number system.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Floating point is scientific notation with a <strong>fixed number of digits</strong> — like a calculator that shows 16 figures and no more. Just as 1/3 becomes 0.333…3 (truncated) on that calculator, most numbers get nudged to the nearest one the format can write down. Machine epsilon is the size of one "tick" on that ruler near 1.0.</div>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>Two Kinds of Error: Round-off vs Truncation</h2>
+        <p>Numerical results carry two fundamentally different errors, and telling them apart is the heart of this course:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Round-off error</strong> comes from <em>finite precision</em> — every stored number and every operation is rounded by up to about ε. It is a property of the hardware and grows as you do more arithmetic.</li>
+            <li><strong>Truncation error</strong> comes from <em>the method</em> — you replace an exact limit, derivative, or infinite series with a finite approximation (a step size h, a finite number of terms). It shrinks as you refine the method.</li>
+        </ul>
+        <p>We measure error two ways. <strong>Absolute error</strong> is |approx − exact|; <strong>relative error</strong> is that divided by |exact| — the one that maps to "significant digits." A method's <strong>order of convergence</strong> p says how fast truncation error falls as you refine:</p>
+        <div class="eq">error ≈ C · h<sup>p</sup>&nbsp;&nbsp;⟹&nbsp;&nbsp; halving h cuts the error by 2<sup>p</sup><small>A first-order method (p = 1) halves error when h halves; a second-order method (p = 2) quarters it.</small></div>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>Catastrophic Cancellation</h2>
+        <p>The most dangerous round-off effect is <strong>catastrophic cancellation</strong>: subtracting two nearly-equal numbers. The leading digits cancel, leaving a small result whose remaining digits are mostly round-off noise.</p>
+        <div class="eq">1.2345678 − 1.2345600 = 0.0000078<small>Two numbers known to 8 digits; their difference keeps only ~2 meaningful digits — the rest is noise.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Two classics to avoid forever: (1) testing floats with <code>==</code> — e.g. <code>0.1 + 0.2 == 0.3</code> is <strong>False</strong>, because none of those store exactly; compare with a tolerance instead. (2) Assuming a <em>smaller</em> step h always gives a more accurate derivative — past a point, cancellation makes it <em>worse</em>, as we'll see next.</div>
+    </section>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>The Trade-off: a Finite-Difference Derivative</h2>
+        <p>Estimate a derivative with the forward difference f′(x) ≈ [f(x+h) − f(x)] / h. Two errors fight as you shrink h:</p>
+        <div class="eq">E(h) ≈ (h/2)·|f″|&nbsp; + &nbsp;2ε·|f| / h<small>First term = truncation (falls with h). Second term = round-off from cancelling f(x+h) − f(x) (grows as h → 0).</small></div>
+        <p>Truncation wants h small; round-off wants h large. The total is minimized in between — and (a tidy result) the two terms are <em>equal</em> at the optimum:</p>
+        <div class="eq">h* ≈ √ε ≈ 1.5 × 10<sup>−8</sup>&nbsp;&nbsp; with min error ≈ √ε ≈ 10<sup>−8</sup><small>A forward difference loses about half your digits — no matter how carefully you choose h.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="Log-log plot of total error versus step size h, forming a V: truncation error falls as h decreases, round-off error rises, with a minimum near h equal to the square root of machine epsilon">
+                <line x1="50" y1="180" x2="362" y2="180" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="30" x2="50" y2="180" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="300" y="200" fill="#a3a8c8" font-size="11">← smaller h</text>
+                <text x="70" y="200" fill="#a3a8c8" font-size="11">larger h</text>
+                <text x="20" y="44" fill="#a3a8c8" font-size="11">error</text>
+                <text x="14" y="120" fill="#a3a8c8" font-size="10" transform="rotate(-90 14 120)">(log)</text>
+                <!-- truncation asymptote (falls to the right as h shrinks) -->
+                <line x1="64" y1="56" x2="206" y2="150" stroke="#60a5fa" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <text x="92" y="66" fill="#60a5fa" font-size="11">truncation ∝ h</text>
+                <!-- round-off asymptote (rises to the right) -->
+                <line x1="206" y1="150" x2="348" y2="56" stroke="#fbbf24" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <text x="270" y="66" fill="#fbbf24" font-size="11">round-off ∝ ε/h</text>
+                <!-- total error V (solid) -->
+                <path d="M64,52 Q150,150 206,150 Q262,150 348,52" fill="none" stroke="#818cf8" stroke-width="2.5"/>
+                <!-- minimum marker -->
+                <circle cx="206" cy="150" r="3.5" fill="#a5b4fc"/>
+                <line x1="206" y1="150" x2="206" y2="180" stroke="#a5b4fc" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="206" y="172" fill="#a5b4fc" font-size="11" text-anchor="middle">h* ≈ √ε</text>
+            </svg>
+            <figcaption>Total error of a forward-difference derivative versus step size. Refining h helps until round-off takes over near h ≈ √ε ≈ 10⁻⁸; smaller h is <em>worse</em>. The best achievable error is only ~√ε.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — the best step for a derivative</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Estimate f′(1) for f(x) = sin x with a forward difference. The exact value is cos(1) ≈ 0.5403. Find the step h that minimizes total error, and the error you'll get.</p>
+        <ol>
+            <li><strong>Truncation error:</strong> (h/2)|f″(x)|. Here f″ = −sin, so |f″(1)| = sin 1 ≈ 0.841.</li>
+            <li><strong>Round-off error:</strong> ≈ 2ε|f(x)| / h, with |f(1)| = sin 1 ≈ 0.841 and ε ≈ 2.22×10⁻¹⁶.</li>
+            <li><strong>Minimize the sum:</strong> setting the derivative of E(h) to zero gives h* = 2√(ε·|f|/|f″|). With |f| = |f″|, this is h* = 2√ε ≈ <strong>3.0×10⁻⁸</strong>.</li>
+            <li><strong>Minimum error:</strong> at h* the two terms are equal, each ≈ √ε·0.841, so total ≈ <strong>2.5×10⁻⁸</strong> — about half the 16 digits are gone.</li>
+            <li><strong>Takeaway:</strong> picking h = 10⁻¹² ("smaller must be better!") would give a <em>worse</em> answer than h ≈ 10⁻⁸. The central difference (Week 5) does better — error ~ ε^(2/3) ~ 10⁻¹¹ — by making truncation second-order.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: watch the error bottom out</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free Python + NumPy/SciPy stack runs everything in this specialization. <strong>Week 1 setup:</strong> install it once (below), then reuse it every lecture and for the project.</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + NumPy / SciPy (one-time, Week 1 setup)</summary>
+            <p>With Python 3 installed (from <code>python.org</code> or your package manager), create an environment and install the scientific stack:</p>
+            <pre>python3 -m venv compphys-env
+source compphys-env/bin/activate     <span class="c"># macOS / Linux</span>
+compphys-env\Scripts\activate         <span class="c"># Windows (PowerShell)</span>
+pip install numpy scipy matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import numpy; print(numpy.__version__)"</code> — a version string means you're set. (<code>Numba</code> is optional and only added later for speed.)</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">First see machine epsilon and the famous <code>0.1 + 0.2</code> surprise, then sweep the step size and watch the derivative error fall, bottom out near √ε, and rise again.</p>
+        <pre><span class="c"># floating_point.py — Lecture 1</span>
+import numpy as np
+
+eps = np.finfo(float).eps
+print("machine epsilon:", eps)          <span class="c"># 2.220446049250313e-16</span>
+print(0.1 + 0.2 == 0.3)                 <span class="c"># False</span>
+print(repr(0.1 + 0.2))                  <span class="c"># 0.30000000000000004</span>
+
+x = 1.0
+exact = np.cos(x)                        <span class="c"># f'(x) = cos(1) = 0.5403...</span>
+for h in [1e-2, 1e-4, 1e-6, 1e-8, 1e-10, 1e-12]:
+    approx = (np.sin(x + h) - np.sin(x)) / h
+    print(f"h={h:.0e}   error={abs(approx - exact):.2e}")
+<span class="c"># error falls to ~1e-8 near h=1e-8, then RISES as round-off takes over</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Replace the forward difference with the <em>central</em> difference <code>(np.sin(x+h) - np.sin(x-h)) / (2*h)</code> and rerun. Its best error is far smaller — predict where the new minimum sits before you look (hint: truncation is now ∝ h²).</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Every method in this specialization is a negotiation between truncation and round-off. ODE solvers (Course 2) accumulate per-step truncation error over thousands of steps; eigenvalue and linear-solver accuracy (Course 3) is amplified by a matrix's <em>condition number</em>; PDE schemes (Course 4) trade step size against stability through the CFL condition; and Monte-Carlo estimates (Course 5) carry a statistical error that falls only as 1/√N. The same vocabulary — order, convergence, conditioning — recurs throughout the Quantum, Plasma, and Quant tracks. Learn to think in error budgets now and every later result becomes trustworthy.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Machine epsilon for IEEE 754 double precision (≈ 2.2×10⁻¹⁶) represents…</div>
+            <div class="opt"><b>A.</b> the smallest positive number a double can store</div>
+            <div class="opt"><b>B.</b> the largest number before overflow</div>
+            <div class="opt"><b>C.</b> the spacing between 1.0 and the next representable double (relative resolution)</div>
+            <div class="opt"><b>D.</b> the truncation error of Simpson's rule</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> ε = 2⁻⁵² is the gap between 1.0 and the next double — the relative precision. The smallest positive double (A) is a far tinier ~10⁻³⁰⁸ (denormalized).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Replacing a derivative by [f(x+h) − f(x)]/h introduces which kind of error from the <em>method itself</em>?</div>
+            <div class="opt"><b>A.</b> truncation error</div>
+            <div class="opt"><b>B.</b> round-off error</div>
+            <div class="opt"><b>C.</b> overflow</div>
+            <div class="opt"><b>D.</b> no error</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Truncating the Taylor series at finite h is truncation error (∝ h here). Round-off (B) is the separate finite-precision error that grows as h → 0.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In Python, <code>0.1 + 0.2 == 0.3</code> evaluates to…</div>
+            <div class="opt"><b>A.</b> True</div>
+            <div class="opt"><b>B.</b> False — none of these store exactly, so compare with a tolerance</div>
+            <div class="opt"><b>C.</b> a syntax error</div>
+            <div class="opt"><b>D.</b> True only on 64-bit machines</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> 0.1 + 0.2 stores as 0.30000000000000004. Never test float equality with <code>==</code>; use <code>abs(a − b) &lt; tol</code> (or <code>np.isclose</code>).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For a forward-difference derivative, making the step h smaller and smaller will…</div>
+            <div class="opt"><b>A.</b> always reduce the total error toward zero</div>
+            <div class="opt"><b>B.</b> only affect speed, not accuracy</div>
+            <div class="opt"><b>C.</b> have no effect on the error</div>
+            <div class="opt"><b>D.</b> reduce error until round-off dominates near h ≈ √ε, then increase it</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Truncation falls with h but round-off (∝ 1/h) eventually takes over; total error bottoms out around h ≈ √ε ≈ 10⁻⁸ and then rises.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A method has error ≈ C·h². If you halve the step size h, the error is reduced by a factor of about…</div>
+            <div class="opt"><b>A.</b> 4</div>
+            <div class="opt"><b>B.</b> 2</div>
+            <div class="opt"><b>C.</b> 8</div>
+            <div class="opt"><b>D.</b> unchanged</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A second-order method (p = 2) improves by 2ᵖ = 2² = 4 when h is halved. (First-order would improve by 2; fourth-order by 16.)</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>How doubles store numbers and that <b>machine epsilon</b> ε = 2⁻⁵² ≈ 2.2×10⁻¹⁶ is the relative resolution.</li>
+            <li>The difference between <b>round-off</b> error (finite precision) and <b>truncation</b> error (the method).</li>
+            <li><b>Absolute vs relative error</b>, and <b>order of convergence</b>: error ≈ C·hᵖ, so halving h gains a factor 2ᵖ.</li>
+            <li><b>Catastrophic cancellation</b> — and never testing floats with <code>==</code>.</li>
+            <li>The <b>truncation–round-off trade-off</b>: a forward difference is best near h ≈ √ε with error only ~10⁻⁸, observed in NumPy.</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: root finding by bisection — the bracketing idea that always converges, and how to measure its rate.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C1 Syllabus</div></a>
+        <a class="next" href="l02-root-finding-bisection.html"><div class="dir">Week 2 →</div><div class="ttl">Root Finding I — Bisection &amp; Bracketing</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Numerical Methods</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

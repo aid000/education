@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C1 · Lecture 4 — Covariance, Correlation &amp; Independence</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C1 Probability</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Covariance, Correlation &amp; Independence</h1>
+        <p class="sub">One number tells you whether two assets rise and fall together — and it is the single number that makes diversification, the only free lunch in finance, actually work.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Read a joint distribution and compute covariance Cov(X, Y) = E[XY] − E[X]E[Y].</li>
+            <li>Standardize covariance into the correlation coefficient ρ and explain why it always lies in [−1, +1].</li>
+            <li>Distinguish independence from zero correlation — independence implies ρ = 0, but ρ = 0 does <em>not</em> imply independence.</li>
+            <li>Use the variance-of-a-sum formula, including the covariance term, to compute portfolio risk.</li>
+            <li>Build a correlation matrix in NumPy and see numerically why low correlation shrinks portfolio variance.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>Joint Distributions: Two Variables at Once</h2>
+        <p>So far each lecture has lived with one random variable at a time. Markets are not so polite — a portfolio holds many assets, and what matters is how they move <em>together</em>. To describe two random variables jointly we need a <strong>joint distribution</strong>: for discrete X and Y it is the table of probabilities p(x, y) = P(X = x and Y = y), one entry for every pair of values.</p>
+        <p>From that joint table you can always recover each variable on its own by summing the other one out — the <span class="key">marginal</span> distributions. The joint table holds strictly more information than the two marginals, because it also records how the variables <em>co-move</em>: knowing each asset's individual return distribution tells you nothing about whether they tend to crash on the same day.</p>
+        <div class="eq">p<sub>X</sub>(x) = Σ<sub>y</sub> p(x, y),&nbsp;&nbsp; p<sub>Y</sub>(y) = Σ<sub>x</sub> p(x, y)<small>Marginals are the row and column sums of the joint table; they discard the co-movement information.</small></div>
+        <p>Two variables are <strong>independent</strong> when the joint factors into the product of the marginals for every pair — knowing one tells you nothing about the other:</p>
+        <div class="eq">X, Y independent&nbsp; ⟺&nbsp; p(x, y) = p<sub>X</sub>(x) · p<sub>Y</sub>(y)&nbsp; for all x, y</div>
+        <div class="box analogy"><span class="lbl">Analogy</span>A joint distribution is a <strong>weather map for two cities</strong>. The marginals tell you how often it rains in each city separately. But only the full map tells you whether the two cities tend to be rainy on the <em>same</em> days. In markets, the "same-day rain" is exactly what wipes out a portfolio that looked diversified on paper.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Covariance: Do They Move Together?</h2>
+        <p>The cleanest summary of co-movement is <strong>covariance</strong>. It asks: when X is above its mean, does Y also tend to be above its mean? Multiply each variable's deviation from its own mean and average the product:</p>
+        <div class="eq">Cov(X, Y) = E[(X − μ<sub>X</sub>)(Y − μ<sub>Y</sub>)] = E[XY] − E[X]E[Y]<small>The right-hand form ("mean of the product minus product of the means") is the one you compute with.</small></div>
+        <p>The <strong>sign</strong> is what your intuition latches onto. If X and Y usually overshoot their means together, the products are mostly positive and covariance is <span class="key">positive</span> — the variables move in the same direction. If one tends to be high when the other is low, the products are mostly negative and covariance is <span class="key">negative</span>. If there is no systematic pattern, the positive and negative products cancel and covariance is near <span class="key">zero</span>.</p>
+        <p>Notice that Cov(X, X) = E[(X − μ)²] = Var(X): a variable's covariance with itself is just its variance. Covariance is the natural generalization of variance to two variables.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Covariance's <em>magnitude</em> is almost meaningless on its own — it carries the units of X times Y and scales with them. Re-quote a return in basis points instead of percent and the covariance number changes by a factor of 10,000, though nothing about the relationship has changed. To compare relationships you must <strong>standardize</strong>, which is exactly what correlation does next.</p></div>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Correlation: Covariance on a Fixed Scale</h2>
+        <p>The <strong>correlation coefficient</strong> ρ (rho) strips covariance of its units by dividing out each variable's standard deviation. The result is a pure, dimensionless number:</p>
+        <div class="eq">ρ<sub>XY</sub> = Cov(X, Y) / (σ<sub>X</sub> σ<sub>Y</sub>)<small>Covariance normalized by the two standard deviations — same sign as covariance, but now comparable across any pair.</small></div>
+        <p>The decisive fact about ρ is that it always lies between <strong>−1 and +1</strong>. This is not an accident of definition; it falls straight out of the Cauchy–Schwarz inequality, which guarantees |Cov(X, Y)| ≤ σ<sub>X</sub>σ<sub>Y</sub>. The boundaries are reached only in the extreme cases:</p>
+        <ul style="margin-left:18px; font-size:.94rem; margin-bottom:14px;">
+            <li><strong>ρ = +1</strong>: perfect positive linear relationship — Y is an increasing linear function of X.</li>
+            <li><strong>ρ = −1</strong>: perfect negative linear relationship — Y moves exactly opposite to X.</li>
+            <li><strong>ρ = 0</strong>: no <em>linear</em> relationship (the variables are "uncorrelated").</li>
+        </ul>
+        <p>That fixed scale is why correlation, not covariance, is the number traders quote. "These two sectors are 0.8 correlated" is instantly meaningful; a covariance of 0.00031 is not.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 600 230" role="img" aria-label="Three scatterplots of point clouds: a tight upward cloud labeled rho near plus one, a round blob labeled rho near zero, and a tight downward cloud labeled rho near minus one">
+                <!-- PANEL 1: rho ~ +0.9 -->
+                <line x1="30" y1="180" x2="180" y2="180" stroke="#bcae8c" stroke-width="1.3"/>
+                <line x1="30" y1="180" x2="30" y2="40" stroke="#bcae8c" stroke-width="1.3"/>
+                <g fill="#34d399">
+                    <circle cx="48" cy="166" r="3.5"/><circle cx="60" cy="160" r="3.5"/><circle cx="70" cy="150" r="3.5"/>
+                    <circle cx="82" cy="146" r="3.5"/><circle cx="92" cy="132" r="3.5"/><circle cx="104" cy="126" r="3.5"/>
+                    <circle cx="116" cy="112" r="3.5"/><circle cx="128" cy="104" r="3.5"/><circle cx="140" cy="92" r="3.5"/>
+                    <circle cx="152" cy="80" r="3.5"/><circle cx="164" cy="66" r="3.5"/><circle cx="98" cy="118" r="3.5"/>
+                    <circle cx="74" cy="142" r="3.5"/><circle cx="134" cy="98" r="3.5"/>
+                </g>
+                <text x="105" y="208" fill="#6ee7b7" font-size="13" text-anchor="middle">ρ ≈ +0.9</text>
+                <!-- PANEL 2: rho ~ 0 -->
+                <line x1="225" y1="180" x2="375" y2="180" stroke="#bcae8c" stroke-width="1.3"/>
+                <line x1="225" y1="180" x2="225" y2="40" stroke="#bcae8c" stroke-width="1.3"/>
+                <g fill="#fbbf24">
+                    <circle cx="262" cy="142" r="3.5"/><circle cx="300" cy="96" r="3.5"/><circle cx="338" cy="150" r="3.5"/>
+                    <circle cx="280" cy="110" r="3.5"/><circle cx="320" cy="130" r="3.5"/><circle cx="298" cy="158" r="3.5"/>
+                    <circle cx="345" cy="100" r="3.5"/><circle cx="258" cy="98" r="3.5"/><circle cx="312" cy="76" r="3.5"/>
+                    <circle cx="276" cy="148" r="3.5"/><circle cx="330" cy="112" r="3.5"/><circle cx="290" cy="128" r="3.5"/>
+                    <circle cx="350" cy="138" r="3.5"/><circle cx="270" cy="78" r="3.5"/>
+                </g>
+                <text x="300" y="208" fill="#fcd34d" font-size="13" text-anchor="middle">ρ ≈ 0</text>
+                <!-- PANEL 3: rho ~ -0.9 -->
+                <line x1="420" y1="180" x2="570" y2="180" stroke="#bcae8c" stroke-width="1.3"/>
+                <line x1="420" y1="180" x2="420" y2="40" stroke="#bcae8c" stroke-width="1.3"/>
+                <g fill="#60a5fa">
+                    <circle cx="438" cy="66" r="3.5"/><circle cx="450" cy="80" r="3.5"/><circle cx="460" cy="92" r="3.5"/>
+                    <circle cx="472" cy="98" r="3.5"/><circle cx="482" cy="112" r="3.5"/><circle cx="494" cy="118" r="3.5"/>
+                    <circle cx="506" cy="126" r="3.5"/><circle cx="518" cy="132" r="3.5"/><circle cx="530" cy="146" r="3.5"/>
+                    <circle cx="542" cy="160" r="3.5"/><circle cx="554" cy="166" r="3.5"/><circle cx="488" cy="104" r="3.5"/>
+                    <circle cx="464" cy="84" r="3.5"/><circle cx="524" cy="140" r="3.5"/>
+                </g>
+                <text x="495" y="208" fill="#93c5fd" font-size="13" text-anchor="middle">ρ ≈ −0.9</text>
+            </svg>
+            <figcaption>The shape of correlation. Left: a tight upward cloud (ρ near +1) — the two assets rise and fall together. Center: a shapeless blob (ρ near 0) — no linear link. Right: a tight downward cloud (ρ near −1) — one rises as the other falls, the hedge a portfolio manager dreams of.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>Independence, the Variance of a Sum &amp; Diversification</h2>
+        <p>Here is a subtlety that snares people in interviews and in production risk models alike. <strong>Independence is strictly stronger than zero correlation.</strong> If X and Y are independent then E[XY] = E[X]E[Y], so their covariance — and hence ρ — is exactly zero. But the arrow runs only one way:</p>
+        <div class="eq">independent&nbsp; ⟹&nbsp; ρ = 0,&nbsp;&nbsp;&nbsp; but&nbsp;&nbsp; ρ = 0&nbsp; ⇏&nbsp; independent<small>Correlation only detects the <em>linear</em> part of a relationship. A purely nonlinear dependence can hide behind ρ = 0.</small></div>
+        <p>The classic counterexample: let X be symmetric about 0 and set Y = X². Then Y is <em>completely determined</em> by X — as dependent as two variables can be — yet Cov(X, Y) = E[X³] − E[X]E[X²] = 0 − 0 = 0, so ρ = 0. The relationship is real but curved, and correlation is blind to curvature. In markets this is the danger of "uncorrelated" strategies that nonetheless blow up together when volatility spikes: the dependence was nonlinear all along.</p>
+        <h3>Variance of a sum</h3>
+        <p>Now we can finally complete the formula left dangling in Lecture 1. For any two random variables, the variance of their sum carries a <strong>covariance term</strong>:</p>
+        <div class="eq">Var(X + Y) = Var(X) + Var(Y) + 2·Cov(X, Y)<small>Variances add only when Cov = 0. For a weighted portfolio: Var(aX + bY) = a²Var(X) + b²Var(Y) + 2ab·Cov(X, Y).</small></div>
+        <p>This single line is the mathematical engine of <strong>diversification</strong>. Build a two-asset portfolio with equal weights and equal individual variances σ². If the assets are perfectly correlated (ρ = 1) the portfolio variance is the full σ² — you gained nothing. But if they are uncorrelated (ρ = 0) the covariance term vanishes and the portfolio variance drops to σ²/2; with negative correlation it drops further still. <em>Combining imperfectly-correlated assets lowers risk without lowering expected return</em> — the closest thing to a free lunch in finance, and the heart of Markowitz portfolio theory.</p>
+        <p>Scale this to many assets and the bookkeeping is captured by the <strong>correlation matrix</strong>: a symmetric grid with 1's on the diagonal (each variable is perfectly correlated with itself) and ρ<sub>ij</sub> in the off-diagonal cells. It is the central input to every modern risk model.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 250" role="img" aria-label="Portfolio standard deviation falling as the number of equally weighted assets increases, leveling off at a floor set by the average correlation">
+                <line x1="55" y1="200" x2="395" y2="200" stroke="#bcae8c" stroke-width="1.5"/>
+                <line x1="55" y1="40" x2="55" y2="200" stroke="#bcae8c" stroke-width="1.5"/>
+                <text x="225" y="232" fill="#bcae8c" font-size="12" text-anchor="middle">number of assets in portfolio →</text>
+                <text x="30" y="55" fill="#bcae8c" font-size="12">σ</text>
+                <text x="20" y="78" fill="#bcae8c" font-size="10">single</text>
+                <!-- floor: undiversifiable risk -->
+                <line x1="55" y1="160" x2="395" y2="160" stroke="#a78bfa" stroke-width="1.4" stroke-dasharray="5 4"/>
+                <text x="300" y="153" fill="#c4b5fd" font-size="11">systematic risk floor</text>
+                <!-- decaying curve from high sigma to floor -->
+                <path d="M70,70 C110,150 150,156 200,158 C260,159 330,160 388,160"
+                      fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+                <circle cx="70" cy="70" r="4" fill="#fbbf24"/>
+                <text x="78" y="64" fill="#fcd34d" font-size="10">1 asset</text>
+                <text x="150" y="190" fill="#6ee7b7" font-size="10" text-anchor="middle">diversifiable risk shrinks</text>
+            </svg>
+            <figcaption>Why diversification works — and where it stops. Adding imperfectly-correlated assets cancels the idiosyncratic (diversifiable) risk, so portfolio σ falls fast at first. It cannot fall below the systematic-risk floor set by the average correlation between assets: shared market moves never diversify away.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — two-asset portfolio variance</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Two assets have annual return standard deviations σ<sub>A</sub> = 20% and σ<sub>B</sub> = 10%, with correlation ρ = 0.30. You hold 60% in A and 40% in B. Find the portfolio's standard deviation, and compare it to the naïve weighted average of the two volatilities.</p>
+        <ol>
+            <li><strong>Covariance from correlation:</strong> Cov(A, B) = ρ·σ<sub>A</sub>·σ<sub>B</sub> = 0.30 · 0.20 · 0.10 = <strong>0.006</strong>.</li>
+            <li><strong>Plug into the weighted variance-of-sum formula</strong> with a = 0.6, b = 0.4:<br>Var<sub>p</sub> = a²σ<sub>A</sub>² + b²σ<sub>B</sub>² + 2ab·Cov(A, B).</li>
+            <li><strong>Term by term:</strong> a²σ<sub>A</sub>² = 0.36·0.04 = 0.0144; &nbsp; b²σ<sub>B</sub>² = 0.16·0.01 = 0.0016; &nbsp; 2ab·Cov = 2·0.6·0.4·0.006 = <strong>0.00288</strong>.</li>
+            <li><strong>Sum:</strong> Var<sub>p</sub> = 0.0144 + 0.0016 + 0.00288 = 0.01888, so σ<sub>p</sub> = √0.01888 ≈ <strong>13.7%</strong>.</li>
+            <li><strong>Compare to the naïve average:</strong> 0.6·20% + 0.4·10% = <strong>16.0%</strong>. The portfolio's true risk (13.7%) is <em>lower</em> than the weighted-average volatility — the 2.3-point gap is the diversification benefit, and it exists precisely because ρ &lt; 1.</li>
+            <li><strong>Sanity check:</strong> set ρ = 1 and the covariance term grows until σ<sub>p</sub> = 16.0% exactly — at perfect correlation diversification vanishes, as the formula demands.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: covariance &amp; the correlation matrix in NumPy</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1 environment (NumPy + Jupyter — install block is in <a href="l01-probability-expectation.html" style="color:var(--accent2);">Lecture 1</a> if you skipped it). We simulate three assets — two that share a market factor and one independent — then read their correlation matrix and confirm that low correlation shrinks portfolio variance.</p>
+        <pre><span class="c"># correlation_demo.py — Lecture 4</span>
+import numpy as np
+
+rng = np.random.default_rng(4)
+N = 200_000
+
+market = rng.normal(0, 1, N)              <span class="c"># a shared market factor</span>
+A = 0.8*market + rng.normal(0, 0.6, N)    <span class="c"># loads heavily on market</span>
+B = 0.7*market + rng.normal(0, 0.6, N)    <span class="c"># also loads on market -> A,B correlated</span>
+C = rng.normal(0, 1.0, N)                 <span class="c"># independent of the market</span>
+
+R = np.vstack([A, B, C])                  <span class="c"># 3 x N matrix of returns</span>
+corr = np.corrcoef(R)                     <span class="c"># 3 x 3 correlation matrix</span>
+print(np.round(corr, 2))
+<span class="c"># [[1.   0.6  0.  ]      A-B correlated (shared factor)</span>
+<span class="c">#  [0.6  1.   0.  ]      A-C and B-C near zero</span>
+<span class="c">#  [0.   0.   1.  ]]     diagonal is always 1</span>
+
+<span class="c"># equal-weight portfolio variance vs. sum of individual variances</span>
+w = np.array([1/3, 1/3, 1/3])
+cov = np.cov(R)                           <span class="c"># covariance matrix</span>
+port_var = w @ cov @ w                    <span class="c"># wᵀ Σ w  — the quadratic form</span>
+naive   = w**2 @ np.diag(cov)             <span class="c"># ignores covariances</span>
+print("portfolio var (full)  :", round(port_var, 4))
+print("naive var (no cov term):", round(naive, 4))   <span class="c"># smaller? bigger? compare!</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The off-diagonal 0.6 between A and B is the shared market factor; C is uncorrelated with both. The expression <code>w @ cov @ w</code> is the matrix form of the variance-of-sum formula — the <em>quadratic form</em> wᵀΣw that every portfolio optimizer evaluates. Swap in different weights and watch portfolio variance fall as you tilt toward the uncorrelated asset C.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The correlation matrix Σ you just built is the load-bearing object for the rest of the specialization. Markowitz mean-variance optimization (Course 2) minimizes exactly the quadratic form wᵀΣw to find the efficient frontier; risk metrics like the Sharpe ratio and portfolio Value-at-Risk read straight off it. <strong>Project checkpoint (Week 4):</strong> as your capstone milestone, pull real daily returns for 3–5 tickers with the Week-1 stack and compute and visualize their correlation matrix — the same heatmap you will later feed into the optimizer. When correlated random <em>steps</em> accumulate over time (Weeks 5–8) this matrix becomes the covariance structure of correlated Brownian motions, the engine inside multi-asset Black–Scholes and Monte-Carlo pricers in Course 3.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Cov(X, Y) is most directly computed as…</div>
+            <div class="opt"><b>A.</b> E[X]·E[Y] − E[XY]</div>
+            <div class="opt"><b>B.</b> E[XY] − E[X]·E[Y]</div>
+            <div class="opt"><b>C.</b> E[X²] − (E[X])²</div>
+            <div class="opt"><b>D.</b> E[XY] / (σ<sub>X</sub>σ<sub>Y</sub>)</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Cov(X, Y) = E[XY] − E[X]E[Y]. Option A has the terms reversed (wrong sign); C is the variance of a single variable; D is not correlation either (correlation divides the <em>covariance</em>, not E[XY], by σ<sub>X</sub>σ<sub>Y</sub>).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The correlation coefficient ρ is always confined to the interval…</div>
+            <div class="opt"><b>A.</b> [0, 1]</div>
+            <div class="opt"><b>B.</b> [0, ∞)</div>
+            <div class="opt"><b>C.</b> [−1, +1]</div>
+            <div class="opt"><b>D.</b> (−∞, +∞)</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Dividing covariance by σ<sub>X</sub>σ<sub>Y</sub> and applying Cauchy–Schwarz forces ρ into [−1, +1]. A excludes negative (hedging) correlations, which are real; B and D describe unbounded quantities like covariance or variance, not the standardized correlation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Let X be symmetric about 0 and let Y = X². What is true of X and Y?</div>
+            <div class="opt"><b>A.</b> They are uncorrelated (ρ = 0) yet clearly dependent</div>
+            <div class="opt"><b>B.</b> They are independent because ρ = 0</div>
+            <div class="opt"><b>C.</b> They are perfectly correlated, ρ = +1</div>
+            <div class="opt"><b>D.</b> Their covariance is undefined</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Cov(X, X²) = E[X³] − E[X]E[X²] = 0 − 0 = 0, so ρ = 0 — yet Y is fully determined by X, the opposite of independent. B inverts the logic (ρ = 0 does not imply independence); C is false (the link is nonlinear, not linear); D is wrong (the covariance is well-defined and equals zero).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For two assets each with variance σ² and correlation ρ = 0, the variance of an <em>equally weighted</em> two-asset portfolio (weights ½, ½) is…</div>
+            <div class="opt"><b>A.</b> σ²</div>
+            <div class="opt"><b>B.</b> 2σ²</div>
+            <div class="opt"><b>C.</b> σ²/4</div>
+            <div class="opt"><b>D.</b> σ²/2</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Var = (½)²σ² + (½)²σ² + 2(½)(½)·0 = ¼σ² + ¼σ² = σ²/2. The covariance term vanishes at ρ = 0, halving the variance — diversification at work. A would require perfect correlation; B ignores the ½ weights; C drops one of the two ¼σ² terms.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A correlation matrix for a set of assets always has…</div>
+            <div class="opt"><b>A.</b> all entries equal to zero</div>
+            <div class="opt"><b>B.</b> 1's on the diagonal and is symmetric</div>
+            <div class="opt"><b>C.</b> 0's on the diagonal</div>
+            <div class="opt"><b>D.</b> entries that can exceed 1 when assets are very volatile</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Every variable is perfectly correlated with itself (ρ = 1 on the diagonal), and ρ<sub>ij</sub> = ρ<sub>ji</sub> makes it symmetric. A would mean all assets are mutually uncorrelated (a special case, not a rule); C confuses it with a deviation matrix; D is impossible since correlation is capped at 1 regardless of volatility.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Read a <b>joint distribution</b>, recovered the <b>marginals</b>, and defined <b>independence</b> as p(x,y) = p<sub>X</sub>(x)p<sub>Y</sub>(y).</li>
+            <li>Computed <b>covariance</b> Cov(X,Y) = E[XY] − E[X]E[Y] and read its sign as the direction of co-movement.</li>
+            <li>Standardized to the <b>correlation coefficient</b> ρ = Cov/(σ<sub>X</sub>σ<sub>Y</sub>), always in <b>[−1, +1]</b>.</li>
+            <li>Learned that <b>independence ⟹ ρ = 0</b> but <b>ρ = 0 ⇏ independence</b> (the Y = X² counterexample).</li>
+            <li>Used <b>Var(X+Y) = Var(X) + Var(Y) + 2Cov(X,Y)</b> and the <b>correlation matrix</b> to explain why <b>diversification</b> lowers portfolio risk.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: discrete-time random walks, where these correlated steps start accumulating through time and the path itself becomes the object of study — the first step toward Brownian motion.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-conditional-bayes.html"><div class="dir">← Week 3</div><div class="ttl">Conditional Probability &amp; Bayes</div></a>
+        <a class="next" href="l05-random-walks.html"><div class="dir">Week 5 →</div><div class="ttl">Discrete-Time Random Walks</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Probability</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

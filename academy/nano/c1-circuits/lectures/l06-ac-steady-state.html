@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C1 · Lecture 6 — AC Steady-State</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; } .objectives li { font-size: .92rem; margin-bottom: 5px; }
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; } .key { color: var(--accent2); font-weight: 600; }
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; } .worked li { margin-bottom: 6px; }
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; } .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; } .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .quiz { margin: 48px 0 24px; } .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; } .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); } .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; } .q details .ans { color: var(--green); font-weight: 700; }
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08121a; border-color: var(--accent); } .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); } .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); } .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; } .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; } .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; } .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .data-note { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; } .lec-nav a.next { text-align: right; }
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C1 Circuits</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>AC Steady-State</h1>
+        <p class="sub">Turn the phasor idea into <em>impedance</em> — then analyze sinusoidal circuits with the same Ohm's-law and KVL tools you already know.</p>
+    </div>
+</header>
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Describe a sinusoid by amplitude, angular frequency ω, and phase, and write it as a phasor.</li>
+            <li>State the impedances of R, L, and C and how they depend on frequency.</li>
+            <li>Combine impedances in series/parallel and apply Ohm's law in the phasor domain.</li>
+            <li>Compute the magnitude and phase of a current or voltage in an AC circuit.</li>
+            <li>Distinguish real, reactive, and apparent power, and define power factor.</li>
+        </ul>
+    </div>
+
+    <section class="lec">
+        <h2><span class="n">6.1</span>Sinusoids &amp; Phasors</h2>
+        <p>An AC signal is a sinusoid: v(t) = V<sub>m</sub> cos(ωt + φ), set by its <strong>amplitude</strong> V<sub>m</sub>, its <strong>angular frequency</strong> ω = 2πf (rad/s), and its <strong>phase</strong> φ. Since every signal in a linear circuit driven at one frequency shares that same ω, we can drop the cos(ωt) bookkeeping and track just the amplitude and phase — the <span class="key">phasor</span> V = V<sub>m</sub>∠φ (Lecture 5's rotating vector).</p>
+        <figure class="fig">
+            <svg viewBox="0 0 340 180" role="img" aria-label="Two sinusoids of the same frequency, one shifted in phase ahead of the other">
+                <line x1="30" y1="90" x2="320" y2="90" stroke="#94a8bc" stroke-width="1.2"/>
+                <line x1="30" y1="30" x2="30" y2="150" stroke="#94a8bc" stroke-width="1.2"/>
+                <text x="312" y="106" fill="#94a8bc" font-size="11">t</text>
+                <path d="M30,90 C55,30 80,30 105,90 C130,150 155,150 180,90 C205,30 230,30 255,90 C280,150 305,150 320,108" fill="none" stroke="#22d3ee" stroke-width="2"/>
+                <path d="M30,120 C50,72 70,55 95,55 C123,55 140,108 160,108 C185,108 205,55 230,55 C255,55 275,108 300,108 C312,108 318,100 320,96" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <text x="250" y="40" fill="#67e8f9" font-size="11">v₁</text>
+                <text x="92" y="48" fill="#fbbf24" font-size="11">v₂ (lags)</text>
+            </svg>
+            <figcaption>Two sinusoids at the same frequency. They differ only in amplitude and phase — exactly the two numbers a phasor captures.</figcaption>
+        </figure>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.2</span>Impedance — Ohm's Law for AC</h2>
+        <p>The breakthrough: in the phasor domain each element obeys a generalized Ohm's law V = I·Z, where <span class="key">impedance</span> Z is a complex number (in ohms):</p>
+        <div class="eq">Z<sub>R</sub> = R&nbsp;&nbsp;·&nbsp;&nbsp;Z<sub>L</sub> = jωL&nbsp;&nbsp;·&nbsp;&nbsp;Z<sub>C</sub> = 1/(jωC) = −j/(ωC)</div>
+        <p>The real part is resistance; the imaginary part is <strong>reactance</strong> X. An inductor's reactance (+jωL) grows with frequency; a capacitor's (−j/ωC) shrinks with frequency. The "j" encodes the 90° phase shift — inductor voltage leads current, capacitor current leads voltage.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 300 200" role="img" aria-label="Impedances on the complex plane: resistor on the positive real axis, inductor on the positive imaginary axis, capacitor on the negative imaginary axis">
+                <line x1="30" y1="100" x2="270" y2="100" stroke="#94a8bc" stroke-width="1.2"/>
+                <line x1="150" y1="185" x2="150" y2="20" stroke="#94a8bc" stroke-width="1.2"/>
+                <text x="258" y="116" fill="#94a8bc" font-size="11">Re (R)</text>
+                <text x="156" y="22" fill="#94a8bc" font-size="11">Im (X)</text>
+                <line x1="150" y1="100" x2="240" y2="100" stroke="#34d399" stroke-width="2.5"/>
+                <text x="206" y="116" fill="#6ee7b7" font-size="11">Z_R = R</text>
+                <line x1="150" y1="100" x2="150" y2="40" stroke="#22d3ee" stroke-width="2.5"/>
+                <text x="156" y="50" fill="#67e8f9" font-size="11">Z_L = +jωL</text>
+                <line x1="150" y1="100" x2="150" y2="165" stroke="#fbbf24" stroke-width="2.5"/>
+                <text x="156" y="160" fill="#fbbf24" font-size="11">Z_C = −j/ωC</text>
+            </svg>
+            <figcaption>On the complex plane: resistance sits on the real axis, inductive reactance points up (+j), capacitive reactance points down (−j).</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Impedance is "resistance with a sense of timing." A resistor opposes current bluntly. An inductor and capacitor also oppose current, but they do it <em>out of step</em> with the voltage (90° off) — like a person who pushes a swing slightly early or late. The "j" is just bookkeeping for that timing.</div>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.3</span>Analyzing AC Circuits</h2>
+        <p>Here's the payoff: once everything is an impedance, <strong>all your DC tools work unchanged</strong> — series impedances add, parallel impedances combine by reciprocals, voltage dividers and KVL/KCL all apply — you just do the arithmetic with complex numbers. Solve for the phasor, then read off magnitude (amplitude) and angle (phase).</p>
+        <div class="eq">|Z| = √(R² + X²)&nbsp;&nbsp;·&nbsp;&nbsp;∠Z = arctan(X / R)</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't add impedance <em>magnitudes</em> like resistances. |Z₁| + |Z₂| ≠ |Z₁ + Z₂| in general — you must add the complex impedances (real + imaginary parts separately), then take the magnitude. For a 30 Ω resistor in series with a 40 Ω reactance, |Z| = √(30² + 40²) = 50 Ω, not 70 Ω.</div>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.4</span>Power in AC Circuits</h2>
+        <p>Because voltage and current can be out of phase by angle θ, AC power splits into three pieces:</p>
+        <div class="eq">P = V<sub>rms</sub> I<sub>rms</sub> cos θ (real, W)&nbsp;·&nbsp;Q = V<sub>rms</sub> I<sub>rms</sub> sin θ (reactive, VAR)&nbsp;·&nbsp;S = V<sub>rms</sub> I<sub>rms</sub> (apparent, VA)</div>
+        <p>Only <strong>real power</strong> P does useful work; reactive power Q sloshes back and forth into the L/C each cycle. Their ratio is the <span class="key">power factor</span>, PF = cos θ — and these three form a right triangle (S² = P² + Q²).</p>
+        <figure class="fig">
+            <svg viewBox="0 0 300 170" role="img" aria-label="Power triangle: real power P along the base, reactive power Q vertical, apparent power S the hypotenuse, angle theta at the origin">
+                <line x1="50" y1="135" x2="230" y2="135" stroke="#34d399" stroke-width="2.5"/>
+                <line x1="230" y1="135" x2="230" y2="55" stroke="#fbbf24" stroke-width="2.5"/>
+                <line x1="50" y1="135" x2="230" y2="55" stroke="#22d3ee" stroke-width="2.5"/>
+                <text x="135" y="152" fill="#6ee7b7" font-size="12">P (real, W)</text>
+                <text x="236" y="100" fill="#fbbf24" font-size="12">Q (VAR)</text>
+                <text x="120" y="86" fill="#67e8f9" font-size="12">S (VA)</text>
+                <path d="M86,135 A36,36 0 0 0 80,121" fill="none" stroke="#94a8bc" stroke-width="1.4"/>
+                <text x="92" y="127" fill="#94a8bc" font-size="12">θ</text>
+            </svg>
+            <figcaption>The power triangle: apparent power S is the hypotenuse, real power P the base, reactive power Q the height. cos θ = P/S is the power factor.</figcaption>
+        </figure>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 100 V (rms) source at ω drives a 30 Ω resistor in series with an inductor whose reactance is X<sub>L</sub> = 40 Ω. Find the impedance magnitude, the rms current, the phase angle, and the real power.</p>
+        <ol>
+            <li><strong>Impedance:</strong> Z = 30 + j40 Ω, so |Z| = √(30² + 40²) = √2500 = <strong>50 Ω</strong>.</li>
+            <li><strong>Current:</strong> I<sub>rms</sub> = V/|Z| = 100 / 50 = <strong>2 A</strong>.</li>
+            <li><strong>Phase angle:</strong> θ = arctan(40/30) = <strong>53.1°</strong> (current lags voltage — inductive).</li>
+            <li><strong>Real power:</strong> P = V<sub>rms</sub>I<sub>rms</sub>cos θ = 100 × 2 × cos 53.1° = 200 × 0.6 = <strong>120 W</strong>. (Equivalently I²R = 2²×30 = 120 W.)</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: an AC sweep in Ngspice</h3>
+        <p>Ngspice's <code>.ac</code> analysis sweeps frequency and reports magnitude and phase. Build a series RC low-pass and watch the output roll off as frequency rises.</p>
+        <pre><span class="c">* RC low-pass AC sweep — Lecture 6</span>
+V1 1 0 AC 1
+R1 1 2 1k
+C1 2 0 159n        <span class="c">; cutoff f = 1/(2*pi*R*C) ~ 1 kHz</span>
+.ac dec 20 10 1meg <span class="c">; 10 Hz to 1 MHz, 20 pts/decade</span>
+.end</pre>
+        <p>Run <code>plot vdb(2)</code> (magnitude in dB) and <code>plot 180/pi*vp(2)</code> (phase). Expected: flat at low frequency, then −20 dB/decade roll-off above ~1 kHz, phase heading toward −90°.</p>
+    </div>
+
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+        <div class="q">
+            <div class="qn"><span>Q1.</span> As frequency increases, the impedance magnitude of an inductor…</div>
+            <div class="opt"><b>A.</b> increases</div>
+            <div class="opt"><b>B.</b> decreases</div>
+            <div class="opt"><b>C.</b> stays constant</div>
+            <div class="opt"><b>D.</b> goes to zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Z<sub>L</sub> = jωL, so |Z<sub>L</sub>| = ωL rises with frequency. (A capacitor is the opposite.)</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The impedance of an ideal capacitor is…</div>
+            <div class="opt"><b>A.</b> jωC</div>
+            <div class="opt"><b>B.</b> −j/(ωC)</div>
+            <div class="opt"><b>C.</b> ωC</div>
+            <div class="opt"><b>D.</b> R</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Z<sub>C</sub> = 1/(jωC) = −j/(ωC): purely reactive, negative imaginary, shrinking with frequency.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A 30 Ω resistor is in series with a reactance of 40 Ω. The impedance magnitude is…</div>
+            <div class="opt"><b>A.</b> 70 Ω</div>
+            <div class="opt"><b>B.</b> 10 Ω</div>
+            <div class="opt"><b>C.</b> 50 Ω</div>
+            <div class="opt"><b>D.</b> 1200 Ω</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> |Z| = √(30² + 40²) = √2500 = 50 Ω — add as a vector, not 30 + 40.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q4.</span> If the voltage and current in a load are 60° out of phase, the power factor is…</div>
+            <div class="opt"><b>A.</b> 0.87</div>
+            <div class="opt"><b>B.</b> 0</div>
+            <div class="opt"><b>C.</b> 1.0</div>
+            <div class="opt"><b>D.</b> 0.5</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> PF = cos θ = cos 60° = 0.5.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In a purely resistive AC circuit, the current and voltage are…</div>
+            <div class="opt"><b>A.</b> 90° out of phase</div>
+            <div class="opt"><b>B.</b> in phase</div>
+            <div class="opt"><b>C.</b> 180° out of phase</div>
+            <div class="opt"><b>D.</b> at different frequencies</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A resistor has real impedance (no j), so θ = 0 — voltage and current peak together, PF = 1.</p></details>
+        </div>
+    </div>
+
+    <!-- DISCUSSION 2 -->
+    <div class="discussion">
+        <div class="disc-head"><span class="wkbadge">Discussion 2 · Week 6</span><h2>💬 Discuss &amp; get feedback</h2></div>
+        <div class="disc-item" data-disc="c1-l6-d2">
+            <p class="disc-prompt" id="prompt-c1l6">Why do engineers analyze AC circuits with phasors and impedance instead of solving the differential equations directly each time? What does the impedance method buy you — and what does it quietly assume about the circuit and the signal that makes it valid?</p>
+            <textarea id="ans-c1l6" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta"><span class="saved-note" id="saved-c1l6">Not saved yet</span><span class="toast" id="toast-c1l6"></span></div>
+            <div class="disc-model" id="model-c1l6" hidden>
+                <h4>Model response</h4>
+                <p>Phasors/impedance convert calculus into <strong>algebra</strong>: instead of writing and solving a differential equation for every circuit, you replace each element with a complex impedance and reuse Ohm's law, series/parallel rules, and dividers — the same toolkit from Lectures 1–3. You get magnitude and phase directly, and frequency dependence falls out naturally (great for filters and Bode plots). It buys huge speed and intuition.</p>
+                <p>The quiet assumptions: the circuit must be <strong>linear</strong> (no diodes/transistors in their nonlinear regions), it's driven by a <strong>single sinusoidal frequency</strong> (or a sum you can superpose frequency-by-frequency), and you're looking at the <strong>steady state</strong> — all the first-order/second-order transients from earlier weeks have died out. Inside those conditions, impedance is exact; outside them, you're back to differential equations or simulation.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Says it replaces calculus (ODEs) with algebra / reuses DC tools</li>
+                    <li>Names a concrete payoff (speed, phase+magnitude, frequency response/filters)</li>
+                    <li>Names at least one assumption: linear · single frequency / sinusoidal · steady state</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="data-note">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty. The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A sinusoid is captured by a <b>phasor</b> (amplitude + phase) once the frequency ω is fixed.</li>
+            <li><b>Impedance</b> extends Ohm's law to AC: Z<sub>R</sub> = R, Z<sub>L</sub> = jωL, Z<sub>C</sub> = −j/(ωC).</li>
+            <li>All DC techniques (series/parallel, dividers, KVL/KCL) work in the phasor domain — just use complex arithmetic, then take <b>|Z| = √(R²+X²)</b> and <b>∠Z = arctan(X/R)</b>.</li>
+            <li>AC power splits into <b>real (P), reactive (Q), apparent (S)</b>, with power factor cos θ.</li>
+            <li>Ran an <b>.ac</b> frequency sweep in Ngspice and saw a filter's roll-off.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Second-Order Circuits — two storage elements, damping, and resonance.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l05-first-order-circuits.html"><div class="dir">← Week 5</div><div class="ttl">First-Order Circuits</div></a>
+        <a href="l07-second-order-circuits.html" class="next"><div class="dir">Week 7 →</div><div class="ttl">Second-Order Circuits</div></a>
+    </div>
+</div>
+<footer>
+    <p><a href="../index.html">← C1 Circuits</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => { const h = document.documentElement; bar.style.width = (h.scrollTop)/(h.scrollHeight - h.clientHeight)*100 + '%'; });
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my circuits & electronics tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\nMY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) { const t = item.querySelector('.toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500); }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.')); }
+        else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) { const item = btn.closest('.disc-item'); const full = buildPrompt(item); copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.'); window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener'); }
+    function copyForAI(btn) { const item = btn.closest('.disc-item'); copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.'); }
+    function toggleModel(btn) { const m = btn.closest('.disc-item').querySelector('.disc-model'); if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; } else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; } }
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => { localStorage.setItem(key, t.value); if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet'; });
+    });
+</script>
+</body>
+</html>

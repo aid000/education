@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C5 · Lecture 4 — Value Function Iteration</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C5 Computational Econ</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Value Function Iteration</h1>
+        <p class="sub">When you can't solve the Bellman equation by hand, you let a computer chase its fixed point — one sweep over the state space at a time.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why most dynamic programs have no closed-form value function and must be solved numerically.</li>
+            <li>Discretize a continuous state space into a finite grid and evaluate the Bellman operator on it.</li>
+            <li>State why the Bellman operator is a contraction mapping and how that guarantees convergence.</li>
+            <li>Implement value function iteration (VFI) from scratch in NumPy and extract the optimal policy.</li>
+            <li>Use QuantEcon helpers to set up grids and discretize shocks, and benchmark VFI's accuracy and speed.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>Why We Iterate</h2>
+        <p>Last week you met the <strong>Bellman equation</strong>: the value of being in state <em>s</em> equals the best immediate reward plus the discounted value of where you land next. For a saver choosing how much capital <em>k</em> to carry forward, with consumption <em>c</em> = available resources minus saving, it reads:</p>
+        <div class="eq">V(k) = max over k' of [ u(c) + &beta; V(k') ],&nbsp; c = f(k) - k'<small>V is the value function; u is utility; &beta; in (0,1) is the discount factor; k' is next period's capital.</small></div>
+        <p>The trouble is that <em>V appears on both sides</em>. Except for a handful of lucky functional forms (log utility with Cobb-Douglas production is the famous one — Week 5), there is no formula for V you can write down. So we do the next best thing: we treat the equation as a <strong>fixed-point problem</strong> and solve it the way you'd solve x = cos(x) — by repeated substitution. Guess a value function, plug it into the right-hand side, and read off an updated value function on the left. Repeat until the guess stops changing.</p>
+        <p>That loop is <strong>value function iteration</strong>. Each pass is one application of the <strong>Bellman operator</strong> T, which takes a candidate value function and returns an improved one:</p>
+        <div class="eq">(T V)(k) = max over k' of [ u(f(k) - k') + &beta; V(k') ]<small>T maps functions to functions. A fixed point of T — a V with T V = V — solves the Bellman equation.</small></div>
+        <p>VFI is the workhorse behind quantitative models of saving, investment, job search, optimal stopping, inventory control, and dynamic pricing. Whenever an economist asks "how should an agent behave over time facing uncertainty?", VFI is usually the first numerical tool they reach for.</p>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Discretizing the State Space</h2>
+        <p>A computer can't store a function defined on a continuum of capital levels. So we replace the continuous state with a finite <strong>grid</strong> of representative points, say <em>N</em> = 200 values of k from a low to a high bound. The value function becomes an array <code>V[i]</code> — one number per grid point — and the operator T becomes a loop over that array.</p>
+        <p>For each grid point <code>k[i]</code>, evaluating <code>(T V)[i]</code> means searching over the <em>same</em> grid for the best choice of next capital <code>k[j]</code>:</p>
+        <div class="eq">(T V)[i] = max over j of [ u(f(k[i]) - k[j]) + &beta; V[j] ]<small>The inner max ranges over feasible j (those with f(k[i]) - k[j] &gt; 0); the argmax j is the policy.</small></div>
+        <p>The figure shows one such sweep: at a fixed current state, we scan every candidate next-state, score it, and keep the winner.</p>
+
+        <figure class="fig">
+            <svg viewBox="0 0 520 240" role="img" aria-label="A horizontal grid of next-capital choices. Each candidate is scored by current reward plus discounted continuation value; the highlighted bar is the maximizing choice.">
+                <text x="260" y="20" fill="#93c5fd" font-size="13" text-anchor="middle">One Bellman sweep at fixed state k[i]: score every next-state k[j]</text>
+                <!-- baseline -->
+                <line x1="40" y1="180" x2="480" y2="180" stroke="#1f2f4a" stroke-width="2"/>
+                <!-- bars: value of choosing each k[j] -->
+                <rect x="60"  y="150" width="26" height="30"  fill="#16213a" stroke="#1f2f4a"/>
+                <rect x="110" y="120" width="26" height="60"  fill="#16213a" stroke="#1f2f4a"/>
+                <rect x="160" y="95"  width="26" height="85"  fill="#16213a" stroke="#1f2f4a"/>
+                <rect x="210" y="75"  width="26" height="105" fill="#16213a" stroke="#1f2f4a"/>
+                <rect x="260" y="62"  width="26" height="118" fill="#34d399" stroke="#34d399"/>
+                <rect x="310" y="72"  width="26" height="108" fill="#16213a" stroke="#1f2f4a"/>
+                <rect x="360" y="100" width="26" height="80"  fill="#16213a" stroke="#1f2f4a"/>
+                <rect x="410" y="138" width="26" height="42"  fill="#16213a" stroke="#1f2f4a"/>
+                <!-- winner marker -->
+                <text x="273" y="52" fill="#34d399" font-size="11" text-anchor="middle">argmax = k[j*]</text>
+                <line x1="273" y1="56" x2="273" y2="60" stroke="#34d399" stroke-width="2"/>
+                <!-- axis labels -->
+                <text x="260" y="205" fill="#93a8c8" font-size="11" text-anchor="middle">candidate next capital k[j] (the grid)</text>
+                <text x="30" y="120" fill="#93a8c8" font-size="11" text-anchor="middle" transform="rotate(-90 30 120)">u(c) + beta*V[j]</text>
+            </svg>
+            <figcaption>Evaluating the Bellman operator at one state: each bar is the total score u(f(k[i])-k[j]) + &beta;V[j] for a candidate next-capital k[j]. The green bar is the maximizer; its index j* defines the policy at k[i].</figcaption>
+        </figure>
+
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't make the grid too coarse to "save time." With only 20 points, the policy can only ever pick one of 20 savings levels, so the recovered policy looks like a staircase and the value function is biased. The fix is a denser grid (or interpolating V between grid points). Conversely, an absurdly fine grid wastes effort because VFI cost grows like N&sup2; per iteration — every state searches over every candidate.</div>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Why Iteration Converges: The Contraction Mapping</h2>
+        <p>Why should hammering the same operator over and over settle down? Because T is a <strong>contraction mapping</strong>. Measure the distance between two value functions by their largest pointwise gap, the sup-norm. The key fact is that applying T shrinks that gap by a factor of exactly &beta;:</p>
+        <div class="eq">|| T V - T W || &le; &beta; · || V - W ||,&nbsp;&nbsp; 0 &lt; &beta; &lt; 1<small>Blackwell's sufficient conditions (monotonicity + discounting) guarantee this for the Bellman operator.</small></div>
+        <p>This is the discrete-time cousin of a result you've seen: a map that pulls points closer together has exactly one fixed point, and you reach it from <em>any</em> starting guess. So VFI converges to the unique solution V* no matter where you begin — even from V = 0. Better still, convergence is <strong>geometric</strong>: the error after <em>n</em> iterations is bounded by &beta;&#8319; times the initial error.</p>
+        <div class="eq">|| V_n - V* || &le; &beta;&#8319; · || V_0 - V* ||<small>Each iteration multiplies the remaining error by &beta;. Smaller &beta; (more impatience) means faster convergence.</small></div>
+
+        <figure class="fig">
+            <svg viewBox="0 0 520 260" role="img" aria-label="A staircase cobweb diagram: iterates of the Bellman operator converge to the fixed point where the curve V mapsto TV crosses the 45-degree line.">
+                <!-- axes -->
+                <line x1="60" y1="220" x2="480" y2="220" stroke="#1f2f4a" stroke-width="2"/>
+                <line x1="60" y1="220" x2="60" y2="30" stroke="#1f2f4a" stroke-width="2"/>
+                <text x="475" y="240" fill="#93a8c8" font-size="11" text-anchor="end">V (current guess)</text>
+                <text x="48" y="40" fill="#93a8c8" font-size="11" text-anchor="end" transform="rotate(-90 48 40)">T V (updated)</text>
+                <!-- 45-degree line -->
+                <line x1="60" y1="220" x2="420" y2="40" stroke="#60a5fa" stroke-width="2" stroke-dasharray="5 4"/>
+                <text x="395" y="55" fill="#60a5fa" font-size="11">45 deg: T V = V</text>
+                <!-- operator curve (a contraction: slope < 1), crosses 45 line at fixed point -->
+                <path d="M 60 175 L 200 130 L 320 110 L 420 100 L 480 96" fill="none" stroke="#a78bfa" stroke-width="2.5"/>
+                <text x="470" y="88" fill="#a78bfa" font-size="11" text-anchor="end">curve T V</text>
+                <!-- fixed point: curve meets 45 line at (260,120) -->
+                <circle cx="260" cy="120" r="4.5" fill="#34d399"/>
+                <text x="254" y="100" fill="#34d399" font-size="11" text-anchor="end">fixed point V*</text>
+                <!-- cobweb staircase from V0 at x=120: up to curve, across to 45 line, repeat -->
+                <line x1="120" y1="220" x2="120" y2="156" stroke="#fbbf24" stroke-width="1.6"/>
+                <line x1="120" y1="156" x2="188" y2="156" stroke="#fbbf24" stroke-width="1.6"/>
+                <line x1="188" y1="156" x2="188" y2="134" stroke="#fbbf24" stroke-width="1.6"/>
+                <line x1="188" y1="134" x2="232" y2="134" stroke="#fbbf24" stroke-width="1.6"/>
+                <line x1="232" y1="134" x2="232" y2="125" stroke="#fbbf24" stroke-width="1.6"/>
+                <line x1="232" y1="125" x2="250" y2="125" stroke="#fbbf24" stroke-width="1.6"/>
+                <text x="120" y="234" fill="#fbbf24" font-size="10" text-anchor="middle">V0</text>
+            </svg>
+            <figcaption>Cobweb view of VFI. The violet curve is T; the dashed blue line is the 45&deg; line where T V = V. Starting from any guess V0, the amber staircase walks into the green fixed point V*. Because T's slope is below 1 (a &beta;-contraction), the steps shrink and convergence is guaranteed.</figcaption>
+        </figure>
+
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of focusing a camera that auto-corrects toward sharp. Each tap of the focus ring moves you a fixed fraction of the way to perfectly crisp, never overshooting. After enough taps the image is indistinguishable from sharp — and it didn't matter how blurry you started. The discount factor &beta; is "what fraction of the remaining error each tap removes"; T is the tap.</div>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>From Value to Policy</h2>
+        <p>VFI gives you the value function V*, but for forecasting and simulation you usually want the <strong>policy function</strong> — the rule that says, in each state, what the agent actually does. The policy is just the argmax that the Bellman operator computes on its <em>final</em> sweep:</p>
+        <div class="eq">&sigma;*(k) = argmax over k' of [ u(f(k) - k') + &beta; V*(k') ]<small>&sigma;* maps each state to the optimal next-state (here, optimal capital to carry forward).</small></div>
+        <p>Because V* is the fixed point, one more pass of T while recording the argmax yields the optimal policy. Once you have &sigma;*, you can <strong>simulate</strong>: start at some k&#8320;, apply k&#8321; = &sigma;*(k&#8320;), then k&#8322; = &sigma;*(k&#8321;), and watch the economy converge to its steady state. That simulated path is what economists actually compare against data.</p>
+        <p>A practical note on stopping: don't iterate forever. Halt when successive value functions barely move — when the sup-norm of the change drops below a tolerance such as 10&#8315;&#8326;. The contraction bound even lets you translate that gap into a guaranteed bound on distance to the true V*.</p>
+        <div class="eq">stop when&nbsp; max over i of | V_{n+1}[i] - V_n[i] |&nbsp; &lt; &nbsp;tol<small>A standard convergence criterion. The error in V* is then at most tol &middot; &beta; / (1 - &beta;).</small></div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — one VFI iteration by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Take a tiny cake-eating problem with a 3-point grid of remaining cake k &isin; {0, 1, 2}, utility u(c) = c (linear, just for arithmetic), feasibility c = k - k' &ge; 0, and discount &beta; = 0.9. Start from V&#8320; = (0, 0, 0). Compute one application of T at each state.</p>
+        <ol>
+            <li><strong>State k = 0:</strong> the only feasible k' is 0, giving c = 0. Score = u(0) + 0.9&middot;V&#8320;[0] = 0 + 0 = <strong>0</strong>. So (TV&#8320;)[0] = 0, policy k' = 0.</li>
+            <li><strong>State k = 1:</strong> feasible k' &isin; {0,1}. Choosing k'=0 gives c=1, score = 1 + 0.9&middot;0 = 1; choosing k'=1 gives c=0, score = 0. Max is <strong>1</strong>; policy k' = 0.</li>
+            <li><strong>State k = 2:</strong> feasible k' &isin; {0,1,2}. k'=0 gives c=2, score = 2; k'=1 gives c=1, score = 1; k'=2 gives 0. Max is <strong>2</strong>; policy k' = 0.</li>
+            <li><strong>After one sweep:</strong> V&#8321; = (0, 1, 2). The value rose because the operator finally "saw" the rewards from eating cake.</li>
+            <li><strong>Iterate again:</strong> now continuation values are nonzero. At k=2, eating all now scores 2, but eating 1 now and saving 1 scores 1 + 0.9&middot;V&#8321;[1] = 1 + 0.9 = 1.9 &lt; 2 — so with linear utility and &beta;&lt;1, eating sooner still wins. With <em>concave</em> utility the smoothing motive would kick in and the policy would spread consumption out. Repeating T drives V toward the fixed point V* = (0, 1, 2) here, where it stops changing.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: VFI from scratch + QuantEcon helpers</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the free course stack — Python + NumPy + QuantEcon (plus Matplotlib to plot). <strong>The full one-time install lives in the Week 1/Week 2 setup lecture</strong> (a <code>pip install quantecon numpy scipy matplotlib</code> in a virtual environment); reuse that environment here — no new tools are introduced this week.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">We solve an optimal-growth model with log utility u(c)=log c and Cobb-Douglas production f(k)=k<sup>&alpha;</sup>. QuantEcon's helpers give us a clean log-spaced grid; the rest is a plain NumPy fixed-point loop.</p>
+        <pre><span class="c"># vfi_growth.py — Lecture 4: value function iteration from scratch</span>
+import numpy as np
+import quantecon as qe
+
+alpha, beta = 0.4, 0.96         <span class="c"># capital share, discount factor</span>
+grid = np.linspace(1e-4, 8.0, 300)   <span class="c"># discretized capital state</span>
+
+def f(k):                        <span class="c"># production function</span>
+    return k ** alpha
+
+def bellman_operator(V):
+    TV  = np.empty_like(V)
+    pol = np.empty_like(V)
+    for i, k in enumerate(grid):
+        c = f(k) - grid                       <span class="c"># consumption for each k' choice</span>
+        feasible = c &gt; 0                       <span class="c"># can't consume negative</span>
+        value = np.full_like(grid, -np.inf)
+        value[feasible] = np.log(c[feasible]) + beta * V[feasible]
+        j = np.argmax(value)                  <span class="c"># best next-capital index</span>
+        TV[i], pol[i] = value[j], grid[j]
+    return TV, pol
+
+<span class="c"># iterate the contraction to its fixed point</span>
+V = np.zeros_like(grid)
+for it in range(1000):
+    TV, policy = bellman_operator(V)
+    err = np.max(np.abs(TV - V))              <span class="c"># sup-norm change</span>
+    V = TV
+    if err &lt; 1e-6:                            <span class="c"># converged</span>
+        print(f"converged in {it} iterations, error={err:.2e}")
+        break
+
+<span class="c"># policy[i] is optimal capital to save when current capital is grid[i]</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Run it and you should converge in a few hundred iterations. QuantEcon also ships a polished <code>optimal_growth</code> example and a <code>compute_fixed_point</code> driver — swap in <code>qe.compute_fixed_point(bellman_operator, V)</code> to get the same answer with built-in tolerance handling. Next, simulate a capital path from <code>policy</code> and confirm it settles at the steady state where k = (&alpha;&beta;)<sup>1/(1-&alpha;)</sup>.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Right now the only uncertainty is none — the world is deterministic. <strong>Next week</strong> we add a random productivity shock and discretize it into a Markov chain (QuantEcon's <code>tauchen</code> helper), turning VFI into the engine of the <em>stochastic growth model</em>, the backbone of modern macro. Later in C5 you'll meet faster cousins — <em>policy iteration</em> and the <em>endogenous grid method</em> — that reach the same fixed point in a fraction of the sweeps, plus <em>continuous-action</em> versions that replace the grid search with an optimizer (SciPy) or convex solver (CVXPY). <strong>Capstone milestone:</strong> by the end of this week, commit a working deterministic-growth VFI solver to your project repo, with a plot of the converged value and policy functions — that solver becomes the core you extend into your stochastic capstone model.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why must most dynamic programs be solved by value function iteration rather than algebra?</div>
+            <div class="opt"><b>A.</b> Because computers are faster than humans at addition</div>
+            <div class="opt"><b>B.</b> Because the value function appears on both sides of the Bellman equation and rarely has a closed form</div>
+            <div class="opt"><b>C.</b> Because the discount factor is always unknown</div>
+            <div class="opt"><b>D.</b> Because utility functions are never differentiable</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> V is defined implicitly in terms of itself, so except for special forms there is no formula — we solve the fixed point numerically. A confuses speed with necessity; C is false (we set &beta;); D is false (utility is usually smooth).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> What does "discretizing the state space" mean in VFI?</div>
+            <div class="opt"><b>A.</b> Rounding all payoffs to whole numbers</div>
+            <div class="opt"><b>B.</b> Removing the discount factor from the model</div>
+            <div class="opt"><b>C.</b> Replacing the continuous state with a finite grid of representative points</div>
+            <div class="opt"><b>D.</b> Converting utility into a probability distribution</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A computer stores V as a finite array, so we sample the continuum at grid points. A confuses the state with payoffs; B and D are unrelated to discretization.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The Bellman operator T is a contraction with modulus &beta;. What does that guarantee?</div>
+            <div class="opt"><b>A.</b> A unique fixed point reached from any starting guess, with geometrically shrinking error</div>
+            <div class="opt"><b>B.</b> That T has many fixed points depending on the initial guess</div>
+            <div class="opt"><b>C.</b> That convergence requires &beta; &gt; 1</div>
+            <div class="opt"><b>D.</b> That the value function must be linear</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A contraction (0&lt;&beta;&lt;1) has a unique fixed point and iterates converge geometrically from anywhere. B contradicts uniqueness; C is backwards — &beta;&lt;1 is what makes it a contraction; D is unrelated.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A standard rule for stopping VFI is to halt when…</div>
+            <div class="opt"><b>A.</b> the policy first becomes positive</div>
+            <div class="opt"><b>B.</b> exactly 100 iterations have run</div>
+            <div class="opt"><b>C.</b> consumption equals capital</div>
+            <div class="opt"><b>D.</b> the sup-norm change between successive value functions falls below a tolerance</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> We stop when V stops moving, i.e. max|V_{n+1}-V_n| &lt; tol; the contraction bound then bounds the distance to V*. A fixed iteration count (B) ignores actual convergence; A and C are not convergence criteria.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Once VFI has converged to V*, how do you obtain the optimal policy function?</div>
+            <div class="opt"><b>A.</b> Take the derivative of V* with respect to &beta;</div>
+            <div class="opt"><b>B.</b> Average V* across all grid points</div>
+            <div class="opt"><b>C.</b> Record the argmax over next-states on a final application of the Bellman operator</div>
+            <div class="opt"><b>D.</b> Invert the value-function array</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The policy is the maximizing choice in the Bellman update; one extra sweep over V* recording argmax gives &sigma;*. A, B, and D are arbitrary operations with no decision-theoretic meaning.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Most dynamic programs have <b>no closed-form value function</b>, so we solve the Bellman equation as a <b>fixed-point problem</b>.</li>
+            <li><b>Discretized</b> the continuous state into a finite grid, turning the Bellman operator into a loop over arrays.</li>
+            <li>The Bellman operator is a <b>&beta;-contraction</b>, so VFI converges to a <b>unique</b> V* from any guess, geometrically.</li>
+            <li>Implemented VFI from scratch in NumPy and read off the <b>optimal policy</b> from the final argmax.</li>
+            <li>Used <b>QuantEcon</b> helpers for the grid and a fixed-point driver, with a sup-norm <b>stopping rule</b>. Capstone: commit a deterministic-growth VFI solver with converged value/policy plots.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: add a random productivity shock as a Markov chain and turn VFI into the engine of the <b>stochastic growth model</b>.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-dynamic-programming.html"><div class="dir">← Week 3</div><div class="ttl">Dynamic Programming &amp; Bellman</div></a>
+        <a class="next" href="l05-stochastic-growth.html"><div class="dir">Week 5 →</div><div class="ttl">The Stochastic Growth Model</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Computational Econ</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

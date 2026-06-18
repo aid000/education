@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Lecture 5 — Sequential Logic &amp; Memory</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C4 VLSI</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Sequential Logic &amp; Memory</h1>
+        <p class="sub">Registers, finite state machines, and on-chip memory in RTL — plus the timing constraint that ties them together.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Infer flip-flops in RTL with an <code>always @(posedge clk)</code> block, and add a reset.</li>
+            <li>Describe the classic finite-state-machine structure: state register + next-state logic + output logic.</li>
+            <li>Choose the right on-chip storage: register files for small state, SRAM macros for large memory.</li>
+            <li>State the register-to-register timing constraint and compute the maximum clock frequency.</li>
+            <li>Use nonblocking assignments for clocked logic — and avoid the classic sequential RTL mistakes.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>Registers in RTL</h2>
+        <p>Combinational logic (last lecture) had no memory — its output depended only on the present inputs. <strong>Sequential logic</strong> remembers. The element that holds a value across time is the <span class="key">flip-flop</span> (a 1-bit register); a bus of them is a register.</p>
+        <p>In RTL (register-transfer level) you don't instantiate flip-flops by hand — you <em>infer</em> them. A synthesis tool sees an <code>always</code> block triggered on the rising clock edge and builds the flops for you:</p>
+        <div class="eq">always @(posedge clk) &nbsp;⟹&nbsp; <span class="key">flip-flops inferred</span><small>The signals assigned inside the clocked block become register outputs.</small></div>
+        <p>A <strong>reset</strong> sets the registers to a known initial state. It can be <span class="key">synchronous</span> (the reset only takes effect on a clock edge) or <span class="key">asynchronous</span> (it takes effect immediately, in the sensitivity list):</p>
+        <div class="eq">// synchronous reset<br>always @(posedge clk)<br>&nbsp;&nbsp;if (rst) q &lt;= 0; else q &lt;= d;<small>Async reset adds <code>or posedge rst</code> to the sensitivity list.</small></div>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>Finite State Machines in RTL</h2>
+        <p>A <strong>finite state machine</strong> (FSM) is the workhorse for control: traffic-light controllers, bus protocols, instruction decoders. In RTL an FSM has three pieces that always appear together:</p>
+        <h3>The three blocks</h3>
+        <p><strong>1. State register</strong> — a clocked block that holds the <em>current state</em>. <strong>2. Next-state logic</strong> — combinational logic that, from the current state and the inputs, computes which state to enter next. <strong>3. Output logic</strong> — combinational logic that drives the outputs from the current state (and, in a Mealy machine, the inputs).</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 230" role="img" aria-label="FSM RTL structure: inputs and current state feed next-state logic, which feeds the clocked state register, which produces the current state fed back and into output logic">
+                <defs>
+                    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#67e8f9"/></marker>
+                </defs>
+                <!-- next-state logic block -->
+                <rect x="150" y="40" width="130" height="58" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="215" y="64" fill="#e8f0f8" font-size="12" text-anchor="middle">Next-state</text>
+                <text x="215" y="80" fill="#94a8bc" font-size="11" text-anchor="middle">logic (comb.)</text>
+                <!-- state register block -->
+                <rect x="340" y="40" width="120" height="58" rx="8" fill="#1c2c3e" stroke="#34d399" stroke-width="1.5"/>
+                <text x="400" y="62" fill="#e8f0f8" font-size="12" text-anchor="middle">State</text>
+                <text x="400" y="78" fill="#94a8bc" font-size="11" text-anchor="middle">register</text>
+                <!-- output logic block -->
+                <rect x="340" y="150" width="120" height="50" rx="8" fill="#1c2c3e" stroke="#a78bfa" stroke-width="1.5"/>
+                <text x="400" y="172" fill="#e8f0f8" font-size="12" text-anchor="middle">Output</text>
+                <text x="400" y="188" fill="#94a8bc" font-size="11" text-anchor="middle">logic (comb.)</text>
+                <!-- inputs into next-state -->
+                <line x1="40" y1="58" x2="148" y2="58" stroke="#67e8f9" stroke-width="1.6" marker-end="url(#ar)"/>
+                <text x="42" y="52" fill="#94a8bc" font-size="11">inputs</text>
+                <!-- next-state -> state register -->
+                <line x1="280" y1="69" x2="338" y2="69" stroke="#67e8f9" stroke-width="1.6" marker-end="url(#ar)"/>
+                <text x="291" y="62" fill="#94a8bc" font-size="10">next</text>
+                <!-- clk into state register -->
+                <line x1="400" y1="120" x2="400" y2="100" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#ar)"/>
+                <text x="406" y="116" fill="#fbbf24" font-size="11">clk</text>
+                <!-- state register -> current state (out to right) -->
+                <line x1="460" y1="69" x2="525" y2="69" stroke="#67e8f9" stroke-width="1.6" marker-end="url(#ar)"/>
+                <text x="468" y="62" fill="#94a8bc" font-size="10">current state</text>
+                <!-- feedback path: from state-reg output node down and back to next-state logic -->
+                <line x1="492" y1="69" x2="492" y2="125" stroke="#67e8f9" stroke-width="1.4"/>
+                <line x1="492" y1="125" x2="120" y2="125" stroke="#67e8f9" stroke-width="1.4"/>
+                <line x1="120" y1="125" x2="120" y2="80" stroke="#67e8f9" stroke-width="1.4"/>
+                <line x1="120" y1="80" x2="148" y2="80" stroke="#67e8f9" stroke-width="1.4" marker-end="url(#ar)"/>
+                <text x="150" y="140" fill="#94a8bc" font-size="10">state feedback</text>
+                <circle cx="492" cy="69" r="2.6" fill="#67e8f9"/>
+                <!-- current state into output logic -->
+                <line x1="492" y1="125" x2="492" y2="175" stroke="#67e8f9" stroke-width="1.4"/>
+                <line x1="492" y1="175" x2="462" y2="175" stroke="#67e8f9" stroke-width="1.4" marker-end="url(#ar)"/>
+                <!-- output -->
+                <line x1="340" y1="175" x2="285" y2="175" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#ar)"/>
+                <text x="252" y="179" fill="#94a8bc" font-size="11">outputs</text>
+            </svg>
+            <figcaption>The canonical RTL finite state machine: next-state logic computes the next state from inputs and the fed-back current state; the clocked state register latches it; output logic derives the outputs.</figcaption>
+        </figure>
+        <p>The split is deliberate: only the state register is clocked (nonblocking, edge-triggered); the next-state and output logic are pure combinational blocks. This separation is what makes FSMs easy to read, simulate, and synthesize.</p>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>On-Chip Memory</h2>
+        <p>Storage on a chip comes in two flavors, and choosing the wrong one wastes huge amounts of area.</p>
+        <h3>Small storage → register files</h3>
+        <p>A handful of words — a CPU's register file, a small FIFO, FSM state — is built from <span class="key">flip-flops</span>. Flops are flexible: any port count, easy to read/write combinationally, and they synthesize from ordinary RTL. The cost is area: each bit is a full flip-flop.</p>
+        <h3>Large storage → SRAM macros</h3>
+        <p>For kilobytes or megabytes (caches, buffers, frame stores), you do <em>not</em> build memory from flip-flops. You drop in a <span class="key">compiled SRAM macro</span> — a dense, pre-laid-out memory block generated by a memory compiler. An SRAM bit cell is a tight 6-transistor structure, far <strong>denser</strong> than a flip-flop, so a macro stores far more bits per unit area.</p>
+        <div class="eq">small / fast-access state → <span class="key">register file (flops)</span><br>large bulk storage → <span class="key">SRAM macro (compiled)</span><small>SRAM macros are dramatically denser per bit than flip-flop arrays.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Sequential RTL is a board game. The <strong>clock</strong> is each "turn"; the <strong>registers</strong> hold the current state of the board; and the <strong>next-state logic</strong> works out the move. Nothing changes mid-turn — the whole board updates at once, exactly at the turn boundary (the clock edge). Players don't move pieces one at a time between turns; everyone resolves simultaneously when the turn ticks over.</div>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>Timing Constraints</h2>
+        <p>Registers update simultaneously on the clock edge — but only if the data has had time to arrive. The <span class="key">clock</span> is therefore a <strong>constraint</strong>: its period must be long enough to cover the slowest path between two registers.</p>
+        <p>Trace one register-to-register path. After a clock edge, the launching flip-flop takes <span class="key">clock-to-Q</span> (t<sub>cq</sub>) to present its output; the signal then propagates through combinational logic (t<sub>logic</sub>); and it must arrive at the capturing flip-flop a <span class="key">setup time</span> (t<sub>setup</sub>) before the <em>next</em> edge. So:</p>
+        <div class="eq">T<sub>clk</sub> ≥ t<sub>cq</sub> + t<sub>logic</sub> + t<sub>setup</sub><small>The period must cover the <em>worst</em> (slowest) register-to-register path on the chip.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 560 220" role="img" aria-label="Register-to-register timing path: a launch flip-flop drives a combinational logic cloud which drives a capture flip-flop, both clocked, with the constraint T_clk at least t_cq plus t_logic plus t_setup">
+                <defs>
+                    <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#67e8f9"/></marker>
+                </defs>
+                <!-- launch FF -->
+                <rect x="55" y="55" width="90" height="60" rx="8" fill="#1c2c3e" stroke="#34d399" stroke-width="1.5"/>
+                <text x="100" y="80" fill="#e8f0f8" font-size="12" text-anchor="middle">Launch</text>
+                <text x="100" y="96" fill="#94a8bc" font-size="11" text-anchor="middle">FF</text>
+                <!-- logic cloud -->
+                <ellipse cx="290" cy="85" rx="78" ry="40" fill="#1c2c3e" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="290" y="81" fill="#e8f0f8" font-size="12" text-anchor="middle">Combinational</text>
+                <text x="290" y="97" fill="#94a8bc" font-size="11" text-anchor="middle">logic</text>
+                <!-- capture FF -->
+                <rect x="435" y="55" width="90" height="60" rx="8" fill="#1c2c3e" stroke="#34d399" stroke-width="1.5"/>
+                <text x="480" y="80" fill="#e8f0f8" font-size="12" text-anchor="middle">Capture</text>
+                <text x="480" y="96" fill="#94a8bc" font-size="11" text-anchor="middle">FF</text>
+                <!-- Q path -->
+                <line x1="145" y1="85" x2="210" y2="85" stroke="#67e8f9" stroke-width="1.6" marker-end="url(#ar2)"/>
+                <text x="150" y="78" fill="#94a8bc" font-size="10">t_cq</text>
+                <!-- logic -> capture -->
+                <line x1="368" y1="85" x2="433" y2="85" stroke="#67e8f9" stroke-width="1.6" marker-end="url(#ar2)"/>
+                <text x="375" y="78" fill="#94a8bc" font-size="10">t_logic</text>
+                <text x="445" y="50" fill="#94a8bc" font-size="10">t_setup</text>
+                <!-- clock line feeding both FFs -->
+                <line x1="100" y1="175" x2="480" y2="175" stroke="#fbbf24" stroke-width="1.6"/>
+                <line x1="100" y1="175" x2="100" y2="117" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#ar2)"/>
+                <line x1="480" y1="175" x2="480" y2="117" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#ar2)"/>
+                <circle cx="100" cy="175" r="2.6" fill="#fbbf24"/>
+                <circle cx="480" cy="175" r="2.6" fill="#fbbf24"/>
+                <text x="245" y="170" fill="#fbbf24" font-size="11" text-anchor="middle">clk</text>
+                <!-- constraint label -->
+                <text x="290" y="205" fill="#67e8f9" font-size="12" text-anchor="middle" font-family="monospace">T_clk ≥ t_cq + t_logic + t_setup</text>
+            </svg>
+            <figcaption>One register-to-register path. The clock feeds both flip-flops; the period must be at least clock-to-Q plus the combinational logic delay plus setup. The slowest such path sets the chip's maximum clock frequency.</figcaption>
+        </figure>
+        <p>This is the heart of <span class="key">static timing analysis</span> — checking every register-to-register path against the clock period — which you'll study systematically in Week 7.</p>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A register-to-register path has clock-to-Q of 0.1 ns, combinational logic delay of 1.5 ns, and setup time of 0.2 ns. Find (a) the minimum clock period and (b) the maximum clock frequency.</p>
+        <ol>
+            <li><strong>Sum the path delays:</strong> T<sub>clk</sub> ≥ t<sub>cq</sub> + t<sub>logic</sub> + t<sub>setup</sub> = 0.1 + 1.5 + 0.2 = <strong>1.8 ns</strong>.</li>
+            <li><strong>Minimum period:</strong> the clock can be no faster than 1.8 ns per cycle.</li>
+            <li><strong>Maximum frequency:</strong> f<sub>max</sub> = 1 / T<sub>clk</sub> = 1 / (1.8 × 10⁻⁹ s) ≈ <strong>556 MHz</strong>.</li>
+            <li><strong>Takeaway:</strong> shrink the logic delay (fewer levels, faster gates) to push the frequency higher.</li>
+        </ol>
+    </div>
+
+    <div class="box warn"><span class="lbl">Common mistakes</span>Three sequential-RTL traps: (1) use <strong>nonblocking</strong> <code>&lt;=</code> for clocked (sequential) logic — blocking <code>=</code> in a clocked block causes simulation race bugs. (2) Build large memories from <strong>SRAM macros, not flip-flop arrays</strong> — flops are far less dense and will blow your area budget. (3) The clock period must satisfy the <strong>slowest</strong> register-to-register path, not the average — one slow path limits the whole chip.</div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: write, simulate, and synthesize an FSM</h3>
+        <p>This is your <strong>Week-5 project checkpoint</strong>: your RTL should be written and simulated by the end of the week. Write a small FSM or counter in Verilog, simulate it with Icarus + GTKWave, then synthesize it with Yosys.</p>
+        <pre><span class="c">// 2-bit counter — Lecture 5 checkpoint (counter.v)</span>
+module counter(input clk, input rst, output reg [1:0] q);
+  always @(posedge clk)        <span class="c">// infers 2 flip-flops</span>
+    if (rst) q &lt;= 2'b00;       <span class="c">// synchronous reset</span>
+    else     q &lt;= q + 1'b1;    <span class="c">// nonblocking assignment</span>
+endmodule</pre>
+        <p>Simulate: compile with <code>iverilog -o counter.vvp counter.v tb.v</code>, run <code>vvp counter.vvp</code> (dump a VCD), then open the waveform in <code>gtkwave dump.vcd</code> and confirm <code>q</code> advances on each clock edge and resets to 0. Synthesize: <code>yosys -p "read_verilog counter.v; synth; stat"</code> and check the report shows 2 inferred flip-flops (DFFs).</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> An <code>always @(posedge clk)</code> block infers…</div>
+            <div class="opt"><b>A.</b> flip-flops (registers)</div>
+            <div class="opt"><b>B.</b> combinational gates</div>
+            <div class="opt"><b>C.</b> a multiplexer</div>
+            <div class="opt"><b>D.</b> nothing synthesizable</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> An edge-triggered clocked block infers flip-flops — the signals assigned inside it become register outputs that update on the clock edge.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A classic RTL finite state machine has…</div>
+            <div class="opt"><b>A.</b> only an adder</div>
+            <div class="opt"><b>B.</b> a state register, next-state logic, and output logic</div>
+            <div class="opt"><b>C.</b> a single wire</div>
+            <div class="opt"><b>D.</b> no clock</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The canonical FSM has three parts: a clocked state register, combinational next-state logic, and combinational output logic.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Large on-chip memory is best built from…</div>
+            <div class="opt"><b>A.</b> flip-flop arrays</div>
+            <div class="opt"><b>B.</b> DRAM on-chip</div>
+            <div class="opt"><b>C.</b> dedicated SRAM macros (denser than flip-flop arrays)</div>
+            <div class="opt"><b>D.</b> the register file only</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Compiled SRAM macros pack far more bits per unit area than flip-flops. Flop-based register files are only for small storage.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The clock period must be at least…</div>
+            <div class="opt"><b>A.</b> the average path delay</div>
+            <div class="opt"><b>B.</b> one gate delay</div>
+            <div class="opt"><b>C.</b> the reset time</div>
+            <div class="opt"><b>D.</b> the slowest register-to-register path delay plus setup</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> T_clk ≥ t_cq + t_logic + t_setup for the <em>worst</em> path. One slow path limits the whole chip's frequency.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> For clocked sequential logic you should use…</div>
+            <div class="opt"><b>A.</b> blocking (<code>=</code>) assignments</div>
+            <div class="opt"><b>B.</b> nonblocking (<code>&lt;=</code>) assignments</div>
+            <div class="opt"><b>C.</b> continuous <code>assign</code></div>
+            <div class="opt"><b>D.</b> no assignment</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Nonblocking <code>&lt;=</code> models the simultaneous edge update correctly. Blocking <code>=</code> in a clocked block causes simulation races.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>An <b>always @(posedge clk)</b> block infers flip-flops; a <b>reset</b> (sync or async) sets their initial state.</li>
+            <li>The RTL FSM = <b>state register</b> + <b>next-state logic</b> + <b>output logic</b>, with the state fed back.</li>
+            <li>On-chip storage: small → <b>register files (flops)</b>; large → dense <b>SRAM macros</b>, never flop arrays.</li>
+            <li>The clock is a constraint: <b>T_clk ≥ t_cq + t_logic + t_setup</b> on the <b>slowest</b> path (worked: 1.8 ns ⟹ ~556 MHz).</li>
+            <li>Used <b>nonblocking <code>&lt;=</code></b> for clocked logic, and ran the Icarus → GTKWave → Yosys flow.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: RTL Synthesis — how the synthesis tool turns this RTL into an optimized gate-level netlist.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l04-combinational-design.html"><div class="dir">← Lecture 4</div><div class="ttl">Combinational Logic Design</div></a>
+        <a href="l06-rtl-synthesis.html" class="next"><div class="dir">Lecture 6 →</div><div class="ttl">RTL Synthesis</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 VLSI</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

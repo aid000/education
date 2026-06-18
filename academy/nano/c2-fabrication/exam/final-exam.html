@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 · Final Exam — Semiconductor Fabrication</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C2 Fabrication</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C2 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week fabrication syllabus, from silicon to nanoscale devices.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Fundamentals/wafer <b>4</b></span>
+            <span class="wchip">Deposition <b>3</b></span>
+            <span class="wchip">Lithography <b>3</b></span>
+            <span class="wchip">Etching <b>2</b></span>
+            <span class="wchip">Doping <b>3</b></span>
+            <span class="wchip">Transistor <b>3</b></span>
+            <span class="wchip">Interconnect <b>3</b></span>
+            <span class="wchip">Test/yield <b>2</b></span>
+            <span class="wchip">Scaling <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ FUNDAMENTALS & WAFERS (Weeks 1–2) ============ -->
+    <div class="exam-sec">Fundamentals &amp; wafers · Weeks 1–2</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> Doping silicon with phosphorus (group V) produces…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> n-type material (donates electrons)</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> p-type material</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> an insulator</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> a metal</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A group-V donor adds a free electron → n-type.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>2.</span> Silicon's ~1.1 eV band gap means it behaves as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> a conductor</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> an insulator</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> a semiconductor whose conduction can be switched</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> a superconductor</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> A band gap of ~1.1 eV is too large for a metal yet small enough to switch conduction on and off — the defining trait of a semiconductor.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> Electronic-grade silicon is purified to about…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> 98%</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> 99.9%</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> 99.9999999% (9N)</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> 50%</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Electronic-grade silicon reaches "nine-nines" (9N) purity — better than one stray atom per billion.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>4.</span> A single-crystal silicon boule is grown by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> the Czochralski process</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> CVD</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> sputtering</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> dicing</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The Czochralski process pulls a rotating seed crystal from molten silicon to grow a single-crystal boule.</div>
+    </div>
+
+    <!-- ============ DEPOSITION & LITHOGRAPHY (Weeks 3–4) ============ -->
+    <div class="exam-sec">Deposition &amp; lithography · Weeks 3–4</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> Reacting silicon with oxygen to grow SiO₂ is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> thermal oxidation, which consumes some silicon</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> sputtering</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> ion implantation</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> etching</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Thermal oxidation grows SiO₂ by reacting oxygen with the wafer, consuming some of the underlying silicon.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>6.</span> CVD forms a film by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> chemical reactions of gases at the wafer surface</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> physically sputtering a target</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> melting a crystal</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> spinning on a liquid</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Chemical vapor deposition reacts precursor gases at the wafer surface to build up a solid film.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> Sputtering is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> a CVD method</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> a doping method</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> a PVD method, mainly used for metals</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> a lithography method</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Sputtering is a physical vapor deposition (PVD) technique that knocks atoms off a target, commonly to deposit metals.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>8.</span> In POSITIVE photoresist, the light-exposed regions…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> dissolve away during develop</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> harden permanently</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> turn into metal</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> are unaffected</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> In positive resist, exposure makes the illuminated regions soluble, so they wash away in develop.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>9.</span> The minimum printable feature size scales with…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> the wafer diameter</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> λ/NA (the Rayleigh criterion)</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> resist thickness only</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> temperature</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> By the Rayleigh criterion, resolution ∝ λ/NA — shorter wavelength and higher numerical aperture print smaller features.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>10.</span> EUV lithography uses a wavelength of about…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> 193 nm</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> 365 nm</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> 13.5 nm</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> 1 µm</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Extreme ultraviolet lithography operates at ~13.5 nm, far shorter than the 193 nm deep-UV it replaced.</div>
+    </div>
+
+    <!-- ============ ETCHING & DOPING (Weeks 5–6) ============ -->
+    <div class="exam-sec">Etching &amp; doping · Weeks 5–6</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>11.</span> Wet (liquid) etching is generally…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> anisotropic</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> isotropic, so it undercuts the mask</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> additive</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> perfectly vertical</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Liquid etchants attack in all directions (isotropic), so they undercut beneath the mask edge.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>12.</span> Vertical sidewalls on very small features require…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> wet etching</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> oxidation</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> anisotropic dry/RIE etching</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> CMP</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Directional (anisotropic) dry / reactive-ion etching cuts straight down, giving the vertical sidewalls small features need.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>13.</span> In ion implantation, the depth of the dopants is set mainly by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> the dose</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> the ion energy</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> the anneal time</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> the mask thickness</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Higher ion energy drives dopants deeper; dose sets the amount, energy sets the depth.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>14.</span> Immediately after an implant you must…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> dice the wafer</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> deposit metal</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> anneal to repair lattice damage and activate dopants</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> polish</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> A post-implant anneal heals the lattice damage from the bombardment and moves dopants onto active lattice sites.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>15.</span> Ion implantation is preferred over diffusion mainly for…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> lower equipment cost</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> precise control of dose and depth</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> needing no masking</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> higher temperature</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Implantation independently tunes dose (beam current) and depth (energy), giving far tighter control than thermal diffusion.</div>
+    </div>
+
+    <!-- ============ TRANSISTOR & INTERCONNECT (Weeks 7–8) ============ -->
+    <div class="exam-sec">Transistor &amp; interconnect · Weeks 7–8</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> The thin insulator under a MOSFET's gate is the…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> channel</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> substrate</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> source</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> gate oxide</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The gate oxide is the thin insulating layer that capacitively couples the gate to the channel below.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>17.</span> "Self-aligned" source/drain means…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> a robot aligns each wafer</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> the gate masks the channel so the source/drain align to it</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> the mask is reused</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> the wafer self-rotates</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The gate itself blocks the implant over the channel, so the source/drain regions automatically align to the gate edges.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>18.</span> CMOS logic requires…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> only n-MOS</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> only diodes</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> only resistors</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> both n-MOS and p-MOS (n-well and p-well)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Complementary MOS pairs n-MOS and p-MOS devices (in p-well and n-well), which is why it draws almost no static power.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>19.</span> Copper interconnect is formed by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> etching copper directly</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> the damascene process — fill a trench, then CMP</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> thermal oxidation</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> evaporation only</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Copper is hard to etch, so the damascene flow etches a trench in dielectric, fills it with copper, then planarizes by CMP.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>20.</span> Vertical connections between metal layers are called…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> vias</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> pads</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> wells</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> gates</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Vias are the metal-filled vertical plugs that connect one interconnect layer to the next.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>21.</span> Low-k dielectrics are used to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> raise wire resistance</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> speed up etching</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> increase the supply voltage</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> reduce interconnect capacitance and RC delay</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A lower dielectric constant between wires cuts the line-to-line capacitance, reducing RC delay and crosstalk.</div>
+    </div>
+
+    <!-- ============ TEST, YIELD & SCALING (Weeks 9–10) ============ -->
+    <div class="exam-sec">Test, yield &amp; scaling · Weeks 9–10</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>22.</span> Yield is defined as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> the wafer diameter</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> the clock speed</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> the number of metal layers</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> good dies ÷ total dies</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Yield is the fraction of working dies — good dies divided by total dies on the wafer.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>23.</span> Yield dominates chip cost because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> silicon is expensive</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> packaging is free</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> testing adds no cost</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> wafer processing cost is roughly fixed, so cost per good die ∝ 1/yield</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> You pay to process the whole wafer regardless, so the cost per working die scales as 1/yield.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> Short-channel effects cause…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> free extra speed</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> better gate oxide</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> more metal layers</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> loss of gate control over the channel (leakage)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> As channels shrink, the source/drain fields encroach and the gate loses control, raising off-state leakage.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>25.</span> A FinFET improves on the planar MOSFET by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> removing the gate</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> using copper gates</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> adding more dopant only</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> wrapping the gate around the channel on multiple sides</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The FinFET's gate wraps the thin fin on three sides, restoring electrostatic control and curbing short-channel leakage.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C2 Syllabus</div></a>
+        <a href="../lectures/l01-semiconductor-fundamentals.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Fabrication</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

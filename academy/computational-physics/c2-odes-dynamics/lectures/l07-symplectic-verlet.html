@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C2 · Lecture 7 — Symplectic Integrators: Verlet &amp; Leapfrog</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C2 ODEs &amp; Dynamics</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Symplectic Integrators: Verlet &amp; Leapfrog</h1>
+        <p class="sub">RK4 is more accurate per step — yet a planet integrated with it slowly spirals into the sun, while a humble two-line update keeps the orbit closed for a billion years. This is the secret of symplectic integration.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why even RK4 — accurate per step — secularly drifts in energy for conservative (Hamiltonian) systems.</li>
+            <li>Derive the velocity-Verlet and leapfrog updates from a Taylor expansion and a symmetric kick–drift structure.</li>
+            <li>State what "symplectic" means: exact preservation of phase-space volume, and conservation of a nearby <em>shadow</em> Hamiltonian.</li>
+            <li>Explain why symplectic methods keep energy <strong>bounded and oscillating</strong> over arbitrarily long runs rather than drifting.</li>
+            <li>Implement velocity-Verlet in NumPy and compare its long-term energy behavior against RK4 on a Kepler orbit.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>Why Accurate-Per-Step Is Not Enough</h2>
+        <p>A <strong>conservative</strong> mechanical system — a planet, a pendulum, a molecule with no friction — is governed by a <strong>Hamiltonian</strong> H(q, p), the total energy as a function of position q and momentum p. Hamilton's equations move a point through phase space:</p>
+        <div class="eq">dq/dt = ∂H/∂p,&nbsp;&nbsp; dp/dt = −∂H/∂q<small>The flow exactly conserves H: energy is constant, and orbits are closed curves of constant H.</small></div>
+        <p>Now hand this to RK4. Lecture-by-lecture you learned RK4 has a tiny local error of order h<sup>5</sup>, so its solution tracks the true trajectory beautifully over a few periods. But RK4 was never designed to respect the <em>geometry</em> of Hamiltonian flow. Its energy error does not stay bounded — it accumulates a small <strong>systematic bias each orbit</strong>, so the total energy <em>drifts monotonically</em>. Over millions of periods the modeled planet either spirals inward or flings outward, even though every single step looked superbly accurate.</p>
+        <p>The lesson of this week: for long-time integration of conservative systems, what matters is not per-step accuracy but whether the integrator preserves the underlying structure. A method that conserves that structure exactly — to machine precision, forever — is called <strong>symplectic</strong>.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>RK4 is a sprinter: blazing speed over a short distance, but it slowly veers off the track. A symplectic integrator is a marathon runner who stays a fixed distance from the centerline lap after lap. Per lap the sprinter is closer to perfect; over ten thousand laps the marathoner is the only one still on the track.</div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>The Verlet and Leapfrog Updates</h2>
+        <p>Consider a particle with H = p²/(2m) + V(q), so the force is a(q) = −V′(q)/m. The <strong>velocity-Verlet</strong> scheme advances position and velocity together using the acceleration at the start and end of the step:</p>
+        <div class="eq">x<sub>n+1</sub> = x<sub>n</sub> + v<sub>n</sub> h + ½ a<sub>n</sub> h²<br>v<sub>n+1</sub> = v<sub>n</sub> + ½ (a<sub>n</sub> + a<sub>n+1</sub>) h<small>One force evaluation per step (reuse a_{n+1} as next step's a_n). Second-order accurate, error per step ~ h³.</small></div>
+        <p>The mathematically identical <strong>leapfrog</strong> form stores the velocity at the half-steps, so positions and velocities "leap" over one another:</p>
+        <div class="eq">v<sub>n+1/2</sub> = v<sub>n</sub> + ½ a<sub>n</sub> h<br>x<sub>n+1</sub> = x<sub>n</sub> + v<sub>n+1/2</sub> h<br>v<sub>n+1</sub> = v<sub>n+1/2</sub> + ½ a<sub>n+1</sub> h<small>"Kick–drift–kick." Algebraically equal to velocity-Verlet; the half-step velocities reveal the symmetry.</small></div>
+        <p>The crucial structural property is that each line is a <strong>shear map</strong> in phase space: a "drift" updates x using fixed v, a "kick" updates v using fixed x. Each shear is area-preserving, and a composition of area-preserving maps is area-preserving — that is exactly the symplectic condition. RK4, by contrast, mixes the stages in a way that does not preserve area.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 180" role="img" aria-label="Kick-drift-kick leapfrog schedule: velocity updated at half steps, position at integer steps, leaping over one another along a time axis">
+                <line x1="30" y1="120" x2="400" y2="120" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="380" y="140" fill="#a3a8c8" font-size="11">time</text>
+                <!-- integer time ticks for positions -->
+                <circle cx="60" cy="120" r="5" fill="#818cf8"/>
+                <circle cx="200" cy="120" r="5" fill="#818cf8"/>
+                <circle cx="340" cy="120" r="5" fill="#818cf8"/>
+                <text x="60" y="140" fill="#a5b4fc" font-size="11" text-anchor="middle">x_n</text>
+                <text x="200" y="140" fill="#a5b4fc" font-size="11" text-anchor="middle">x_n+1</text>
+                <text x="340" y="140" fill="#a5b4fc" font-size="11" text-anchor="middle">x_n+2</text>
+                <!-- half-step velocities above the line -->
+                <circle cx="130" cy="60" r="5" fill="#34d399"/>
+                <circle cx="270" cy="60" r="5" fill="#34d399"/>
+                <text x="130" y="48" fill="#34d399" font-size="11" text-anchor="middle">v_n+1/2</text>
+                <text x="270" y="48" fill="#34d399" font-size="11" text-anchor="middle">v_n+3/2</text>
+                <!-- leap arcs connecting v over x -->
+                <path d="M130,60 Q165,95 200,120" fill="none" stroke="#fbbf24" stroke-width="1.6"/>
+                <path d="M200,120 Q235,95 270,60" fill="none" stroke="#fbbf24" stroke-width="1.6"/>
+                <path d="M60,120 Q95,95 130,60" fill="none" stroke="#60a5fa" stroke-width="1.6"/>
+                <path d="M270,60 Q305,95 340,120" fill="none" stroke="#60a5fa" stroke-width="1.6"/>
+                <text x="210" y="30" fill="#a3a8c8" font-size="10" text-anchor="middle">velocities leap over positions (half-step offset)</text>
+            </svg>
+            <figcaption>Leapfrog schedule: velocities (green) live at half-integer times and "leap" over positions (indigo) at integer times. Each arc is one kick or drift; the staggered, time-symmetric structure is what makes the scheme symplectic.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Phase-Space Volume and the Shadow Hamiltonian</h2>
+        <p><strong>Liouville's theorem</strong> says the true Hamiltonian flow preserves phase-space volume: a blob of initial conditions can stretch and fold but never changes its area. A symplectic integrator reproduces this <em>exactly</em>, step by step, because each kick and drift is a shear with unit Jacobian determinant.</p>
+        <div class="eq">det(∂(x<sub>n+1</sub>, v<sub>n+1</sub>) / ∂(x<sub>n</sub>, v<sub>n</sub>)) = 1<small>Symplectic map: the phase-space area element is preserved to machine precision, for every step.</small></div>
+        <p>The deep payoff comes from <strong>backward error analysis</strong>. A symplectic method does not solve the original Hamiltonian H exactly — but it <em>does</em> solve a nearby <strong>shadow (modified) Hamiltonian</strong> H̃ = H + h² H₂ + h⁴ H₄ + … almost exactly, for exponentially long times. Because the method conserves H̃, and H̃ differs from H by only O(h²), the true energy H cannot wander: it merely <em>oscillates</em> within a band of width O(h²) set by the shadow.</p>
+        <div class="eq">|H(t) − H(0)| ≤ C·h²&nbsp; for all t (no secular drift)<small>Energy is bounded forever. Compare RK4: error grows roughly linearly with t (and the orbit slowly decays or expands).</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 420 240" role="img" aria-label="Energy error versus time: RK4 drifts linearly upward while velocity-Verlet stays in a bounded oscillating band near zero">
+                <line x1="55" y1="200" x2="400" y2="200" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="55" y1="30" x2="55" y2="200" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="370" y="220" fill="#a3a8c8" font-size="11">time</text>
+                <text x="58" y="24" fill="#a3a8c8" font-size="11">energy error</text>
+                <!-- zero line -->
+                <line x1="55" y1="150" x2="400" y2="150" stroke="#2a3052" stroke-width="1" stroke-dasharray="4 4"/>
+                <text x="30" y="154" fill="#a3a8c8" font-size="10" text-anchor="middle">0</text>
+                <!-- RK4 drifting line -->
+                <path d="M55,150 L400,55" fill="none" stroke="#fbbf24" stroke-width="2.4"/>
+                <text x="320" y="72" fill="#fbbf24" font-size="11">RK4: drifts ~ t</text>
+                <!-- Verlet bounded oscillation around zero -->
+                <path d="M55,150 Q75,138 95,150 T135,150 T175,150 T215,150 T255,150 T295,150 T335,150 T375,150 T400,150" fill="none" stroke="#34d399" stroke-width="2.4"/>
+                <text x="250" y="186" fill="#34d399" font-size="11">Verlet: bounded, O(h^2) band</text>
+            </svg>
+            <figcaption>Long-run energy error. RK4 (amber) accumulates a systematic drift that grows with time, so the orbit decays. Velocity-Verlet (green) holds the energy in a fixed oscillating band of width O(h²) — bounded for arbitrarily long runs.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>The Trade-off: Fixed Step, Superb Long-Term Stability</h2>
+        <p>Symplectic integrators are not free lunch — they come with constraints you must respect:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Fixed step size.</strong> The bounded-energy guarantee relies on the map being the <em>same</em> symplectic map every step. Naive adaptive step control breaks the symplectic structure and reintroduces drift — so most symplectic codes run at a constant h (or use special time-symmetric / regularized step schemes).</li>
+            <li><strong>Only second-order accurate (Verlet/leapfrog).</strong> Per step it is less accurate than RK4. For a few periods RK4 wins on raw accuracy; the symplectic method wins decisively only over many periods, where bounded energy beats shrinking-but-drifting error.</li>
+            <li><strong>Separable / conservative form.</strong> The clean kick–drift split needs H = T(p) + V(q). Velocity-dependent forces (magnetic, drag) require modified schemes.</li>
+        </ul>
+        <p>This is why molecular dynamics, planetary ephemerides, particle accelerators, and galaxy simulations almost universally use Verlet/leapfrog: they integrate the <em>same</em> system for billions of steps, and only bounded energy makes the long-time statistics (temperature, orbital resonances, phase-space distributions) physically trustworthy.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Bolting standard <em>adaptive step-size control</em> onto Verlet to "get more accuracy." Changing h every step destroys the constant-map property that guarantees bounded energy — you lose the very thing that made the method worth using, and the secular drift comes right back. If you need adaptivity, use a purpose-built symmetric/reversible step controller, not a generic error-tolerance one.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — one velocity-Verlet step on a harmonic oscillator</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Take a unit spring: m = 1, k = 1, so a(x) = −x and H = ½(v² + x²). Start at x₀ = 1, v₀ = 0 (energy H₀ = 0.5). Take one Verlet step with h = 0.1 and check the energy.</p>
+        <ol>
+            <li><strong>Initial acceleration:</strong> a₀ = −x₀ = −1.</li>
+            <li><strong>Position update:</strong> x₁ = x₀ + v₀ h + ½ a₀ h² = 1 + 0 + ½(−1)(0.01) = <strong>0.995</strong>.</li>
+            <li><strong>New acceleration:</strong> a₁ = −x₁ = −0.995.</li>
+            <li><strong>Velocity update:</strong> v₁ = v₀ + ½(a₀ + a₁)h = 0 + ½(−1 − 0.995)(0.1) = <strong>−0.09975</strong>.</li>
+            <li><strong>Energy check:</strong> H₁ = ½(v₁² + x₁²) = ½(0.009950 + 0.990025) = <strong>0.4999875</strong>. The error is about −1.25×10⁻⁵ — tiny, and crucially it will <em>oscillate</em> around 0.5 forever rather than drift. (One RK4 step would be closer this instant, but its error grows secularly over many periods.)</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: Verlet vs RK4 on a Kepler orbit</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Uses the free Python + NumPy / SciPy / Matplotlib stack from the <strong>Week 1–2 setup</strong> (the one-time install <code>details</code> lives in the early lectures — reuse that environment here). No new tools needed: we hand-code Verlet and compare it to SciPy's RK4 via <code>solve_ivp</code>.</p>
+        <p style="font-size:.9rem; color:var(--text2);">Integrate a 2-D Kepler orbit (inverse-square gravity, GM = 1) for many periods and plot the energy over time. Watch RK4 drift while Verlet stays flat.</p>
+        <pre><span class="c"># verlet_vs_rk4.py — Lecture 7</span>
+import numpy as np
+from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+
+GM = 1.0
+def accel(r):                       <span class="c"># inverse-square gravity</span>
+    d = np.linalg.norm(r)
+    return -GM * r / d**3
+
+def energy(r, v):
+    return 0.5*np.dot(v, v) - GM/np.linalg.norm(r)
+
+<span class="c"># mildly eccentric orbit: r=1, v slightly below circular</span>
+r0 = np.array([1.0, 0.0]); v0 = np.array([0.0, 0.9])
+h, n_steps = 0.01, 200_000          <span class="c"># ~ many orbital periods</span>
+
+<span class="c"># --- velocity-Verlet (symplectic) ---</span>
+r, v, a = r0.copy(), v0.copy(), accel(r0)
+E_verlet = []
+for _ in range(n_steps):
+    r = r + v*h + 0.5*a*h**2        <span class="c"># drift</span>
+    a_new = accel(r)
+    v = v + 0.5*(a + a_new)*h        <span class="c"># kick</span>
+    a = a_new
+    E_verlet.append(energy(r, v))
+
+<span class="c"># --- RK4 via solve_ivp for the same span ---</span>
+def rhs(t, y):
+    r_, v_ = y[:2], y[2:]
+    return np.concatenate([v_, accel(r_)])
+sol = solve_ivp(rhs, [0, h*n_steps], np.concatenate([r0, v0]),
+                method="RK45", rtol=1e-9, atol=1e-12, dense_output=True)
+ts = np.linspace(0, h*n_steps, n_steps)
+ys = sol.sol(ts)
+E_rk = [energy(ys[:2, i], ys[2:, i]) for i in range(n_steps)]
+
+plt.plot(ts, np.array(E_rk)  - E_rk[0],     label="RK4 (drifts)")
+plt.plot(ts, np.array(E_verlet) - E_verlet[0], label="Verlet (bounded)")
+plt.xlabel("time"); plt.ylabel("energy error"); plt.legend(); plt.show()
+<span class="c"># Verlet: a flat oscillating band ~h^2.  RK4: a slow systematic drift.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Now <em>halve</em> h to 0.005 and rerun. The Verlet energy band should shrink by about 4× (it is O(h²)), while its qualitative shape — bounded oscillation, no drift — is unchanged. Then plot the (x, y) trajectory: Verlet's ellipse stays closed; RK4's slowly spirals.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Next week (Week 8) we put leapfrog to work on the <strong>N-body problem</strong>: many gravitating bodies whose orbits must stay stable over astronomical timescales — exactly the job symplectic integration was built for. The same kick–drift–kick engine drives molecular dynamics in Course 4's PDE/particle methods and the Hamiltonian Monte-Carlo samplers you'll meet in Course 5 (where leapfrog proposes states that conserve a shadow energy, giving high acceptance rates). In the Quantum track, the symmetric "Strang splitting" you'll use for the split-step Schrödinger solver is the same kick–drift idea applied to operators. Master the geometry once and it reappears everywhere a system must be evolved faithfully for a very long time.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why does RK4 perform poorly for very long integrations of a conservative orbit, despite its small per-step error?</div>
+            <div class="opt"><b>A.</b> Its local error is actually larger than Verlet's</div>
+            <div class="opt"><b>B.</b> It is not symplectic, so energy accumulates a systematic drift over many periods</div>
+            <div class="opt"><b>C.</b> It cannot handle inverse-square forces</div>
+            <div class="opt"><b>D.</b> It requires complex arithmetic</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> RK4 has excellent local accuracy but does not preserve phase-space structure, so energy drifts secularly. (A) is false — RK4's per-step error is much smaller (~h⁵). (C) and (D) are irrelevant; RK4 handles such forces fine and uses real arithmetic.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The velocity-Verlet / leapfrog scheme is built from "kick" and "drift" sub-steps. Geometrically, each sub-step is…</div>
+            <div class="opt"><b>A.</b> a rotation that changes phase-space area</div>
+            <div class="opt"><b>B.</b> a random perturbation</div>
+            <div class="opt"><b>C.</b> a shear map with unit Jacobian, so it preserves phase-space area</div>
+            <div class="opt"><b>D.</b> a projection that discards a coordinate</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A drift updates x at fixed v and a kick updates v at fixed x; each is a shear with determinant 1, so the composition preserves area (symplectic). (A) is wrong because shears, not rotations, are used and area is preserved. (B) and (D) are not what the deterministic update does.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Backward error analysis shows a symplectic integrator <em>exactly</em> (for very long times) conserves…</div>
+            <div class="opt"><b>A.</b> a nearby "shadow" Hamiltonian H̃ = H + O(h²), which keeps the true energy bounded</div>
+            <div class="opt"><b>B.</b> the exact original Hamiltonian H with zero error</div>
+            <div class="opt"><b>C.</b> the total angular momentum but never the energy</div>
+            <div class="opt"><b>D.</b> nothing — it just happens to drift slowly</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> It nearly conserves a modified Hamiltonian H̃ differing from H by O(h²); since H̃ is conserved, the true H stays within an O(h²) band. (B) is false — there is a small O(h²) offset. (C) misstates it (energy is what's bounded). (D) contradicts the bounded-energy result.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A student adds standard adaptive step-size control to a leapfrog integrator to boost accuracy. The most likely consequence is…</div>
+            <div class="opt"><b>A.</b> energy is conserved even better</div>
+            <div class="opt"><b>B.</b> the integrator becomes fourth-order automatically</div>
+            <div class="opt"><b>C.</b> the symplectic structure is broken and secular energy drift returns</div>
+            <div class="opt"><b>D.</b> the orbit reverses direction</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The bounded-energy guarantee relies on applying the <em>same</em> symplectic map each step; changing h every step destroys that and the drift returns. (A) is the opposite of what happens. (B) order is unrelated to step control. (D) is nonsense.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Velocity-Verlet is a second-order method. If you halve the step size h, the width of its long-term energy-error band changes by roughly a factor of…</div>
+            <div class="opt"><b>A.</b> 2 (it halves)</div>
+            <div class="opt"><b>B.</b> unchanged</div>
+            <div class="opt"><b>C.</b> 16</div>
+            <div class="opt"><b>D.</b> 4 (it shrinks by ~4×)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The energy band is O(h²), so halving h shrinks it by 2² = 4. (A) would be a first-order method; (C) would be fourth-order; (B) is wrong because the band does depend on h.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Even <b>RK4</b> drifts in energy for conservative systems because it ignores the <b>symplectic geometry</b> of Hamiltonian flow.</li>
+            <li>The <b>velocity-Verlet</b> and <b>leapfrog</b> updates — algebraically identical — advance state via symmetric <b>kick–drift</b> shears.</li>
+            <li>Each shear has unit Jacobian, so the method preserves <b>phase-space volume</b> exactly (Liouville's theorem), step after step.</li>
+            <li>It conserves a nearby <b>shadow Hamiltonian</b>, keeping the true energy <b>bounded in an O(h²) band</b> with no secular drift.</li>
+            <li>The trade-off: <b>fixed step</b> and only second-order per step, bought for <b>superb long-term orbit stability</b> — verified in NumPy vs RK4.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: N-Body Dynamics &amp; Orbits — turning leapfrog loose on many gravitating bodies and watching real orbital mechanics emerge.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-stiff-implicit.html"><div class="dir">← Week 6</div><div class="ttl">Stiff Equations &amp; Implicit Methods</div></a>
+        <a class="next" href="l08-nbody-orbits.html"><div class="dir">Week 8 →</div><div class="ttl">N-Body Dynamics &amp; Orbits</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 ODEs &amp; Dynamics</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C5 · Lecture 1 — Measuring Risk: Volatility &amp; the Loss Distribution</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C5 Risk &amp; MM</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>Measuring Risk: Volatility &amp; the Loss Distribution</h1>
+        <p class="sub">Before you can manage risk you have to name it — and the whole discipline begins with one object: the distribution of how much you could lose.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define financial risk as uncertainty about future profit-and-loss, and place the <em>loss distribution</em> at the center of risk measurement.</li>
+            <li>Use volatility (the standard deviation of returns) as a risk measure, and scale it across horizons with the square-root-of-time rule.</li>
+            <li>Explain three limitations of volatility: it is symmetric, it assumes finite variance, and it says nothing about the shape of the tail.</li>
+            <li>Distinguish total risk from <em>downside</em> risk, and read a quantile of the loss distribution as a tail probability.</li>
+            <li>Estimate volatility and a loss quantile from real return data in NumPy/SciPy — the building blocks of VaR and expected shortfall.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>What Is Financial Risk?</h2>
+        <p>Everyday speech treats "risk" as the chance of something bad. In finance we sharpen this into something measurable: <strong>risk is uncertainty about future profit and loss (P&amp;L)</strong>. If you hold a position whose value tomorrow is unknown, the amount you might gain or lose is a <em>random variable</em>. Risk management is the discipline of describing that random variable, putting numbers on its bad outcomes, and deciding whether you can live with them.</p>
+        <p>Concretely, take a position worth <span class="key">V<sub>0</sub></span> today. Tomorrow it will be worth <span class="key">V<sub>1</sub></span>, which is random. The <strong>loss</strong> over the period is defined as the negative of the change in value:</p>
+        <div class="eq">L = −(V<sub>1</sub> − V<sub>0</sub>) = V<sub>0</sub> − V<sub>1</sub><small>A positive L is money lost; a negative L is a gain. Risk managers flip the sign on purpose so that "large" always means "bad."</small></div>
+        <p>Notice the sign convention: we work with <em>losses</em>, not profits, so that the dangerous outcomes sit in the <strong>right tail</strong> where they are easy to talk about. Every number in this course — volatility, Value at Risk, expected shortfall — is ultimately a summary statistic of the distribution of L. Get that distribution right and the rest is arithmetic; get it wrong and no formula will save you.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a weather forecaster. Saying "it might rain" is useless to a city planning flood defenses. What they need is the full <strong>distribution</strong> of possible rainfall — the median, and crucially the once-in-a-century deluge. The loss distribution is the risk manager's rainfall forecast: the median loss is unremarkable, but the design of the levees is decided entirely by the tail.</div>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>The Loss Distribution &amp; Returns</h2>
+        <p>Because positions come in wildly different sizes, we usually work with <strong>returns</strong> rather than dollar losses. The simple return over a period is the fractional change in value:</p>
+        <div class="eq">R = (V<sub>1</sub> − V<sub>0</sub>) / V<sub>0</sub><small>So the dollar loss is L = −V<sub>0</sub>·R. A −2% return on a $10M book is a $200,000 loss.</small></div>
+        <p>The <strong>loss distribution</strong> is simply the probability distribution of L (equivalently, of −R scaled by V<sub>0</sub>). It is the central object of risk management. Once you have it — whether from a fitted model, from historical data, or from a Monte-Carlo simulation — every risk number is just a question you ask of it: <em>What is the average loss? How wide is the spread? How bad is the worst 1% of days?</em></p>
+        <p>A first, crude summary uses just two numbers from Course 1: the <strong>mean</strong> μ and the <strong>standard deviation</strong> σ of returns. Over a single day the mean is usually tiny and dominated by noise, so risk work focuses overwhelmingly on the spread. That spread, σ, is what markets call <strong>volatility</strong>.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 220" role="img" aria-label="A loss distribution: a bell-shaped density of losses centered slightly left of zero, with the right tail beyond a quantile shaded to represent extreme losses">
+                <!-- axis -->
+                <line x1="30" y1="170" x2="380" y2="170" stroke="#bcae8c" stroke-width="1.5"/>
+                <text x="350" y="190" fill="#bcae8c" font-size="11" text-anchor="middle">loss L →</text>
+                <text x="20" y="40" fill="#bcae8c" font-size="11">density</text>
+                <!-- zero / mean marker -->
+                <line x1="150" y1="170" x2="150" y2="60" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="150" y="186" fill="#6ee7b7" font-size="10" text-anchor="middle">mean loss</text>
+                <!-- shaded tail region under the curve, right of the quantile x=300 -->
+                <path d="M300,170 L300,150 C312,148 326,166 340,168 C352,169 366,170 372,170 Z" fill="rgba(245,158,11,.30)" stroke="none"/>
+                <!-- the density curve -->
+                <path d="M40,169 C90,167 120,160 150,70 C168,62 175,60 178,60 C200,62 230,150 300,150 C330,165 352,169 372,169"
+                      fill="rgba(251,191,36,.10)" stroke="#fbbf24" stroke-width="2.5"/>
+                <!-- quantile line -->
+                <line x1="300" y1="170" x2="300" y2="110" stroke="#f59e0b" stroke-width="1.5"/>
+                <text x="300" y="104" fill="#f59e0b" font-size="10" text-anchor="middle">q (quantile)</text>
+                <text x="338" y="140" fill="#f59e0b" font-size="9.5" text-anchor="middle">tail prob</text>
+            </svg>
+            <figcaption>The loss distribution. Most days cluster near a small mean loss; the shaded right tail beyond a quantile q holds the rare, large losses. Volatility measures the overall width; the tail beyond q is what VaR and expected shortfall will pin down.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>Volatility &amp; the Square-Root-of-Time Rule</h2>
+        <p><strong>Volatility</strong> is the standard deviation of returns — the single most quoted risk number in markets. A daily volatility of 1% means a typical day's move is about ±1%; a volatility of 4% signals a far more dangerous instrument even if both have the same average return.</p>
+        <div class="eq">σ = √Var(R) = √( E[(R − μ)²] )<small>The same σ from Course 1, now interpreted as risk. Bigger σ ⇒ a wider loss distribution ⇒ more risk.</small></div>
+        <p>Volatility is almost always quoted on an <em>annual</em> basis, but estimated from daily data. To convert between horizons we use the <strong>square-root-of-time rule</strong>. If daily returns are independent with the same variance, variances add over days, so the standard deviation scales with the square root of the number of periods:</p>
+        <div class="eq">σ<sub>T</sub> = σ<sub>1</sub> · √T<small>With ~252 trading days a year, σ<sub>annual</sub> = σ<sub>daily</sub> · √252 ≈ 15.9 · σ<sub>daily</sub>.</small></div>
+        <p>This is the same √n / √t scaling that ran through Course 1's Central Limit Theorem and will return in the Brownian-motion models of the option courses. It is why a 1% daily volatility corresponds to roughly 16% annual volatility — a number you should be able to produce instantly.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Volatility scales with √T, <strong>not</strong> with T. A common error is to multiply daily volatility by the number of days (e.g. 1% × 252 = 252%) to "annualize" it. That confuses standard deviation with variance: it is <em>variance</em> that adds linearly in time, so the standard deviation grows only as √T. And the rule itself leans on independence — in trending or autocorrelated markets it under- or over-states the true multi-day risk.</div>
+    </section>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>Beyond Volatility: Downside Risk &amp; Quantiles</h2>
+        <p>Volatility is indispensable but blunt. It has three limitations every risk manager must internalize.</p>
+        <p><strong>1. It is symmetric.</strong> Variance squares deviations on both sides of the mean, so a 5% gain and a 5% loss contribute equally. But investors do not fear gains. A strategy that grinds out small profits then occasionally blows up can have modest volatility yet ruinous risk.</p>
+        <p><strong>2. It assumes the spread is meaningful.</strong> Volatility is only a complete description of risk when returns are (close to) normal. Real returns have <strong>fat tails</strong>: extreme moves happen far more often than a normal distribution predicts, and for some heavy-tailed models the variance is barely finite. The same σ can sit atop very different tails.</p>
+        <p><strong>3. It says nothing about a specific bad outcome.</strong> A trading desk needs to answer "how much could we lose on a bad day, and how often?" — a statement about a <em>point in the tail</em>, which σ alone cannot give.</p>
+        <p>The fix is to read the loss distribution directly through its <strong>quantiles</strong>. The α-quantile q<sub>α</sub> of the loss L is the level such that the probability of losing more than q<sub>α</sub> equals 1 − α:</p>
+        <div class="eq">P(L ≤ q<sub>α</sub>) = α,&nbsp;&nbsp; equivalently&nbsp;&nbsp; P(L &gt; q<sub>α</sub>) = 1 − α<small>Example: the 99% quantile q<sub>0.99</sub> is the loss exceeded on only 1% of days. This is exactly the Value-at-Risk of next week.</small></div>
+        <p><strong>Downside risk</strong> measures focus only on the unfavorable side. The simplest is <em>semi-deviation</em> — like volatility, but averaging only the squared shortfalls below the mean — and quantile-based measures take this further by reading a precise tail probability. These are the building blocks: a single quantile of L is <strong>Value at Risk</strong>, and the average loss <em>beyond</em> that quantile is <strong>expected shortfall</strong>, the two pillars of the rest of this course.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Volatility is a car's average speed; the quantile is the reading on the speedometer at the scariest moment of the trip. Two drivers can average the same speed, but one crawls steadily while the other alternates idling and 120-mph bursts. The tail quantile — not the average — is what tells you which car is about to crash.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — volatility and a Gaussian loss quantile</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A desk holds a $20,000,000 position. Daily returns have mean ≈ 0 and a daily volatility of 1.5%. Assuming returns are approximately normal, find (a) the annualized volatility, (b) the 99% loss quantile in dollars over one day.</p>
+        <ol>
+            <li><strong>Annualize the volatility:</strong> σ<sub>annual</sub> = σ<sub>daily</sub>·√252 = 0.015 × 15.87 ≈ <strong>0.238</strong>, i.e. about <strong>23.8%</strong> per year. (Multiplying by 252 instead would give a nonsensical 378%.)</li>
+            <li><strong>Find the return quantile:</strong> for a standard normal, the 99% point is z<sub>0.99</sub> ≈ 2.326. With mean 0, the 1%-worst daily return is −2.326 × 1.5% = <strong>−3.49%</strong>.</li>
+            <li><strong>Convert the return to a loss:</strong> L = −V<sub>0</sub>·R, so the loss quantile is q<sub>0.99</sub> = 0.0349 × $20,000,000 ≈ <strong>$698,000</strong>.</li>
+            <li><strong>Interpret it:</strong> on roughly 1 trading day in 100, this book is expected to lose <em>more</em> than about $698k. That single number is precisely the 1-day 99% Value at Risk we formalize next week.</li>
+            <li><strong>Reality check:</strong> because real returns are fat-tailed, the true 1% loss is usually <em>worse</em> than the normal estimate — a caveat that motivates expected shortfall and the heavy-tailed models later in the course.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: estimate volatility and a loss quantile</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free stack for this course is <strong>NumPy, SciPy, CVXPY, Matplotlib, and pandas</strong> — all pip-installable. <strong>Set it up once now</strong> (block below) and reuse it for every lecture and the course project. Here we simulate a year of daily returns, then estimate volatility and the empirical 99% loss quantile.</p>
+        <details class="install" open>
+            <summary>⬇ Install the C5 stack (one-time, Week 1 setup)</summary>
+            <p><strong>Get Python 3</strong> from <code>python.org</code> or your package manager, then create an isolated environment and install the stack:</p>
+            <pre>python3 -m venv risk-env
+<span class="c"># activate it:</span>
+source risk-env/bin/activate       <span class="c"># macOS / Linux</span>
+risk-env\Scripts\activate          <span class="c"># Windows (PowerShell)</span>
+pip install numpy scipy cvxpy matplotlib pandas jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import numpy, scipy, cvxpy, pandas; print('ok')"</code> — printing <code>ok</code> means you're set. Launch notebooks anytime with <code>jupyter lab</code>.</p>
+        </details>
+        <pre><span class="c"># measuring_risk.py — Lecture 1</span>
+import numpy as np
+from scipy import stats
+
+rng = np.random.default_rng(5)
+V0   = 20_000_000.0          <span class="c"># position value in dollars</span>
+mu_d = 0.0                   <span class="c"># daily mean return</span>
+sig_d = 0.015                <span class="c"># daily volatility (1.5%)</span>
+
+<span class="c"># one year (252 trading days) of simulated daily returns</span>
+R = rng.normal(mu_d, sig_d, size=252)
+L = -V0 * R                  <span class="c"># dollar loss series (sign flipped)</span>
+
+<span class="c"># 1) volatility, annualized via square-root-of-time</span>
+vol_d = R.std(ddof=1)
+print("daily vol     :", round(vol_d, 5))           <span class="c"># ~0.015</span>
+print("annual vol    :", round(vol_d * np.sqrt(252), 4))  <span class="c"># ~0.238</span>
+
+<span class="c"># 2) empirical 99% loss quantile (the worst 1% of days)</span>
+q99_emp = np.quantile(L, 0.99)
+print("empirical q99 :", round(q99_emp))            <span class="c"># ~ $700k, noisy at n=252</span>
+
+<span class="c"># 3) Gaussian (parametric) quantile for comparison</span>
+z = stats.norm.ppf(0.99)                             <span class="c"># 2.326</span>
+q99_gauss = z * sig_d * V0
+print("gaussian q99  :", round(q99_gauss))           <span class="c"># ~ $698k</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The empirical and Gaussian quantiles roughly agree here <em>because we drew from a normal</em>. Re-run after replacing the draw with a fat-tailed Student-t (<code>R = sig_d * rng.standard_t(3, size=252) / np.sqrt(3)</code>): the empirical 99% loss now jumps well above the Gaussian estimate — your first direct look at why thin-tailed assumptions under-state real risk.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>This lecture built the loss distribution and the two summaries — volatility and a tail quantile — that the rest of the course turns into machinery. <strong>Week 2</strong> names that quantile <strong>Value at Risk (VaR)</strong> and shows how to estimate it parametrically, historically, and by Monte Carlo. The follow-on weeks add <strong>expected shortfall</strong> (the average loss beyond VaR, which fixes VaR's blind spot in the tail), <strong>volatility forecasting</strong> with EWMA and GARCH, and <strong>portfolio risk</strong> via the covariance matrix. The fat-tail caveat you met here motivates the heavy-tailed and extreme-value models in the back half — and the same loss-distribution thinking reappears when you price options in Course 3 and size positions à la Kelly.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In risk management the <em>loss</em> over a period is conventionally defined as…</div>
+            <div class="opt"><b>A.</b> the change in value, V<sub>1</sub> − V<sub>0</sub></div>
+            <div class="opt"><b>B.</b> the negative of the change in value, V<sub>0</sub> − V<sub>1</sub></div>
+            <div class="opt"><b>C.</b> the absolute value of the return</div>
+            <div class="opt"><b>D.</b> the variance of the return</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Risk managers flip the sign so a positive L means money lost and the bad outcomes sit in the right tail. A (the raw change) makes losses negative; C discards the direction that matters; D is a measure of spread, not a loss.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A stock has a daily volatility of 2%. Assuming independent daily returns, its approximate annual volatility (252 trading days) is…</div>
+            <div class="opt"><b>A.</b> about 5%</div>
+            <div class="opt"><b>B.</b> about 504%</div>
+            <div class="opt"><b>C.</b> about 32%</div>
+            <div class="opt"><b>D.</b> about 2%</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> σ scales with √T: 0.02 × √252 ≈ 0.02 × 15.87 ≈ 0.317, i.e. ~32%. Choice B (2% × 252) wrongly scales linearly with time; D ignores scaling entirely; A is too small.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Which is a genuine limitation of volatility as a risk measure?</div>
+            <div class="opt"><b>A.</b> It can only be computed for bonds, not equities</div>
+            <div class="opt"><b>B.</b> It is undefined whenever the mean return is positive</div>
+            <div class="opt"><b>C.</b> It always overstates the probability of large losses</div>
+            <div class="opt"><b>D.</b> It treats upside and downside moves symmetrically and ignores the shape of the tail</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Variance squares deviations on both sides, so gains and losses count equally, and a single σ is blind to how heavy the tail is. A and B are simply false; C is backwards — under fat tails a normal-volatility view tends to <em>under</em>state large-loss probability.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The 99% quantile q<sub>0.99</sub> of the loss distribution is the loss level such that…</div>
+            <div class="opt"><b>A.</b> losses exceed it on about 1% of days</div>
+            <div class="opt"><b>B.</b> losses exceed it on about 99% of days</div>
+            <div class="opt"><b>C.</b> the average loss equals 99</div>
+            <div class="opt"><b>D.</b> volatility equals 99% of the mean</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> By definition P(L ≤ q<sub>0.99</sub>) = 0.99, so P(L &gt; q<sub>0.99</sub>) = 0.01 — exceeded only ~1% of the time. B inverts the probability; C and D confuse a quantile with a mean or a ratio.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why do risk managers care about <em>downside</em> risk measures rather than relying on volatility alone?</div>
+            <div class="opt"><b>A.</b> Because volatility cannot be estimated from historical data</div>
+            <div class="opt"><b>B.</b> Because investors fear losses, not gains, and symmetric volatility hides the asymmetry and tail of the loss distribution</div>
+            <div class="opt"><b>C.</b> Because downside measures are always smaller and look better in reports</div>
+            <div class="opt"><b>D.</b> Because volatility requires the returns to be exactly uniform</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The harm in finance is one-sided, and volatility, being symmetric and tail-blind, can rate a "grind-then-blow-up" strategy as low-risk. A is false (volatility is routinely estimated from data); C misstates the goal (honesty, not flattery); D is nonsense — volatility does not require uniform returns.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined <b>financial risk</b> as uncertainty about future P&amp;L, with the <b>loss</b> L = V<sub>0</sub> − V<sub>1</sub> as the sign-flipped quantity of interest.</li>
+            <li>Placed the <b>loss distribution</b> at the center of risk measurement, summarized first by mean and standard deviation of returns.</li>
+            <li>Used <b>volatility</b> σ as a risk measure and scaled it across horizons with the <b>square-root-of-time</b> rule (σ<sub>T</sub> = σ<sub>1</sub>√T).</li>
+            <li>Named volatility's three limits — <b>symmetry</b>, the <b>finite-variance / fat-tail</b> assumption, and <b>tail-blindness</b> — motivating downside and quantile measures.</li>
+            <li>Read a <b>quantile</b> q<sub>α</sub> as a tail probability and estimated both a Gaussian and an empirical 99% loss in NumPy/SciPy — the seeds of VaR and expected shortfall.</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: <b>Value at Risk (VaR)</b> — turning the loss quantile into the industry's headline number, estimated three different ways, and where each one quietly fails.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C5 Risk &amp; MM Syllabus</div></a>
+        <a class="next" href="l02-value-at-risk.html"><div class="dir">Week 2 →</div><div class="ttl">Value at Risk (VaR)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Risk &amp; MM</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

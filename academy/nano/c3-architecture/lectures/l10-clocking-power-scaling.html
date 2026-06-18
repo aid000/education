@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Lecture 10 — Clocking, Power &amp; Scaling</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; } .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; } .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; } .objectives ul { margin-left: 18px; } .objectives li { font-size: .92rem; margin-bottom: 5px; }
+        section.lec { margin: 40px 0; } section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; } section.lec p { margin-bottom: 14px; font-size: .96rem; } section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; } strong { color: #fff; } .key { color: var(--accent2); font-weight: 600; }
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; } .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); } .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; } .box.analogy .lbl { color: var(--blue); }
+        .fig { margin: 22px 0; text-align: center; } .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; } .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; } .worked li { margin-bottom: 6px; }
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; } .hands h3 { color: var(--green); margin-top: 0; } .hands p { font-size: .9rem; color: var(--text2); } .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; } pre .c { color: #6b8299; }
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; } .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; } .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; } .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; } .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .finish { background: linear-gradient(135deg, #11302a, #0d3a33); border: 1px solid #1f6f5c; border-radius: 14px; padding: 22px; margin: 28px 0; }
+        .finish h3 { font-size: 1.1rem; margin-bottom: 8px; } .finish p { font-size: .9rem; color: #a7e8d8; margin-bottom: 8px; } .finish a { color: var(--accent2); font-weight: 600; }
+        .quiz { margin: 48px 0 24px; } .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; } .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; } .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; } .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); } .q .opt b { color: var(--text); } .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; } .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; } .q details .ans { color: var(--green); font-weight: 700; }
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; } .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); } .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; } .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; } .lec-nav a.next { text-align: right; }
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); } footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C3 Architecture</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Clocking, Power &amp; Scaling</h1>
+        <p class="sub">What sets a CPU's clock speed — and why power, not transistors, became the limit.</p>
+    </div>
+</header>
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain how the clock synchronizes every sequential element, and why its period is bounded by the critical path plus setup time.</li>
+            <li>Describe clock distribution (the clock tree / H-tree) and how skew and jitter erode the timing budget.</li>
+            <li>Split total power into dynamic (∝ C·V²·f) and static (leakage) components.</li>
+            <li>Explain the "power wall" — why power density, not transistor count, capped frequency and forced multicore.</li>
+            <li>Compute the maximum clock frequency from a given critical-path delay and setup time.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>The Clock</h2>
+        <p>A synchronous chip runs on a <strong>clock</strong> — a global square-wave signal that ticks at a fixed rate and tells every <span class="key">sequential element</span> (every flip-flop) when to capture its next value. On each rising edge, data launched by one flip-flop must have travelled through the combinational logic and arrived — and settled — at the next flip-flop before that edge.</p>
+        <p>For this to work, the <span class="key">clock period</span> T<sub>clk</sub> must be long enough to cover the <em>longest</em> combinational path between any two flip-flops — the <span class="key">critical path</span> — plus the setup time the capturing flip-flop needs to latch a stable value:</p>
+        <div class="eq">T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub><small>t<sub>pd</sub> = longest combinational (critical-path) delay; t<sub>setup</sub> = flip-flop setup time. The clock frequency is f = 1 / T<sub>clk</sub>.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 360 200" role="img" aria-label="Two flip-flops, a launch flip-flop and a capture flip-flop, with combinational logic between them, both clocked by the same clock; the timing relation T_clk is at least t_pd plus t_setup is labeled">
+                <!-- launch FF -->
+                <rect x="30" y="55" width="56" height="60" rx="5" fill="#1c2c3e" stroke="#67e8f9" stroke-width="2"/>
+                <text x="58" y="80" fill="#e8f0f8" font-size="12" text-anchor="middle">FF1</text>
+                <text x="58" y="96" fill="#94a8bc" font-size="9" text-anchor="middle">launch</text>
+                <!-- combinational cloud -->
+                <ellipse cx="180" cy="85" rx="48" ry="30" fill="#14202e" stroke="#a78bfa" stroke-width="2"/>
+                <text x="180" y="82" fill="#a78bfa" font-size="11" text-anchor="middle">combo</text>
+                <text x="180" y="96" fill="#94a8bc" font-size="9" text-anchor="middle">logic (t_pd)</text>
+                <!-- capture FF -->
+                <rect x="274" y="55" width="56" height="60" rx="5" fill="#1c2c3e" stroke="#67e8f9" stroke-width="2"/>
+                <text x="302" y="80" fill="#e8f0f8" font-size="12" text-anchor="middle">FF2</text>
+                <text x="302" y="96" fill="#94a8bc" font-size="9" text-anchor="middle">capture</text>
+                <!-- data path -->
+                <line x1="86" y1="85" x2="130" y2="85" stroke="#22d3ee" stroke-width="2"/>
+                <line x1="228" y1="85" x2="272" y2="85" stroke="#22d3ee" stroke-width="2"/>
+                <polygon points="272,85 264,81 264,89" fill="#22d3ee"/>
+                <polygon points="130,85 122,81 122,89" fill="#22d3ee"/>
+                <!-- clock distribution to both FFs -->
+                <line x1="58" y1="170" x2="58" y2="115" stroke="#fbbf24" stroke-width="2"/>
+                <line x1="302" y1="170" x2="302" y2="115" stroke="#fbbf24" stroke-width="2"/>
+                <line x1="58" y1="170" x2="302" y2="170" stroke="#fbbf24" stroke-width="2"/>
+                <polygon points="58,115 54,123 62,123" fill="#fbbf24"/>
+                <polygon points="302,115 298,123 306,123" fill="#fbbf24"/>
+                <circle cx="180" cy="170" r="3" fill="#fbbf24"/>
+                <text x="180" y="190" fill="#fbbf24" font-size="11" text-anchor="middle">clk</text>
+                <!-- timing relation -->
+                <text x="180" y="30" fill="#67e8f9" font-size="12" text-anchor="middle" font-family="monospace">T_clk ≥ t_pd + t_setup</text>
+            </svg>
+            <figcaption>One clock drives both flip-flops. Data launched by FF1 must cross the combinational logic (delay t<sub>pd</sub>) and settle at FF2 before the next edge — so T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub>.</figcaption>
+        </figure>
+        <p>Shorten the critical path and you can shorten the period — i.e. raise the clock frequency. That is why so much of architecture is a hunt for the slowest path and ways to break it up.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The clock is the drummer keeping the whole band in time. Set the tempo too fast and the slowest player — the critical path — can't keep up: a note lands late and the music falls apart. That late note is a <em>timing violation</em>. The band can only play as fast as its slowest member can reliably keep up.</div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Clock Distribution &amp; Skew</h2>
+        <p>The clock must reach <em>every one</em> of millions of flip-flops at very nearly the same instant. But wires have delay, so the edge arrives at different places at slightly different times. The difference in arrival time between two points is <span class="key">clock skew</span>; cycle-to-cycle wobble in the edge's timing is <span class="key">jitter</span>.</p>
+        <p>To keep skew small, designers route the clock through a carefully balanced <span class="key">clock tree</span> — often an <strong>H-tree</strong>, where each branch from the source to a leaf travels the same total distance, so every endpoint sees the edge at the same time.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 320 220" role="img" aria-label="An H-tree clock distribution network: a central clock source branches symmetrically so every leaf flip-flop is the same wire distance from the source">
+                <!-- source -->
+                <circle cx="160" cy="110" r="6" fill="#22d3ee"/>
+                <text x="160" y="100" fill="#67e8f9" font-size="11" text-anchor="middle">clk src</text>
+                <!-- central horizontal -->
+                <line x1="80" y1="110" x2="240" y2="110" stroke="#fbbf24" stroke-width="2"/>
+                <!-- left vertical -->
+                <line x1="80" y1="50" x2="80" y2="170" stroke="#fbbf24" stroke-width="2"/>
+                <!-- right vertical -->
+                <line x1="240" y1="50" x2="240" y2="170" stroke="#fbbf24" stroke-width="2"/>
+                <!-- left-top horizontal -->
+                <line x1="40" y1="50" x2="120" y2="50" stroke="#fbbf24" stroke-width="2"/>
+                <!-- left-bottom horizontal -->
+                <line x1="40" y1="170" x2="120" y2="170" stroke="#fbbf24" stroke-width="2"/>
+                <!-- right-top horizontal -->
+                <line x1="200" y1="50" x2="280" y2="50" stroke="#fbbf24" stroke-width="2"/>
+                <!-- right-bottom horizontal -->
+                <line x1="200" y1="170" x2="280" y2="170" stroke="#fbbf24" stroke-width="2"/>
+                <!-- leaf flip-flops -->
+                <rect x="32" y="38" width="16" height="16" rx="2" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <rect x="112" y="38" width="16" height="16" rx="2" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <rect x="32" y="162" width="16" height="16" rx="2" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <rect x="112" y="162" width="16" height="16" rx="2" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <rect x="192" y="38" width="16" height="16" rx="2" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <rect x="272" y="38" width="16" height="16" rx="2" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <rect x="192" y="162" width="16" height="16" rx="2" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <rect x="272" y="162" width="16" height="16" rx="2" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <text x="160" y="205" fill="#94a8bc" font-size="10" text-anchor="middle">equal path length to every leaf → low skew</text>
+            </svg>
+            <figcaption>An H-tree keeps every flip-flop the same wire distance from the clock source, so the edge arrives almost simultaneously everywhere — minimizing skew.</figcaption>
+        </figure>
+        <p>Skew and jitter are not free — they eat directly into the timing budget. Worst-case skew effectively subtracts from the time available for logic, so a sloppy clock tree lowers the maximum safe frequency. A balanced tree is what lets a real chip run near its critical-path limit.</p>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Power</h2>
+        <p>A chip's total power splits into two parts:</p>
+        <div class="eq">P<sub>total</sub> = P<sub>dynamic</sub> + P<sub>static</sub></div>
+        <p><strong>Dynamic power</strong> is burned every time a node switches — charging and discharging its capacitance. It scales with how much capacitance you switch (C), the square of the supply voltage (V²), and how often you switch (the frequency f):</p>
+        <div class="eq">P<sub>dynamic</sub> ∝ C · V² · f<small>Because of the V² term, lowering the supply voltage is the single most powerful knob for cutting power.</small></div>
+        <p><strong>Static power</strong> is <span class="key">leakage</span> — current that trickles through transistors even when they aren't switching. As transistors shrank, leakage grew from negligible to a major fraction of the budget.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 320 200" role="img" aria-label="A stacked bar splitting total chip power into a large dynamic switching portion and a smaller static leakage portion">
+                <!-- axis -->
+                <line x1="60" y1="170" x2="280" y2="170" stroke="#94a8bc" stroke-width="1.5"/>
+                <line x1="60" y1="170" x2="60" y2="30" stroke="#94a8bc" stroke-width="1.5"/>
+                <text x="40" y="36" fill="#94a8bc" font-size="11" text-anchor="middle">P</text>
+                <!-- dynamic bar (large) -->
+                <rect x="110" y="70" width="90" height="100" fill="#22d3ee" opacity="0.85"/>
+                <text x="155" y="124" fill="#0a121a" font-size="12" text-anchor="middle" font-weight="bold">dynamic</text>
+                <text x="155" y="140" fill="#0a121a" font-size="10" text-anchor="middle">∝ C·V²·f</text>
+                <!-- static bar (small) on top -->
+                <rect x="110" y="40" width="90" height="30" fill="#fbbf24" opacity="0.85"/>
+                <text x="155" y="59" fill="#0a121a" font-size="11" text-anchor="middle" font-weight="bold">static (leakage)</text>
+                <!-- label -->
+                <text x="155" y="186" fill="#94a8bc" font-size="11" text-anchor="middle">total chip power</text>
+            </svg>
+            <figcaption>Total power = dynamic (switching, ∝ C·V²·f) + static (leakage). Dynamic usually dominates, but leakage became significant as transistors shrank.</figcaption>
+        </figure>
+        <p>Here is the twist that reshaped the whole industry. As frequency and transistor counts climbed, the power crammed into each square millimetre — the <span class="key">power density</span> — rose faster than chips could be cooled. It was <em>power</em>, not the supply of transistors, that became the binding limit. This is the <span class="key">power wall</span>.</p>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>Techniques &amp; the Road Ahead</h2>
+        <p>Designers fight the power wall with several techniques. <strong>Clock gating</strong> shuts off the clock to blocks that aren't doing work, killing their dynamic power (no switching ⟹ no C·V²·f). <strong>Pipelining</strong> chops a long critical path into shorter stages, so each stage's t<sub>pd</sub> is smaller and the clock can run faster without raising voltage. And when single-core frequency stalled at the wall, the industry went <strong>multicore</strong> — many slower, cooler cores instead of one ever-faster one.</p>
+        <p>Scaling brings one more headache: as wires get thinner and longer relative to gates, <span class="key">interconnect delay</span> grows and can dominate gate delay — so where signals go matters as much as the logic itself.</p>
+        <p>That is exactly the boundary of this course. In <strong>Course 4 (VLSI Design)</strong> you'll size and lay out the transistors behind these gates; in <strong>Course 5 (Physical Design)</strong> you'll place cells and route the interconnect — including the clock tree — to actually meet timing and power on silicon.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Three things to keep straight. The clock period is set by the <strong>slowest (critical) path</strong>, not the average path. Dynamic power scales as <strong>C·V²·f</strong> — so <em>lowering voltage</em> (the squared term) buys the most. And it was the <strong>power wall</strong> — power density, not running out of transistors — that capped clock frequencies around ~3–4 GHz and drove the shift to multicore.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A pipeline stage has a longest combinational path delay of 2 ns, and the capturing flip-flop needs a setup time of 0.2 ns. Find the maximum clock frequency, and state how you'd go faster.</p>
+        <ol>
+            <li><strong>Minimum period:</strong> T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub> = 2 ns + 0.2 ns = <strong>2.2 ns</strong>.</li>
+            <li><strong>Maximum frequency:</strong> f<sub>max</sub> = 1 / T<sub>clk</sub> = 1 / 2.2 ns ≈ <strong>455 MHz</strong>.</li>
+            <li><strong>To go faster:</strong> you must shorten the critical path — e.g. by <em>pipelining</em> (splitting the 2 ns logic into shorter stages), since raising voltage to push frequency only worsens the C·V²·f power.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: f<sub>max</sub> from the critical path (paper)</h3>
+        <p>No simulator needed — this is the calculation every timing report boils down to. On paper, take a critical-path delay and a setup time and compute the maximum clock frequency.</p>
+        <pre><span class="c">* Given a critical-path delay t_pd and setup time t_setup:</span>
+T_clk(min) = t_pd + t_setup
+f_max      = 1 / T_clk(min)
+
+<span class="c">; Example: t_pd = 3.3 ns, t_setup = 0.2 ns</span>
+T_clk(min) = 3.3 ns + 0.2 ns = 3.5 ns
+f_max      = 1 / 3.5 ns ≈ 286 MHz</pre>
+        <p>Now try your own: if t<sub>pd</sub> = 1.8 ns and t<sub>setup</sub> = 0.2 ns, what is f<sub>max</sub>? (Answer: 1 / 2.0 ns = 500 MHz.) Then ask: what would pipelining the path in two do to f<sub>max</sub>?</p>
+    </div>
+
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The clock period must be at least…</div>
+            <div class="opt"><b>A.</b> the critical (longest) path delay plus the setup time</div>
+            <div class="opt"><b>B.</b> the average path delay</div>
+            <div class="opt"><b>C.</b> one gate delay</div>
+            <div class="opt"><b>D.</b> the wire length</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Data must cross the slowest combinational path and settle before the next edge, so T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub> — set by the critical path, not the average.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Dynamic (switching) power is proportional to…</div>
+            <div class="opt"><b>A.</b> V only</div>
+            <div class="opt"><b>B.</b> C·V²·f</div>
+            <div class="opt"><b>C.</b> f² only</div>
+            <div class="opt"><b>D.</b> the transistor count alone</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> P<sub>dynamic</sub> ∝ C·V²·f. The squared voltage term is why lowering the supply voltage is the most effective way to cut power.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Clock skew is…</div>
+            <div class="opt"><b>A.</b> the clock frequency</div>
+            <div class="opt"><b>B.</b> the clock arriving at different elements at slightly different times</div>
+            <div class="opt"><b>C.</b> a data hazard</div>
+            <div class="opt"><b>D.</b> a power spike</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Skew is the difference in clock-edge arrival time between points on the chip; a balanced clock tree (H-tree) keeps it small.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The "power wall" refers to…</div>
+            <div class="opt"><b>A.</b> running out of transistors</div>
+            <div class="opt"><b>B.</b> power density limiting clock-frequency scaling, which pushed designs toward multicore</div>
+            <div class="opt"><b>C.</b> memory being too small</div>
+            <div class="opt"><b>D.</b> a manufacturing defect</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Power per unit area outran cooling, capping single-core frequency (~3–4 GHz) and driving the move to many cooler cores.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q5.</span> If the critical path is 2 ns and setup is 0.2 ns, the maximum clock frequency is about…</div>
+            <div class="opt"><b>A.</b> 2 GHz</div>
+            <div class="opt"><b>B.</b> 500 MHz</div>
+            <div class="opt"><b>C.</b> 455 MHz (1 / 2.2 ns)</div>
+            <div class="opt"><b>D.</b> 220 MHz</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> T<sub>clk</sub> ≥ 2 + 0.2 = 2.2 ns, so f<sub>max</sub> = 1 / 2.2 ns ≈ 455 MHz.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>clock</b> synchronizes every flip-flop, and its period is bounded by the <b>critical path + setup time</b> (T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub>).</li>
+            <li>Clock distribution uses a balanced <b>clock tree / H-tree</b>; <b>skew and jitter</b> eat into the timing budget and limit speed.</li>
+            <li>Total power = <b>dynamic</b> (∝ C·V²·f) + <b>static</b> (leakage); lowering voltage helps most.</li>
+            <li>The <b>power wall</b> — power density, not transistor count — capped frequency and forced the shift to <b>multicore</b>.</li>
+            <li><b>Clock gating, pipelining,</b> and multicore manage power; interconnect delay grows with scaling — bridging to Courses 4 &amp; 5.</li>
+        </ul>
+        <p class="next-up">That's all ten weeks of architecture — from CMOS transistors to logic gates, sequential logic, an ALU, a datapath, and a working CPU. 🎉</p>
+    </div>
+
+    <div class="finish">
+        <h3>🏁 Course complete — final steps</h3>
+        <p><b>Project due this week:</b> submit your <b>8-bit ALU + simple CPU in Verilog</b> — built across the course — together with its testbench and synthesis notes (resource usage and max-frequency report).</p>
+        <p>Then take the <a href="../exam/final-exam.html">comprehensive Final Exam →</a> covering all ten weeks of architecture, self-graded.</p>
+        <p>This caps Course 3 and bridges directly to <b>Course 4 (VLSI Design)</b>, where you'll size and lay out the transistors behind these gates.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l09-memory-hierarchy.html"><div class="dir">← Week 9</div><div class="ttl">Memory Hierarchy</div></a>
+        <a href="../exam/final-exam.html" class="next"><div class="dir">Finish →</div><div class="ttl">Final Exam</div></a>
+    </div>
+</div>
+<footer>
+    <p><a href="../index.html">← C3 Architecture</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => { const h = document.documentElement; bar.style.width = (h.scrollTop)/(h.scrollHeight - h.clientHeight)*100 + '%'; });
+</script>
+</body>
+</html>

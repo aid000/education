@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 · Lecture 4 — Photoresist &amp; Lithography</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C2 Fabrication</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Photoresist &amp; Lithography</h1>
+        <p class="sub">How a pattern gets <em>printed</em> onto a wafer. Lithography is the step that decides how small a transistor can be — and why a chip costs what it costs.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Walk through the full photoresist cycle: spin-coat → soft-bake → expose → develop → etch/implant → strip.</li>
+            <li>Distinguish positive from negative resist (which regions wash away after exposure).</li>
+            <li>Explain what a photomask is and how steppers/scanners project and repeat it across the wafer.</li>
+            <li>Use the Rayleigh criterion CD = k₁·λ/NA to find the minimum printable feature.</li>
+            <li>Explain why lithography is the scaling bottleneck for transistor density and cost.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>The Photoresist Cycle</h2>
+        <p>Lithography transfers a pattern onto the wafer using a light-sensitive polymer called <strong>photoresist</strong>. The sequence is the heartbeat of every fabrication run:</p>
+        <p><strong>Spin-coat</strong> — drip liquid resist onto the wafer and spin it fast so it spreads into a thin, uniform film. <strong>Soft-bake</strong> — gently heat to drive off solvent and firm up the film. <strong>Expose</strong> — shine <span class="key">UV light</span> through a patterned <em>mask</em>; only the open areas of the mask let light reach the resist, chemically changing it. <strong>Develop</strong> — a chemical bath removes the resist that should go, leaving a stencil. <strong>Etch or implant</strong> — the remaining resist <em>protects</em> the film beneath it while the exposed film is etched away (or dopants are implanted). <strong>Strip</strong> — finally, dissolve off the leftover resist, leaving the patterned film behind.</p>
+        <h3>Positive vs. negative resist</h3>
+        <p>The two resist types respond to light in opposite ways:</p>
+        <div class="eq">positive resist → <span class="key">exposed</span> regions dissolve away&nbsp;&nbsp;·&nbsp;&nbsp;negative resist → exposed regions <span class="key">stay</span><small>Positive resist copies the clear parts of the mask; negative resist copies the dark parts.</small></div>
+        <p>In <strong>positive</strong> resist, light makes the polymer <em>more</em> soluble, so the regions hit by UV wash out in the developer. In <strong>negative</strong> resist, light <em>cross-links</em> the polymer and hardens it, so the exposed regions remain and the unexposed ones wash away. Positive resist gives sharper edges and dominates advanced nodes.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Lithography is a <strong>stencil and a spray</strong>. The <em>mask</em> is the stencil that decides where light lands; the <em>resist</em> is the layer that the light hardens or softens. After developing, the resist <em>becomes</em> the stencil that protects the wafer during the next step. And just like a spray can, the finest detail you can stencil is limited by how fine your "nozzle" is — here, the nozzle is the <em>wavelength</em> of the light.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>The Mask &amp; Exposure Tools</h2>
+        <p>A <strong>photomask</strong> (or reticle) is a flat quartz plate carrying the pattern for one layer, drawn in an opaque material such as chrome. It is a <span class="key">reusable template</span> — not the finished chip. The exposure tool projects its image onto the resist-coated wafer.</p>
+        <p>Modern tools are <strong>steppers</strong> and <strong>scanners</strong>. They project the mask through a lens that usually <em>reduces</em> it (commonly 4×), so a large, easy-to-make mask prints a tiny field on the wafer. The tool then <em>steps</em> to the next position and repeats, tiling the same pattern across the whole wafer hundreds of times — one exposure per die.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 620 220" role="img" aria-label="Four-panel lithography sequence: resist on a film, UV exposure through a mask, developed resist pattern, and the film etched where resist is gone">
+                <defs><marker id="aUV" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#a78bfa"/></marker></defs>
+                <!-- Panel 1: resist on film -->
+                <text x="80" y="24" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">1 · Coat</text>
+                <rect x="20" y="150" width="120" height="22" fill="#1c2c3e" stroke="#94a8bc" stroke-width="1"/>
+                <rect x="20" y="120" width="120" height="30" fill="#243648" stroke="#94a8bc" stroke-width="1"/>
+                <rect x="20" y="96" width="120" height="24" fill="#22d3ee" opacity="0.55" stroke="#67e8f9" stroke-width="1"/>
+                <text x="80" y="165" fill="#0a121a" font-size="10" text-anchor="middle">wafer</text>
+                <text x="80" y="139" fill="#94a8bc" font-size="10" text-anchor="middle">film</text>
+                <text x="80" y="112" fill="#0a121a" font-size="10" text-anchor="middle">resist</text>
+
+                <!-- Panel 2: UV through mask -->
+                <text x="230" y="24" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">2 · Expose</text>
+                <!-- mask: opaque chrome blocks with gaps -->
+                <rect x="178" y="40" width="40" height="12" fill="#94a8bc"/>
+                <rect x="242" y="40" width="40" height="12" fill="#94a8bc"/>
+                <text x="290" y="50" fill="#94a8bc" font-size="10">mask</text>
+                <!-- UV arrows through the gap -->
+                <line x1="230" y1="56" x2="230" y2="92" stroke="#a78bfa" stroke-width="2" marker-end="url(#aUV)"/>
+                <text x="200" y="74" fill="#a78bfa" font-size="11">UV</text>
+                <rect x="170" y="150" width="120" height="22" fill="#1c2c3e" stroke="#94a8bc" stroke-width="1"/>
+                <rect x="170" y="120" width="120" height="30" fill="#243648" stroke="#94a8bc" stroke-width="1"/>
+                <rect x="170" y="96" width="120" height="24" fill="#22d3ee" opacity="0.55" stroke="#67e8f9" stroke-width="1"/>
+                <!-- exposed region highlighted -->
+                <rect x="218" y="96" width="24" height="24" fill="#fbbf24" opacity="0.55"/>
+                <text x="230" y="190" fill="#fbbf24" font-size="9" text-anchor="middle">exposed</text>
+
+                <!-- Panel 3: developed -->
+                <text x="390" y="24" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">3 · Develop</text>
+                <rect x="330" y="150" width="120" height="22" fill="#1c2c3e" stroke="#94a8bc" stroke-width="1"/>
+                <rect x="330" y="120" width="120" height="30" fill="#243648" stroke="#94a8bc" stroke-width="1"/>
+                <!-- resist remains except where exposed (positive) -->
+                <rect x="330" y="96" width="48" height="24" fill="#22d3ee" opacity="0.55" stroke="#67e8f9" stroke-width="1"/>
+                <rect x="402" y="96" width="48" height="24" fill="#22d3ee" opacity="0.55" stroke="#67e8f9" stroke-width="1"/>
+                <text x="390" y="190" fill="#94a8bc" font-size="9" text-anchor="middle">resist gap</text>
+
+                <!-- Panel 4: etched -->
+                <text x="550" y="24" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">4 · Etch</text>
+                <rect x="490" y="150" width="120" height="22" fill="#1c2c3e" stroke="#94a8bc" stroke-width="1"/>
+                <!-- film etched in the gap -->
+                <rect x="490" y="120" width="48" height="30" fill="#243648" stroke="#94a8bc" stroke-width="1"/>
+                <rect x="562" y="120" width="48" height="30" fill="#243648" stroke="#94a8bc" stroke-width="1"/>
+                <text x="550" y="190" fill="#94a8bc" font-size="9" text-anchor="middle">film removed</text>
+            </svg>
+            <figcaption>The lithography sequence (positive resist shown): coat resist on the film, expose through the mask, develop away the exposed resist, then etch the film where the resist is gone.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Resolution &amp; Wavelength</h2>
+        <p>How small a feature can lithography print? The limit comes from diffraction and is captured by the <span class="key">Rayleigh criterion</span>. The minimum feature size — the <strong>critical dimension</strong> (CD) — is:</p>
+        <div class="eq">CD = k₁ · λ / NA&nbsp;&nbsp;[nm]<small>λ = exposure wavelength · NA = numerical aperture of the lens · k₁ = process factor (~0.25–0.4)</small></div>
+        <p>Two knobs shrink the feature: a <strong>shorter wavelength</strong> λ and a <strong>higher numerical aperture</strong> NA. The industry has driven λ down for decades — from deep-UV (DUV) at <span class="key">193 nm</span> to extreme-UV (EUV) at <span class="key">13.5 nm</span> — and pushed NA above 1 using immersion lenses. The process factor k₁ captures everything else (resist chemistry, illumination tricks); it can be lowered but not below a hard physical floor.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 220" role="img" aria-label="Resolution versus wavelength: a wide feature printed at 193 nanometer DUV next to a much narrower feature printed at 13.5 nanometer EUV">
+                <!-- baseline -->
+                <line x1="40" y1="170" x2="430" y2="170" stroke="#94a8bc" stroke-width="1.5"/>
+                <!-- DUV wide feature -->
+                <rect x="70" y="70" width="90" height="100" fill="#22d3ee" opacity="0.35" stroke="#22d3ee" stroke-width="2"/>
+                <text x="115" y="60" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">DUV</text>
+                <text x="115" y="190" fill="#94a8bc" font-size="11" text-anchor="middle">λ = 193 nm</text>
+                <text x="115" y="206" fill="#fbbf24" font-size="11" text-anchor="middle">CD ≈ 43 nm</text>
+                <!-- width caliper DUV -->
+                <line x1="70" y1="118" x2="160" y2="118" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="115" y="113" fill="#fbbf24" font-size="9" text-anchor="middle">wide</text>
+
+                <!-- EUV narrow feature -->
+                <rect x="320" y="70" width="26" height="100" fill="#a78bfa" opacity="0.45" stroke="#a78bfa" stroke-width="2"/>
+                <text x="333" y="60" fill="#a78bfa" font-size="13" text-anchor="middle" font-weight="bold">EUV</text>
+                <text x="333" y="190" fill="#94a8bc" font-size="11" text-anchor="middle">λ = 13.5 nm</text>
+                <text x="333" y="206" fill="#fbbf24" font-size="11" text-anchor="middle">CD ≈ 12 nm</text>
+                <!-- width caliper EUV -->
+                <line x1="320" y1="118" x2="346" y2="118" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="333" y="113" fill="#fbbf24" font-size="9" text-anchor="middle">narrow</text>
+
+                <!-- arrow showing improvement -->
+                <defs><marker id="aR" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#34d399"/></marker></defs>
+                <line x1="175" y1="115" x2="305" y2="115" stroke="#34d399" stroke-width="2" marker-end="url(#aR)"/>
+                <text x="240" y="108" fill="#34d399" font-size="11" text-anchor="middle">shorter λ → smaller feature</text>
+            </svg>
+            <figcaption>Shorter wavelength prints finer features. At the same k₁, dropping from 193 nm DUV to 13.5 nm EUV shrinks the critical dimension dramatically.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Three slips to avoid. (1) <strong>Positive vs. negative resist:</strong> in <em>positive</em> resist the light-<strong>exposed</strong> regions wash away — not the dark ones. (2) <strong>The mask is a reusable template</strong> projected many times across the wafer; it is <em>not</em> the finished chip. (3) Resolution is set by <strong>λ/NA</strong> (and k₁), <em>not</em> by the resist alone — a better resist helps k₁ a little, but wavelength and lens dominate.</div>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>Why Lithography Limits Everything</h2>
+        <p>Lithography sets the <strong>smallest printable feature</strong> on the chip. Every transistor, wire, and contact has to fit inside what litho can resolve — so litho directly <span class="key">gates transistor density</span>. Smaller CD ⟹ more transistors per square millimeter ⟹ faster, cheaper-per-function chips. This is the engine behind decades of Moore's-law scaling.</p>
+        <p>It also gates <strong>cost</strong>. EUV scanners are the most expensive tools in the fab — well over US$100M each — and when even EUV can't resolve a layer in one shot, fabs resort to <span class="key">multi-patterning</span>: splitting one layer across two or more mask-and-etch passes. That multiplies mask count, process steps, and cycle time, which is exactly why advanced nodes are so costly. Litho is the bottleneck that everything else is designed around.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the whole fab as a print shop. You can buy faster presses (deposition, etch) all you like, but the <em>resolution of your printer</em> caps how fine the final poster can be. Lithography is that printer — upgrade it (shorter λ, higher NA) and everything downstream can be made smaller and denser.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Use the Rayleigh criterion CD = k₁·λ/NA to find the minimum feature for two tools, then compare. Take k₁ = 0.3 for both.</p>
+        <ol>
+            <li><strong>(a) DUV (193 nm immersion):</strong> λ = 193 nm, NA = 1.35. &nbsp;CD = 0.3 × 193 / 1.35 = 57.9 / 1.35 ≈ <strong>43 nm</strong>.</li>
+            <li><strong>(b) EUV (13.5 nm):</strong> λ = 13.5 nm, NA = 0.33. &nbsp;CD = 0.3 × 13.5 / 0.33 = 4.05 / 0.33 ≈ <strong>12 nm</strong>.</li>
+            <li><strong>Compare:</strong> even with a <em>lower</em> NA, EUV prints features about <strong>3.5× smaller</strong> than DUV — the short 13.5 nm wavelength does the heavy lifting. That is the resolution gain that justifies EUV's enormous cost.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: compute the Rayleigh CD</h3>
+        <p>On paper, compute the critical dimension for a tool with k₁ = 0.35, λ = 193 nm, NA = 1.35. Then redo it for an EUV tool with k₁ = 0.35, λ = 13.5 nm, NA = 0.33. Which wins, and by how much?</p>
+        <pre><span class="c">* Rayleigh criterion — Lecture 4</span>
+CD = k1 * lambda / NA
+
+DUV:  CD = 0.35 * 193 / 1.35  = <span class="c">? nm</span>
+EUV:  CD = 0.35 * 13.5 / 0.33 = <span class="c">? nm</span>
+
+ratio = CD(DUV) / CD(EUV) = <span class="c">? ×</span></pre>
+        <p>Expected: DUV ≈ 50 nm, EUV ≈ 14 nm, so EUV resolves roughly <code>3.5×</code> finer. Try halving k₁ and note that CD scales linearly with it — but λ/NA sets the floor.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In <em>positive</em> photoresist, regions exposed to light…</div>
+            <div class="opt"><b>A.</b> become soluble and wash away during develop</div>
+            <div class="opt"><b>B.</b> harden permanently</div>
+            <div class="opt"><b>C.</b> turn into metal</div>
+            <div class="opt"><b>D.</b> are unaffected</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> In positive resist, UV makes the polymer more soluble, so the exposed regions dissolve in the developer. (Negative resist is the opposite — exposed regions cross-link and stay.)</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Minimum feature size scales with…</div>
+            <div class="opt"><b>A.</b> resist thickness only</div>
+            <div class="opt"><b>B.</b> the exposure wavelength (smaller λ → smaller features)</div>
+            <div class="opt"><b>C.</b> wafer diameter</div>
+            <div class="opt"><b>D.</b> temperature</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> CD = k₁·λ/NA, so the critical dimension is proportional to the wavelength — shorter λ prints smaller features.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> EUV lithography uses a wavelength of about…</div>
+            <div class="opt"><b>A.</b> 193 nm</div>
+            <div class="opt"><b>B.</b> 365 nm</div>
+            <div class="opt"><b>C.</b> 13.5 nm</div>
+            <div class="opt"><b>D.</b> 1 µm</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Extreme-UV operates at 13.5 nm — over an order of magnitude shorter than 193 nm DUV, which is why it resolves much finer features.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A photomask is…</div>
+            <div class="opt"><b>A.</b> a reusable template projected onto the wafer (not the final chip)</div>
+            <div class="opt"><b>B.</b> the finished chip</div>
+            <div class="opt"><b>C.</b> a layer of metal</div>
+            <div class="opt"><b>D.</b> a kind of resist</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A mask (reticle) carries one layer's pattern in chrome on quartz. A stepper/scanner projects it — usually reduced — and repeats it across the whole wafer. It is reused, not the product itself.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why is lithography called the scaling bottleneck?</div>
+            <div class="opt"><b>A.</b> it is the slowest step</div>
+            <div class="opt"><b>B.</b> it uses the most chemicals</div>
+            <div class="opt"><b>C.</b> it sets the smallest printable feature, gating density and cost</div>
+            <div class="opt"><b>D.</b> it is done last</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Litho fixes the minimum feature size, so it caps transistor density and drives cost (EUV tools, multi-patterning). Everything else is designed around what litho can resolve.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The photoresist cycle: <b>spin-coat → soft-bake → expose → develop → etch/implant → strip</b>.</li>
+            <li><b>Positive resist</b>: exposed regions wash away. <b>Negative resist</b>: exposed regions stay.</li>
+            <li>A <b>photomask</b> is a reusable template; <b>steppers/scanners</b> project it (usually reduced) and tile it across the wafer.</li>
+            <li>The <b>Rayleigh criterion CD = k₁·λ/NA</b> — shorter λ (193 nm → 13.5 nm) and higher NA print smaller features.</li>
+            <li>Lithography is the <b>scaling bottleneck</b>: it gates transistor density and cost (EUV, multi-patterning).</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: Etching — how the pattern in the resist is transferred permanently into the film beneath it.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l03-thin-film-deposition.html"><div class="dir">← Week 3</div><div class="ttl">Thin-Film Deposition</div></a>
+        <a href="l05-etching.html" class="next"><div class="dir">Week 5 →</div><div class="ttl">Etching</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Fabrication</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

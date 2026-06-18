@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C1 · Lecture 5 — Discrete-Time Random Walks</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C1 Probability</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Discrete-Time Random Walks</h1>
+        <p class="sub">Stack up coin flips one step at a time and you get the simplest model of a price — wandering nowhere on average, yet drifting ever wider as the √n clock ticks.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define the simple symmetric random walk as a cumulative sum of independent ±1 steps.</li>
+            <li>Show that its expected position is 0 while its variance grows linearly in n, giving the √n spread.</li>
+            <li>Use symmetry and reflection to reason about where the walk can be and how often it crosses a level.</li>
+            <li>Build the gambler's-ruin intuition: a fair game still ends in ruin against a deep-pocketed house.</li>
+            <li>Simulate a price path as a cumulative sum of independent returns in NumPy and read the √t fan.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>The Simple Symmetric Random Walk</h2>
+        <p>Weeks 1–4 gave us single random variables and how they combine. Now we let randomness <em>accumulate over time</em>. Start at position 0. At each tick, flip a fair coin: step <strong>+1</strong> on heads, <strong>−1</strong> on tails. Your position after n steps is the running total of those flips. That object — a cumulative sum of independent, identical ±1 steps — is the <strong>simple symmetric random walk</strong>, the atom of every dynamic model in this specialization.</p>
+        <p>Write the step at time i as X<sub>i</sub>, with P(X<sub>i</sub> = +1) = P(X<sub>i</sub> = −1) = 1/2. The position after n steps is their sum S<sub>n</sub>:</p>
+        <div class="eq">S<sub>n</sub> = X<sub>1</sub> + X<sub>2</sub> + … + X<sub>n</sub>,&nbsp;&nbsp;&nbsp; S<sub>0</sub> = 0<small>Each X<sub>i</sub> is ±1 with equal probability, independent of every other. "Symmetric" means up and down are equally likely; "simple" means steps are unit-size.</small></div>
+        <p>The word "discrete-time" means the clock advances in whole ticks — flip 1, flip 2, flip 3 — rather than flowing continuously. In <span class="key">Week 7</span> we shrink the step size and speed up the clock until the walk becomes the continuous Brownian motion that underlies modern option pricing. Everything there is foreshadowed here, in arithmetic a coin can do.</p>
+        <p>The finance translation is immediate. Replace each ±1 with a <strong>one-period return</strong> — the small gain or loss an asset earns in a day — and the cumulative sum S<sub>n</sub> becomes a <strong>price path</strong>. A price is, to a first approximation, just the running total of the independent shocks that hit it. That single sentence is the seed of this entire week.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Picture a slightly tipsy walker on a long sidewalk who, at each step, flips a coin to go one tile left or right. Watch for a moment and you'd swear they're "heading" somewhere — but they have no destination. Their <em>average</em> position stays right where they started; what grows is the range of places you might find them. A stock with no drift behaves the same way: no built-in direction, just widening uncertainty.</p></div>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>Mean Zero, Variance That Grows Linearly</h2>
+        <p>How does the walk behave? Two numbers answer almost everything: where it sits on average, and how far it scatters. Both follow from the rules of Lectures 1 and 4 — linearity of expectation, and that variances of independent variables add.</p>
+        <p>Each step has mean E[X<sub>i</sub>] = (+1)(½) + (−1)(½) = <strong>0</strong>. By linearity of expectation (which never needs independence), the expected position is a sum of zeros:</p>
+        <div class="eq">E[S<sub>n</sub>] = E[X<sub>1</sub>] + … + E[X<sub>n</sub>] = 0<small>The walk has no drift: on average it goes nowhere, no matter how long you run it.</small></div>
+        <p>Now the spread. Each step has variance Var(X<sub>i</sub>) = E[X<sub>i</sub>²] − 0² = 1, because (±1)² = 1 always. The steps are <em>independent</em>, so their variances add with no covariance term (the lesson of Week 4):</p>
+        <div class="eq">Var(S<sub>n</sub>) = Var(X<sub>1</sub>) + … + Var(X<sub>n</sub>) = n&nbsp;&nbsp;⟹&nbsp;&nbsp; SD(S<sub>n</sub>) = √n<small>Variance grows <em>linearly</em> in n; the standard deviation — the typical distance from start — grows like the square root of n.</small></div>
+        <p>This is the headline of the whole lecture. Variance piles up in proportion to time, so the typical displacement of the walk after n steps is on the order of <strong>√n</strong>, not n. After 100 steps you are typically about 10 tiles from the origin; after 400 steps, about 20 — quadruple the time for only double the spread. In markets this is the famous <strong>square-root-of-time</strong> scaling of volatility: risk over a horizon of T days is roughly σ<sub>daily</sub>·√T, which is exactly why a daily volatility is annualized by multiplying by √252.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>It is the <strong>variance</strong> that grows linearly in n, not the standard deviation. Students routinely say "the spread doubles when time doubles" — wrong. SD grows like √n, so doubling the horizon multiplies the typical spread by only √2 ≈ 1.41. Likewise, volatility scales with √T, never with T. Confusing the two is how horizons get mis-sized and risk gets badly misquoted.</div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 400 220" role="img" aria-label="Three sample random-walk paths starting at zero and spreading apart, bracketed by a dashed parabola-shaped square-root-of-n envelope that widens with steps">
+            <!-- axes -->
+            <line x1="40" y1="110" x2="372" y2="110" stroke="#bcae8c" stroke-width="1.3"/>
+            <line x1="40" y1="20" x2="40" y2="200" stroke="#bcae8c" stroke-width="1.3"/>
+            <text x="24" y="26" fill="#bcae8c" font-size="10">S_n</text>
+            <text x="350" y="126" fill="#bcae8c" font-size="10">n →</text>
+            <text x="28" y="114" fill="#bcae8c" font-size="9" text-anchor="end">0</text>
+            <!-- +/- sqrt(n) envelope (dashed) : y = 110 -/+ k*sqrt(x) -->
+            <path d="M40,110 C120,75 220,58 372,45" fill="none" stroke="#60a5fa" stroke-width="1.4" stroke-dasharray="5 4"/>
+            <path d="M40,110 C120,145 220,162 372,175" fill="none" stroke="#60a5fa" stroke-width="1.4" stroke-dasharray="5 4"/>
+            <text x="300" y="40" fill="#93c5fd" font-size="10" text-anchor="middle">+√n band</text>
+            <text x="300" y="190" fill="#93c5fd" font-size="10" text-anchor="middle">−√n band</text>
+            <!-- path 1 (gold) ends high -->
+            <path d="M40,110 L74,96 L108,108 L142,90 L176,100 L210,78 L244,86 L278,66 L312,74 L346,58 L372,60" fill="none" stroke="#fbbf24" stroke-width="1.8"/>
+            <!-- path 2 (green) wanders near center then dips -->
+            <path d="M40,110 L74,124 L108,112 L142,126 L176,116 L210,130 L244,120 L278,134 L312,124 L346,138 L372,150" fill="none" stroke="#34d399" stroke-width="1.8"/>
+            <!-- path 3 (violet) stays near zero -->
+            <path d="M40,110 L74,104 L108,116 L142,106 L176,118 L210,108 L244,114 L278,106 L312,116 L346,110 L372,118" fill="none" stroke="#a78bfa" stroke-width="1.8"/>
+        </svg>
+        <figcaption>Three sample paths of a symmetric random walk, all starting at 0. Individual paths wander unpredictably, but they stay (mostly) inside the dashed ±√n envelope that widens as the square root of the step count — the geometric picture of variance growing linearly in time.</figcaption>
+    </figure>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>Symmetry &amp; the Reflection Principle</h2>
+        <p>Because up and down are equally likely, the walk has a powerful <strong>symmetry</strong>: any path is exactly as probable as its mirror image flipped about the time axis. Replace every +1 with −1 and you get an equally likely path ending at −S<sub>n</sub> instead of +S<sub>n</sub>. So the distribution of S<sub>n</sub> is symmetric about 0 — P(S<sub>n</sub> = +k) = P(S<sub>n</sub> = −k) for every k.</p>
+        <p>The exact distribution is a relabeled binomial. If U of the n steps are up and the rest down, the position is S<sub>n</sub> = U − (n − U) = 2U − n, where U ~ Binomial(n, ½). The walk can only land on values of the same parity as n (even n ⟹ even position), and the most likely spot is the start:</p>
+        <div class="eq">P(S<sub>n</sub> = 2k − n) = C(n, k) · (½)<sup>n</sup><small>k up-steps out of n. The position is a stretched, recentred binomial — and by the CLT of Week 2, it is approximately Normal(0, n) for large n.</small></div>
+        <p>The deeper tool is the <strong>reflection principle</strong>: to count paths that touch some level <em>a</em> before time n, reflect the portion of the path after its first touch of <em>a</em> across the line y = a. This sets up a clean one-to-one correspondence between "paths that crossed <em>a</em>" and a simpler set of paths, turning hard first-passage questions into easy counting. It is the combinatorial engine behind barrier-option pricing — contracts that pay out only if the price <em>ever</em> reaches a level, not just where it finishes.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The reflection principle is a hall of mirrors for paths. Every trajectory that pokes above a ceiling has a mirror twin obtained by reflecting its tail in that ceiling. Counting the twins — which is easy — counts the originals. Casinos and exchanges both quietly rely on this trick to price "touch" bets that trigger the moment a level is hit.</div>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>Gambler's Ruin &amp; the Price-Path Picture</h2>
+        <p>Symmetry says the walk drifts nowhere on average — so a fair game should be safe to play forever, right? <strong>Gambler's ruin</strong> says otherwise, and the gap is one of the most instructive results in all of probability.</p>
+        <p>You start with <em>i</em> dollars and bet $1 per round on a fair coin against a house holding the rest of N dollars. The game ends when you hit $0 (ruin) or $N (you've broken the bank). For a fair walk, the probability you reach N before 0 is simply your share of the total stake:</p>
+        <div class="eq">P(reach N before 0) = i / N,&nbsp;&nbsp;&nbsp; P(ruin) = 1 − i / N<small>Linear in your starting wealth. Expected number of rounds until the game ends is i·(N − i).</small></div>
+        <p>The sting is in the limit. Against an effectively infinite bankroll (N → ∞), your ruin probability i/N → 0 of <em>winning</em> means ruin is <strong>certain</strong>: a fair game played against a deep-pocketed opponent ends in your ruin with probability 1, even though your expected wealth at every instant is exactly your starting wealth. Zero is an <em>absorbing</em> wall; the unbounded side is not. The walk, given enough time, always finds the wall.</p>
+        <p>This is why <strong>position sizing</strong> and <strong>stop-out levels</strong> matter more than edge for survival. A trader with a genuine positive expectation can still be wiped out by a run of bad luck if bet sizes are large relative to capital — the discrete cousin of gambler's ruin, formalized later by the Kelly criterion. "The market can stay irrational longer than you can stay solvent" is gambler's ruin in plain English.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>"The game is fair, so I can't lose in the long run" is dangerously false. A zero-drift random walk still hits any fixed loss level with probability 1 if you play long enough and your capital is finite. Fair expectation does <em>not</em> imply safe; it is the <em>variance</em>, colliding with a hard floor at zero, that ruins you.</div>
+        <p>Tie it back to prices. A price path with no drift is a random walk; add a small upward step bias (a positive expected return) and you get a random walk <em>with drift</em>, the workhorse model for an asset that earns a risk premium. But the no-drift symmetric walk is the right null hypothesis: if you cannot beat it, your "strategy" is just paying fees to flip coins.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — where is the walk after 100 steps, and a fair bet's ruin odds</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A symmetric ±1 walk runs for n = 100 steps. (a) Give its mean and standard deviation and a 95% range for its final position. (b) You start with $30 and bet $1 per fair round against a house with $70 more, so N = 100. Find your probability of breaking the bank and your expected number of rounds.</p>
+        <ol>
+            <li><strong>Mean position:</strong> E[S<sub>100</sub>] = 0 — no drift, so the center is the origin.</li>
+            <li><strong>Spread:</strong> Var(S<sub>100</sub>) = n = 100, so SD = √100 = <strong>10</strong>. The typical distance from start after 100 flips is about 10 tiles.</li>
+            <li><strong>95% range (CLT, Week 2):</strong> S<sub>100</sub> ≈ Normal(0, 100), so a ±2σ band is 0 ± 2·10 = <strong>[−20, +20]</strong>. Ending beyond ±20 happens only about 5% of the time.</li>
+            <li><strong>Gambler's ruin set-up:</strong> i = 30, N = 100. Probability of reaching $100 before $0 is i/N = 30/100 = <strong>0.30</strong>.</li>
+            <li><strong>Ruin probability:</strong> 1 − 0.30 = <strong>0.70</strong> — despite a perfectly fair coin, you bust 70% of the time because you start with the smaller stake.</li>
+            <li><strong>Expected game length:</strong> i·(N − i) = 30·70 = <strong>2,100 rounds</strong>. A "fair" game can run a long time before the absorbing wall is reached — but reached it will be.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate a price path as a cumulative sum</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1 environment (NumPy + Matplotlib — the install block is in <a href="l01-probability-expectation.html" style="color:var(--accent2);">Lecture 1</a> if you skipped it). We build many random walks at once, confirm the variance-equals-n law, and view the √n fan that brackets the paths.</p>
+        <details class="install">
+            <summary>⬇ Need the environment? (reuse Week-1 setup)</summary>
+            <p>If you built <code>quant-env</code> in Lecture 1, just activate it. Otherwise:</p>
+            <pre>python3 -m venv quant-env
+source quant-env/bin/activate      <span class="c"># macOS / Linux  (quant-env\Scripts\activate on Windows)</span>
+pip install numpy scipy matplotlib jupyter</pre>
+        </details>
+        <pre><span class="c"># random_walk.py — Lecture 5</span>
+import numpy as np
+
+rng   = np.random.default_rng(5)
+paths = 20_000          <span class="c"># number of independent walks</span>
+n     = 100             <span class="c"># steps per walk</span>
+
+<span class="c"># each step is +1 or -1 with prob 1/2; a price path is the cumulative sum</span>
+steps = rng.choice([-1, 1], size=(paths, n))
+walks = np.cumsum(steps, axis=1)          <span class="c"># shape (paths, n)</span>
+final = walks[:, -1]                       <span class="c"># position after n steps</span>
+
+print("mean of S_n      :", final.mean())  <span class="c"># ~ 0      (no drift)</span>
+print("variance of S_n  :", final.var())   <span class="c"># ~ 100    (= n)</span>
+print("std dev of S_n   :", final.std())   <span class="c"># ~ 10     (= sqrt(n))</span>
+
+<span class="c"># the spread at each step t should track sqrt(t):</span>
+spread = walks.std(axis=0)                 <span class="c"># std across paths at each step</span>
+t      = np.arange(1, n + 1)
+print("max |spread - sqrt(t)| :", np.abs(spread - np.sqrt(t)).max())  <span class="c"># small</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The mean stays near 0, the variance lands near 100, and <code>spread</code> hugs <code>sqrt(t)</code> step by step — the linear-variance law made visible. Plot a handful of <code>walks</code> rows over <code>±2*np.sqrt(t)</code> and you'll see most paths stay inside that widening parabolic fan. Swap <code>rng.choice([-1,1])</code> for <code>rng.normal(0, 1, ...)</code> and the same code becomes a Gaussian-return price simulator — the bridge to Week 7's Brownian motion.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The random walk is the discrete skeleton of nearly everything that follows. Next week (<strong>Week 6</strong>) we ask when a process is a <em>martingale</em> — a "fair game" with no predictable drift — and the symmetric walk is the canonical example. Shrink the step size and accelerate the clock and the walk converges to <strong>Brownian motion</strong> (Weeks 7–8), where the √n spread becomes the √t scaling of volatility and the binomial position becomes an exact Gaussian. That continuous walk is the engine inside the <strong>Black–Scholes</strong> option-pricing model of Course 3, and the gambler's-ruin lesson on survival reappears as the <strong>Kelly criterion</strong> for bet sizing. Master the coin-flip walk and you have already met, in miniature, the central object of quantitative finance.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> For a simple symmetric random walk after n steps, the variance of the position S<sub>n</sub> is…</div>
+            <div class="opt"><b>A.</b> √n</div>
+            <div class="opt"><b>B.</b> n</div>
+            <div class="opt"><b>C.</b> n²</div>
+            <div class="opt"><b>D.</b> 0</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Each ±1 step has variance 1, and independent variances add, so Var(S<sub>n</sub>) = n. √n (A) is the standard deviation, not the variance. n² (C) confuses linear growth with squaring. The variance is 0 only at n = 0 (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> After 400 steps of a symmetric ±1 walk, the typical distance (standard deviation) from the start is about…</div>
+            <div class="opt"><b>A.</b> 400</div>
+            <div class="opt"><b>B.</b> 200</div>
+            <div class="opt"><b>C.</b> 20</div>
+            <div class="opt"><b>D.</b> 40</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> SD = √n = √400 = 20. The full step count 400 (A) and half of it 200 (B) ignore the square root; 40 (D) is √400 doubled. Spread grows like √n, so quadrupling the steps only doubles the spread.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The expected position E[S<sub>n</sub>] of a simple <em>symmetric</em> random walk is…</div>
+            <div class="opt"><b>A.</b> 0, because each step has mean 0 and expectation is linear</div>
+            <div class="opt"><b>B.</b> n/2, the average number of up-steps</div>
+            <div class="opt"><b>C.</b> √n, the same as its spread</div>
+            <div class="opt"><b>D.</b> undefined until n is known</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Each step averages (+1)(½)+(−1)(½)=0, and linearity of expectation sums those zeros to 0 for every n. n/2 (B) is the expected count of up-steps, not the position. √n (C) is the spread, not the mean. The mean is well-defined (0) for all n (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> You start with $20 and bet $1 per fair round against a house, with the total stake N = $100. Your probability of reaching $100 before going broke is…</div>
+            <div class="opt"><b>A.</b> 0.50</div>
+            <div class="opt"><b>B.</b> 0.80</div>
+            <div class="opt"><b>C.</b> 0.20</div>
+            <div class="opt"><b>D.</b> 1.00</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> For a fair walk the chance of reaching N before 0 is your share i/N = 20/100 = 0.20. It is not 0.50 (A) — a fair coin does not make a fair <em>outcome</em> when stakes are unequal; 0.80 (B) is the ruin probability; 1.00 (D) would require an infinite or larger stake.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why does treating a price as a cumulative sum of independent returns lead to the "√t" scaling of volatility?</div>
+            <div class="opt"><b>A.</b> Because returns are always negative on average</div>
+            <div class="opt"><b>B.</b> Because variances of independent returns add, so total variance grows like t and the standard deviation like √t</div>
+            <div class="opt"><b>C.</b> Because expectation grows linearly, so volatility must too</div>
+            <div class="opt"><b>D.</b> Because the Poisson mean equals its variance</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Summing independent returns adds their variances, so variance ∝ t and volatility (the SD) ∝ √t. Returns are not always negative (A); expectation growing linearly describes drift, not the spread (C); the Poisson identity (D) is unrelated to summing returns.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined the <b>simple symmetric random walk</b> S<sub>n</sub> as a cumulative sum of independent ±1 steps — the discrete model of a price path.</li>
+            <li>Showed <b>E[S<sub>n</sub>] = 0</b> (no drift) while <b>Var(S<sub>n</sub>) = n</b>, so the spread grows like <b>√n</b> — the square-root-of-time law of volatility.</li>
+            <li>Used <b>symmetry and the reflection principle</b> to describe the walk's distribution and reason about first passages and barrier-style payoffs.</li>
+            <li>Built <b>gambler's-ruin</b> intuition: a fair game still ends in ruin (prob i/N to win) against a deep bankroll — why survival depends on position sizing.</li>
+            <li>Simulated <b>price paths as cumulative sums</b> in NumPy and confirmed the variance-equals-n / √n-fan behavior.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: <b>martingales and fair games</b> — the precise notion of "no predictable edge" that makes the symmetric walk the prototype, and the foundation of arbitrage-free pricing.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-covariance-correlation.html"><div class="dir">← Week 4</div><div class="ttl">Covariance, Correlation &amp; Independence</div></a>
+        <a class="next" href="l06-martingales.html"><div class="dir">Week 6 →</div><div class="ttl">Martingales &amp; Fair Games</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Probability</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

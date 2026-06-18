@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reactor Systems C4 · Lecture 2 — The Reactor Core &amp; Fuel Assembly Design</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C4 Reactor Systems</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>The Reactor Core &amp; Fuel Assembly Design</h1>
+        <p class="sub">A power reactor's heart is a precision lattice of millions of ceramic pellets — each thinner than a fingertip — whose geometry quietly decides both how the neutrons multiply and how the heat escapes.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Build the core from the bottom up: pellet &rarr; cladding &rarr; fuel rod &rarr; assembly &rarr; lattice core.</li>
+            <li>Explain why fuel is a sintered ceramic (UO₂) pellet inside a thin zirconium-alloy tube, and what each layer is for.</li>
+            <li>Define enrichment and burnup, and use them to estimate the energy a fuel load delivers.</li>
+            <li>Describe how grid spacers locate the rods and why the rod pitch sets the moderator-to-fuel ratio.</li>
+            <li>Connect assembly geometry to both neutronics (multiplication) and thermal-hydraulics (heat removal).</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>From a Pellet to a Core: the Nested Hierarchy</h2>
+        <p>A reactor core looks monolithic from the outside, but it is built from one tiny repeated unit. Start at the smallest piece. The fuel is a <strong>cylindrical ceramic pellet</strong> of uranium dioxide (UO₂), roughly the size of a pencil eraser — about 8&nbsp;mm in diameter and 10&nbsp;mm tall. The uranium is pressed as a powder and <strong>sintered</strong> (baked near 1700&nbsp;&deg;C) into a dense, hard ceramic. Ceramic, not metal, because UO₂ keeps its shape up to a melting point near 2800&nbsp;&deg;C and chemically locks in the radioactive fission products instead of letting them wander.</p>
+        <p>Stack a few hundred pellets into a thin sealed tube and you have a <strong>fuel rod</strong> (or fuel pin), typically about 1&nbsp;cm across and 3.5–4&nbsp;m long. The tube — the <strong>cladding</strong> — is a zirconium alloy chosen because it is nearly transparent to neutrons (it does not waste them) yet survives high temperature and pressure. The cladding is the first engineered barrier between the fission products and the coolant.</p>
+        <p>Now arrange a square grid of rods — a 17&times;17 array holds 264 fuel rods plus guide tubes — and bundle them with structural hardware into a <strong>fuel assembly</strong>. Finally, stand dozens to a couple hundred assemblies upright side by side, and that regular repeating pattern is the <strong>reactor core lattice</strong>. The whole power plant exists to extract heat from this stack of pellets.</p>
+        <div class="eq">pellet  ->  fuel rod  ->  assembly (17x17 lattice)  ->  core (100-200+ assemblies)<small>Each level is a tightly toleranced repeat of the one below; the core is a lattice of lattices.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the core like a city built from a single brick. The <em>pellet</em> is the brick, the <em>fuel rod</em> is a column of bricks, the <em>assembly</em> is a city block of columns, and the <em>core</em> is the whole grid of blocks. Change the brick spacing on one block and you change traffic flow across the entire city — exactly how rod pitch ripples out to govern the whole reactor.</div>
+    </section>
+
+    <!-- FIGURE 1: hierarchy -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 230" role="img" aria-label="Nested hierarchy from left to right: a small fuel pellet, a tall fuel rod containing stacked pellets and cladding, a square assembly lattice of rods, and a large core made of many assemblies.">
+            <!-- pellet -->
+            <text x="60" y="24" fill="#6ee7b7" font-size="12" text-anchor="middle">Pellet</text>
+            <rect x="48" y="95" width="24" height="30" rx="4" fill="#34d399"/>
+            <text x="60" y="150" fill="#94b8a2" font-size="9" text-anchor="middle">UO2 ceramic</text>
+            <text x="60" y="162" fill="#94b8a2" font-size="9" text-anchor="middle">~8 mm</text>
+            <!-- arrow 1 -->
+            <line x1="84" y1="110" x2="118" y2="110" stroke="#94b8a2" stroke-width="1.5"/>
+            <polygon points="118,110 110,106 110,114" fill="#94b8a2"/>
+            <!-- fuel rod -->
+            <text x="160" y="24" fill="#6ee7b7" font-size="12" text-anchor="middle">Fuel rod</text>
+            <rect x="150" y="40" width="20" height="150" rx="8" fill="none" stroke="#fbbf24" stroke-width="2"/>
+            <rect x="154" y="52" width="12" height="16" rx="2" fill="#34d399"/>
+            <rect x="154" y="70" width="12" height="16" rx="2" fill="#34d399"/>
+            <rect x="154" y="88" width="12" height="16" rx="2" fill="#34d399"/>
+            <rect x="154" y="106" width="12" height="16" rx="2" fill="#34d399"/>
+            <rect x="154" y="124" width="12" height="16" rx="2" fill="#34d399"/>
+            <rect x="154" y="142" width="12" height="16" rx="2" fill="#34d399"/>
+            <text x="195" y="120" fill="#fbbf24" font-size="9" text-anchor="start">cladding</text>
+            <text x="160" y="205" fill="#94b8a2" font-size="9" text-anchor="middle">~4 m</text>
+            <!-- arrow 2 -->
+            <line x1="218" y1="110" x2="252" y2="110" stroke="#94b8a2" stroke-width="1.5"/>
+            <polygon points="252,110 244,106 244,114" fill="#94b8a2"/>
+            <!-- assembly lattice -->
+            <text x="320" y="24" fill="#6ee7b7" font-size="12" text-anchor="middle">Assembly</text>
+            <rect x="285" y="45" width="70" height="70" rx="4" fill="none" stroke="#60a5fa" stroke-width="1.5"/>
+            <g fill="#34d399">
+                <circle cx="296" cy="56" r="3.2"/><circle cx="308" cy="56" r="3.2"/><circle cx="320" cy="56" r="3.2"/><circle cx="332" cy="56" r="3.2"/><circle cx="344" cy="56" r="3.2"/>
+                <circle cx="296" cy="68" r="3.2"/><circle cx="308" cy="68" r="3.2"/><circle cx="332" cy="68" r="3.2"/><circle cx="344" cy="68" r="3.2"/>
+                <circle cx="296" cy="80" r="3.2"/><circle cx="320" cy="80" r="3.2"/><circle cx="344" cy="80" r="3.2"/>
+                <circle cx="296" cy="92" r="3.2"/><circle cx="308" cy="92" r="3.2"/><circle cx="332" cy="92" r="3.2"/><circle cx="344" cy="92" r="3.2"/>
+                <circle cx="296" cy="104" r="3.2"/><circle cx="308" cy="104" r="3.2"/><circle cx="320" cy="104" r="3.2"/><circle cx="332" cy="104" r="3.2"/><circle cx="344" cy="104" r="3.2"/>
+            </g>
+            <circle cx="320" cy="68" r="3.6" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+            <circle cx="308" cy="80" r="3.6" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+            <circle cx="332" cy="80" r="3.6" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+            <text x="320" y="130" fill="#94b8a2" font-size="9" text-anchor="middle">17x17 grid of rods</text>
+            <text x="320" y="142" fill="#a78bfa" font-size="9" text-anchor="middle">o = guide tube</text>
+            <!-- arrow 3 -->
+            <line x1="380" y1="80" x2="414" y2="80" stroke="#94b8a2" stroke-width="1.5"/>
+            <polygon points="414,80 406,76 406,84" fill="#94b8a2"/>
+            <!-- core -->
+            <text x="490" y="24" fill="#6ee7b7" font-size="12" text-anchor="middle">Core</text>
+            <g fill="none" stroke="#34d399" stroke-width="1.2">
+                <rect x="455" y="50" width="14" height="14"/><rect x="471" y="50" width="14" height="14"/><rect x="487" y="50" width="14" height="14"/><rect x="503" y="50" width="14" height="14"/>
+                <rect x="455" y="66" width="14" height="14"/><rect x="471" y="66" width="14" height="14"/><rect x="487" y="66" width="14" height="14"/><rect x="503" y="66" width="14" height="14"/><rect x="519" y="66" width="14" height="14"/>
+                <rect x="455" y="82" width="14" height="14"/><rect x="471" y="82" width="14" height="14"/><rect x="487" y="82" width="14" height="14"/><rect x="503" y="82" width="14" height="14"/><rect x="519" y="82" width="14" height="14"/>
+                <rect x="455" y="98" width="14" height="14"/><rect x="471" y="98" width="14" height="14"/><rect x="487" y="98" width="14" height="14"/><rect x="503" y="98" width="14" height="14"/>
+            </g>
+            <text x="490" y="142" fill="#94b8a2" font-size="9" text-anchor="middle">lattice of assemblies</text>
+        </svg>
+        <figcaption>The nested core hierarchy: a sintered <span style="color:#34d399">UO₂ pellet</span> sits inside a <span style="color:#fbbf24">clad fuel rod</span>; rods pack into a square <span style="color:#60a5fa">assembly</span> (with <span style="color:#a78bfa">guide tubes</span> for control rods); and assemblies tile into the full core lattice. Each level is a precise repeat of the one below.</figcaption>
+    </figure>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Enrichment: Tuning the Fissile Fraction</h2>
+        <p>Natural uranium is almost all uranium-238, which a slow (thermal) neutron will not split. Only about <strong>0.72%</strong> is the fissile isotope uranium-235. That is too lean for most water-cooled reactors, because ordinary water absorbs enough neutrons that a 0.72% mixture cannot sustain a chain reaction. <strong>Enrichment</strong> is the process of raising the U-235 fraction — typically to <strong>3–5%</strong> for commercial light-water reactors.</p>
+        <p>Enrichment is a mass fraction of the fissile isotope in the uranium:</p>
+        <div class="eq">enrichment e = mass(U-235) / mass(U-235 + U-238)<small>Natural: 0.72%. LWR fuel: ~3-5%. Research/naval cores can go higher; weapons-grade is &gt;90% (out of scope).</small></div>
+        <p>Why does this matter for the assembly designer? More U-235 per pellet means more fissions per neutron and a hotter, more reactive lattice. But enrichment is expensive and tightly regulated, so designers use the <em>minimum</em> enrichment that still lets the core run a full operating cycle. Within a single assembly, designers even vary enrichment rod-to-rod — lower enrichment near the edges — to flatten the power so no single rod runs too hot. Enrichment, in short, is the first knob you turn to set how reactive the core will be.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Enrichment is <strong>not</strong> the same as how radioactive or how "powerful" the fuel is in a bomb sense. Commercial 5%-enriched fuel cannot explode like a weapon — the geometry, enrichment, and assembly are all deliberately wrong for that. Enrichment simply sets the fissile <em>fraction</em>; the chain reaction is still controlled entirely by the lattice geometry, moderator, and control rods.</div>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Burnup: How Much Energy a Fuel Load Delivers</h2>
+        <p>Once fuel is loaded, you want to know how much energy you can wring out of it before it must be replaced. The metric is <strong>burnup</strong>: the thermal energy extracted per unit mass of heavy metal (uranium) in the fuel. The standard unit is gigawatt-days per tonne of heavy metal:</p>
+        <div class="eq">burnup B = (thermal energy produced) / (initial mass of heavy metal)   [GWd / tHM]<small>tHM = tonne of heavy metal (the uranium charged into the core). Typical LWR discharge: 45-60 GWd/tHM.</small></div>
+        <p>Burnup is the fuel's "odometer." As the reactor runs, U-235 is consumed and neutron-absorbing fission products build up, so the lattice slowly loses reactivity. When an assembly can no longer hold the chain reaction efficiently, it is discharged — usually after about 4–6 years and a burnup of <strong>45–60 GWd/tHM</strong>. Higher enrichment buys higher achievable burnup, which means fewer refueling outages and more energy per assembly. The link is direct: roughly, each 1% of U-235 fissioned corresponds to about 9.4 GWd/tHM, so 5% fuel can reach far higher burnup than the old 3% fuel.</p>
+        <p>Burnup ties the whole assembly-design problem together: enrichment sets how much fissile material you start with, geometry sets how evenly it burns, and the cladding must survive the entire accumulated burnup without failing. A good design burns the fuel deeply <em>and</em> evenly.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Burnup is the fuel tank gauge of a car expressed as miles-per-tank rather than fuel remaining. Enrichment is like the octane rating — higher octane (enrichment) lets you drive farther (higher burnup) before refueling. And just as you don't want one cylinder running far hotter than the rest, you want every fuel rod to burn at a similar rate.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Lattice Geometry: Where Neutronics Meets Thermal-Hydraulics</h2>
+        <p>The single most consequential geometric choice in the assembly is the <strong>rod pitch</strong> — the center-to-center spacing between neighboring fuel rods. Holding the rods at exactly that pitch, all the way up a 4-metre column, is the job of the <strong>grid spacers</strong>: thin egg-crate lattices welded along the assembly at intervals. They locate every rod, resist flow-induced vibration, and often carry small vanes that swirl the coolant to mix it and improve heat transfer.</p>
+        <p>Pitch matters because the gap between rods is filled with the <strong>moderator/coolant</strong> (water, in a light-water reactor). Water both slows fast neutrons down to thermal energies (where U-235 fissions best) and carries heat away. The ratio that captures this is the <strong>moderator-to-fuel ratio</strong>, well approximated by the ratio of water volume to fuel volume in the unit cell:</p>
+        <div class="eq">Vm / Vf = (p^2 - pi*r^2) / (pi*r^2)<small>p = rod pitch, r = fuel-pellet radius, in a square lattice unit cell. The water occupies the area left over after the rod.</small></div>
+        <p>Here is the design tension. Spread the rods apart (large pitch &rarr; more water): neutrons are well moderated and there is plenty of coolant for heat removal — but too much water also <em>absorbs</em> neutrons and wastes core volume. Pack them tight (small pitch &rarr; less water): you fit more fuel in a compact core, but neutrons are <strong>under-moderated</strong> and the narrow channels struggle to remove heat. Real LWRs are deliberately designed slightly under-moderated, so that if the water heats up and thins out, reactivity <em>drops</em> — a built-in negative feedback that makes the core self-stabilizing.</p>
+        <p>This is the key idea of the whole lecture: <strong>one geometric parameter — the pitch — simultaneously governs the neutronics (how well neutrons are moderated and multiplied) and the thermal-hydraulics (how much coolant flows and how hot the rods get).</strong> You cannot optimize one without the other; the assembly is where physics and heat engineering are forced to agree.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 300" role="img" aria-label="A square unit cell with a central fuel rod surrounded by water. Below it, a curve of reactivity versus moderator-to-fuel ratio peaking at optimum moderation, with the operating point placed on the under-moderated left side.">
+                <!-- unit cell -->
+                <text x="120" y="28" fill="#6ee7b7" font-size="13" text-anchor="middle">Square unit cell</text>
+                <rect x="55" y="45" width="130" height="130" fill="rgba(96,165,250,.14)" stroke="#60a5fa" stroke-width="1.5"/>
+                <circle cx="120" cy="110" r="32" fill="#fbbf24"/>
+                <circle cx="120" cy="110" r="38" fill="none" stroke="#94b8a2" stroke-width="3"/>
+                <text x="120" y="100" fill="#06121d" font-size="11" text-anchor="middle" font-weight="bold">fuel</text>
+                <text x="120" y="65" fill="#60a5fa" font-size="10" text-anchor="middle">water (moderator)</text>
+                <!-- pitch dimension -->
+                <line x1="55" y1="190" x2="185" y2="190" stroke="#34d399" stroke-width="1.5"/>
+                <line x1="55" y1="185" x2="55" y2="195" stroke="#34d399" stroke-width="1.5"/>
+                <line x1="185" y1="185" x2="185" y2="195" stroke="#34d399" stroke-width="1.5"/>
+                <text x="120" y="205" fill="#34d399" font-size="11" text-anchor="middle">pitch p</text>
+                <line x1="120" y1="120" x2="152" y2="120" stroke="#06121d" stroke-width="2"/>
+                <text x="136" y="135" fill="#06121d" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+                <!-- reactivity curve -->
+                <text x="400" y="28" fill="#6ee7b7" font-size="13" text-anchor="middle">Reactivity vs moderation</text>
+                <line x1="290" y1="240" x2="540" y2="240" stroke="#94b8a2" stroke-width="1.5"/>
+                <line x1="290" y1="240" x2="290" y2="55" stroke="#94b8a2" stroke-width="1.5"/>
+                <text x="415" y="270" fill="#94b8a2" font-size="11" text-anchor="middle">moderator-to-fuel ratio Vm/Vf</text>
+                <text x="278" y="150" fill="#94b8a2" font-size="11" text-anchor="middle" transform="rotate(-90 278 150)">reactivity k</text>
+                <path d="M 300,210 Q 360,70 410,72 Q 470,76 530,180" fill="none" stroke="#34d399" stroke-width="3"/>
+                <!-- optimum -->
+                <circle cx="410" cy="72" r="4" fill="#6ee7b7"/>
+                <text x="410" y="62" fill="#6ee7b7" font-size="9" text-anchor="middle">optimum</text>
+                <!-- operating point on left (under-moderated) -->
+                <circle cx="345" cy="120" r="5" fill="#fbbf24"/>
+                <text x="345" y="110" fill="#fbbf24" font-size="9" text-anchor="middle">operating pt</text>
+                <text x="335" y="225" fill="#fbbf24" font-size="9" text-anchor="middle">under-moderated</text>
+                <text x="500" y="225" fill="#94b8a2" font-size="9" text-anchor="middle">over-moderated</text>
+                <!-- feedback arrow -->
+                <line x1="345" y1="135" x2="320" y2="175" stroke="#fbbf24" stroke-width="1.8" stroke-dasharray="4 3"/>
+                <polygon points="320,175 326,166 314,168" fill="#fbbf24"/>
+                <text x="305" y="195" fill="#fbbf24" font-size="8.5" text-anchor="middle">hotter water -&gt; k drops</text>
+            </svg>
+            <figcaption>Left: the square <span style="color:#60a5fa">unit cell</span> — a single <span style="color:#fbbf24">fuel rod</span> of radius r at pitch p, surrounded by water. Right: reactivity peaks at an optimum moderator-to-fuel ratio. LWRs sit on the <span style="color:#fbbf24">under-moderated</span> (left) side, so heating thins the water and reactivity falls — a self-stabilizing negative feedback.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — moderator-to-fuel ratio and energy per assembly</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 17&times;17 assembly uses fuel pellets of radius r = 0.41&nbsp;cm on a square pitch p = 1.26&nbsp;cm. (a) Find the moderator-to-fuel volume ratio of the unit cell (ignore cladding for a first estimate). (b) If the assembly holds about 460&nbsp;kg of uranium and is discharged at a burnup of 50&nbsp;GWd/tHM, how much thermal energy did it deliver?</p>
+        <ol>
+            <li><strong>Fuel area in the cell:</strong> A_fuel = pi r&sup2; = pi &times; (0.41)&sup2; = pi &times; 0.1681 = <strong>0.5281 cm&sup2;</strong>.</li>
+            <li><strong>Cell area:</strong> A_cell = p&sup2; = (1.26)&sup2; = <strong>1.5876 cm&sup2;</strong>.</li>
+            <li><strong>Water (moderator) area:</strong> A_water = 1.5876 &minus; 0.5281 = <strong>1.0595 cm&sup2;</strong>.</li>
+            <li><strong>Moderator-to-fuel ratio:</strong> Vm/Vf = 1.0595 / 0.5281 &approx; <strong>2.0</strong>. A ratio near 2 is typical of an under-moderated LWR lattice — exactly where we want the negative feedback.</li>
+            <li><strong>Energy delivered (part b):</strong> 460&nbsp;kg = 0.460&nbsp;tHM. Energy = burnup &times; mass = 50&nbsp;GWd/tHM &times; 0.460&nbsp;tHM = <strong>23 GW&middot;days</strong> (thermal).</li>
+            <li><strong>Put it in familiar units:</strong> 23&nbsp;GWd &times; 24&nbsp;h/day = 552&nbsp;GWh = <strong>5.52 &times; 10&sup5; MWh</strong> of thermal energy from a single assembly — enough to run a small town for months, all from ~460&nbsp;kg of uranium.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: model a fuel rod and unit cell with FreeCAD + Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This course builds reactor hardware in free CAD/FEA tools — <code>FreeCAD</code> for the geometry, <code>Salome-Meca</code> (with the <code>code_aster</code> solver) for thermal/structural finite-element analysis, and <code>Python + NumPy</code> to script and post-process. <strong>Week 2 setup:</strong> install once below, then reuse it for every lecture and the course project.</p>
+        <details class="install" open>
+            <summary>⬇ Install FreeCAD + Salome-Meca + Python/NumPy (one-time, Week 2 setup)</summary>
+            <p>FreeCAD ships a bundled Python; the scientific stack installs cleanly on top:</p>
+            <pre>python3 -m venv reactor-env
+source reactor-env/bin/activate    <span class="c"># macOS / Linux</span>
+reactor-env\Scripts\activate       <span class="c"># Windows (PowerShell)</span>
+pip install numpy matplotlib jupyter</pre>
+            <p>FreeCAD and Salome-Meca are free downloads (conda makes FreeCAD easy to script):</p>
+            <pre>conda install -c conda-forge freecad
+<span class="c"># Salome-Meca: download the free installer from the code_aster / Salome site</span></pre>
+            <p><strong>Verify:</strong> run <code>python -c "import numpy; print('ok')"</code> and launch FreeCAD once — its Python console printing <code>FreeCAD</code> means you're set for the whole course.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">Let's script the unit-cell geometry and confirm the moderator-to-fuel ratio from the worked example, then sketch the rod in FreeCAD.</p>
+        <pre><span class="c"># unit_cell.py — Lecture 2 (run in FreeCAD's Python console or plain Python for the math)</span>
+import numpy as np
+
+r_fuel = 0.41      <span class="c"># pellet radius, cm</span>
+pitch  = 1.26      <span class="c"># rod center-to-center spacing, cm</span>
+
+A_fuel  = np.pi * r_fuel**2          <span class="c"># fuel cross-section</span>
+A_cell  = pitch**2                   <span class="c"># square unit cell</span>
+A_water = A_cell - A_fuel            <span class="c"># leftover = moderator</span>
+ratio   = A_water / A_fuel
+
+print(f"Vm/Vf = {ratio:.2f}")       <span class="c"># -> 2.01  (under-moderated LWR)</span>
+
+<span class="c"># --- FreeCAD geometry: extrude a 4 m fuel rod ---</span>
+import FreeCAD as App, Part
+doc = App.newDocument("FuelRod")
+clad_or = 0.475                      <span class="c"># cladding outer radius, cm</span>
+H = 400.0                            <span class="c"># active length, cm</span>
+clad   = Part.makeCylinder(clad_or, H)
+pellet = Part.makeCylinder(r_fuel,  H)
+Part.show(clad,   "Cladding")
+Part.show(pellet, "FuelStack")
+print("rod volume (cm^3):", round(clad.Volume, 1))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The math reproduces Vm/Vf &approx; 2.0 from the worked example. Try sweeping <code>pitch</code> from 1.1 to 1.5 cm and plotting the ratio — you'll see directly how tightening the lattice under-moderates the core. The FreeCAD block builds a real solid rod you can later mesh in Salome-Meca for a thermal run.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The assembly you built here is the unit you'll keep zooming out from. In <strong>Week 3</strong> we surround the core with the pressure vessel and primary coolant loop — the plumbing that carries away those 23 GW&middot;days of heat. Later in this course, <strong>thermal-hydraulics</strong> weeks turn the rod pitch and coolant gap into real temperature and pressure-drop calculations (and a Salome-Meca thermal model of this very rod), while the <strong>safety</strong> weeks lean hard on the under-moderated negative feedback you just met. And everything traces back to the <strong>neutronics</strong> of the C-series physics course: the lattice geometry here <em>is</em> the geometry that sets the multiplication factor k you'll compute from first principles.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why is reactor fuel made as a sintered UO₂ <em>ceramic</em> pellet rather than as metallic uranium?</div>
+            <div class="opt"><b>A.</b> Ceramic is cheaper than metal to manufacture</div>
+            <div class="opt"><b>B.</b> The high-melting-point ceramic keeps its shape and chemically retains fission products at reactor temperatures</div>
+            <div class="opt"><b>C.</b> Ceramic conducts neutrons better than metal</div>
+            <div class="opt"><b>D.</b> Ceramic is radioactive while metal uranium is not</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> UO₂ has a ~2800&nbsp;&deg;C melting point and locks fission products into its lattice, the first containment barrier. (A) ceramic is not chosen for cost. (C) "conducting neutrons" is not a thing, and UO₂ actually has poor thermal conductivity. (D) both forms of uranium are radioactive.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Natural uranium is about 0.72% U-235. Commercial light-water reactor fuel is typically enriched to roughly…</div>
+            <div class="opt"><b>A.</b> 0.72% (unchanged)</div>
+            <div class="opt"><b>B.</b> over 90%</div>
+            <div class="opt"><b>C.</b> 3–5%</div>
+            <div class="opt"><b>D.</b> exactly 50%</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> LWR fuel is enriched to about 3–5% U-235 — enough to sustain a chain reaction in a water lattice. (A) 0.72% is too lean for most LWRs. (B) &gt;90% is weapons-grade, deliberately not used in commercial power fuel. (D) 50% has no basis.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Burnup (e.g. 50 GWd/tHM) is best described as…</div>
+            <div class="opt"><b>A.</b> the temperature at which the fuel melts</div>
+            <div class="opt"><b>B.</b> the rod center-to-center spacing in the lattice</div>
+            <div class="opt"><b>C.</b> the enrichment fraction of the fresh fuel</div>
+            <div class="opt"><b>D.</b> the thermal energy extracted per unit mass of heavy metal in the fuel</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Burnup measures energy produced per tonne of heavy metal (GWd/tHM) — the fuel's "odometer." (A) is melting point, (B) is pitch, (C) is enrichment — all different quantities, though enrichment and burnup are linked (more U-235 enables more burnup).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In a square unit cell, the moderator-to-fuel volume ratio is Vm/Vf = (p² &minus; πr²)/(πr²). If you <em>decrease</em> the rod pitch p (pack the rods tighter), the lattice becomes…</div>
+            <div class="opt"><b>A.</b> more under-moderated, with less coolant per rod</div>
+            <div class="opt"><b>B.</b> more over-moderated, with more coolant per rod</div>
+            <div class="opt"><b>C.</b> unaffected, since pitch does not appear in the ratio</div>
+            <div class="opt"><b>D.</b> unable to reach criticality under any circumstances</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Smaller p shrinks the water area (p² &minus; πr²), lowering Vm/Vf — less moderation and less coolant per rod. (B) is the opposite direction. (C) is wrong: p² is explicitly in the formula. (D) is overstated — tighter lattices still operate; they just shift along the moderation curve.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why are commercial LWR lattices deliberately designed to be slightly <em>under-moderated</em>?</div>
+            <div class="opt"><b>A.</b> To make the fuel cheaper by using less uranium</div>
+            <div class="opt"><b>B.</b> So that if the coolant heats and thins, reactivity drops — a self-stabilizing negative feedback</div>
+            <div class="opt"><b>C.</b> To eliminate the need for control rods entirely</div>
+            <div class="opt"><b>D.</b> Because under-moderation maximizes reactivity at all temperatures</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> On the under-moderated side, heating the water reduces its density and moderation, so k falls — passive negative feedback that helps the core self-stabilize. (A) confuses moderation with fuel cost. (C) control rods are still required for startup, shutdown, and shaping power. (D) is backwards — peak reactivity is at the <em>optimum</em>, not under-moderated.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Built the core hierarchy — <b>pellet &rarr; rod &rarr; assembly &rarr; lattice core</b> — and why fuel is sintered UO₂ in zirconium-alloy cladding.</li>
+            <li>Defined <b>enrichment</b> as the U-235 mass fraction (~3–5% for LWRs) and the first knob for core reactivity.</li>
+            <li>Defined <b>burnup</b> (GWd/tHM) as the energy a fuel load delivers, and linked it to enrichment and cladding lifetime.</li>
+            <li>Used <b>grid spacers and rod pitch</b> to set the <b>moderator-to-fuel ratio</b> from the unit-cell geometry.</li>
+            <li>Saw how one geometric parameter ties <b>neutronics and thermal-hydraulics</b> together, and why <b>under-moderation</b> gives self-stabilizing feedback — verified in Python/FreeCAD.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: Primary System &amp; Pressure Vessel. We wrap the core in its steel vessel and the high-pressure coolant loop that carries the heat out to make steam.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-reactor-types-overview.html"><div class="dir">← Week 1</div><div class="ttl">Reactor Types &amp; Plant Overview</div></a>
+        <a class="next" href="l03-primary-system-vessel.html"><div class="dir">Week 3 →</div><div class="ttl">Primary System &amp; Pressure Vessel</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Reactor Systems</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

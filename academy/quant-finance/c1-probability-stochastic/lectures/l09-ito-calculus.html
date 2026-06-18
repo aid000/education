@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C1 · Lecture 9 — Intro to Itô Calculus</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C1 Probability</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Intro to Itô Calculus</h1>
+        <p class="sub">Brownian paths are too jagged for ordinary calculus — so we build a new one, where the square of a tiny random wiggle stops being negligible and rewrites the chain rule itself.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why ordinary calculus breaks down on Brownian paths — they are continuous everywhere yet differentiable nowhere.</li>
+            <li>Describe the Itô integral as a <em>non-anticipating</em> Riemann-style sum that evaluates the integrand at the left endpoint of each step.</li>
+            <li>Internalize the central rule of stochastic calculus: <span class="key">(dW)² = dt</span>, with dt·dt and dt·dW vanishing.</li>
+            <li>Apply <strong>Itô's lemma</strong> to transform a function of a stochastic process, including the extra second-derivative term.</li>
+            <li>Derive the log dynamics of geometric Brownian motion and explain the <span class="key">−½σ²</span> drift correction in finance terms.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>Why Ordinary Calculus Fails</h2>
+        <p>In Week 8 you met <strong>Brownian motion</strong> W<sub>t</sub>: a continuous random path whose increments over disjoint intervals are independent and Normal, with W<sub>t+Δt</sub> − W<sub>t</sub> ~ Normal(0, Δt). That last fact hides something violent. The <em>size</em> of a typical increment over a window Δt is its standard deviation, √Δt — not Δt. Over a tiny step, √Δt is enormous compared to Δt itself.</p>
+        <p>Ordinary calculus rests on the idea that over a small step a smooth function looks like a straight line: Δf ≈ f′(x)·Δx, and the leftover is order (Δx)², which you happily throw away. The slope f′ exists because Δf/Δx settles down to a limit. For a Brownian path that ratio is ΔW/Δt ≈ √Δt/Δt = 1/√Δt, which <strong>blows up</strong> as Δt → 0. The path is continuous but has <em>no</em> derivative at any point — it is infinitely jagged at every scale.</p>
+        <div class="eq">ΔW ~ √Δt&nbsp;&nbsp;⟹&nbsp;&nbsp; ΔW/Δt ~ 1/√Δt → ∞<small>A Brownian path is continuous everywhere and differentiable nowhere — dW/dt simply does not exist.</small></div>
+        <p>So we cannot write dW/dt and integrate it as a normal velocity. The escape is to stop chasing slopes and work directly with <em>increments</em> dW, defining a brand-new integral and a brand-new chain rule. That machinery is <strong>Itô calculus</strong>, and it is the language every continuous-time pricing model is written in.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Zoom into a stock's tick-by-tick price chart and it never smooths out — each magnification reveals fresh zig-zags, like a coastline that looks equally crinkly from orbit or from the beach. A smooth road has a well-defined direction at every point; a Brownian coastline does not. You cannot ask "which way is the price heading right now?" — only "how far did it travel over this interval?"</div>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>The Itô Integral: Summing Bets, Not Slopes</h2>
+        <p>If we cannot differentiate W, can we still integrate against it? We want to make sense of ∫ f(t) dW<sub>t</sub> — the running total of a quantity f multiplied by the random kicks dW. The finance picture makes the definition obvious: imagine you hold f<sub>t</sub> units of an asset whose price moves by dW<sub>t</sub>. Your gain over a step is (position) × (price change). Sum those gains.</p>
+        <p>We chop [0, T] into steps t<sub>0</sub> &lt; t<sub>1</sub> &lt; … &lt; t<sub>n</sub> and add up the increments. The crucial choice is <em>when</em> we read the integrand. Itô insists you evaluate f at the <strong>left endpoint</strong> of each step — the start, <em>before</em> the random move happens:</p>
+        <div class="eq">∫₀ᵀ f<sub>t</sub> dW<sub>t</sub> = lim Σ f<sub>t<sub>i</sub></sub> · ( W<sub>t<sub>i+1</sub></sub> − W<sub>t<sub>i</sub></sub> )<small>The integrand f is sampled at the <em>start</em> of each interval — you commit your position before the dice are thrown.</small></div>
+        <p>This <span class="key">non-anticipating</span> rule is not a technicality; it is the entire financial meaning. You must size your position using only information available <em>now</em>; you cannot peek at the price change you are about to earn. A consequence we leaned on in the martingale week (Week 6): an Itô integral of a non-anticipating integrand is a <strong>martingale</strong> — it has zero expected gain, E[∫ f dW] = 0, because each step multiplies a known position by a fair, mean-zero kick.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Evaluating the integrand at the <em>midpoint</em> or <em>right</em> endpoint gives a different answer (the Stratonovich integral), and it quietly lets you trade on the future. In finance always use the Itô (left-point) convention — otherwise your "strategy" earns money by knowing the next price move, which is not a strategy, it is cheating.</div>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>The Rule That Changes Everything: (dW)² = dt</h2>
+        <p>Here is the single fact that separates stochastic calculus from the ordinary kind. Over a step Δt, the Brownian increment ΔW has mean 0 and variance Δt. Square it: (ΔW)² has mean Δt. The remarkable part — provable from the Normal distribution — is that as the step shrinks, (ΔW)² does not just <em>average</em> Δt, it becomes essentially <em>equal</em> to Δt, with vanishing randomness. The squared wiggles, summed up, are deterministic. We write this as:</p>
+        <div class="eq">(dW)² = dt,&nbsp;&nbsp;&nbsp; dt·dt = 0,&nbsp;&nbsp;&nbsp; dt·dW = 0<small>The "multiplication table" of stochastic calculus. The square of noise survives; everything with two or more dt-factors vanishes.</small></div>
+        <p>Why does this break ordinary calculus? Recall the Taylor expansion of a smooth f around a step in its argument: Δf ≈ f′·Δx + ½f″·(Δx)² + …. In normal calculus (Δx)² is order (Δt)² and is discarded. But when x is Brownian, (ΔW)² is order <em>Δt</em> — the <em>same order</em> as the term we keep. The second-derivative term refuses to die. That surviving ½f″ term is the whole of Itô's lemma.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 230" role="img" aria-label="Two stacked bars showing scaling with step size. Top: for a smooth path the first-order term is order dt and the second-order term is order dt squared and vanishes. Bottom: for a Brownian path the first-order term is order root dt and the second-order term is order dt and survives.">
+                <!-- title -->
+                <text x="200" y="20" fill="#fcd34d" font-size="12" font-weight="bold" text-anchor="middle">How the Taylor terms scale as the step shrinks</text>
+                <!-- SMOOTH row -->
+                <text x="14" y="62" fill="#bcae8c" font-size="11">smooth x(t):</text>
+                <rect x="120" y="50" width="150" height="20" fill="rgba(96,165,250,.5)" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="195" y="64" fill="#dbeafe" font-size="10" text-anchor="middle">f′·Δx  ~ Δt  (kept)</text>
+                <rect x="278" y="52" width="16" height="16" fill="rgba(58,49,25,.8)" stroke="#3a3119" stroke-width="1"/>
+                <text x="360" y="64" fill="#6b6044" font-size="9.5" text-anchor="end">½f″·(Δx)² ~ Δt² → 0</text>
+                <!-- divider -->
+                <line x1="14" y1="92" x2="386" y2="92" stroke="#3a3119" stroke-width="1" stroke-dasharray="4 4"/>
+                <!-- BROWNIAN row -->
+                <text x="14" y="135" fill="#bcae8c" font-size="11">Brownian Wₜ:</text>
+                <rect x="120" y="118" width="150" height="22" fill="rgba(251,191,36,.45)" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="195" y="133" fill="#fde68a" font-size="10" text-anchor="middle">f′·ΔW  ~ √Δt  (kept)</text>
+                <rect x="278" y="121" width="100" height="16" fill="rgba(52,211,153,.4)" stroke="#34d399" stroke-width="1.5"/>
+                <text x="328" y="133" fill="#a7f3d0" font-size="9.5" text-anchor="middle">½f″·(ΔW)² ~ Δt</text>
+                <!-- survives callout -->
+                <line x1="328" y1="140" x2="328" y2="168" stroke="#34d399" stroke-width="1.3"/>
+                <path d="M328,168 L323,160 L333,160 Z" fill="#34d399"/>
+                <text x="328" y="184" fill="#6ee7b7" font-size="10" text-anchor="middle" font-weight="bold">SURVIVES</text>
+                <text x="328" y="198" fill="#bcae8c" font-size="9" text-anchor="middle">because (ΔW)² = Δt</text>
+                <!-- bottom note -->
+                <text x="200" y="222" fill="#bcae8c" font-size="9.5" text-anchor="middle">The second-order term is the same order as the first-order time term — it cannot be discarded.</text>
+            </svg>
+            <figcaption>For a smooth path the quadratic Taylor term is order Δt² and vanishes. For a Brownian path (ΔW)² scales like Δt, so the ½f″ term survives into the limit — that surviving term <em>is</em> Itô's correction.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 9.4 -->
+    <section class="lec">
+        <h2><span class="n">9.4</span>Itô's Lemma and the GBM Drift Correction</h2>
+        <p>Suppose a process X<sub>t</sub> follows a <strong>stochastic differential equation</strong> (SDE) with a drift a (the predictable trend per unit time) and a diffusion b (the size of the random kicks):</p>
+        <div class="eq">dX<sub>t</sub> = a(X<sub>t</sub>, t) dt + b(X<sub>t</sub>, t) dW<sub>t</sub></div>
+        <p>Now take a smooth function f(X<sub>t</sub>, t) — for instance the log of a price, or an option payoff. <strong>Itô's lemma</strong> is the chain rule for this world. Expand f to second order and apply the table from §9.3: keep f′·dX and ½f″·(dX)², then substitute (dW)² = dt and drop everything with dt·dt or dt·dW. Since (dX)² = b²(dW)² = b²dt, you get:</p>
+        <div class="eq">df = ( ∂f/∂t + a ∂f/∂x + ½ b² ∂²f/∂x² ) dt + b ∂f/∂x dW<small>The boxed-in extra piece, ½ b² ∂²f/∂x², is the Itô correction — absent from ordinary calculus, present whenever f is nonlinear.</small></div>
+        <p>The headline application is <strong>geometric Brownian motion</strong> (GBM), the standard model for a stock price S<sub>t</sub> with constant expected return μ and volatility σ:</p>
+        <div class="eq">dS<sub>t</sub> = μ S<sub>t</sub> dt + σ S<sub>t</sub> dW<sub>t</sub></div>
+        <p>Here a = μS and b = σS. Take f = ln S (so ∂f/∂t = 0, ∂f/∂x = 1/S, ∂²f/∂x² = −1/S²). Plug into Itô's lemma:</p>
+        <div class="eq">d(ln S) = ( μ − ½σ² ) dt + σ dW<sub>t</sub><small>Naïve calculus would have given just μ dt + σ dW. The −½σ² is the Itô correction — and it is real money.</small></div>
+        <p>So the <em>log price</em> is an ordinary Brownian motion with drift (μ − ½σ²) and volatility σ. Two finance lessons fall out. First, the log-price grows linearly with the corrected drift, so log S<sub>T</sub> is Normal — meaning S<sub>T</sub> itself is <strong>lognormal</strong>, never negative, exactly as a price should be. Second, the median compound growth rate of the stock is μ − ½σ², <em>not</em> μ. Volatility is a literal drag on geometric returns: the more a price bounces around, the more its compounded growth lags its average return.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not confuse the <em>arithmetic</em> expected return E[S<sub>T</sub>]/S<sub>0</sub> = e<sup>μT</sup> (still governed by μ) with the <em>typical / median</em> growth e<sup>(μ−½σ²)T</sup> (governed by the corrected drift). A volatile asset can have a healthy average return μ yet a negative <em>median</em> log-growth — the average is dragged up by a few huge winners while most paths underperform. Forgetting the −½σ² is one of the most expensive mistakes in finance.</div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Volatility drag is the "up-10%, down-10%" trap. Gain 10% then lose 10% and you are not flat — you are at 0.99, down a percent. The arithmetic average move is 0%, but the compounded result is negative, and the gap grows with the size of the swings. That gap <em>is</em> the −½σ² term, made concrete.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — median vs. mean growth of a GBM stock</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A stock follows GBM with expected return μ = 12% per year and volatility σ = 40% per year, starting at S<sub>0</sub> = $100. Over T = 1 year, compare the <strong>expected</strong> price with the <strong>median</strong> price.</p>
+        <ol>
+            <li><strong>Apply Itô to ln S:</strong> the corrected log-drift is μ − ½σ² = 0.12 − ½(0.40)² = 0.12 − 0.08 = <strong>0.04</strong> per year. Volatility alone eats 8 percentage points of geometric growth.</li>
+            <li><strong>Distribution of log return:</strong> ln(S<sub>T</sub>/S<sub>0</sub>) ~ Normal(mean = 0.04, variance = σ²T = 0.16), so std = 0.40.</li>
+            <li><strong>Median price:</strong> the median of a Normal log is its mean, so median S<sub>T</sub> = 100·e<sup>0.04</sup> ≈ 100·1.0408 = <strong>$104.08</strong>.</li>
+            <li><strong>Expected (mean) price:</strong> for a lognormal, E[S<sub>T</sub>] = S<sub>0</sub>·e<sup>μT</sup> = 100·e<sup>0.12</sup> ≈ 100·1.1275 = <strong>$112.75</strong>. The ½σ² added back inside the exponential cancels the correction, recovering the raw μ.</li>
+            <li><strong>Read the gap:</strong> the average path lands near $112.75, but a <em>typical</em> (median) path only reaches $104.08. The $8.67 gap is volatility drag — most outcomes trail the mean, which is pulled up by rare large winners. Cut σ to 20% and the median jumps to 100·e<sup>0.10</sup> ≈ $110.52: lower volatility, higher typical growth, same μ.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate GBM and confirm the −½σ² drift</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reusing the Week-1 environment (NumPy + Jupyter — install block is in <a href="l01-probability-expectation.html" style="color:var(--accent2);">Lecture 1</a> if you skipped it). We simulate many GBM paths by stepping the log-price with Itô's exact log dynamics, then check that the simulated <em>mean log return</em> matches μ − ½σ² and the <em>mean price</em> matches e<sup>μT</sup>.</p>
+        <pre><span class="c"># ito_gbm.py — Lecture 9</span>
+import numpy as np
+
+rng = np.random.default_rng(9)
+mu, sigma, S0, T = 0.12, 0.40, 100.0, 1.0
+n_paths, n_steps = 200_000, 252        <span class="c"># one trading year, daily steps</span>
+dt = T / n_steps
+
+<span class="c"># Step the LOG-price: Ito gives d(lnS) = (mu - 0.5*sigma**2) dt + sigma dW</span>
+drift = (mu - 0.5 * sigma**2) * dt
+dW    = rng.normal(0.0, np.sqrt(dt), size=(n_paths, n_steps))
+logS  = np.log(S0) + np.cumsum(drift + sigma * dW, axis=1)
+ST    = np.exp(logS[:, -1])            <span class="c"># terminal prices</span>
+
+print("mean log return  :", np.mean(np.log(ST / S0)))   <span class="c"># ~ mu - 0.5*sigma^2 = 0.040</span>
+print("theory (corrected):", mu - 0.5 * sigma**2)        <span class="c"># 0.040</span>
+print("median price     :", np.median(ST))              <span class="c"># ~ 100*e^0.04  = 104.08</span>
+print("mean price       :", np.mean(ST))                <span class="c"># ~ 100*e^0.12  = 112.75</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The mean <em>log</em> return lands on 0.040 (the corrected drift), while the mean <em>price</em> lands on ≈112.75 (governed by raw μ). Seeing both numbers come out of one simulation is the −½σ² correction made tangible: log-space and price-space have different drifts, and Itô's lemma is the bridge between them.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Itô's lemma is the engine of continuous-time finance. Next week (Week 10) you'll write full <strong>SDEs</strong> and simulate them by Monte Carlo, turning the discretization above into a general-purpose pricer. In Course 3, applying Itô to a derivative's value V(S, t) and hedging away the dW term yields the <strong>Black–Scholes</strong> partial differential equation — the −½σ² and the surviving second-derivative term you met here become the famous "gamma" and the diffusion term of that PDE. Interest-rate models (Vasicek, CIR) and stochastic-volatility models (Heston) are all just different choices of drift a and diffusion b fed through the very same lemma.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#231a0c,#2a2410);border:1px solid #5a4a1c;">
+        <h3 style="color:var(--accent2);">💬 Discussion</h3>
+        <p style="color:#e7dcc0;">A colleague argues: "If a stock's expected return μ is 12%, then over the long run I should expect my money to compound at roughly 12% per year — the volatility just adds noise around that trend." Using what you now know about Itô's lemma and the −½σ² correction, is your colleague right? Reframe their claim precisely, and explain to them — in plain language a non-quant could follow — what volatility actually does to long-run <em>typical</em> wealth versus <em>average</em> wealth.</p>
+        <details style="margin-top:14px;">
+            <summary style="cursor:pointer;color:var(--accent2);font-weight:600;font-size:.9rem;">Show a model response</summary>
+            <div style="font-size:.9rem;color:#cdc0e6;margin-top:12px;">
+                <p style="margin-bottom:10px;">The colleague is conflating two different averages. The number μ = 12% is the <strong>arithmetic expected return</strong>: it governs the <em>mean</em> ending wealth, E[S<sub>T</sub>] = S<sub>0</sub>e<sup>μT</sup>. But "what my money compounds at" over the long run is a <em>geometric</em> growth rate, and Itô's lemma tells us the log-price drifts at μ − ½σ², not μ. With σ = 40%, that correction is 8 points — so a <em>typical</em> (median) path compounds at only about 4% per year, not 12%.</p>
+                <p style="margin-bottom:10px;">In plain language: gaining and losing the same percentage doesn't leave you flat — "+10% then −10%" lands you at 0.99, a net loss. Volatility creates a structural drag on compounding, and the drag grows like σ². The 12% mean isn't a lie, but it's propped up by a handful of spectacular winning paths; most individual paths fall short of it. So the right summary is: <em>average</em> wealth grows near μ, but <em>typical</em> wealth grows near μ − ½σ². For someone living one realized path, the median is the honest expectation, and reducing volatility (without lowering μ) genuinely raises long-run typical wealth.</p>
+                <p style="margin:14px 0 4px;color:var(--green);font-weight:700;">✓ Self-check rubric — a strong answer:</p>
+                <ul style="margin-left:18px;color:#bcae8c;">
+                    <li>Distinguishes the <strong>mean</strong> ending wealth (driven by μ) from the <strong>median / typical</strong> path (driven by μ − ½σ²).</li>
+                    <li>Names the −½σ² <strong>Itô / volatility-drag</strong> correction and ties it to the log-price drift.</li>
+                    <li>Gives an intuitive plain-language example (e.g. the +10%/−10% asymmetry) rather than only formulas.</li>
+                    <li>Concludes that the colleague is <strong>partly right but imprecise</strong> — μ describes the average, not the typical, long-run outcome.</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why can't we use ordinary calculus to write dW/dt for a Brownian path?</div>
+            <div class="opt"><b>A.</b> Because Brownian paths are discontinuous, so no limit exists</div>
+            <div class="opt"><b>B.</b> Because the increment ΔW scales like √Δt, so ΔW/Δt blows up as Δt → 0</div>
+            <div class="opt"><b>C.</b> Because W is always negative</div>
+            <div class="opt"><b>D.</b> Because dt is not a real number</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A typical increment has size √Δt (its standard deviation), so ΔW/Δt ~ 1/√Δt → ∞ — no finite derivative exists. The path is actually <em>continuous</em> everywhere (so A is wrong), it is not sign-restricted (C), and dt is a perfectly ordinary infinitesimal (D); the problem is purely the √Δt scaling.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In the definition of the Itô integral ∫ f<sub>t</sub> dW<sub>t</sub>, the integrand f is evaluated at…</div>
+            <div class="opt"><b>A.</b> the right endpoint of each step</div>
+            <div class="opt"><b>B.</b> the midpoint of each step</div>
+            <div class="opt"><b>C.</b> the left endpoint of each step, before the random move</div>
+            <div class="opt"><b>D.</b> the maximum of W over each step</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Itô uses the <em>left</em> (start-of-interval) value — the non-anticipating convention, so your position is set before the price moves. The right endpoint or midpoint (A, B) is the Stratonovich integral and would let you trade on the future; the running maximum (D) is not used at all.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> What is the central rule of stochastic calculus that makes the second-order Taylor term survive?</div>
+            <div class="opt"><b>A.</b> (dW)² = dt</div>
+            <div class="opt"><b>B.</b> (dW)² = (dt)²</div>
+            <div class="opt"><b>C.</b> dW = dt</div>
+            <div class="opt"><b>D.</b> (dt)² = dW</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> (dW)² = dt: the square of the random increment is of order dt, the same order as the time term, so ½f″(dW)² does not vanish. (dt)² (B) is much smaller and is discarded; dW ≠ dt since dW is random with size √dt (C); and (D) is dimensionally nonsense.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For geometric Brownian motion dS = μS dt + σS dW, applying Itô's lemma to ln S gives a drift of…</div>
+            <div class="opt"><b>A.</b> μ</div>
+            <div class="opt"><b>B.</b> μ + ½σ²</div>
+            <div class="opt"><b>C.</b> μ − ½σ²</div>
+            <div class="opt"><b>D.</b> ½σ² − μ</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> With f = ln S, ∂²f/∂x² = −1/S², so the Itô term ½b²f″ = ½σ²S²(−1/S²) = −½σ² subtracts from μ, giving drift μ − ½σ². Naïve calculus would give just μ (A); adding the term (B) gets the sign backwards; and (D) is the negative of the answer.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A stock has GBM expected return μ = 10% and volatility σ = 30%. Which statement is correct?</div>
+            <div class="opt"><b>A.</b> Both the mean and median terminal price grow at 10%</div>
+            <div class="opt"><b>B.</b> The mean price grows at e<sup>μT</sup> (10%), while the median grows at the lower corrected rate μ − ½σ² = 5.5%</div>
+            <div class="opt"><b>C.</b> The median grows faster than the mean</div>
+            <div class="opt"><b>D.</b> Volatility has no effect on long-run growth</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The mean price is S<sub>0</sub>e<sup>μT</sup> (driven by μ = 10%), but the log-price drifts at μ − ½σ² = 0.10 − ½(0.09) = 5.5%, so the median is lower. The two rates differ (A wrong); the mean always meets or exceeds the median for a lognormal, never the reverse (C wrong); and volatility clearly drags down typical growth (D wrong).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Ordinary calculus <b>fails on Brownian paths</b>: increments scale like √Δt, so dW/dt blows up — the path is continuous but nowhere differentiable.</li>
+            <li>The <b>Itô integral</b> sums position × increment using the <b>left endpoint</b> (non-anticipating) rule, which makes it a zero-mean martingale.</li>
+            <li>The defining rule <b>(dW)² = dt</b> keeps the second-order Taylor term alive — everything with dt·dt or dt·dW vanishes.</li>
+            <li><b>Itô's lemma</b> adds a <b>½ b² ∂²f/∂x²</b> correction to the ordinary chain rule whenever the transformation f is nonlinear.</li>
+            <li>For GBM, the log price drifts at <b>μ − ½σ²</b>, making prices lognormal and explaining <b>volatility drag</b> on typical (median) growth.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10: SDEs &amp; Monte Carlo — assembling drift and diffusion into full stochastic differential equations and pricing them by simulating thousands of paths.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-brownian-motion.html"><div class="dir">← Week 8</div><div class="ttl">Brownian Motion &amp; Its Properties</div></a>
+        <a class="next" href="l10-sdes-monte-carlo.html"><div class="dir">Week 10 →</div><div class="ttl">SDEs &amp; Monte Carlo</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Probability</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

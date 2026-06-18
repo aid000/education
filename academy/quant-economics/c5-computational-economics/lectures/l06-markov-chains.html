@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C5 · Lecture 6 — Markov Chains &amp; Dynamic Stochastic Models</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C5 Computational Econ</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Markov Chains &amp; Dynamic Stochastic Models</h1>
+        <p class="sub">When tomorrow depends only on today — not on the whole history — a single matrix captures the entire future of a stochastic economy.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the Markov property and build a transition matrix from real probabilities.</li>
+            <li>Propagate a distribution forward: compute where the system sits after n steps.</li>
+            <li>Define and compute a stationary distribution, and state when ergodicity makes it unique.</li>
+            <li>Simulate a Markov chain and connect long-run sample frequencies to the stationary law.</li>
+            <li>Model stochastic productivity or employment as a Markov process using QuantEcon's <code>MarkovChain</code>.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>The Markov Property &amp; the Transition Matrix</h2>
+        <p>In Week 5 you drove the stochastic growth model with a random productivity shock. But where does that randomness <em>come from</em>, period after period? The workhorse answer in computational economics is the <strong>Markov chain</strong>: a system that hops between a finite set of <strong>states</strong>, where the probability of the next state depends <em>only</em> on the current state — not on the entire path that led there.</p>
+        <div class="eq">P( X<sub>t+1</sub> = j | X<sub>t</sub> = i, X<sub>t-1</sub>, ... , X<sub>0</sub> ) = P( X<sub>t+1</sub> = j | X<sub>t</sub> = i )<small>The Markov property: the present state is a sufficient summary of the past for predicting the future.</small></div>
+        <p>Collect those one-step probabilities into a square <strong>transition matrix</strong> P, where entry P[i, j] is the probability of moving from state i to state j. Each <em>row</em> is a probability distribution over next states, so every row must be non-negative and sum to one — a property called being <strong>row-stochastic</strong>.</p>
+        <div class="eq">P[i, j] = P( X<sub>t+1</sub> = j | X<sub>t</sub> = i ),&nbsp;&nbsp; with&nbsp; &Sigma;<sub>j</sub> P[i, j] = 1 for every row i<small>P fully specifies the dynamics: states plus this matrix is all you need.</small></div>
+        <p>This is exactly how economists model an economy that flips between, say, <span class="key">recession</span> and <span class="key">growth</span>, or a worker who flips between <span class="key">employed</span> and <span class="key">unemployed</span>. The state today sets the odds for tomorrow; nothing else matters.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 240" role="img" aria-label="Two-state Markov chain with Recession and Growth nodes. Recession stays with probability 0.7 and moves to Growth with 0.3; Growth stays with 0.9 and moves to Recession with 0.1.">
+                <!-- nodes -->
+                <circle cx="110" cy="130" r="46" fill="#16213a" stroke="#fbbf24" stroke-width="2.5"/>
+                <circle cx="310" cy="130" r="46" fill="#16213a" stroke="#34d399" stroke-width="2.5"/>
+                <text x="110" y="128" fill="#fbbf24" font-size="14" text-anchor="middle" font-weight="bold">Recession</text>
+                <text x="110" y="146" fill="#93a8c8" font-size="11" text-anchor="middle">state 0</text>
+                <text x="310" y="128" fill="#34d399" font-size="14" text-anchor="middle" font-weight="bold">Growth</text>
+                <text x="310" y="146" fill="#93a8c8" font-size="11" text-anchor="middle">state 1</text>
+                <!-- transition arrows between nodes -->
+                <defs>
+                    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+                        <path d="M0,0 L7,3 L0,6 Z" fill="#60a5fa"/>
+                    </marker>
+                </defs>
+                <path d="M152,108 Q210,72 268,108" fill="none" stroke="#60a5fa" stroke-width="2" marker-end="url(#ar)"/>
+                <text x="210" y="74" fill="#60a5fa" font-size="12" text-anchor="middle">0.3</text>
+                <path d="M268,152 Q210,188 152,152" fill="none" stroke="#60a5fa" stroke-width="2" marker-end="url(#ar)"/>
+                <text x="210" y="190" fill="#60a5fa" font-size="12" text-anchor="middle">0.1</text>
+                <!-- self loops -->
+                <path d="M74,104 Q40,60 86,92" fill="none" stroke="#fbbf24" stroke-width="2" marker-end="url(#ar)"/>
+                <text x="44" y="74" fill="#fbbf24" font-size="12" text-anchor="middle">0.7</text>
+                <path d="M346,104 Q380,60 334,92" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#ar)"/>
+                <text x="378" y="74" fill="#34d399" font-size="12" text-anchor="middle">0.9</text>
+            </svg>
+            <figcaption>A two-state business-cycle chain. From Recession (state 0): stay 0.7, switch to Growth 0.3. From Growth (state 1): stay 0.9, switch to Recession 0.1. Each node's outgoing probabilities sum to 1 — the rows of P.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>Propagating Distributions Forward</h2>
+        <p>Often we don't know the exact state — we only know a <strong>distribution</strong> over states: a row vector &psi; with &psi;[i] = the probability of being in state i right now. To find the distribution one step later, multiply on the <em>right</em> by P:</p>
+        <div class="eq">&psi;<sub>t+1</sub> = &psi;<sub>t</sub> P&nbsp;&nbsp;&nbsp;&rarr;&nbsp;&nbsp;&nbsp; &psi;<sub>t+n</sub> = &psi;<sub>t</sub> P<sup>n</sup><small>Each step is one matrix multiply; n steps is the matrix power P^n. (Row-vector convention.)</small></div>
+        <p>Why does this work? The probability of landing in state j tomorrow is the chance of being in each state i today times the chance i&rarr;j, summed over i — and that weighted sum is precisely the vector–matrix product. The n-step transition probabilities are simply the entries of <strong>P<sup>n</sup></strong>, which is one of the most useful facts in the whole subject: a single matrix power answers "where will the economy be in 10 quarters?"</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a fixed number of probability "tokens" spread across buckets (the states). Each period, every bucket sends a fixed <em>fraction</em> of its tokens down labeled pipes (the transition probabilities) to the other buckets. No tokens are created or destroyed — the total stays 1 — they just redistribute. Multiplying by P is one round of pouring; the long-run resting pattern of tokens is the stationary distribution.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>With the row-vector convention &psi;P, the matrix P must be <strong>row</strong>-stochastic (rows sum to 1) and you multiply the distribution on the <em>left</em>. Many linear-algebra texts use column vectors and column-stochastic matrices, multiplying P&psi; on the right. Mixing the two conventions silently transposes your dynamics. QuantEcon and this course use the <em>row</em> convention — match it, and double-check that every row of P sums to exactly 1.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Stationary Distributions &amp; Ergodicity</h2>
+        <p>Push a distribution forward long enough and, for well-behaved chains, it stops moving. A <strong>stationary distribution</strong> &pi; is a fixed point of the dynamics — applying P leaves it unchanged:</p>
+        <div class="eq">&pi; = &pi; P,&nbsp;&nbsp; &pi;[i] &ge; 0,&nbsp;&nbsp; &Sigma;<sub>i</sub> &pi;[i] = 1<small>&pi; is a left eigenvector of P with eigenvalue 1, normalized to a probability vector.</small></div>
+        <p>Existence is guaranteed for any finite chain. <strong>Uniqueness</strong> and the guarantee that <em>every</em> starting distribution converges to &pi; require the chain to be <strong>irreducible</strong> (you can eventually reach any state from any other) and <strong>aperiodic</strong> (it doesn't cycle in lockstep). A chain with both properties is <strong>ergodic</strong>, and then a powerful equivalence holds:</p>
+        <div class="eq">(1/n) &Sigma;<sub>t=1</sub><sup>n</sup> 1{X<sub>t</sub> = i}&nbsp; &rarr;&nbsp; &pi;[i]&nbsp;&nbsp; as&nbsp; n &rarr; &infin;<small>Ergodic theorem: the long-run fraction of time spent in state i equals its stationary probability &pi;[i].</small></div>
+        <p>This is why &pi; is the single most-used object in this field. The stationary distribution of an employment chain is the economy's <span class="key">long-run unemployment rate</span>; of a business-cycle chain, the <span class="key">fraction of quarters spent in recession</span>; of an asset-state chain, the long-run distribution of returns. You compute &pi; once and read off a steady-state statistic that a naive simulation would take millions of periods to estimate.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 240" role="img" aria-label="Convergence plot: probability of being in the Growth state over time steps, starting from 0, rising and leveling off at the stationary value 0.75.">
+                <!-- axes -->
+                <line x1="55" y1="200" x2="430" y2="200" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="55" y1="200" x2="55" y2="30" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="240" y="228" fill="#93a8c8" font-size="11" text-anchor="middle">time step t</text>
+                <text x="20" y="120" fill="#93a8c8" font-size="11" text-anchor="middle" transform="rotate(-90 20 120)">P(Growth)</text>
+                <!-- stationary line at pi=0.75 -> y = 200 - 0.75*160 = 80 -->
+                <line x1="55" y1="80" x2="430" y2="80" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="5 4"/>
+                <text x="395" y="74" fill="#a78bfa" font-size="11" text-anchor="middle">pi = 0.75</text>
+                <!-- y ticks -->
+                <text x="46" y="204" fill="#93a8c8" font-size="10" text-anchor="end">0</text>
+                <text x="46" y="124" fill="#93a8c8" font-size="10" text-anchor="end">0.5</text>
+                <text x="46" y="44" fill="#93a8c8" font-size="10" text-anchor="end">1.0</text>
+                <!-- convergence curve starting at psi0=(1,0): P(Growth)=0 then 0.3, 0.48, 0.588... toward .75
+                     y = 200 - val*160 -->
+                <polyline fill="none" stroke="#60a5fa" stroke-width="2.5"
+                  points="55,200 92,152 129,123 166,106 203,96 240,90 277,86 314,84 351,82 388,81 425,80"/>
+                <!-- start marker -->
+                <circle cx="55" cy="200" r="3.5" fill="#fbbf24"/>
+                <text x="78" y="196" fill="#fbbf24" font-size="10" text-anchor="middle">start</text>
+            </svg>
+            <figcaption>Forward iteration &psi;<sub>t+1</sub>=&psi;<sub>t</sub>P from a recession start (P(Growth)=0). The probability of being in Growth climbs and levels off at the stationary value &pi;=0.75 — independent of where it started, because the chain is ergodic.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>Simulating a Chain &amp; Modeling Productivity</h2>
+        <p>The matrix tells you the law; a <strong>simulation</strong> draws an actual path from it. Starting in state i, you draw the next state from row i of P (a single categorical draw), move there, and repeat. The resulting sequence X<sub>0</sub>, X<sub>1</sub>, X<sub>2</sub>, ... is one realized history of the economy.</p>
+        <p>This is the engine behind dynamic stochastic models. In Week 5's growth model, productivity z<sub>t</sub> wasn't truly continuous — for computation we <strong>discretize</strong> it into a handful of states (low, medium, high) with a transition matrix that captures its persistence. A worker's labor-market history is a chain over {employed, unemployed} whose stationary distribution is the unemployment rate. An income process becomes a chain over earnings brackets.</p>
+        <h3>Discretizing an AR(1) shock</h3>
+        <p>A continuous persistent shock z<sub>t+1</sub> = &rho; z<sub>t</sub> + &epsilon;<sub>t+1</sub> is the standard building block. Two classic algorithms — <strong>Tauchen's method</strong> and <strong>Rouwenhorst's method</strong> — turn it into a finite Markov chain that matches the persistence &rho; and variance, so you can plug a clean matrix into a dynamic program. Both ship inside QuantEcon, so you rarely code them by hand.</p>
+        <div class="eq">z<sub>t+1</sub> = &rho; z<sub>t</sub> + &epsilon;<sub>t+1</sub>&nbsp;&nbsp;&rarr;&nbsp;&nbsp; finite states {z<sub>1</sub>, ..., z<sub>k</sub>} + transition matrix P<small>Discretization converts a continuous AR(1) into a Markov chain a computer can iterate exactly.</small></div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — find the stationary distribution by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Use the two-state business-cycle chain from the figure: from Recession (state 0), stay 0.7 / go to Growth 0.3; from Growth (state 1), go to Recession 0.1 / stay 0.9. So P = [[0.7, 0.3], [0.1, 0.9]]. Find the stationary distribution &pi; = (&pi;<sub>0</sub>, &pi;<sub>1</sub>).</p>
+        <ol>
+            <li><strong>Write &pi; = &pi;P componentwise.</strong> Column 0 gives: &pi;<sub>0</sub> = 0.7&pi;<sub>0</sub> + 0.1&pi;<sub>1</sub>.</li>
+            <li><strong>Simplify.</strong> 0.3&pi;<sub>0</sub> = 0.1&pi;<sub>1</sub>, so &pi;<sub>1</sub> = 3&pi;<sub>0</sub>.</li>
+            <li><strong>Apply the normalization</strong> &pi;<sub>0</sub> + &pi;<sub>1</sub> = 1: &pi;<sub>0</sub> + 3&pi;<sub>0</sub> = 1, hence 4&pi;<sub>0</sub> = 1.</li>
+            <li><strong>Solve.</strong> &pi;<sub>0</sub> = 0.25 and &pi;<sub>1</sub> = 0.75. So &pi; = <strong>(0.25, 0.75)</strong>.</li>
+            <li><strong>Interpret &amp; verify.</strong> The economy spends 75% of quarters in Growth and 25% in Recession — matching the &pi;=0.75 line in the convergence figure. Check the fixed point: &pi;P = (0.25·0.7 + 0.75·0.1,&nbsp; 0.25·0.3 + 0.75·0.9) = (0.175 + 0.075, 0.075 + 0.675) = (0.25, 0.75) = &pi;. ✓</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: chains with QuantEcon</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This uses the same free stack from <strong>Week 1/2 setup</strong> (Python + QuantEcon + NumPy + SciPy + Matplotlib) — no new install needed. QuantEcon's <code>MarkovChain</code> class wraps simulation, the stationary distribution, and automatic checks for irreducibility and aperiodicity, and its <code>tauchen</code> helper discretizes an AR(1) for you.</p>
+        <pre><span class="c"># markov_chains.py — Lecture 6</span>
+import numpy as np
+import quantecon as qe
+
+<span class="c"># rows/cols = (Recession=0, Growth=1); each row sums to 1</span>
+P = np.array([[0.7, 0.3],
+              [0.1, 0.9]])
+mc = qe.MarkovChain(P, state_values=("recession", "growth"))
+
+<span class="c"># 1) stationary distribution (left eigenvector for eigenvalue 1)</span>
+print(mc.stationary_distributions)   <span class="c"># [[0.25 0.75]]</span>
+print(mc.is_irreducible, mc.is_aperiodic)  <span class="c"># True True -> ergodic, pi is unique</span>
+
+<span class="c"># 2) simulate one 100,000-step path and compare time-averages to pi</span>
+path = mc.simulate(ts_length=100_000, init="recession")
+frac_growth = np.mean(path == "growth")
+print(round(frac_growth, 3))         <span class="c"># ~0.75 (ergodic theorem at work)</span>
+
+<span class="c"># 3) discretize an AR(1) productivity shock z' = 0.9 z + eps</span>
+mc_z = qe.tauchen(n=5, rho=0.9, sigma=0.1)   <span class="c"># 5-state chain</span>
+print(mc_z.P.shape, mc_z.state_values.round(3))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Line 1 returns &pi; without any simulation; line 2 shows the long-run time-average converging to that same &pi; (the ergodic theorem); line 3 produces a ready-to-use 5-state productivity chain for a growth or income model. Try raising <code>rho</code> toward 0.99 and watch the chain become far more persistent.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#1a162e,#241a3a); border-color:#43306b;">
+        <h3 style="color:var(--violet);">💬 Discussion</h3>
+        <p style="color:#ddd6f0;">The Markov property says the present state is a <em>complete</em> summary of the past — the recent path adds nothing. Pick one real economic process you care about (unemployment spells, credit ratings, recession/recovery, a household's income, a stock's "regime"). Is a first-order Markov chain a reasonable model for it, or does history beyond the current state genuinely matter? If it matters, how could you <em>repair</em> the model while staying Markov — and what does that cost you?</p>
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer;color:var(--accent2);font-weight:600;font-size:.9rem;">Show a model response</summary>
+            <p style="font-size:.9rem;color:#cdd0ee;margin-top:10px;">Take <strong>unemployment spells</strong>. A pure two-state {employed, unemployed} chain violates the spirit of the Markov property because of <em>duration dependence</em>: someone unemployed for two years exits at a lower rate than someone unemployed for two weeks, so the bare label "unemployed" is not a sufficient summary — the length of the current spell matters too. The standard repair keeps the model Markov by <strong>enlarging the state space</strong>: replace "unemployed" with "unemployed-short," "unemployed-medium," "unemployed-long." Now the current (richer) state again contains everything needed to predict tomorrow, so the Markov property holds on the bigger space. The cost is concrete: more states mean a larger transition matrix to estimate from data and more parameters that can overfit, and the discretization of duration is somewhat arbitrary. This "expand the state until the present is sufficient" trick is exactly how economists turn an AR(1) (where last period's value matters) into a Markov chain over (value) states, and it is the same move behind higher-order chains and hidden-state regime models.</p>
+            <p style="font-size:.86rem;color:#cdd0ee;margin-top:12px;"><strong>✓ Self-check rubric — a strong answer:</strong> (1) names a specific process and takes a clear stance on whether first-order Markov fits; (2) identifies a concrete violation (duration dependence, momentum, longer memory) rather than just asserting one; (3) proposes a Markov-preserving fix — usually <em>enlarging the state space</em> (extra states, higher order, or hidden states); (4) names a real cost of that fix (more parameters / data needed, harder estimation, arbitrary discretization).</p>
+        </details>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>A Markov chain is the random "weather" of a dynamic economy; next you'll learn to find the points where a model <em>settles</em>. In Week 7 (Equilibrium: Root-Finding &amp; Fixed Points) the stationary condition &pi;=&pi;P generalizes to nonlinear fixed points T(x)=x solved by root-finders. The discretized productivity chain you built here becomes the shock process inside the dynamic programming and value-function iteration of later weeks, and the same machinery powers the heterogeneous-agent and asset-pricing models at the heart of modern quantitative macro — and the regime-switching models used across the Quant Finance track.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The Markov property states that the probability of the next state depends on…</div>
+            <div class="opt"><b>A.</b> the entire history of past states</div>
+            <div class="opt"><b>B.</b> only the current state</div>
+            <div class="opt"><b>C.</b> the stationary distribution</div>
+            <div class="opt"><b>D.</b> the number of states</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> "Memoryless": the current state is a sufficient summary of the past. (A) is what the Markov property explicitly rules out; (C) is the long-run limit, not the one-step rule; (D) is irrelevant to which information matters.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A valid (row-stochastic) transition matrix must have…</div>
+            <div class="opt"><b>A.</b> columns that each sum to 1</div>
+            <div class="opt"><b>B.</b> all entries equal</div>
+            <div class="opt"><b>C.</b> non-negative entries with every row summing to 1</div>
+            <div class="opt"><b>D.</b> a determinant of 1</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Each row is a probability distribution over next states, so rows are non-negative and sum to 1. (A) describes the column-stochastic convention, not the row convention used here; (B) and (D) are not requirements at all.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Using the row-vector convention, the distribution after n steps starting from &psi;<sub>0</sub> is…</div>
+            <div class="opt"><b>A.</b> &psi;<sub>0</sub> P<sup>n</sup></div>
+            <div class="opt"><b>B.</b> P<sup>n</sup> &psi;<sub>0</sub></div>
+            <div class="opt"><b>C.</b> n &psi;<sub>0</sub> P</div>
+            <div class="opt"><b>D.</b> &psi;<sub>0</sub> / n</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Each step is one right-multiply by P, so n steps is the matrix power: &psi;<sub>0</sub>P<sup>n</sup>. (B) is the column-vector convention; (C) multiplies by n instead of taking a power; (D) is meaningless here.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A stationary distribution &pi; satisfies which equation?</div>
+            <div class="opt"><b>A.</b> &pi; = P &pi; with &pi; summing to the number of states</div>
+            <div class="opt"><b>B.</b> &pi; P = 0</div>
+            <div class="opt"><b>C.</b> &pi; = &pi; P with &pi; non-negative and summing to 1</div>
+            <div class="opt"><b>D.</b> &pi; = P only when P is diagonal</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> &pi; is a probability vector left unchanged by P. (A) has the wrong multiplication side and a normalization that should be 1, not the state count; (B) would force &pi;=0, not a distribution; (D) is false.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> For an <em>ergodic</em> (irreducible &amp; aperiodic) finite chain, the long-run fraction of time spent in state i…</div>
+            <div class="opt"><b>A.</b> depends heavily on the starting state</div>
+            <div class="opt"><b>B.</b> oscillates forever and never settles</div>
+            <div class="opt"><b>C.</b> equals 1/(number of states) for every state</div>
+            <div class="opt"><b>D.</b> converges to &pi;[i], the stationary probability of state i</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The ergodic theorem ties time-averages to the unique stationary distribution. (A) is false because ergodicity erases the starting point; (B) describes a periodic chain, which ergodicity excludes; (C) holds only for the special uniform case, not in general.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Stated the <b>Markov property</b> and packed one-step odds into a row-stochastic <b>transition matrix</b> P.</li>
+            <li>Propagated distributions forward with <b>&psi;<sub>t+n</sub> = &psi;<sub>0</sub>P<sup>n</sup></b>, reading n-step probabilities off a matrix power.</li>
+            <li>Defined the <b>stationary distribution</b> &pi;=&pi;P and saw when <b>ergodicity</b> makes it the unique long-run limit.</li>
+            <li>Connected long-run <b>time-averages</b> to &pi; via the ergodic theorem, and simulated a chain to confirm it.</li>
+            <li>Modeled productivity/employment as a chain and <b>discretized an AR(1)</b> with QuantEcon's <code>MarkovChain</code> and <code>tauchen</code>.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Equilibrium via Root-Finding &amp; Fixed Points — the stationary condition &pi;=&pi;P generalizes to nonlinear fixed points T(x)=x that pin down market and model equilibria.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-stochastic-growth.html"><div class="dir">← Week 5</div><div class="ttl">The Stochastic Growth Model</div></a>
+        <a class="next" href="l07-equilibrium-fixed-points.html"><div class="dir">Week 7 →</div><div class="ttl">Equilibrium: Root-Finding &amp; Fixed Points</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Computational Econ</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

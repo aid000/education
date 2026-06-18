@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ops &amp; Safety C5 · Lecture 1 — Plant Operations: Startup, Power &amp; Shutdown</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C5 Ops &amp; Safety</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>Plant Operations: Startup, Power &amp; Shutdown</h1>
+        <p class="sub">A reactor spends most of its life sitting at one steady power level — but the riskiest, most disciplined hours are the slow, deliberate climb to criticality and the careful walk back down.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Name the standard reactor operating modes and explain what physically distinguishes one from the next.</li>
+            <li>Describe the approach to criticality and how the operator stays ahead of an exponentially growing power.</li>
+            <li>Construct and read a 1/M (inverse-count-rate) plot and use it to predict the critical rod position safely.</li>
+            <li>Explain steady power operation, the role of reactivity feedback, and how a plant load-follows.</li>
+            <li>Walk through a normal shutdown and cooldown, and state why decay heat keeps the core hot long after shutdown.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>Operating Modes: The Reactor's Gears</h2>
+        <p>A power reactor is not a switch you flip on and off. It is a large thermal-hydraulic machine that must be moved deliberately through a sequence of well-defined <strong>operating modes</strong>, each with its own temperature, pressure, and reactivity rules. Plant procedures and technical specifications define these modes precisely so that every operator, on every shift, means the same thing by "the plant is in Mode 3."</p>
+        <p>While the exact names and numbers vary between plant designs, a typical pressurized-water plant uses six modes ordered by how close the core is to producing power:</p>
+        <div class="eq">Mode 1: Power Operation  (k ~ 1, &gt; 5% power)
+Mode 2: Startup          (approaching / at criticality, &lt; 5% power)
+Mode 3: Hot Standby      (subcritical, hot &amp; pressurized)
+Mode 4: Hot Shutdown     (cooling down, intermediate temperature)
+Mode 5: Cold Shutdown    (cold, depressurized, subcritical)
+Mode 6: Refueling        (vessel head off, fuel being moved)<small>Modes are defined by reactivity condition (keff), average coolant temperature, and percent power. Moving between modes follows written procedures.</small></div>
+        <p>The two quantities that pin down a mode are the <strong>effective multiplication factor</strong> k<sub>eff</sub> (how the neutron population changes generation to generation) and the <strong>average coolant temperature</strong>. A reactor is <strong>subcritical</strong> when k<sub>eff</sub> &lt; 1 (the chain reaction dies out), <strong>critical</strong> when k<sub>eff</sub> = 1 (the population is exactly self-sustaining), and <strong>supercritical</strong> when k<sub>eff</sub> &gt; 1 (power is rising). The whole craft of operation is managing the transition between these states without ever surprising the operator.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of operating modes like the gears of a car driven in heavy fog. You never jump from park straight to highway speed. You move up one gear at a time — engaging the clutch (heating up), idling (hot standby), accelerating (startup), then cruising (power). Each gear has a safe speed band, and the written procedure is your route map through fog you cannot see through: the neutron flux.</div>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>Approach to Criticality &amp; the 1/M Plot</h2>
+        <p>Startup is where physics gets dangerous in slow motion. A shutdown core is deeply subcritical, but it is never truly dark: a <strong>neutron source</strong> (a startup source plus spontaneous fission and prior fission products) keeps a small, steady trickle of neutrons present. When the operator withdraws control rods or dilutes boron, k<sub>eff</sub> creeps upward, and that source trickle gets <em>multiplied</em>.</p>
+        <p>For a subcritical core driven by a source of strength S, the steady-state neutron population — and therefore the count rate C on the startup instruments — is amplified by the <strong>subcritical multiplication factor</strong> M:</p>
+        <div class="eq">M = 1 / (1 - k_eff)        C = S * M = S / (1 - k_eff)<small>As k_eff -> 1, M -> infinity. The count rate blows up smoothly as the core approaches critical.</small></div>
+        <p>Here is the trap: count rate C rises slowly at first, then faster and faster, finally rocketing toward infinity right at criticality. If an operator watched only C, the late surge could arrive faster than they could react. The fix is one of the most elegant tricks in operations — plot the <em>reciprocal</em>:</p>
+        <div class="eq">1 / M = 1 - k_eff = S / C<small>1/M is proportional to (initial count rate)/(current count rate). It falls LINEARLY toward zero as k_eff -> 1.</small></div>
+        <p>Because 1/M = 1 &minus; k<sub>eff</sub>, and k<sub>eff</sub> rises roughly linearly with rod withdrawal, a plot of 1/M against rod position (or boron dilution, or fuel additions during initial loading) is approximately a <strong>straight line that heads for zero exactly at criticality</strong>. Operators take a count, withdraw rods a step, wait for the count to stabilize, take another count, and extrapolate the line. The x-intercept <em>predicts the critical condition before they reach it</em> — turning a runaway exponential into a tame, forecastable straight line.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 320" role="img" aria-label="Two curves versus rod withdrawal. Count rate C curves upward steeply toward infinity at criticality, while 1 over M falls in a nearly straight line to zero at the same rod position, which marks the predicted critical point.">
+                <!-- axes -->
+                <line x1="60" y1="270" x2="530" y2="270" stroke="#94b8a2" stroke-width="1.5"/>
+                <line x1="60" y1="270" x2="60" y2="40" stroke="#94b8a2" stroke-width="1.5"/>
+                <text x="295" y="305" fill="#94b8a2" font-size="12" text-anchor="middle">Rod withdrawal  (steps out)  ->  k_eff rising</text>
+                <text x="22" y="155" fill="#94b8a2" font-size="12" text-anchor="middle" transform="rotate(-90 22 155)">count rate C   and   1/M</text>
+                <!-- predicted critical vertical -->
+                <line x1="470" y1="270" x2="470" y2="55" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="4 4"/>
+                <text x="470" y="48" fill="#a78bfa" font-size="10" text-anchor="middle">predicted critical</text>
+                <!-- count-rate curve C rising steeply -->
+                <path d="M 70,255 L 150,248 L 240,235 L 320,212 L 390,170 L 440,110 L 466,62"
+                      fill="none" stroke="#fbbf24" stroke-width="3"/>
+                <text x="380" y="120" fill="#fbbf24" font-size="11" text-anchor="middle">count rate C</text>
+                <!-- 1/M linear falling to zero at 470 -->
+                <line x1="70" y1="80" x2="470" y2="270" stroke="#34d399" stroke-width="3"/>
+                <!-- data dots on the 1/M line -->
+                <circle cx="70" cy="80" r="4" fill="#34d399"/>
+                <circle cx="170" cy="127" r="4" fill="#34d399"/>
+                <circle cx="270" cy="175" r="4" fill="#34d399"/>
+                <circle cx="370" cy="222" r="4" fill="#34d399"/>
+                <text x="150" y="100" fill="#34d399" font-size="11" text-anchor="middle">1/M  (extrapolate)</text>
+                <!-- y markers -->
+                <text x="52" y="84" fill="#94b8a2" font-size="10" text-anchor="end">1.0</text>
+                <text x="52" y="273" fill="#94b8a2" font-size="10" text-anchor="end">0</text>
+                <text x="495" y="265" fill="#a78bfa" font-size="10" text-anchor="start">1/M -> 0</text>
+            </svg>
+            <figcaption>The startup operator's safety net. The raw count rate C (amber) curves up toward infinity and warns you too late; its reciprocal 1/M (green) falls along a near-straight line whose x-intercept <em>predicts</em> the critical rod position before you arrive. Each green dot is one withdrawal-and-count step.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> withdraw the next rod step until the count rate has fully <em>stabilized</em> after the previous step. The subcritical population takes time to settle to its new steady value (the closer to critical, the longer it takes). Pulling rods while the count is still climbing makes 1/M look artificially high, hides how close you really are, and can carry the core past critical unexpectedly. Patience between steps is the rule, not the exception.</div>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>Power Operation &amp; Load Following</h2>
+        <p>Once critical, the operator raises power by holding k<sub>eff</sub> a hair above 1 just long enough to climb, then trims it back to exactly 1 at the target power. At <strong>steady power</strong> the reactor is <em>critical</em> — k<sub>eff</sub> = 1 — and the neutron population, and therefore the thermal power, holds constant generation after generation. This is the plant's natural home; it may stay here for an entire 18-to-24-month fuel cycle.</p>
+        <p>What makes steady operation stable is <strong>reactivity feedback</strong>. Define reactivity, the fractional departure from criticality:</p>
+        <div class="eq">rho = (k_eff - 1) / k_eff<small>rho = 0 at exactly critical; rho &gt; 0 means power rising, rho &lt; 0 means power falling. Often quoted in pcm (1 pcm = 1e-5).</small></div>
+        <p>In a well-designed reactor, a rise in power heats the fuel and coolant, and that heating <em>removes</em> reactivity (negative temperature feedback — the fuel Doppler effect and coolant expansion). The reactor pushes back against its own power excursions, settling at a new equilibrium without the operator chasing it. This self-regulation is what lets a plant <strong>load follow</strong>: when the grid needs less power at night, the operator inserts a little negative reactivity, power and temperature drop, feedback finds a new steady state, and the turbine throttles back.</p>
+        <p>The balance the operator manages is simple in spirit — the heat generated by fission must equal the heat carried away by the coolant to the steam system:</p>
+        <div class="eq">P_fission = m_dot * cp * (T_hot - T_cold)<small>At steady state, thermal power produced = power removed by coolant flow m_dot at specific heat cp across the core temperature rise.</small></div>
+        <p>Load following is routine in grids with a high nuclear share, but it stresses fuel and is limited by a slow poison we meet next week: <strong>xenon-135</strong>, a fission product that builds in and burns out over hours, fighting the operator's every power maneuver.</p>
+    </section>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>Normal Shutdown, Cooldown &amp; Decay Heat</h2>
+        <p>A <strong>normal shutdown</strong> is the climb-down in reverse, done deliberately over hours — not to be confused with a <strong>reactor trip (scram)</strong>, which slams all rods in within seconds for safety. In a normal shutdown the operator slowly inserts negative reactivity (rods in, boron up), reduces turbine load, and walks the plant down through hot standby and into cold shutdown, controlling the cooldown rate to protect the thick reactor vessel from thermal stress.</p>
+        <p>Here is the fact that defines nuclear safety: <strong>turning off the chain reaction does not turn off the heat.</strong> The radioactive fission products accumulated during operation keep decaying, releasing <strong>decay heat</strong> long after fission stops. Immediately after shutdown decay heat is roughly 6–7% of the pre-shutdown thermal power — for a 3000&nbsp;MWth core that is over 200&nbsp;MW of heat with the reactor "off." It falls off as a rough power law:</p>
+        <div class="eq">P_decay(t) ~ 0.066 * P0 * [ t^(-0.2) - (t + t0)^(-0.2) ]<small>Wigner-Way type estimate. P0 = power before shutdown, t = seconds after shutdown, t0 = seconds of prior operation. Decay heat is a few percent immediately, ~1% after an hour, but never zero.</small></div>
+        <p>This is why a reactor can never simply be abandoned after shutdown: cooling must continue for days. The residual-heat-removal system and, ultimately, natural circulation must carry decay heat away, or the fuel will overheat even with the chain reaction long dead. Every major reactor accident in history was fundamentally a failure to remove decay heat, not a failure to stop fission. Managing decay heat is the single most important reason the operator never truly walks away.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 300" role="img" aria-label="Reactor power and decay heat versus time. Fission power drops nearly to zero at shutdown, but decay heat starts near 7 percent of full power and decays slowly along a curve, remaining above zero for a long time.">
+                <line x1="60" y1="250" x2="530" y2="250" stroke="#94b8a2" stroke-width="1.5"/>
+                <line x1="60" y1="250" x2="60" y2="35" stroke="#94b8a2" stroke-width="1.5"/>
+                <text x="295" y="285" fill="#94b8a2" font-size="12" text-anchor="middle">Time after shutdown  -></text>
+                <text x="22" y="145" fill="#94b8a2" font-size="12" text-anchor="middle" transform="rotate(-90 22 145)">% of full power</text>
+                <!-- 100% level before shutdown -->
+                <line x1="60" y1="55" x2="200" y2="55" stroke="#fbbf24" stroke-width="3"/>
+                <text x="120" y="48" fill="#fbbf24" font-size="11" text-anchor="middle">100% fission power</text>
+                <!-- shutdown drop at x=200 -->
+                <line x1="200" y1="55" x2="200" y2="235" stroke="#fbbf24" stroke-width="3"/>
+                <text x="200" y="270" fill="#94b8a2" font-size="10" text-anchor="middle">shutdown</text>
+                <line x1="200" y1="250" x2="200" y2="35" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="4 4"/>
+                <!-- decay heat curve starting ~7% (y around 235 at base if 100% is at 55... map 7% near y=235) -->
+                <!-- map: y=55 is 100%, y=250 is 0%. 7% -> y = 250 - 0.07*195 = 236 -->
+                <path d="M 200,222 L 230,228 L 270,234 L 330,240 L 410,244 L 510,247"
+                      fill="none" stroke="#34d399" stroke-width="3"/>
+                <circle cx="200" cy="222" r="4" fill="#34d399"/>
+                <text x="250" y="212" fill="#34d399" font-size="11" text-anchor="middle">decay heat ~7% -> slowly falls</text>
+                <!-- y markers -->
+                <text x="52" y="59" fill="#94b8a2" font-size="10" text-anchor="end">100</text>
+                <text x="52" y="226" fill="#94b8a2" font-size="10" text-anchor="end">7</text>
+                <text x="52" y="253" fill="#94b8a2" font-size="10" text-anchor="end">0</text>
+            </svg>
+            <figcaption>At shutdown, fission power (amber) collapses almost instantly, but decay heat (green) starts at roughly 6–7% of full power and decays slowly — staying meaningfully above zero for days. Cooling must continue the entire time; this is the heart of nuclear safety.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — predicting criticality from a 1/M plot</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">During startup, an operator records source-range count rates as control rods are withdrawn. With rods at 0 steps the baseline count rate is C&#8320; = 20 counts/s. After withdrawing to 40 steps the count rate stabilizes at 50 c/s; at 80 steps it is 100 c/s. Estimate the critical rod position.</p>
+        <ol>
+            <li><strong>Form 1/M at each step</strong> using 1/M = C&#8320; / C (normalized to the baseline count): at 0 steps 1/M = 20/20 = <strong>1.00</strong>.</li>
+            <li><strong>At 40 steps:</strong> 1/M = 20/50 = <strong>0.40</strong>.</li>
+            <li><strong>At 80 steps:</strong> 1/M = 20/100 = <strong>0.20</strong>.</li>
+            <li><strong>Find the slope</strong> of the (near-linear) 1/M line over the last interval: from 40 to 80 steps, 1/M fell from 0.40 to 0.20, a change of &minus;0.20 over 40 steps = <strong>&minus;0.005 per step</strong>.</li>
+            <li><strong>Extrapolate to 1/M = 0</strong> (criticality): starting from 0.20 at 80 steps, we need an additional 0.20 / 0.005 = 40 more steps. Predicted critical position &approx; 80 + 40 = <strong>120 steps withdrawn</strong>.</li>
+            <li><strong>Operational takeaway:</strong> the operator now knows criticality is still ~40 steps away and approaches the last interval in smaller steps, re-plotting after each — never trusting a single extrapolation blindly as the line can curve near critical.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate subcritical multiplication &amp; a 1/M plot in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This Ops &amp; Safety course uses the free Python scientific stack — <code>NumPy</code> and <code>SciPy</code> for the math and integration, <code>matplotlib</code> for plots, and <code>Jupyter</code> for notebooks. Full system thermal-hydraulics codes like RELAP5-3D are license-gated, so we build transparent Python models of the same physics. <strong>Week 1 setup:</strong> install once below and reuse it all course.</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + NumPy + SciPy + matplotlib + Jupyter (one-time, Week 1 setup)</summary>
+            <p>With conda (recommended — one clean environment for the whole course):</p>
+            <pre>conda create -n nuke-ops python=3.11
+conda activate nuke-ops
+conda install -c conda-forge numpy scipy matplotlib jupyter</pre>
+            <p>Prefer pip and a virtual environment? This works everywhere:</p>
+            <pre>python3 -m venv nuke-ops-env
+source nuke-ops-env/bin/activate    <span class="c"># macOS / Linux</span>
+nuke-ops-env\Scripts\activate       <span class="c"># Windows (PowerShell)</span>
+pip install numpy scipy matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import numpy, scipy; print('ok')"</code> — printing <code>ok</code> means you're set for the whole course.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">Let's model a startup: as rods withdraw, k_eff rises, the source is multiplied, and we build the 1/M line the operator would extrapolate.</p>
+        <pre><span class="c"># startup_1overM.py — Lecture 1</span>
+import numpy as np
+
+S = 20.0                      <span class="c"># source-driven baseline counts/s (k_eff ~ 0)</span>
+steps = np.array([0, 40, 80, 120])      <span class="c"># rod steps withdrawn</span>
+
+<span class="c"># model: k_eff rises linearly with withdrawal, reaching 1.0 at 120 steps</span>
+k_eff = 1.0 * steps / 120.0
+
+def count_rate(S, k):
+    <span class="c"># subcritical multiplication: C = S / (1 - k_eff)</span>
+    return S / (1.0 - k)
+
+<span class="c"># avoid division by zero exactly at criticality</span>
+C = np.array([count_rate(S, k) if k &lt; 1 else np.inf for k in k_eff])
+inv_M = S / C                 <span class="c"># 1/M = C0 / C  (with C0 = S here)</span>
+
+for s, k, c, im in zip(steps, k_eff, C, inv_M):
+    print(f"steps={s:3d}  k_eff={k:.3f}  C={c:7.1f} c/s  1/M={im:.3f}")
+
+<span class="c"># extrapolate the last two finite points to 1/M = 0</span>
+slope = (inv_M[2] - inv_M[1]) / (steps[2] - steps[1])
+crit = steps[1] - inv_M[1] / slope
+print(f"predicted critical position ~ {crit:.0f} steps")
+
+<span class="c"># steps=  0  k_eff=0.000  C=   20.0 c/s  1/M=1.000</span>
+<span class="c"># steps= 40  k_eff=0.333  C=   30.0 c/s  1/M=0.667</span>
+<span class="c"># steps= 80  k_eff=0.667  C=   60.0 c/s  1/M=0.333</span>
+<span class="c"># predicted critical position ~ 120 steps</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The 1/M values fall toward zero and the extrapolation lands on 120 steps — exactly where we set k_eff = 1. Try making k_eff non-linear in <code>steps</code> (real cores curve near critical) and watch how the early extrapolation over- or under-predicts, which is why operators re-plot every step.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have the skeleton of a reactor's working life. <strong>Week 2</strong> sharpens the reactivity picture — control rods, boron, and the operational limits (shutdown margin, rod insertion limits) that keep every maneuver inside a safe envelope, plus the xenon transient that makes load following an art. Later weeks build out the <strong>safety systems</strong> that exist almost entirely to remove the decay heat you met in §1.4, the <strong>transient and accident analysis</strong> that stresses those systems, and the human-factors and procedures discipline that turns one operator's judgment into a reliable, repeatable plant. The 1/M plot and the decay-heat curve will reappear again and again — they are the two graphs every operator carries in their head.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A reactor at steady, constant power is best described as:</div>
+            <div class="opt"><b>A.</b> supercritical, k_eff &gt; 1</div>
+            <div class="opt"><b>B.</b> critical, k_eff = 1</div>
+            <div class="opt"><b>C.</b> subcritical, k_eff &lt; 1</div>
+            <div class="opt"><b>D.</b> source-driven only, k_eff = 0</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Constant power means the neutron population is exactly self-sustaining, so k_eff = 1. (A) supercritical means rising power; (C) subcritical means power dying away; (D) k_eff = 0 describes no multiplication at all, not steady power.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why do operators plot 1/M instead of the raw count rate during an approach to criticality?</div>
+            <div class="opt"><b>A.</b> 1/M increases exponentially, giving an early warning</div>
+            <div class="opt"><b>B.</b> The raw count rate is impossible to measure below critical</div>
+            <div class="opt"><b>C.</b> 1/M falls along a near-straight line to zero at criticality, so the critical condition can be extrapolated before reaching it</div>
+            <div class="opt"><b>D.</b> 1/M removes the need to wait for the count rate to stabilize</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Since 1/M = 1 &minus; k_eff falls linearly toward zero at critical, its x-intercept predicts the critical rod position. (A) is backwards — 1/M falls, and the raw count rate is the one that blows up. (B) the count rate is measurable and is the source data. (D) you still must let counts stabilize at each step — that requirement does not go away.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Immediately after a normal shutdown, the core still produces heat primarily because:</div>
+            <div class="opt"><b>A.</b> the chain reaction continues at low level for hours</div>
+            <div class="opt"><b>B.</b> control rods generate heat as they insert</div>
+            <div class="opt"><b>C.</b> radioactive fission products keep decaying, releasing decay heat</div>
+            <div class="opt"><b>D.</b> the coolant pumps add frictional heat equal to full power</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Decay of accumulated fission products yields ~6–7% of full power right after shutdown and falls slowly. (A) the chain reaction is stopped, not lingering; (B) rods absorb neutrons, they do not generate core heat; (D) pump heat is tiny compared with decay heat just after shutdown.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A plant lowers its electrical output at night to match grid demand, then raises it in the morning. This routine maneuver is called:</div>
+            <div class="opt"><b>A.</b> load following</div>
+            <div class="opt"><b>B.</b> a reactor scram</div>
+            <div class="opt"><b>C.</b> a cold shutdown</div>
+            <div class="opt"><b>D.</b> refueling</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Adjusting power to track grid demand is load following, enabled by negative reactivity feedback. (B) a scram is a rapid emergency rod insertion, not a routine power change; (C) cold shutdown takes the plant subcritical and cold, far below power; (D) refueling happens with the reactor shut down and the vessel open.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> While the count rate is still climbing after a rod withdrawal step, the safest action is to:</div>
+            <div class="opt"><b>A.</b> immediately withdraw the next rod step to save time</div>
+            <div class="opt"><b>B.</b> insert rods to force the count back down before continuing</div>
+            <div class="opt"><b>C.</b> ignore the count rate and rely on the turbine output instead</div>
+            <div class="opt"><b>D.</b> wait for the count rate to stabilize before taking the next reading and step</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The subcritical population needs time to settle; reading or stepping early distorts the 1/M plot and can hide how near critical you are. (A) stepping early is exactly the dangerous mistake; (B) needlessly reversing wastes time and adds no safety once you simply wait; (C) at startup the turbine carries no load and gives no useful signal.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Named the standard <b>operating modes</b> and saw they are defined by k_eff and coolant temperature.</li>
+            <li>Explained the <b>approach to criticality</b> via subcritical multiplication M = 1/(1 &minus; k_eff).</li>
+            <li>Built and read the <b>1/M plot</b>, whose straight-line x-intercept predicts criticality safely before you reach it.</li>
+            <li>Described <b>steady power, reactivity feedback, and load following</b>, with rho = (k_eff &minus; 1)/k_eff.</li>
+            <li>Walked a <b>normal shutdown and cooldown</b> and saw why <b>decay heat</b> means cooling can never simply stop.</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: Reactivity &amp; Operational Limits. Control rods, boron, shutdown margin, rod insertion limits, and the xenon transient that fights every power maneuver — the rulebook that keeps every move inside a safe envelope.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C5 Ops &amp; Safety Syllabus</div></a>
+        <a class="next" href="l02-reactivity-operational-limits.html"><div class="dir">Week 2 →</div><div class="ttl">Reactivity &amp; Operational Limits</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Ops &amp; Safety</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

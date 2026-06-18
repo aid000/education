@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C5 · Lecture 2 — Numerical Optimization for Economics</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C5 Computational Econ</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Numerical Optimization for Economics</h1>
+        <p class="sub">Most economic models end in "maximize this, subject to that" — and when the algebra runs out, the computer climbs the hill for you.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why economics is full of optimization problems and when we must solve them numerically rather than by hand.</li>
+            <li>Build intuition for gradient descent and Newton's method as two ways of "climbing the hill" of an objective function.</li>
+            <li>Use <code>scipy.optimize.minimize</code> to solve an unconstrained problem and read its output.</li>
+            <li>Set up a constrained problem with the Lagrangian and the first-order conditions.</li>
+            <li>Solve a consumer's utility-maximization problem numerically and check it against the analytical answer.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>Why Economics Is an Optimization Machine</h2>
+        <p>Almost every actor in an economic model is solving a <strong>maximization or minimization problem</strong>. A consumer maximizes utility subject to a budget. A firm maximizes profit, or equivalently minimizes cost for a target output. An econometrician minimizes a sum of squared residuals to fit a model. A central planner maximizes welfare. The unifying mathematical object is:</p>
+        <div class="eq">max<sub>x</sub> f(x)&nbsp;&nbsp;or&nbsp;&nbsp;min<sub>x</sub> f(x)<small>f is the <em>objective</em> (utility, profit, negative loss); x is the <em>choice variable</em> (a bundle, a price, a parameter vector).</small></div>
+        <p>In your calculus courses you solved these by hand: take the derivative, set it to zero, solve. That works for textbook functions. But real models have objectives with no closed-form solution — a likelihood with dozens of parameters, a utility function with frictions, an equilibrium condition you can only evaluate by running code. When the algebra runs out, we hand the problem to a <strong>numerical optimizer</strong>: an algorithm that starts from a guess and iteratively improves it until it finds the peak (or valley).</p>
+        <p>Note one convention that trips everyone up: optimizers are written to <em>minimize</em>. To maximize <span class="key">f(x)</span> you minimize <span class="key">-f(x)</span>. The peak of utility is the valley of negative utility — same point, flipped sign.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the objective function as a <strong>foggy mountain landscape</strong> and you are a hiker who can only see the ground right under your feet. You can't see the summit. But you <em>can</em> feel which way the slope tilts. A numerical optimizer is a strategy for repeatedly stepping uphill using only local slope information — never needing a map of the whole mountain.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Climbing the Hill: Gradient Descent &amp; Newton's Method</h2>
+        <p>Consider minimizing a smooth function f(x). At any point, the <strong>gradient</strong> ∇f (the vector of partial derivatives) points in the direction of steepest <em>increase</em>. So to go downhill, we step in the <em>opposite</em> direction. That is <strong>gradient descent</strong>:</p>
+        <div class="eq">x_(k+1) = x_k - alpha * ∇f(x_k)<small>Step from the current point against the gradient. alpha &gt; 0 is the <em>learning rate</em> (step size).</small></div>
+        <p>The step size alpha matters enormously. Too small and you crawl toward the minimum over thousands of iterations; too large and you overshoot and bounce, possibly diverging. Gradient descent uses only first-derivative information, so it knows the <em>direction</em> down but nothing about how the slope is changing.</p>
+        <p><strong>Newton's method</strong> is smarter: it also uses the second derivative — the <strong>Hessian</strong> H (the matrix of second partials), which measures curvature. It models the function locally as a parabola and jumps straight to that parabola's minimum:</p>
+        <div class="eq">x_(k+1) = x_k - H(x_k)^(-1) * ∇f(x_k)<small>The Hessian inverse rescales the step by curvature, so no manual learning rate is needed.</small></div>
+        <p>Because it uses curvature, Newton's method converges <strong>quadratically</strong> near a minimum — roughly doubling the number of correct digits each step — while gradient descent typically converges linearly. The catch: you must compute and invert the Hessian, which is expensive for high-dimensional problems and can misbehave if the function is far from quadratic. Real solvers (like <strong>BFGS</strong>) split the difference: they <em>approximate</em> the Hessian from the gradients they've already seen, getting Newton-like speed without the cost.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 480 280" role="img" aria-label="A bowl-shaped objective curve with gradient-descent steps. Large dots march down the right wall of the bowl in shrinking steps toward the minimum at the bottom.">
+                <!-- axes -->
+                <line x1="50" y1="240" x2="450" y2="240" stroke="#1f2f4a" stroke-width="1.5"/>
+                <line x1="50" y1="40" x2="50" y2="240" stroke="#1f2f4a" stroke-width="1.5"/>
+                <text x="445" y="258" fill="#93a8c8" font-size="12" text-anchor="end">x</text>
+                <text x="60" y="50" fill="#93a8c8" font-size="12">f(x)</text>
+                <!-- bowl: parabola through points, vertex at (250,220) -->
+                <path d="M 70 60 Q 250 380 430 60" fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+                <!-- minimum marker -->
+                <circle cx="250" cy="220" r="4" fill="#34d399"/>
+                <text x="250" y="236" fill="#34d399" font-size="11" text-anchor="middle">minimum</text>
+                <!-- gradient descent steps coming down the right wall -->
+                <circle cx="415" cy="78" r="5" fill="#fbbf24"/>
+                <circle cx="360" cy="125" r="5" fill="#fbbf24"/>
+                <circle cx="315" cy="165" r="5" fill="#fbbf24"/>
+                <circle cx="285" cy="193" r="5" fill="#fbbf24"/>
+                <circle cx="266" cy="210" r="5" fill="#fbbf24"/>
+                <!-- step arrows along the curve -->
+                <path d="M 410 84 L 366 120" stroke="#fbbf24" stroke-width="1.5"/>
+                <path d="M 355 130 L 320 160" stroke="#fbbf24" stroke-width="1.5"/>
+                <path d="M 310 170 L 290 188" stroke="#fbbf24" stroke-width="1.5"/>
+                <path d="M 280 198 L 270 206" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="415" y="68" fill="#fbbf24" font-size="11" text-anchor="middle">x_0</text>
+                <text x="360" y="115" fill="#fbbf24" font-size="11" text-anchor="middle">x_1</text>
+                <text x="305" y="158" fill="#fbbf24" font-size="11" text-anchor="middle">x_2</text>
+            </svg>
+            <figcaption>Gradient descent on a convex (bowl-shaped) objective: each iteration steps downhill against the gradient. Steps shrink as the slope flattens near the minimum (green dot), because the gradient itself shrinks there.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Numerical optimizers find a <strong>local</strong> optimum — the nearest valley to where you started, not necessarily the deepest one. If your objective has multiple humps (non-convex), the answer can depend on your starting guess. For <em>convex</em> problems (a single bowl, like the figure) any local minimum is the global minimum, which is why economists work hard to write models in convex form. When in doubt, restart the optimizer from several initial points and compare.</div>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>scipy.optimize: Your Workhorse Solver</h2>
+        <p>You will almost never code gradient descent by hand. The free <strong>SciPy</strong> library bundles battle-tested optimizers behind one function, <code>scipy.optimize.minimize</code>. You hand it: an objective function, a starting guess <code>x0</code>, and (optionally) a method, the gradient, and constraints. It hands back the minimizing <code>x</code>, the objective value there, and convergence diagnostics.</p>
+        <div class="eq">result = minimize(f, x0, method='BFGS')<small>BFGS is a quasi-Newton method: it approximates the Hessian from observed gradients — fast and the sensible default for smooth, unconstrained problems.</small></div>
+        <p>Picking a method is mostly about the problem's structure. <span class="key">BFGS</span> for smooth unconstrained problems; <span class="key">Nelder-Mead</span> (a derivative-free "simplex" search) when you can't compute gradients or the function is noisy; <span class="key">L-BFGS-B</span> when variables have simple bounds; and <span class="key">SLSQP</span> when you have equality or inequality constraints (Section 2.4). Always check <code>result.success</code> and <code>result.message</code> — a returned number is meaningless if the solver never actually converged.</p>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Constrained Optimization &amp; the Lagrangian</h2>
+        <p>Economic choices are rarely free — they come with a <strong>constraint</strong>. A consumer can't spend more than their income; a firm has a production capacity. The canonical problem is:</p>
+        <div class="eq">max<sub>x</sub> f(x)&nbsp;&nbsp;subject to&nbsp;&nbsp;g(x) = 0<small>f is the objective (utility); g(x) = 0 is the constraint (e.g. you spend exactly your budget).</small></div>
+        <p>The trick, due to Lagrange, is to fold the constraint into a single new objective by adding it back with a multiplier lambda:</p>
+        <div class="eq">L(x, lambda) = f(x) + lambda * g(x)<small>The <em>Lagrangian</em>. The multiplier lambda is the new variable that enforces the constraint.</small></div>
+        <p>Setting all the partial derivatives of L to zero gives the <strong>first-order conditions</strong>. The condition ∂L/∂lambda = 0 just re-states the constraint g(x) = 0, while the ∂L/∂x conditions say the gradient of the objective must line up with the gradient of the constraint. Geometrically: at the optimum, the highest indifference curve you can reach <em>just touches</em> the budget line — they are tangent.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The multiplier lambda is not just bookkeeping — it has an economic meaning. It is the <strong>shadow price</strong> of the constraint: how much your maximum objective would rise if the constraint loosened by one unit. In a budget problem, lambda is the <strong>marginal utility of income</strong> — the extra happiness one more dollar would buy. That is why Lagrange multipliers show up everywhere from consumer theory to the pricing of resources.</div>
+        <p>Numerically, you don't have to form the Lagrangian yourself. You pass the objective and the constraint <em>separately</em> to a constrained solver — <code>SLSQP</code> in SciPy, or a convex solver like <strong>CVXPY</strong> for problems you can write in convex form — and the algorithm handles the multiplier internally. CVXPY is especially nice: you declare variables, write the objective and constraints almost like math, and it certifies a <em>global</em> optimum for convex problems.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Mixing up the sign or the direction of the inequality. An optimizer minimizes, so to maximize utility you minimize <strong>negative</strong> utility — but the constraint itself does not get its sign flipped. And "spend at most your income" (p·x ≤ m) is an <em>inequality</em>; with monotone preferences (more is better) it binds with equality, but writing it as a strict equality when the optimum is interior can make the solver fail. Match the constraint type to the economics.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — maximize Cobb-Douglas utility on a budget</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A consumer has utility U(x, y) = x<sup>0.5</sup> y<sup>0.5</sup> over two goods. Prices are p<sub>x</sub> = 2, p<sub>y</sub> = 4, and income m = 100. Find the optimal bundle by hand, then we'll confirm it in code.</p>
+        <ol>
+            <li><strong>Set up the Lagrangian:</strong> L = x<sup>0.5</sup>y<sup>0.5</sup> + lambda·(100 − 2x − 4y).</li>
+            <li><strong>First-order conditions:</strong> ∂L/∂x = 0.5·x<sup>−0.5</sup>y<sup>0.5</sup> − 2·lambda = 0 and ∂L/∂y = 0.5·x<sup>0.5</sup>y<sup>−0.5</sup> − 4·lambda = 0.</li>
+            <li><strong>Take the ratio</strong> (divide the two conditions) to cancel lambda: (y / x) = 2/4, so y = x/2. The marginal-rate-of-substitution equals the price ratio.</li>
+            <li><strong>Plug into the budget</strong> 2x + 4y = 100: 2x + 4(x/2) = 2x + 2x = 4x = 100, so <strong>x* = 25</strong>.</li>
+            <li><strong>Back out y:</strong> y* = 25/2 = <strong>12.5</strong>. Utility = 25<sup>0.5</sup>·12.5<sup>0.5</sup> = √312.5 ≈ <strong>17.68</strong>.</li>
+            <li><strong>Sanity check:</strong> for Cobb-Douglas with equal exponents, each good takes half of income — spend 50 on x (50/2 = 25 units) and 50 on y (50/4 = 12.5 units). It matches. The shadow price lambda = 0.5·x<sup>−0.5</sup>y<sup>0.5</sup>/2 ≈ 0.0884 utils per dollar.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: solve it with SciPy &amp; CVXPY</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the free computational-economics stack — Python with QuantEcon, NumPy, SciPy, CVXPY, and Matplotlib — for the whole course. <strong>Week 2 setup:</strong> install once (below), then reuse it every lecture and for the project.</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + QuantEcon + NumPy + SciPy + CVXPY (one-time setup)</summary>
+            <p>With Python 3 installed, create an environment and install the stack:</p>
+            <pre>python3 -m venv econ-env
+source econ-env/bin/activate       <span class="c"># macOS / Linux</span>
+econ-env\Scripts\activate          <span class="c"># Windows (PowerShell)</span>
+pip install quantecon numpy scipy cvxpy matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import scipy, cvxpy, quantecon; print('ok')"</code> — printing <code>ok</code> means you're set.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">First, the unconstrained-style approach: we substitute the budget into the objective and minimize <em>negative</em> utility with SciPy's constrained solver, then double-check with CVXPY.</p>
+        <pre><span class="c"># utility_max.py — Lecture 2</span>
+import numpy as np
+from scipy.optimize import minimize
+
+px, py, m = 2.0, 4.0, 100.0
+
+<span class="c"># maximize U = x^.5 * y^.5  ==&gt; minimize -U</span>
+def neg_util(z):
+    x, y = z
+    return -(x**0.5 * y**0.5)
+
+<span class="c"># budget: px*x + py*y &lt;= m  (SLSQP wants g(z) &gt;= 0)</span>
+budget = {'type': 'ineq', 'fun': lambda z: m - px*z[0] - py*z[1]}
+bounds = [(1e-6, None), (1e-6, None)]   <span class="c"># goods must be positive</span>
+
+res = minimize(neg_util, x0=[10, 10], method='SLSQP',
+               bounds=bounds, constraints=[budget])
+
+print(res.success, res.message)
+print("x*, y* =", res.x.round(3))       <span class="c"># -&gt; [25.    12.5]</span>
+print("U* =", round(-res.fun, 3))       <span class="c"># -&gt; 17.678</span></pre>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">Cobb-Douglas in log form is concave, so the problem is convex once we maximize log-utility. CVXPY can then certify the <em>global</em> optimum:</p>
+        <pre><span class="c"># same problem, convex form with CVXPY</span>
+import cvxpy as cp
+
+x = cp.Variable(pos=True)
+y = cp.Variable(pos=True)
+<span class="c"># maximize 0.5*log(x) + 0.5*log(y)  (monotone transform of U)</span>
+objective = cp.Maximize(0.5*cp.log(x) + 0.5*cp.log(y))
+constraints = [px*x + py*y &lt;= m]
+
+prob = cp.Problem(objective, constraints)
+prob.solve()
+print("x*, y* =", round(x.value, 3), round(y.value, 3))   <span class="c"># -&gt; 25.0 12.5</span>
+print("shadow price lambda =", round(constraints[0].dual_value, 4))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Both solvers return (25, 12.5), matching the hand calculation. CVXPY's <code>dual_value</code> on the budget constraint <em>is</em> the Lagrange multiplier — the marginal utility of income. Now change <code>m</code> to 200 and watch the bundle double; change the exponents to 0.7 and 0.3 and watch spending shift toward good x.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Optimization is the engine under almost everything that follows. Next week's <strong>dynamic programming</strong> (the Bellman equation) is optimization stretched across time — you'll maximize over an entire path of choices, solving a small optimization at every state. When you fit models to data later in the track, <strong>maximum-likelihood</strong> and <strong>GMM</strong> estimation are just <code>minimize</code> calls on a cleverly chosen objective. And the constrained-solver machinery here reappears in <em>portfolio optimization</em> in the Quant Finance track, where you maximize expected return subject to a risk budget — the very same Lagrangian, with money instead of utility.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> To <em>maximize</em> a function f(x) using an optimizer that only minimizes, you should minimize…</div>
+            <div class="opt"><b>A.</b> 1/f(x)</div>
+            <div class="opt"><b>B.</b> −f(x)</div>
+            <div class="opt"><b>C.</b> f(x)²</div>
+            <div class="opt"><b>D.</b> |f(x)|</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The minimum of −f(x) occurs at the same x as the maximum of f(x). 1/f (A) and f² (C) change where the extremum sits and break for f ≤ 0; |f| (D) does too.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The key difference between Newton's method and plain gradient descent is that Newton's method…</div>
+            <div class="opt"><b>A.</b> never needs a starting guess</div>
+            <div class="opt"><b>B.</b> always finds the global minimum</div>
+            <div class="opt"><b>C.</b> uses second-derivative (curvature) information via the Hessian</div>
+            <div class="opt"><b>D.</b> works only on linear functions</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Newton's method scales the step by the inverse Hessian, giving fast quadratic convergence near a minimum. It still needs a starting guess (A) and still only finds a local optimum (B); it's used precisely on nonlinear functions (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A numerical optimizer started from one initial guess returns a minimum. The biggest caveat is that…</div>
+            <div class="opt"><b>A.</b> the result is only a <em>local</em> optimum unless the problem is convex</div>
+            <div class="opt"><b>B.</b> it is always the global optimum</div>
+            <div class="opt"><b>C.</b> it ignores the objective function entirely</div>
+            <div class="opt"><b>D.</b> the step size has no effect on the answer</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Local methods find the nearest valley to the start point; only convexity guarantees it's also global (B is false in general). The optimizer obviously uses the objective (C), and step size strongly affects convergence (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the Lagrangian L = f(x) + lambda·g(x), the multiplier lambda is best interpreted economically as…</div>
+            <div class="opt"><b>A.</b> the total value of the objective at the optimum</div>
+            <div class="opt"><b>B.</b> the number of constraints</div>
+            <div class="opt"><b>C.</b> the shadow price — how much the optimal objective rises if the constraint loosens by one unit</div>
+            <div class="opt"><b>D.</b> the starting guess for the optimizer</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> lambda is the marginal value of relaxing the constraint (e.g. the marginal utility of income). It is not the objective level (A), a count (B), or an initial guess (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> For a smooth, unconstrained minimization where you can't easily compute the Hessian, the sensible default SciPy method is…</div>
+            <div class="opt"><b>A.</b> Nelder-Mead, because it's derivative-free</div>
+            <div class="opt"><b>B.</b> linear programming</div>
+            <div class="opt"><b>C.</b> a fixed grid search over all points</div>
+            <div class="opt"><b>D.</b> BFGS, a quasi-Newton method that approximates the Hessian from gradients</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> BFGS gets Newton-like speed without forming the true Hessian — the standard default for smooth unconstrained problems. Nelder-Mead (A) is for noisy/non-differentiable objectives and is slower; LP (B) needs a linear problem; grid search (C) is hopeless in more than a few dimensions.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Economics is an <b>optimization machine</b> — consumers, firms, and estimators all maximize or minimize an objective.</li>
+            <li>Built intuition for <b>gradient descent</b> (step against the gradient) and <b>Newton's method</b> (use curvature for faster, quadratic convergence).</li>
+            <li>Drove <b>scipy.optimize.minimize</b> and learned to pick a method and check <code>result.success</code>.</li>
+            <li>Set up <b>constrained</b> problems with the <b>Lagrangian</b>, and read lambda as the <b>shadow price</b>.</li>
+            <li>Solved a <b>Cobb-Douglas utility-maximization</b> problem by hand and matched it with SciPy and CVXPY.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: dynamic programming and the Bellman equation, where optimization plays out across time and every state hides a small optimization of its own.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-computational-economics.html"><div class="dir">← Week 1</div><div class="ttl">Computational Economics: Why &amp; How</div></a>
+        <a class="next" href="l03-dynamic-programming.html"><div class="dir">Week 3 →</div><div class="ttl">Dynamic Programming &amp; Bellman</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Computational Econ</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

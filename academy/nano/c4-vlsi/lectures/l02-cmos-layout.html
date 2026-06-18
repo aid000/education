@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Lecture 2 — CMOS Layout Basics</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C4 VLSI</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>CMOS Layout Basics</h1>
+        <p class="sub">Turning a schematic into manufacturable geometry — layers, design rules, and standard cells.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Describe a layout as physical polygons drawn on fabrication layers (n-well, diffusion, poly, metal, contacts).</li>
+            <li>Explain why design rules (the DRC) set minimum widths and spacings for manufacturability.</li>
+            <li>Read a stick diagram and explain what a standard cell is and why it has a fixed height.</li>
+            <li>Relate a transistor's W/L ratio to its drive strength, area, and power.</li>
+            <li>Size a CMOS inverter's pMOS and nMOS for balanced rise/fall switching.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>From Schematic to Layout</h2>
+        <p>A schematic tells you <em>what</em> transistors connect to what. A <strong>layout</strong> tells the fab <em>where</em> to put every piece of silicon — it is the physical geometry of the chip: a set of <span class="key">polygons</span> drawn on different <span class="key">layers</span>. Each layer becomes a real step in fabrication (C2): doping a region, growing oxide, depositing polysilicon or metal, etching a contact hole.</p>
+        <p>The layers you draw for a basic CMOS gate are:</p>
+        <div class="eq">n-well · diffusion (active) · polysilicon · metal1/metal2… · contacts &amp; vias<small>Polysilicon over diffusion forms a transistor gate; contacts tie diffusion/poly up to metal; vias stack metal layers.</small></div>
+        <p>Where <strong>polysilicon crosses diffusion</strong>, a transistor channel forms. n-type diffusion sitting in the substrate makes an nMOS; p-type diffusion inside an n-well makes a pMOS. <span class="key">Contacts</span> are little squares that connect diffusion or poly up to <strong>metal1</strong>, and the metal layers carry the wires that route signals and power across the chip.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 300" role="img" aria-label="CMOS inverter layout top view showing n-well, p-diffusion and n-diffusion, a polysilicon gate stripe, metal1 wires and contacts">
+                <!-- n-well (top half) -->
+                <rect x="40" y="34" width="380" height="96" fill="#a78bfa" fill-opacity="0.14" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="5 4"/>
+                <text x="48" y="50" fill="#a78bfa" font-size="12">n-well</text>
+                <!-- p-diffusion inside n-well (pMOS) -->
+                <rect x="120" y="60" width="220" height="48" fill="#fbbf24" fill-opacity="0.20" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="128" y="76" fill="#fbbf24" font-size="11">p-diffusion (pMOS)</text>
+                <!-- n-diffusion (nMOS) bottom -->
+                <rect x="120" y="186" width="220" height="48" fill="#34d399" fill-opacity="0.18" stroke="#34d399" stroke-width="1.5"/>
+                <text x="128" y="202" fill="#34d399" font-size="11">n-diffusion (nMOS)</text>
+                <!-- polysilicon gate stripe crossing both -->
+                <rect x="214" y="48" width="32" height="198" fill="#22d3ee" fill-opacity="0.30" stroke="#22d3ee" stroke-width="1.5"/>
+                <text x="230" y="160" fill="#22d3ee" font-size="11" text-anchor="middle" transform="rotate(-90 230 160)">polysilicon gate</text>
+                <!-- metal1 VDD rail (top) -->
+                <rect x="40" y="14" width="380" height="12" fill="#60a5fa" fill-opacity="0.5" stroke="#60a5fa" stroke-width="1"/>
+                <text x="44" y="11" fill="#60a5fa" font-size="10">metal1 — VDD</text>
+                <!-- metal1 GND rail (bottom) -->
+                <rect x="40" y="262" width="380" height="12" fill="#60a5fa" fill-opacity="0.5" stroke="#60a5fa" stroke-width="1"/>
+                <text x="44" y="287" fill="#60a5fa" font-size="10">metal1 — GND</text>
+                <!-- metal1 output strap connecting pMOS drain to nMOS drain -->
+                <rect x="296" y="84" width="12" height="126" fill="#60a5fa" fill-opacity="0.5" stroke="#60a5fa" stroke-width="1"/>
+                <text x="352" y="150" fill="#60a5fa" font-size="10">metal1 — OUT</text>
+                <line x1="308" y1="147" x2="348" y2="147" stroke="#60a5fa" stroke-width="1"/>
+                <!-- contacts (small squares) -->
+                <rect x="150" y="78" width="9" height="9" fill="#e8f0f8"/>
+                <rect x="297" y="78" width="9" height="9" fill="#e8f0f8"/>
+                <rect x="150" y="204" width="9" height="9" fill="#e8f0f8"/>
+                <rect x="297" y="204" width="9" height="9" fill="#e8f0f8"/>
+                <rect x="150" y="16" width="9" height="9" fill="#e8f0f8"/>
+                <rect x="150" y="264" width="9" height="9" fill="#e8f0f8"/>
+                <text x="372" y="246" fill="#e8f0f8" font-size="10">▪ = contact</text>
+                <!-- input label on poly -->
+                <text x="230" y="44" fill="#22d3ee" font-size="10" text-anchor="middle">IN</text>
+            </svg>
+            <figcaption>Top view of a CMOS inverter layout. The pMOS lives in the n-well (p-diffusion); the nMOS sits in the substrate (n-diffusion). One polysilicon stripe forms both gates (the input). Metal1 carries VDD, GND, and the shared output; white squares are contacts down to diffusion.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>A layout is like a stack of transparent map overlays. Each layer — poly, metal1, metal2, … — is one transparency, and the fab lines them all up to build the device. The <em>design rules</em> are the legal spacings printed on every overlay, so the "roads" (wires) on each layer never illegally touch each other or the roads above and below.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Design Rules (DRC)</h2>
+        <p>You can't draw geometry arbitrarily. The fab's process can only resolve features down to a certain size, and lines placed too close together will short or fail to print. <strong>Design rules</strong> are the contract between the designer and the foundry: a list of <span class="key">minimum widths</span> and <span class="key">minimum spacings</span> (plus enclosures and overlaps) that guarantee the design can actually be manufactured.</p>
+        <div class="eq">DRC: minimum width &nbsp;·&nbsp; minimum spacing &nbsp;·&nbsp; minimum enclosure/overlap<small>Checked automatically by a <strong>Design Rule Check (DRC)</strong> tool before the layout is sent ("taped out") to the fab.</small></div>
+        <p>Every layer has its own rules — metal1 might require a 0.14 µm minimum width and 0.14 µm minimum spacing, for example. A layout that violates even one rule is rejected; it physically cannot be built reliably.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 220" role="img" aria-label="Two parallel metal lines with the minimum width and minimum spacing dimensioned">
+                <!-- metal line 1 -->
+                <rect x="90" y="40" width="44" height="140" fill="#60a5fa" fill-opacity="0.5" stroke="#60a5fa" stroke-width="1.5"/>
+                <!-- metal line 2 -->
+                <rect x="226" y="40" width="44" height="140" fill="#60a5fa" fill-opacity="0.5" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="300" y="115" fill="#60a5fa" font-size="12">metal lines</text>
+                <!-- width dimension on line 1 -->
+                <line x1="90" y1="200" x2="134" y2="200" stroke="#fbbf24" stroke-width="1.2"/>
+                <line x1="90" y1="194" x2="90" y2="206" stroke="#fbbf24" stroke-width="1.2"/>
+                <line x1="134" y1="194" x2="134" y2="206" stroke="#fbbf24" stroke-width="1.2"/>
+                <text x="112" y="216" fill="#fbbf24" font-size="11" text-anchor="middle">min width</text>
+                <!-- spacing dimension between lines -->
+                <line x1="134" y1="110" x2="226" y2="110" stroke="#34d399" stroke-width="1.2"/>
+                <line x1="134" y1="104" x2="134" y2="116" stroke="#34d399" stroke-width="1.2"/>
+                <line x1="226" y1="104" x2="226" y2="116" stroke="#34d399" stroke-width="1.2"/>
+                <text x="180" y="100" fill="#34d399" font-size="11" text-anchor="middle">min spacing</text>
+            </svg>
+            <figcaption>Two parallel metal wires. The yellow dimension is the layer's <strong>minimum width</strong> (a line can't be thinner) and the green dimension is the <strong>minimum spacing</strong> (two lines can't be closer). DRC enforces both.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Stick Diagrams &amp; Standard Cells</h2>
+        <p>Before drawing exact polygons, designers sketch a <strong>stick diagram</strong>: a quick drawing where each layer is a colored line (poly, diffusion, metal) and the topology — what crosses what, what connects where — is captured without committing to precise dimensions. It's the napkin sketch of layout, used to plan a cell's floorplan fast.</p>
+        <p>The polished, reusable result is a <strong>standard cell</strong>: a pre-designed, DRC-clean, fully verified layout of a single logic gate (an inverter, NAND2, flip-flop, …). The key constraint is that every cell in a library shares a <span class="key">fixed height</span>.</p>
+        <div class="eq">standard cells: fixed height &nbsp;⟹&nbsp; they tile into rows<small>Same height means cells abut shoulder-to-shoulder; the VDD rail at the top and GND rail at the bottom line up automatically across a whole row.</small></div>
+        <p>Because the height is fixed and the power rails are at fixed positions, a place-and-route tool can drop cells side-by-side into long rows and the power grid connects itself. The cell <em>width</em> varies with complexity, but the height never does.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Three things students get wrong: (1) layout polygons <strong>must obey the design rules (DRC)</strong> — a single violation and the chip <strong>cannot be manufactured</strong>; (2) standard cells share a <strong>fixed height</strong> precisely so they tile into rows (they do <em>not</em> all have the same width or logic); and (3) transistor <strong>sizing (W/L) trades speed against area and power</strong> — making a transistor bigger is <em>not</em> free.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Transistor Sizing</h2>
+        <p>A transistor's <strong>drive strength</strong> — how much current it can push, and therefore how fast it switches its load — is set by the ratio of channel <span class="key">width</span> to channel <span class="key">length</span>, the <span class="key">W/L ratio</span>:</p>
+        <div class="eq">drive strength ∝ W / L<small>Wider (bigger W) ⟹ more current ⟹ faster switching. Length L is usually held at the process minimum.</small></div>
+        <p>Bigger transistors switch faster, but they aren't free: they consume more <strong>area</strong>, present a larger gate capacitance (so they load whatever drives <em>them</em>), and burn more <strong>power</strong>. Sizing is the engineer's lever for balancing speed against area and power.</p>
+        <p>In a CMOS gate, the <span class="key">pull-up</span> network (pMOS) charges the output high and the <span class="key">pull-down</span> network (nMOS) pulls it low. For the output to rise and fall at <em>similar</em> speeds, the two networks must have <strong>balanced</strong> drive strength — which, as the worked example shows, means the pMOS has to be made wider.</p>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Size a CMOS inverter for balanced switching. The nMOS conducts with electrons; the pMOS conducts with holes, which are roughly 2–3× <em>less</em> mobile. How should the two transistor widths compare so the output rises and falls at the same speed?</p>
+        <ol>
+            <li><strong>Identify the imbalance:</strong> drive strength scales with carrier mobility × (W/L). Holes are ~2–3× slower than electrons, so for equal W/L the pMOS pulls up weaker than the nMOS pulls down.</li>
+            <li><strong>Compensate with width:</strong> to recover equal strength, make the pMOS wider by the mobility ratio. With both at minimum length, set W<sub>p</sub> ≈ 2–3 × W<sub>n</sub>.</li>
+            <li><strong>Rule of thumb:</strong> use <strong>W<sub>p</sub> ≈ 2 × W<sub>n</sub></strong> for a balanced inverter (some processes use up to ~3×). This is exactly why the p-diffusion in the §2.1 layout is drawn wider than the n-diffusion.</li>
+            <li><strong>Result:</strong> the pull-up and pull-down currents match, so the rise time ≈ fall time and the switching threshold sits near VDD/2.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: explore a real standard cell in KLayout</h3>
+        <p>Open a Sky130 standard cell in <code>KLayout</code> and find the physical layers you just learned. Sky130 is an open-source 130 nm PDK, so the GDS files are freely available.</p>
+        <pre><span class="c"># grab the open Sky130 standard-cell library, then open a cell</span>
+klayout sky130_fd_sc_hd__inv_2.gds   <span class="c"># a size-2 inverter cell</span></pre>
+        <p>In the layers panel, toggle each layer on and off and locate: <code>diff</code> (diffusion / active), <code>poly</code> (the gate stripe crossing the diffusion), <code>met1</code> (metal1 — note the VDD rail on top and GND on the bottom), and the <code>licon/mcon</code> contacts tying diffusion up to metal1. Confirm the cell's height matches the other cells in the library, and notice the pMOS diffusion is drawn wider than the nMOS — the 2× sizing from the worked example.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A layout is…</div>
+            <div class="opt"><b>A.</b> the physical polygon geometry on each fabrication layer</div>
+            <div class="opt"><b>B.</b> a Verilog netlist</div>
+            <div class="opt"><b>C.</b> a timing report</div>
+            <div class="opt"><b>D.</b> a truth table</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A layout is the physical geometry — polygons drawn on layers (n-well, diffusion, poly, metal, contacts) that the fab turns into the actual device.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Design rules (DRC) specify…</div>
+            <div class="opt"><b>A.</b> the clock frequency</div>
+            <div class="opt"><b>B.</b> minimum widths and spacings for manufacturability</div>
+            <div class="opt"><b>C.</b> the logic function</div>
+            <div class="opt"><b>D.</b> the number of pins</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Design rules are minimum widths, spacings, and enclosures that guarantee the geometry can actually be manufactured. Violate one and the chip can't be built.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Standard cells share…</div>
+            <div class="opt"><b>A.</b> the same transistor count</div>
+            <div class="opt"><b>B.</b> one metal layer</div>
+            <div class="opt"><b>C.</b> a fixed cell height so they tile into rows</div>
+            <div class="opt"><b>D.</b> identical logic</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A fixed height lets cells abut into rows with their VDD/GND rails aligned. Width varies with the cell's complexity, but height does not.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> To balance switching speed, the pMOS is usually made…</div>
+            <div class="opt"><b>A.</b> narrower than the nMOS</div>
+            <div class="opt"><b>B.</b> removed</div>
+            <div class="opt"><b>C.</b> identical to the nMOS</div>
+            <div class="opt"><b>D.</b> wider than the nMOS (holes are slower than electrons)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Holes are ~2–3× less mobile than electrons, so the pMOS must be widened (rule of thumb W<sub>p</sub> ≈ 2 × W<sub>n</sub>) to match the nMOS drive strength.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Increasing a transistor's W/L ratio…</div>
+            <div class="opt"><b>A.</b> lowers power for free</div>
+            <div class="opt"><b>B.</b> increases drive strength and speed but costs area and power</div>
+            <div class="opt"><b>C.</b> has no effect</div>
+            <div class="opt"><b>D.</b> makes it an insulator</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A larger W/L pushes more current (faster switching) but consumes more area, adds gate capacitance, and burns more power. Bigger is not free.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A <b>layout</b> is physical polygon geometry on layers — <b>n-well, diffusion, poly, metal, contacts</b> — that the fab builds (back to C2).</li>
+            <li><b>Design rules (DRC)</b> set minimum widths and spacings; obey them or the chip can't be manufactured.</li>
+            <li><b>Stick diagrams</b> sketch layout topology fast; <b>standard cells</b> are verified gate layouts of a <b>fixed height</b> that tile into rows.</li>
+            <li><b>W/L ratio</b> sets drive strength — bigger is faster but costs area and power.</li>
+            <li>A balanced inverter makes the <b>pMOS ≈ 2× wider</b> than the nMOS because holes are slower than electrons.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: Hardware Description Languages — describing logic in Verilog instead of drawing it, and letting tools synthesize the gates for you.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l01-vlsi-design-flow.html"><div class="dir">← Lecture 1</div><div class="ttl">VLSI Overview &amp; Design Flow</div></a>
+        <a href="l03-hdl-verilog.html" class="next"><div class="dir">Lecture 3 →</div><div class="ttl">Hardware Description Languages (Verilog)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 VLSI</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

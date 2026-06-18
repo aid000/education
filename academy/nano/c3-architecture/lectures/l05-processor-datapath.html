@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Lecture 5 — Processor Datapath</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C3 Architecture</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Processor Datapath</h1>
+        <p class="sub">The plumbing data flows through — registers, buses, the ALU, and the program counter.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Describe the datapath as the ALU + register file + buses + program counter — the components data physically flows through.</li>
+            <li>Explain what a register file is and how its read/write ports operate each cycle.</li>
+            <li>Show how buses and multiplexers route operands into the ALU and results back out.</li>
+            <li>State the role of the program counter (PC) and how it advances each cycle.</li>
+            <li>Trace a single ADD instruction through the datapath, port by port.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>Tying It Together</h2>
+        <p>The last lecture built the <strong>ALU</strong> — the block that actually crunches numbers. But an ALU on its own is useless: it needs operands delivered to its inputs and a place to put its result. The <span class="key">datapath</span> is everything that handles that plumbing. It is the ALU plus the <strong>register file</strong>, the <strong>buses</strong>, and the <strong>program counter (PC)</strong> — the set of components that data physically flows through as an instruction executes.</p>
+        <div class="eq">datapath = ALU + register file + buses + program counter<small>The physical paths data travels — operands in, result out, next instruction fetched.</small></div>
+        <p>Think of the datapath as the body of the processor: it has the hands (ALU), the workbenches (registers), and the conveyor belts (buses). What it lacks is a brain telling it what to do each cycle — that comes from the control unit in the next lecture.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 660 270" role="img" aria-label="Datapath block diagram: PC feeds instruction memory, which feeds the register file, whose two read ports feed the ALU through multiplexers, and the ALU result is routed back to the register file write port">
+                <defs><marker id="aD" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#22d3ee"/></marker></defs>
+                <!-- PC -->
+                <rect x="24" y="110" width="70" height="48" rx="8" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <text x="59" y="139" fill="#e8f0f8" font-size="14" text-anchor="middle">PC</text>
+                <!-- Instruction memory -->
+                <rect x="138" y="98" width="96" height="72" rx="8" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <text x="186" y="129" fill="#e8f0f8" font-size="12" text-anchor="middle">Instruction</text>
+                <text x="186" y="146" fill="#e8f0f8" font-size="12" text-anchor="middle">Memory</text>
+                <!-- Register file -->
+                <rect x="278" y="78" width="104" height="112" rx="8" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.5"/>
+                <text x="330" y="106" fill="#e8f0f8" font-size="12" text-anchor="middle">Register</text>
+                <text x="330" y="122" fill="#e8f0f8" font-size="12" text-anchor="middle">File</text>
+                <text x="330" y="148" fill="#94a8bc" font-size="10" text-anchor="middle">read A / read B</text>
+                <text x="330" y="164" fill="#94a8bc" font-size="10" text-anchor="middle">write back</text>
+                <!-- Mux A -->
+                <rect x="424" y="86" width="42" height="36" rx="6" fill="#14202e" stroke="#a78bfa" stroke-width="1.5"/>
+                <text x="445" y="108" fill="#a78bfa" font-size="11" text-anchor="middle">mux</text>
+                <!-- Mux B -->
+                <rect x="424" y="150" width="42" height="36" rx="6" fill="#14202e" stroke="#a78bfa" stroke-width="1.5"/>
+                <text x="445" y="172" fill="#a78bfa" font-size="11" text-anchor="middle">mux</text>
+                <!-- ALU -->
+                <polygon points="510,80 560,98 560,168 510,186 510,140 524,133 510,126" fill="#1c2c3e" stroke="#34d399" stroke-width="1.5"/>
+                <text x="540" y="137" fill="#34d399" font-size="13" text-anchor="middle">ALU</text>
+                <!-- immediate source -->
+                <rect x="392" y="206" width="74" height="34" rx="6" fill="#14202e" stroke="#94a8bc" stroke-width="1.2"/>
+                <text x="429" y="227" fill="#94a8bc" font-size="11" text-anchor="middle">immediate</text>
+
+                <!-- arrows -->
+                <!-- PC -> instr mem -->
+                <line x1="94" y1="134" x2="134" y2="134" stroke="#22d3ee" stroke-width="2" marker-end="url(#aD)"/>
+                <!-- instr mem -> reg file -->
+                <line x1="234" y1="134" x2="274" y2="134" stroke="#22d3ee" stroke-width="2" marker-end="url(#aD)"/>
+                <!-- reg file read A -> mux A -->
+                <line x1="382" y1="104" x2="420" y2="104" stroke="#22d3ee" stroke-width="2" marker-end="url(#aD)"/>
+                <text x="398" y="96" fill="#94a8bc" font-size="9" text-anchor="middle">A</text>
+                <!-- reg file read B -> mux B -->
+                <line x1="382" y1="168" x2="420" y2="168" stroke="#22d3ee" stroke-width="2" marker-end="url(#aD)"/>
+                <text x="398" y="182" fill="#94a8bc" font-size="9" text-anchor="middle">B</text>
+                <!-- mux A -> ALU top -->
+                <line x1="466" y1="104" x2="506" y2="104" stroke="#22d3ee" stroke-width="2" marker-end="url(#aD)"/>
+                <!-- mux B -> ALU bottom -->
+                <line x1="466" y1="168" x2="506" y2="162" stroke="#22d3ee" stroke-width="2" marker-end="url(#aD)"/>
+                <!-- immediate -> mux B -->
+                <line x1="429" y1="206" x2="445" y2="190" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#aD)"/>
+                <!-- ALU result -> write back to reg file -->
+                <polyline points="560,133 596,133 596,250 330,250 330,194" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#aD)"/>
+                <text x="240" y="246" fill="#34d399" font-size="10" text-anchor="middle">result → write port</text>
+            </svg>
+            <figcaption>The datapath: the PC addresses instruction memory; the fetched instruction selects registers; two read ports feed the ALU (one through a mux that can pick an immediate); and the ALU result is routed back to the register file's write port.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>The Register File</h2>
+        <p>The <strong>register file</strong> is a small, fast, multi-port store built right onto the chip. Where main memory holds millions of locations far away, the register file holds only a handful — typically 16 or 32 — but the ALU can reach them in a single cycle. It is the processor's scratch pad: the operands an instruction works on, and the result it produces, live here.</p>
+        <p>"Multi-port" is the key feature. In one clock cycle the register file can normally <span class="key">read two operands</span> and <span class="key">write one result</span> — exactly what a binary operation like ADD needs. Each port has its own address lines, so the two reads and the write happen simultaneously.</p>
+        <div class="eq">per cycle: read port A + read port B → ALU&nbsp;&nbsp;·&nbsp;&nbsp;write port ← ALU result<small>Two operands out, one result back, every cycle.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 480 250" role="img" aria-label="Register file block with two read ports labeled A and B on the right and one write port on the left, showing internal registers R0 through R3">
+                <defs><marker id="aR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#22d3ee"/></marker></defs>
+                <!-- register file box -->
+                <rect x="150" y="44" width="180" height="162" rx="10" fill="#1c2c3e" stroke="#67e8f9" stroke-width="1.8"/>
+                <text x="240" y="34" fill="#e8f0f8" font-size="14" text-anchor="middle">Register File</text>
+                <!-- internal registers -->
+                <rect x="172" y="62" width="136" height="26" rx="4" fill="#14202e" stroke="#243648"/>
+                <text x="240" y="79" fill="#94a8bc" font-size="11" text-anchor="middle">R0</text>
+                <rect x="172" y="94" width="136" height="26" rx="4" fill="#14202e" stroke="#243648"/>
+                <text x="240" y="111" fill="#94a8bc" font-size="11" text-anchor="middle">R1</text>
+                <rect x="172" y="126" width="136" height="26" rx="4" fill="#14202e" stroke="#243648"/>
+                <text x="240" y="143" fill="#94a8bc" font-size="11" text-anchor="middle">R2</text>
+                <rect x="172" y="158" width="136" height="26" rx="4" fill="#14202e" stroke="#243648"/>
+                <text x="240" y="175" fill="#94a8bc" font-size="11" text-anchor="middle">R3</text>
+
+                <!-- write port (left) -->
+                <text x="60" y="92" fill="#34d399" font-size="12" text-anchor="middle">write</text>
+                <text x="60" y="108" fill="#34d399" font-size="12" text-anchor="middle">port</text>
+                <line x1="98" y1="100" x2="146" y2="100" stroke="#34d399" stroke-width="2" marker-end="url(#aR)"/>
+
+                <!-- read port A (right) -->
+                <line x1="330" y1="86" x2="382" y2="86" stroke="#22d3ee" stroke-width="2" marker-end="url(#aR)"/>
+                <text x="416" y="90" fill="#22d3ee" font-size="12" text-anchor="middle">read A</text>
+                <!-- read port B (right) -->
+                <line x1="330" y1="164" x2="382" y2="164" stroke="#22d3ee" stroke-width="2" marker-end="url(#aR)"/>
+                <text x="416" y="168" fill="#22d3ee" font-size="12" text-anchor="middle">read B</text>
+
+                <text x="240" y="228" fill="#94a8bc" font-size="11" text-anchor="middle">2 read ports · 1 write port · single-cycle access</text>
+            </svg>
+            <figcaption>A register file: two read ports (A and B) deliver operands while one write port stores a result — all in the same cycle. This is fast on-chip storage, separate from main memory.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>Buses &amp; Multiplexers</h2>
+        <p>The register file's outputs have to get to the ALU's inputs, and the ALU's output has to get back. The wires that carry these multi-bit values are <span class="key">buses</span> — a bus is just a bundle of parallel wires carrying one word at a time. The diagram in 5.1 shows three: read-A to the ALU, read-B to the ALU, and the result back to the write port.</p>
+        <p>But operands don't always come from a register. Sometimes one input is an <em>immediate</em> value encoded in the instruction itself. To handle "pick this source <em>or</em> that one," the datapath uses a <strong>multiplexer (mux)</strong> — a selector switch that passes exactly one of its inputs through to its output, chosen by a select signal.</p>
+        <div class="eq">mux: select line picks one input → forwards it to the output<small>e.g. ALU input B = register read B, OR an immediate from the instruction.</small></div>
+        <p>Muxes appear both before the ALU (which source feeds an input?) and after it (where does the result go?). The mux <em>routes</em> data; it does not compute anything. The actual choice of select signal is set by the control unit — the datapath just obeys.</p>
+
+        <div class="box analogy"><span class="lbl">Analogy</span>The datapath is a factory floor. The registers are <em>workbenches</em> where parts sit ready, the buses are <em>conveyor belts</em> moving parts around, and the ALU is the <em>machine</em> that does the work. The multiplexers are the switch-points on the belts that decide which line a part travels down. The control unit — coming next lecture — is the <em>foreman</em> who decides what moves where and when. The floor can build anything, but only once the foreman calls the steps.</div>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>The PC &amp; Instruction Flow</h2>
+        <p>Something has to keep track of <em>which</em> instruction runs next. That is the job of the <strong>program counter (PC)</strong> — a special register holding the memory address of the current instruction. At the start of a cycle the PC's address is sent to instruction memory, the instruction there is fetched, and the datapath executes it.</p>
+        <p>By default the PC then <span class="key">increments</span> to point at the next instruction in sequence (for a typical fixed-width instruction set, that means adding the instruction size, e.g. PC + 4). This steady march is what makes a program run top to bottom.</p>
+        <div class="eq">normal: PC ← PC + (instruction size)&nbsp;&nbsp;·&nbsp;&nbsp;branch/jump: PC ← target address<small>Increment to go to the next instruction, or load a new address to jump.</small></div>
+        <p>When the program needs to branch or jump, the PC is instead <em>loaded</em> with a target address rather than simply incremented — that is how loops and conditionals redirect the flow. Either way, the PC always names the instruction the processor is about to run.</p>
+
+        <div class="box warn"><span class="lbl">Common mistake</span>The datapath <strong>does</strong> the work but does <strong>not decide</strong> what to do — that decision belongs to the <strong>control unit</strong> (Lecture 6). The datapath is the muscle; the control unit is the brain that drives the select lines and write enables. Also keep storage straight: the <strong>register file</strong> is fast, on-chip storage with only a handful of slots, <em>separate</em> from <strong>main memory</strong>, which is large and off-chip. Don't confuse the two.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Trace the instruction <strong>ADD R3 = R1 + R2</strong> as it flows through the datapath, step by step.</p>
+        <ol>
+            <li><strong>Fetch:</strong> the PC holds the address of this ADD instruction and sends it to instruction memory, which returns the instruction word.</li>
+            <li><strong>Read operands:</strong> the register file reads <strong>R1</strong> onto read port A and <strong>R2</strong> onto read port B — both in the same cycle.</li>
+            <li><strong>Compute:</strong> the two operands travel the buses (through the input muxes, which here select the register sources) into the ALU, which <strong>adds</strong> them.</li>
+            <li><strong>Write back:</strong> the ALU result is routed back over the result bus and stored into <strong>R3</strong> via the write port.</li>
+            <li><strong>Advance:</strong> the PC increments to the next instruction's address, and the cycle repeats.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: a minimal datapath in Verilog</h3>
+        <p>Sketch a tiny register file (or a minimal datapath) in Verilog and simulate a single ADD with <code>iverilog</code> + <code>gtkwave</code>. Save the design as <code>rf.v</code> and a stimulus as <code>tb.v</code>, then compile and view the waveform.</p>
+        <pre><span class="c">// rf.v — 4-entry register file, 2 read ports + 1 write port</span>
+module regfile(input clk, we,
+               input [1:0] ra, rb, wa,
+               input [7:0] wd,
+               output [7:0] qa, qb);
+  reg [7:0] r[0:3];
+  assign qa = r[ra];
+  assign qb = r[rb];
+  always @(posedge clk) if (we) r[wa] &lt;= wd;  <span class="c">// write port</span>
+endmodule</pre>
+        <pre><span class="c">// tb.v — preload R1, R2; do ADD R3 = R1 + R2</span>
+module tb;
+  reg clk=0, we=0; reg [1:0] ra,rb,wa; reg [7:0] wd;
+  wire [7:0] qa,qb;
+  regfile dut(clk,we,ra,rb,wa,wd,qa,qb);
+  always #5 clk = ~clk;
+  initial begin
+    $dumpfile("rf.vcd"); $dumpvars;
+    we=1; wa=1; wd=8'd7;  #10;   <span class="c">// R1 = 7</span>
+    wa=2; wd=8'd5;        #10;   <span class="c">// R2 = 5</span>
+    we=0; ra=1; rb=2;     #10;   <span class="c">// read R1, R2</span>
+    we=1; wa=3; wd=qa+qb; #10;   <span class="c">// R3 = R1 + R2 = 12</span>
+    $finish;
+  end
+endmodule</pre>
+        <p>Build and view with <code>iverilog -o rf rf.v tb.v &amp;&amp; vvp rf</code>, then <code>gtkwave rf.vcd</code>. Expected: <code>qa = 7</code>, <code>qb = 5</code>, and <code>r[3]</code> becomes <code>12</code> after the final clock edge.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The datapath consists of…</div>
+            <div class="opt"><b>A.</b> the ALU, register file, buses, and PC — the parts data flows through</div>
+            <div class="opt"><b>B.</b> the control unit and the clock</div>
+            <div class="opt"><b>C.</b> the cache only</div>
+            <div class="opt"><b>D.</b> the instruction decoder</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The datapath is the set of components data physically travels through: the ALU, the register file, the buses, and the program counter.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The register file…</div>
+            <div class="opt"><b>A.</b> is the main memory</div>
+            <div class="opt"><b>B.</b> holds operands in fast on-chip storage, read and written each cycle</div>
+            <div class="opt"><b>C.</b> stores the program</div>
+            <div class="opt"><b>D.</b> decodes instructions</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> It is a small, fast, multi-port on-chip store — typically two operands read and one result written per cycle. It is separate from large, off-chip main memory.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Multiplexers in the datapath…</div>
+            <div class="opt"><b>A.</b> add numbers</div>
+            <div class="opt"><b>B.</b> store state</div>
+            <div class="opt"><b>C.</b> select which source feeds the ALU (or where a result goes)</div>
+            <div class="opt"><b>D.</b> generate the clock</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A mux is a selector: its select line chooses which input (e.g. a register read vs. an immediate) is routed onward. It routes data, it does not compute.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The program counter (PC)…</div>
+            <div class="opt"><b>A.</b> counts clock cycles only</div>
+            <div class="opt"><b>B.</b> holds the address of the current/next instruction</div>
+            <div class="opt"><b>C.</b> stores the ALU result</div>
+            <div class="opt"><b>D.</b> selects registers</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The PC holds the memory address of the instruction to run. It increments each cycle, or is loaded with a branch/jump target.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The datapath by itself…</div>
+            <div class="opt"><b>A.</b> decides and executes everything</div>
+            <div class="opt"><b>B.</b> only stores data</div>
+            <div class="opt"><b>C.</b> generates instructions</div>
+            <div class="opt"><b>D.</b> executes operations but does not decide which ones (that's the control unit)</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The datapath is the muscle that performs operations; the control unit (Lecture 6) is the brain that decides which operations happen and drives the select lines.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>datapath</b> = ALU + register file + buses + PC — the components data physically flows through.</li>
+            <li>The <b>register file</b> is fast, multi-port, on-chip storage: read two operands and write one result per cycle — separate from main memory.</li>
+            <li><b>Buses</b> carry words between blocks, and <b>multiplexers</b> select which source feeds the ALU (or where a result goes).</li>
+            <li>The <b>program counter (PC)</b> holds the current instruction's address and increments each cycle, or loads a branch target.</li>
+            <li>Traced <b>ADD R3 = R1 + R2</b> from fetch → read → compute → write-back → PC increment.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: The Control Unit — the brain that decodes each instruction and drives the datapath's select lines and write enables.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l04-alu-basics.html"><div class="dir">← Week 4</div><div class="ttl">ALU Basics</div></a>
+        <a href="l06-control-unit.html" class="next"><div class="dir">Week 6 →</div><div class="ttl">Control Unit</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Architecture</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Lecture 4 — ALU Basics</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C3 Architecture</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>ALU Basics</h1>
+        <p class="sub">Adders, two's-complement subtraction, and the arithmetic-logic unit at the heart of the CPU.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Build a half adder (sum = A XOR B, carry = A AND B) and extend it to a full adder with a carry-in.</li>
+            <li>Chain full adders into a ripple-carry adder and explain why it is simple but slow.</li>
+            <li>Negate a number in two's complement (invert + add 1) and reuse the adder to subtract.</li>
+            <li>Describe the logic unit (bitwise AND/OR/XOR) and shifters (left = ×2, right = ÷2).</li>
+            <li>Assemble the full ALU: parallel operations, an op-select input, a result, and status flags (Z, C, V, N).</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>The Adder</h2>
+        <p>Arithmetic in hardware is built up from one tiny brick: adding two bits. A <strong>half adder</strong> takes two input bits, A and B, and produces a <span class="key">sum</span> bit and a <span class="key">carry</span> bit. Look at the binary truth table (0+0=0, 0+1=1, 1+0=1, 1+1=10) and the two output columns are exactly two gates you already know:</p>
+        <div class="eq">sum = A XOR B&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;carry = A AND B<small>The sum is "1 if the bits differ" (XOR); the carry is "1 only if both are 1" (AND).</small></div>
+        <p>A half adder can't accept a carry coming in from a lower column, so it can't be chained. The fix is the <strong>full adder</strong>: it adds three bits — A, B, and a <span class="key">carry-in</span> (C<sub>in</sub>) — and produces a sum and a <span class="key">carry-out</span> (C<sub>out</sub>).</p>
+        <div class="eq">sum = A XOR B XOR C<sub>in</sub>&nbsp;&nbsp;·&nbsp;&nbsp;C<sub>out</sub> = (A AND B) OR (C<sub>in</sub> AND (A XOR B))</div>
+        <figure class="fig">
+            <svg viewBox="0 0 360 200" role="img" aria-label="Full adder block with inputs A, B, carry-in and outputs Sum and carry-out">
+                <!-- block -->
+                <rect x="120" y="45" width="120" height="110" rx="10" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="180" y="95" fill="#67e8f9" font-size="15" text-anchor="middle" font-weight="bold">FULL</text>
+                <text x="180" y="115" fill="#67e8f9" font-size="15" text-anchor="middle" font-weight="bold">ADDER</text>
+                <!-- inputs -->
+                <line x1="40" y1="65" x2="120" y2="65" stroke="#67e8f9" stroke-width="2"/>
+                <text x="30" y="69" fill="#e8f0f8" font-size="13" text-anchor="end">A</text>
+                <line x1="40" y1="100" x2="120" y2="100" stroke="#67e8f9" stroke-width="2"/>
+                <text x="30" y="104" fill="#e8f0f8" font-size="13" text-anchor="end">B</text>
+                <line x1="40" y1="135" x2="120" y2="135" stroke="#67e8f9" stroke-width="2"/>
+                <text x="30" y="139" fill="#fbbf24" font-size="12" text-anchor="end">C&#8201;in</text>
+                <!-- outputs -->
+                <line x1="240" y1="82" x2="320" y2="82" stroke="#34d399" stroke-width="2"/>
+                <text x="330" y="86" fill="#34d399" font-size="13">Sum</text>
+                <line x1="240" y1="118" x2="320" y2="118" stroke="#fbbf24" stroke-width="2"/>
+                <text x="330" y="122" fill="#fbbf24" font-size="12">C&#8201;out</text>
+                <text x="180" y="180" fill="#94a8bc" font-size="11" text-anchor="middle" font-family="monospace">sum = A⊕B⊕Cin</text>
+            </svg>
+            <figcaption>A full adder adds three single bits (A, B, C<sub>in</sub>) using XOR gates for the sum and AND/OR gates for the carry, producing Sum and C<sub>out</sub>.</figcaption>
+        </figure>
+        <p>To add wider numbers, chain N full adders: wire each adder's C<sub>out</sub> into the next adder's C<sub>in</sub>. This is a <span class="key">ripple-carry adder</span> — the carry "ripples" from the least-significant bit up to the most-significant bit, just like carrying in grade-school addition.</p>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Subtraction via Two's Complement</h2>
+        <p>You might expect a separate subtractor circuit — but you don't need one. In <strong>two's complement</strong>, the representation modern computers use for signed integers, you negate a number by <span class="key">inverting all its bits and adding 1</span>:</p>
+        <div class="eq">−B = (NOT B) + 1<small>Flip every bit of B, then add one. The result is the two's-complement negative of B.</small></div>
+        <p>So to compute A − B, just add A to the negation of B. The whole subtraction collapses into an addition the adder already knows how to do:</p>
+        <div class="eq">A − B = A + (NOT B) + 1</div>
+        <p>The "+1" is free: feed a <strong>1</strong> into the bottom adder's carry-in. A single control line then selects the mode — route B straight through for <em>add</em>, or through inverters with C<sub>in</sub> = 1 for <em>subtract</em>. The same hardware does both.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The ALU is the CPU's pocket calculator — a whole bank of operations (add, subtract, AND, OR, shift…) all wired up and computing in parallel at once. The op-select input is the "function selector": it picks which result actually gets sent out, exactly like pressing one button on the calculator while the others sit idle.</div>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Logic &amp; Shift Units</h2>
+        <p>Beside the adder sits the <strong>logic unit</strong>. It applies a gate to each pair of bits independently — a <span class="key">bitwise</span> operation:</p>
+        <div class="eq">bitwise AND&nbsp;&nbsp;·&nbsp;&nbsp;bitwise OR&nbsp;&nbsp;·&nbsp;&nbsp;bitwise XOR<small>e.g. 1100 AND 1010 = 1000; 1100 OR 1010 = 1110; 1100 XOR 1010 = 0110.</small></div>
+        <p>The third building block is the <strong>shifter</strong>, which slides every bit left or right by one position. Shifting has a tidy arithmetic meaning in binary, just as it does in decimal (where shifting left multiplies by 10):</p>
+        <div class="eq">left shift → ×2&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;right shift → ÷2<small>0011 (3) « 1 = 0110 (6); 0110 (6) » 1 = 0011 (3).</small></div>
+        <p>Shifts are far cheaper than a full multiply or divide, so compilers love to turn multiplications and divisions by powers of two into single shift operations.</p>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>The ALU</h2>
+        <p>Stack the arithmetic unit, the logic unit, and the shifter side by side, then place a multiplexer at the output. An <span class="key">operation-select</span> input drives that mux, choosing which unit's result leaves the block. That assembly is the <strong>arithmetic-logic unit (ALU)</strong> — the computational core of every CPU.</p>
+        <p>Alongside the Result, the ALU emits a handful of <span class="key">status flags</span> that <em>describe</em> the result so later instructions (like branches) can react to it:</p>
+        <div class="eq">Z (zero)&nbsp;·&nbsp;C (carry)&nbsp;·&nbsp;V (overflow)&nbsp;·&nbsp;N (negative)<small>Z = result is all zeros; C = a carry-out occurred; V = signed overflow; N = result's sign bit is 1.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 210" role="img" aria-label="ALU block with A and B bus inputs, operation-select input, Result output, and zero, carry, overflow flag outputs">
+                <!-- ALU trapezoid -->
+                <path d="M120,40 L260,40 L260,90 L290,105 L260,120 L260,170 L120,170 L150,105 Z" fill="#1c2c3e" stroke="#22d3ee" stroke-width="2"/>
+                <text x="195" y="100" fill="#67e8f9" font-size="18" text-anchor="middle" font-weight="bold">ALU</text>
+                <text x="195" y="120" fill="#94a8bc" font-size="11" text-anchor="middle" font-family="monospace">add/sub/and/or/xor/shift</text>
+                <!-- A bus input (reaches slanted left edge) -->
+                <line x1="35" y1="65" x2="142" y2="65" stroke="#67e8f9" stroke-width="2.5"/>
+                <text x="28" y="69" fill="#e8f0f8" font-size="13" text-anchor="end">A</text>
+                <!-- B bus input (reaches slanted left edge) -->
+                <line x1="35" y1="145" x2="142" y2="145" stroke="#67e8f9" stroke-width="2.5"/>
+                <text x="28" y="149" fill="#e8f0f8" font-size="13" text-anchor="end">B</text>
+                <!-- op-select input from below (reaches bottom edge) -->
+                <line x1="195" y1="205" x2="195" y2="168" stroke="#fbbf24" stroke-width="2"/>
+                <text x="195" y="200" fill="#fbbf24" font-size="11" text-anchor="middle">op-select</text>
+                <!-- result output (from the right point) -->
+                <line x1="288" y1="105" x2="360" y2="105" stroke="#34d399" stroke-width="2.5"/>
+                <text x="332" y="98" fill="#34d399" font-size="13" text-anchor="middle">Result</text>
+                <!-- flags (emerge from right vertical edge x=260) -->
+                <line x1="258" y1="55" x2="345" y2="55" stroke="#a78bfa" stroke-width="1.8"/>
+                <text x="352" y="59" fill="#a78bfa" font-size="12">Z</text>
+                <line x1="258" y1="135" x2="345" y2="135" stroke="#a78bfa" stroke-width="1.8"/>
+                <text x="352" y="139" fill="#a78bfa" font-size="12">C</text>
+                <line x1="258" y1="155" x2="345" y2="155" stroke="#a78bfa" stroke-width="1.8"/>
+                <text x="352" y="159" fill="#a78bfa" font-size="12">V</text>
+            </svg>
+            <figcaption>The ALU takes two operand buses A and B and an operation-select input, and produces a Result plus status flags (Z zero, C carry, V overflow).</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Three things students mix up. (1) Subtraction <strong>reuses the adder</strong> via two's complement (invert B and add 1) — there is <strong>no separate subtractor</strong>. (2) A ripple-carry adder is simple but <strong>slow</strong>, because the carry has to propagate through every bit before the top bit is final. (3) The ALU is <strong>combinational</strong> — it <em>computes</em> a result from its current inputs; it does <em>not</em> store one. The storing is done elsewhere, by registers.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Compute 5 − 3 on a 4-bit two's-complement adder, showing that subtraction runs on the same adder hardware.</p>
+        <ol>
+            <li><strong>Write the operands:</strong> 5 = <code>0101</code>, 3 = <code>0011</code>.</li>
+            <li><strong>Negate B (= 3):</strong> invert the bits, <code>0011</code> → <code>1100</code>, then add 1 → <code>1101</code>. So −3 = <code>1101</code> in 4-bit two's complement (which reads as 13 unsigned).</li>
+            <li><strong>Add on the adder:</strong> <code>0101</code> + <code>1101</code> = <code>1&nbsp;0010</code> (a 5-bit result).</li>
+            <li><strong>Drop the carry-out:</strong> discard the leading 1 → <code>0010</code> = <strong>2</strong>. ✓ And 5 − 3 = 2 — done entirely by the adder.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: build an ALU in Verilog (Week-5 checkpoint)</h3>
+        <p>Describe a 4-bit (or 8-bit) adder/ALU with an op-select input, write a testbench that drives a few operations, and simulate with <code>iverilog</code> + <code>vvp</code>, then inspect the waveform in GTKWave.</p>
+        <pre><span class="c">// alu.v — 4-bit ALU, Lecture 4</span>
+module alu(input  [3:0] a, b,
+           input  [1:0] op,        <span class="c">// 00=add 01=sub 10=and 11=or</span>
+           output reg [3:0] y,
+           output zero);
+  always @(*) case (op)
+    2'b00: y = a + b;
+    2'b01: y = a - b;             <span class="c">// synthesizes as a + (~b + 1)</span>
+    2'b10: y = a &amp; b;
+    2'b11: y = a | b;
+  endcase
+  assign zero = (y == 4'b0000);   <span class="c">// the Z flag</span>
+endmodule</pre>
+        <p>Simulate: <code>iverilog -o alu_tb alu.v alu_tb.v</code>, then <code>vvp alu_tb</code>, then <code>gtkwave dump.vcd</code>. In the testbench, drive op=01 with a=5, b=3 and confirm y = 2 — your worked example, running in silicon.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A full adder produces…</div>
+            <div class="opt"><b>A.</b> only a sum</div>
+            <div class="opt"><b>B.</b> a sum and a carry-out from A, B, and a carry-in</div>
+            <div class="opt"><b>C.</b> a product</div>
+            <div class="opt"><b>D.</b> a quotient</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A full adder adds three input bits — A, B, and a carry-in — and produces both a sum bit and a carry-out bit, which lets it be chained into wider adders.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In two's complement, A − B is computed as…</div>
+            <div class="opt"><b>A.</b> A + B − 1</div>
+            <div class="opt"><b>B.</b> A XOR B</div>
+            <div class="opt"><b>C.</b> A + (NOT B) + 1</div>
+            <div class="opt"><b>D.</b> B − A</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Negate B by inverting its bits and adding 1, then add to A. The same adder does subtraction — no separate subtractor needed.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A ripple-carry adder is simple but…</div>
+            <div class="opt"><b>A.</b> the fastest possible adder</div>
+            <div class="opt"><b>B.</b> slow, because the carry must propagate through all the bits</div>
+            <div class="opt"><b>C.</b> unable to subtract</div>
+            <div class="opt"><b>D.</b> sequential</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Each bit's carry-out feeds the next bit's carry-in, so the top bit can't settle until the carry has rippled all the way up. Simple to build, but the delay grows with width.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The ALU's flags (zero, carry, overflow)…</div>
+            <div class="opt"><b>A.</b> store the result</div>
+            <div class="opt"><b>B.</b> select the operation</div>
+            <div class="opt"><b>C.</b> report conditions about the result</div>
+            <div class="opt"><b>D.</b> clock the ALU</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Flags describe the result (was it zero? did it carry out? did it overflow?), so later instructions such as conditional branches can react to it.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> An ALU is what kind of circuit?</div>
+            <div class="opt"><b>A.</b> sequential</div>
+            <div class="opt"><b>B.</b> combinational (it computes from its inputs, with no internal state)</div>
+            <div class="opt"><b>C.</b> analog</div>
+            <div class="opt"><b>D.</b> clocked memory</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The ALU's output depends only on its current inputs — it has no memory of past values. Storing results is the job of registers, which are sequential.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>half adder</b> (sum = A XOR B, carry = A AND B) and the <b>full adder</b> that adds a carry-in, chained into a <b>ripple-carry adder</b>.</li>
+            <li>Subtraction <b>reuses the adder</b>: A − B = A + (NOT B) + 1 — no separate subtractor.</li>
+            <li>The <b>logic unit</b> (bitwise AND/OR/XOR) and <b>shifters</b> (left = ×2, right = ÷2).</li>
+            <li>The <b>ALU</b> combines these under an <b>op-select</b> input and emits status <b>flags</b> (Z, C, V, N).</li>
+            <li>An ALU is <b>combinational</b> — it computes, it does not store.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: Processor Datapath — wiring the ALU to registers and memory so it can actually run instructions.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l03-sequential-logic.html"><div class="dir">← Week 3</div><div class="ttl">Sequential Logic</div></a>
+        <a href="l05-processor-datapath.html" class="next"><div class="dir">Week 5 →</div><div class="ttl">Processor Datapath</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Architecture</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

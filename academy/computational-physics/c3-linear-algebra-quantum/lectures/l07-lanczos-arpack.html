@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C3 · Lecture 7 — Krylov Methods: Lanczos &amp; ARPACK</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C3 LinAlg &amp; Quantum</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Krylov Methods: Lanczos &amp; ARPACK</h1>
+        <p class="sub">When your matrix has a million rows but you only need the lowest few energies, you never build the whole thing — you let the matrix tell you its own best subspace.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define a Krylov subspace and explain why repeated matrix–vector products reveal extremal eigenvalues first.</li>
+            <li>Derive the Lanczos three-term recurrence and see how it tridiagonalizes a symmetric matrix without ever forming a dense matrix.</li>
+            <li>Explain what Ritz values are and why outer eigenvalues converge long before the subspace is full.</li>
+            <li>Use <code>scipy.sparse.linalg.eigsh</code> (ARPACK) to extract a handful of extremal eigenpairs of a huge sparse matrix.</li>
+            <li>Compare the cost of Lanczos/ARPACK against dense diagonalization and know when each is the right tool.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>The Only Thing a Huge Matrix Lets You Do: Multiply</h2>
+        <p>Last week (Week 6) you met sparse matrices: a quantum Hamiltonian on a lattice, a graph Laplacian, a finite-difference operator — all huge (N can be 10⁶ or far more) but mostly zeros. Storing N² numbers is impossible, and a dense eigensolver that costs O(N³) flops is out of the question. But there is one operation a sparse matrix does cheaply: it <strong>multiplies a vector</strong>. A matrix–vector product <em>Av</em> costs only as many operations as there are nonzeros — often O(N), not O(N²).</p>
+        <p>So we are forced to ask: <em>what can we learn about a matrix using only its action on vectors?</em> Start with any nonzero vector v and keep applying A. The vectors you generate,</p>
+        <div class="eq">v, &nbsp; Av, &nbsp; A²v, &nbsp; A³v, &nbsp; ..., &nbsp; A^(m-1)v<small>The span of these m vectors is the m-th Krylov subspace K_m(A, v).</small></div>
+        <p>span a space called the <strong>Krylov subspace</strong> K_m. The magic is that this little subspace — built from nothing but matrix–vector products — contains astonishingly good approximations to the <em>extremal</em> eigenvectors of A (the largest and smallest eigenvalues). The directions belonging to large-magnitude eigenvalues get amplified each time you multiply, so they emerge from the Krylov sequence first. This is the same instinct as the power method, but instead of throwing away every intermediate vector, Krylov methods <strong>keep all of them</strong> and search the whole subspace.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of striking a bell. You do not need a blueprint of the bell to learn its tone — you hit it (one matrix–vector product), listen, hit again, and the dominant resonances stand out almost immediately. The Krylov sequence A^k v is exactly this repeated "striking"; the loudest, most extreme modes ring out first, and you read off the pitch (eigenvalue) without ever weighing the whole bell.</div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>The Lanczos Algorithm: Tridiagonalize Without the Matrix</h2>
+        <p>The raw Krylov vectors A^k v become almost parallel (they all tilt toward the dominant eigenvector), so they are numerically useless as a basis. The <strong>Lanczos algorithm</strong> fixes this for <em>symmetric</em> (Hermitian) matrices by building an <em>orthonormal</em> basis q₁, q₂, ... of the same Krylov subspace, one vector at a time. Remarkably, when A is symmetric, orthogonalizing the new vector against the previous two is enough — every earlier vector is automatically orthogonal. That gives the famous <strong>three-term recurrence</strong>:</p>
+        <div class="eq">A q_k = beta_(k-1) q_(k-1) + alpha_k q_k + beta_k q_(k+1)<small>alpha_k = q_k^T A q_k (diagonal), beta_k = ||r_k|| (off-diagonal). Only the two previous q's appear.</small></div>
+        <p>Stacking the basis vectors as columns of Q_m and collecting the alpha's and beta's, the projection of A onto the Krylov subspace is a small <strong>tridiagonal</strong> matrix T_m:</p>
+        <div class="eq">Q_m^T A Q_m = T_m&nbsp;&nbsp;(m x m, tridiagonal)<small>m is the number of Lanczos steps, typically a few dozen — vastly smaller than N.</small></div>
+        <p>Now diagonalize T_m. Because it is tiny and tridiagonal, that costs almost nothing (O(m²) or less). Its eigenvalues, called <strong>Ritz values</strong>, are the Krylov subspace's best estimates of A's eigenvalues — and the extremal ones converge to full accuracy after only a handful of steps, long before m reaches N. The whole point: we replaced an N×N eigenproblem with an m×m one, paying only m matrix–vector products to do it.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 540 230" role="img" aria-label="Lanczos process: a large sparse N by N matrix A projected through an orthonormal Krylov basis Q into a small m by m tridiagonal matrix T">
+                <!-- big matrix A -->
+                <rect x="24" y="40" width="120" height="120" fill="rgba(129,140,248,.12)" stroke="#818cf8" stroke-width="1.5"/>
+                <text x="84" y="30" fill="#a5b4fc" font-size="12" text-anchor="middle">A  (N x N sparse)</text>
+                <!-- sparse dots -->
+                <circle cx="40" cy="56" r="2.5" fill="#818cf8"/>
+                <circle cx="70" cy="60" r="2.5" fill="#818cf8"/>
+                <circle cx="110" cy="74" r="2.5" fill="#818cf8"/>
+                <circle cx="55" cy="100" r="2.5" fill="#818cf8"/>
+                <circle cx="128" cy="120" r="2.5" fill="#818cf8"/>
+                <circle cx="90" cy="140" r="2.5" fill="#818cf8"/>
+                <circle cx="36" cy="150" r="2.5" fill="#818cf8"/>
+                <!-- arrow -->
+                <line x1="156" y1="100" x2="226" y2="100" stroke="#a3a8c8" stroke-width="1.5"/>
+                <polygon points="226,100 218,96 218,104" fill="#a3a8c8"/>
+                <text x="191" y="92" fill="#a3a8c8" font-size="10" text-anchor="middle">m mat-vecs</text>
+                <text x="191" y="116" fill="#a3a8c8" font-size="10" text-anchor="middle">build Q</text>
+                <!-- Q basis -->
+                <rect x="240" y="50" width="44" height="100" fill="rgba(52,211,153,.14)" stroke="#34d399" stroke-width="1.5"/>
+                <text x="262" y="42" fill="#34d399" font-size="11" text-anchor="middle">Q_m</text>
+                <text x="262" y="165" fill="#a3a8c8" font-size="9" text-anchor="middle">N x m</text>
+                <!-- arrow 2 -->
+                <line x1="296" y1="100" x2="360" y2="100" stroke="#a3a8c8" stroke-width="1.5"/>
+                <polygon points="360,100 352,96 352,104" fill="#a3a8c8"/>
+                <text x="328" y="92" fill="#a3a8c8" font-size="10" text-anchor="middle">project</text>
+                <!-- small tridiagonal T -->
+                <rect x="374" y="64" width="72" height="72" fill="rgba(251,191,36,.1)" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="410" y="54" fill="#fbbf24" font-size="11" text-anchor="middle">T_m (tridiag)</text>
+                <!-- tridiagonal band -->
+                <rect x="380" y="70" width="14" height="14" fill="rgba(251,191,36,.5)"/>
+                <rect x="394" y="70" width="14" height="14" fill="rgba(251,191,36,.3)"/>
+                <rect x="380" y="84" width="14" height="14" fill="rgba(251,191,36,.3)"/>
+                <rect x="394" y="84" width="14" height="14" fill="rgba(251,191,36,.5)"/>
+                <rect x="408" y="84" width="14" height="14" fill="rgba(251,191,36,.3)"/>
+                <rect x="394" y="98" width="14" height="14" fill="rgba(251,191,36,.3)"/>
+                <rect x="408" y="98" width="14" height="14" fill="rgba(251,191,36,.5)"/>
+                <rect x="422" y="98" width="14" height="14" fill="rgba(251,191,36,.3)"/>
+                <rect x="408" y="112" width="14" height="14" fill="rgba(251,191,36,.3)"/>
+                <rect x="422" y="112" width="14" height="14" fill="rgba(251,191,36,.5)"/>
+                <text x="410" y="150" fill="#a3a8c8" font-size="9" text-anchor="middle">m x m, m &lt;&lt; N</text>
+                <!-- caption line bottom -->
+                <text x="270" y="210" fill="#a3a8c8" font-size="10" text-anchor="middle">Diagonalize the tiny T_m -> Ritz values approximate the extreme eigenvalues of A</text>
+            </svg>
+            <figcaption>Lanczos turns a huge sparse symmetric A into a tiny tridiagonal T<sub>m</sub> using m matrix–vector products. Diagonalizing T<sub>m</sub> is cheap, and its outer eigenvalues (Ritz values) match A's extreme eigenvalues.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Plain Lanczos loses orthogonality in floating point: round-off lets old directions creep back, producing <em>ghost</em> (spurious, duplicated) eigenvalues. Do not trust a hand-rolled three-term loop for production work, and do not "fix" it by just running more steps. Real solvers re-orthogonalize (full or selective) — which is exactly why you should call a battle-tested library like ARPACK instead of writing your own.</div>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>ARPACK and <code>eigsh</code>: Lanczos You Can Actually Trust</h2>
+        <p><strong>ARPACK</strong> is the standard, free, time-tested library that implements a robust, re-orthogonalized, restarted variant of Lanczos (the Implicitly Restarted Lanczos Method). You reach it from Python through <code>scipy.sparse.linalg.eigsh</code> — the <em>"sh"</em> stands for <em>symmetric/Hermitian</em>. You hand it a sparse matrix (or even just a function that computes <em>Av</em> via a <code>LinearOperator</code>), say how many eigenvalues you want and from which end of the spectrum, and it returns just those eigenpairs:</p>
+        <div class="eq">w, v = eigsh(A, k=6, which='SA')<small>k = how many eigenpairs; which='SA' = smallest algebraic (ground state + low excited states). 'LA' = largest.</small></div>
+        <p>The "restarted" idea matters: rather than letting the Krylov basis grow without bound (which costs memory and re-orthogonalization time), ARPACK keeps a fixed-size workspace and periodically compresses it, discarding the directions that point at eigenvalues you do not want and keeping those that point at the ones you do. You control this with <code>ncv</code> (the workspace size, default about <code>2k+1</code> to <code>min(N, max(2k+1,20))</code>). A larger <code>ncv</code> converges in fewer restarts but uses more memory per step.</p>
+        <h3>Interior eigenvalues and shift-invert</h3>
+        <p>Krylov methods love the <em>outside</em> of the spectrum; eigenvalues buried in the middle converge painfully slowly. If you need states near a target energy sigma (say, levels near the Fermi energy of a solid), use <strong>shift-invert</strong>: feed ARPACK the operator (A − sigma·I)⁻¹, whose largest eigenvalues correspond to A's eigenvalues <em>closest to sigma</em>. In SciPy that is <code>eigsh(A, k=6, sigma=target, which='LM')</code>, which factorizes once and solves a linear system each iteration.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Asking for outer eigenvalues is like spotting the tallest and shortest people in a stadium — easy from the rim. Asking for an interior eigenvalue is like finding the person of exactly average height in the crowd: hopeless from a distance. Shift-invert is handing everyone a ruler measured from your target height, so the person closest to it now towers over the rest — the interior problem becomes an outer one.</div>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>Why It Is So Much Cheaper Than Dense Diagonalization</h2>
+        <p>Dense diagonalization (<code>numpy.linalg.eigh</code>, Week 4) returns <em>all</em> N eigenpairs and costs about O(N³) time and O(N²) memory. If N = 10⁶, that is 10¹⁸ flops and 8 terabytes just to store the matrix — completely infeasible. Lanczos/ARPACK costs, very roughly:</p>
+        <div class="eq">cost ~ (number of iterations) x (cost of one A·v) + O(m³)<small>A·v is O(nnz) ~ O(N) for a sparse matrix; m (workspace) is tens, not millions.</small></div>
+        <p>The dominant cost is matrix–vector products, each O(nnz). To get k eigenvalues you typically need a few dozen to a few hundred such products — so the total scales like O(N) (times a modest constant), not O(N³). The trade is fundamental: dense methods give you <strong>everything</strong>; Krylov methods give you a <strong>few extremal eigenpairs</strong> for a tiny fraction of the cost. In physics you almost always want the latter — the ground state and a few low-lying excitations of a Hamiltonian, the slowest modes of a relaxation operator, the leading vibrational frequencies.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 240" role="img" aria-label="Log-scale bar comparison of cost: dense eigh grows as N cubed and explodes for large N, while Lanczos grows roughly linearly in N and stays low">
+                <line x1="60" y1="200" x2="430" y2="200" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="30" x2="60" y2="200" stroke="#a3a8c8" stroke-width="1.5"/>
+                <text x="30" y="40" fill="#a3a8c8" font-size="11">cost</text>
+                <text x="22" y="120" fill="#a3a8c8" font-size="10" transform="rotate(-90 22 120)">(log)</text>
+                <text x="245" y="225" fill="#a3a8c8" font-size="11" text-anchor="middle">matrix size N -></text>
+                <!-- dense N^3 curve -->
+                <path d="M70,196 Q200,180 300,110 T420,40" fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+                <text x="350" y="60" fill="#fbbf24" font-size="11">dense eigh ~ N^3</text>
+                <!-- lanczos ~N curve (nearly flat on log) -->
+                <path d="M70,190 L200,180 L300,172 L420,164" fill="none" stroke="#34d399" stroke-width="2.5"/>
+                <text x="300" y="160" fill="#34d399" font-size="11">Lanczos ~ N</text>
+                <!-- crossover marker -->
+                <circle cx="185" cy="181" r="3" fill="#a5b4fc"/>
+                <text x="150" y="155" fill="#a5b4fc" font-size="9" text-anchor="middle">cheap for both</text>
+                <text x="150" y="167" fill="#a5b4fc" font-size="9" text-anchor="middle">at small N</text>
+            </svg>
+            <figcaption>Schematic cost vs matrix size (log scale). Dense diagonalization grows as N³ and becomes impossible for large N; Lanczos/ARPACK grows roughly linearly because its work is dominated by sparse matrix–vector products. For tiny N the difference is irrelevant — use dense.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — Lanczos by hand on a 3x3 matrix</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Run two Lanczos steps on the symmetric matrix A = [[2,1,0],[1,2,1],[0,1,2]] starting from q₁ = (1,0,0)ᵀ, and read off the first Ritz value.</p>
+        <ol>
+            <li><strong>Step 1 — alpha₁:</strong> A q₁ = (2,1,0)ᵀ. Then alpha₁ = q₁ᵀ(A q₁) = 2. The 1x1 projection T₁ = [2] already gives a Ritz value of <strong>2</strong> — exactly the middle eigenvalue of A.</li>
+            <li><strong>Residual:</strong> r₁ = A q₁ − alpha₁ q₁ = (2,1,0) − 2(1,0,0) = (0,1,0). Its norm is beta₁ = 1.</li>
+            <li><strong>New basis vector:</strong> q₂ = r₁ / beta₁ = (0,1,0)ᵀ. (Orthogonal to q₁, as required.)</li>
+            <li><strong>Step 2 — alpha₂:</strong> A q₂ = (1,2,1)ᵀ, so alpha₂ = q₂ᵀ(A q₂) = 2. The tridiagonal block is now T₂ = [[2,1],[1,2]].</li>
+            <li><strong>Ritz values of T₂:</strong> eigenvalues of [[2,1],[1,2]] are 2 ± 1 = <strong>1 and 3</strong>. After just two of three steps Lanczos has already captured the <em>extreme</em> eigenvalues 1 and 3 (A's true spectrum is {2 − √2, 2, 2 + √2} ≈ {0.586, 2, 3.414}). The outer Ritz values 1 and 3 bracket the true extremes 0.586 and 3.414 and tighten as we take the third step — the hallmark of Krylov convergence from the outside in.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: ground state of a sparse Hamiltonian with <code>eigsh</code></h3>
+        <p style="font-size:.9rem; color:var(--text2);">Uses the same free Python + NumPy + SciPy + Matplotlib stack from the <strong>Week 1/2 setup</strong> (the one-time install <code>details</code> lives in the early lectures) — no new tools today; <code>scipy.sparse.linalg.eigsh</code> ships with SciPy.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">Build a 1-D tight-binding / discrete-Laplacian Hamiltonian as a sparse matrix, then pull just the lowest few eigenvalues with ARPACK and compare timing against dense <code>eigh</code>.</p>
+        <pre><span class="c"># lanczos_arpack.py — Lecture 7</span>
+import numpy as np
+import scipy.sparse as sp
+from scipy.sparse.linalg import eigsh
+from numpy.linalg import eigh
+import time
+
+N = 5000                                  <span class="c"># try 200000 for eigsh — eigh will choke</span>
+<span class="c"># 1-D discrete Laplacian: -1 on off-diagonals, 2 on diagonal (tridiagonal, sparse)</span>
+diag    = 2.0 * np.ones(N)
+offdiag = -1.0 * np.ones(N - 1)
+H = sp.diags([offdiag, diag, offdiag], offsets=[-1, 0, 1], format="csr")
+
+<span class="c"># --- ARPACK / Lanczos: just the 6 SMALLEST eigenvalues ---</span>
+t0 = time.perf_counter()
+w_small, v_small = eigsh(H, k=6, which="SA")   <span class="c"># SA = smallest algebraic</span>
+t_arpack = time.perf_counter() - t0
+print("lowest 6 (eigsh):", np.round(w_small, 5))
+print(f"eigsh time: {t_arpack:.3f} s")
+
+<span class="c"># exact eigenvalues of this matrix: 2 - 2 cos(k*pi/(N+1)), k=1..N</span>
+k = np.arange(1, 7)
+exact = 2 - 2 * np.cos(k * np.pi / (N + 1))
+print("exact lowest 6:   ", np.round(exact, 5))
+
+<span class="c"># --- Dense for comparison (only feasible because N is modest here) ---</span>
+t0 = time.perf_counter()
+w_dense = eigh(H.toarray(), eigvals_only=True)  <span class="c"># O(N^3): ALL eigenvalues</span>
+print(f"dense eigh time: {time.perf_counter() - t0:.3f} s  (and it built an N*N array!)")
+<span class="c"># eigsh is dramatically faster AND uses far less memory for the same 6 numbers</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Now bump <code>N</code> to 200000 and comment out the dense block: <code>eigsh</code> still returns in well under a second, while <code>H.toarray()</code> alone would need ~320 GB. To probe states near a target energy sigma, swap in <code>eigsh(H, k=6, sigma=1.0, which='LM')</code> (shift-invert) and watch it lock onto the interior levels.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Next week (Week 8) you will discretize the 1-D Schrödinger equation into exactly the kind of sparse symmetric Hamiltonian we just diagonalized — and <code>eigsh</code> will hand you the quantum bound-state energies and wavefunctions directly. The same Lanczos engine powers large-scale electronic-structure and lattice-model calculations across Course 3, drives the model-order-reduction and PageRank-style problems you will see again in graph and network methods, and (in its non-symmetric cousin, the Arnoldi method behind <code>eigs</code>) underlies stability analysis of fluid and plasma operators in Course 4. Master "tell me only the few states that matter" now, and the rest of computational quantum mechanics opens up.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The m-th Krylov subspace K_m(A, v) is the span of…</div>
+            <div class="opt"><b>A.</b> the m largest eigenvectors of A</div>
+            <div class="opt"><b>B.</b> the vectors v, Av, A²v, …, A^(m−1)v</div>
+            <div class="opt"><b>C.</b> the m columns of A with the most nonzeros</div>
+            <div class="opt"><b>D.</b> all vectors orthogonal to v</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A Krylov subspace is built purely from repeated matrix–vector products on a starting vector. It is not the eigenvectors themselves (A) — those are what we <em>approximate</em> from the subspace; (C) and (D) are unrelated to the Krylov construction.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> For a symmetric matrix, the Lanczos algorithm projects A onto the Krylov subspace, producing a small matrix that is…</div>
+            <div class="opt"><b>A.</b> diagonal</div>
+            <div class="opt"><b>B.</b> dense and nonsymmetric</div>
+            <div class="opt"><b>C.</b> tridiagonal</div>
+            <div class="opt"><b>D.</b> upper triangular</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The three-term recurrence makes T_m tridiagonal (Qᵀ A Q = T). It is not already diagonal (A) — you still diagonalize the small T. Arnoldi (the nonsymmetric case) gives an upper-Hessenberg matrix, not triangular (D); dense/nonsymmetric (B) is wrong because symmetry is exactly what gives the tridiagonal short recurrence.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> You have a sparse symmetric Hamiltonian with N = 1,000,000 and only need the ground state and 5 lowest excited states. The right tool is…</div>
+            <div class="opt"><b>A.</b> <code>numpy.linalg.eigh</code> on the dense form</div>
+            <div class="opt"><b>B.</b> <code>scipy.sparse.linalg.eigsh(H, k=6, which='SA')</code></div>
+            <div class="opt"><b>C.</b> inverting H explicitly</div>
+            <div class="opt"><b>D.</b> computing the determinant of H</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> <code>eigsh</code> (ARPACK/Lanczos) extracts just the k extremal eigenpairs at roughly O(N) cost. Dense <code>eigh</code> (A) needs O(N²) memory (~8 TB here) and O(N³) time; explicitly inverting (C) or taking a determinant (D) is even more expensive and does not give eigenpairs.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why do Krylov methods like Lanczos converge to the <em>extremal</em> eigenvalues fastest?</div>
+            <div class="opt"><b>A.</b> Repeated multiplication by A amplifies large-magnitude eigencomponents, so outer modes dominate the subspace first</div>
+            <div class="opt"><b>B.</b> Interior eigenvalues do not exist for sparse matrices</div>
+            <div class="opt"><b>C.</b> ARPACK sorts the matrix entries before solving</div>
+            <div class="opt"><b>D.</b> The tridiagonal matrix has no interior entries</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Each application of A scales each eigendirection by its eigenvalue, so the largest-magnitude (extremal) components grow relative to the rest — the same mechanism as the power method. Interior eigenvalues certainly exist (B) and are simply slow to converge, which is why shift-invert is used; (C) and (D) are fabricated.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You need eigenvalues near an interior target energy sigma (deep inside the spectrum). The standard remedy in <code>eigsh</code> is…</div>
+            <div class="opt"><b>A.</b> request more eigenvalues with a huge <code>k</code> until you reach the middle</div>
+            <div class="opt"><b>B.</b> switch to dense <code>eigh</code> always</div>
+            <div class="opt"><b>C.</b> increase the matrix size N</div>
+            <div class="opt"><b>D.</b> shift-invert: pass <code>sigma=target</code> so eigenvalues nearest sigma become the easy outer ones of (A − sigma·I)⁻¹</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Shift-invert maps the eigenvalues closest to sigma to the largest-magnitude eigenvalues of (A − sigma·I)⁻¹, which Lanczos finds quickly. Brute-forcing a huge k (A) wastes enormous work; dense (B) defeats the purpose for large N; changing N (C) changes the problem entirely.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A <b>Krylov subspace</b> K_m is the span of v, Av, …, A^(m−1)v — built using only cheap matrix–vector products.</li>
+            <li><b>Lanczos</b> builds an orthonormal basis via a three-term recurrence, projecting a symmetric A onto a tiny <b>tridiagonal</b> T_m whose eigenvalues (Ritz values) approximate A's extremes.</li>
+            <li><b>ARPACK</b> via <code>scipy.sparse.linalg.eigsh</code> gives a robust, re-orthogonalized, restarted Lanczos; use <code>k</code>, <code>which</code>, and <code>ncv</code> to control it.</li>
+            <li><b>Shift-invert</b> (<code>sigma=</code>) turns hard interior eigenvalues into easy outer ones.</li>
+            <li>Krylov cost scales like <b>O(N)</b> matrix–vector products versus dense <b>O(N³)</b> — the right choice when you need only a few extremal states.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: discretize the 1-D Schrödinger equation into a sparse Hamiltonian and use exactly these tools to compute real quantum bound-state energies and wavefunctions.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-sparse-matrices.html"><div class="dir">← Week 6</div><div class="ttl">Sparse Matrices &amp; Large Systems</div></a>
+        <a class="next" href="l08-schrodinger-1d.html"><div class="dir">Week 8 →</div><div class="ttl">The Schrodinger Equation (1D)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 LinAlg &amp; Quantum</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

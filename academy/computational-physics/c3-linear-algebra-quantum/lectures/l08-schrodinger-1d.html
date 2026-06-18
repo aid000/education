@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C3 · Lecture 8 — The Time-Independent Schrödinger Equation (1D)</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C3 LinAlg &amp; Quantum</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>The Time-Independent Schrödinger Equation (1D)</h1>
+        <p class="sub">Turn a differential equation about a quantum particle into a matrix — and quantum mechanics becomes an eigenvalue problem you can solve in ten lines of NumPy.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the 1D time-independent Schrödinger equation and identify it as an eigenvalue problem H ψ = E ψ.</li>
+            <li>Discretize a wavefunction on a uniform grid and replace the second derivative with a finite-difference stencil.</li>
+            <li>Assemble the finite-difference Hamiltonian matrix as a kinetic tridiagonal term plus a diagonal potential.</li>
+            <li>Interpret eigenvalues as quantized energy levels and eigenvectors as discretized wavefunctions.</li>
+            <li>Validate the method against the analytic particle-in-a-box spectrum using NumPy and SciPy.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>From a Differential Equation to an Eigenvalue Problem</h2>
+        <p>A single quantum particle of mass m moving in one dimension under a potential V(x) is described by a wavefunction ψ(x). Its allowed stationary states — the standing-wave patterns that do not change shape over time — satisfy the <strong>time-independent Schrödinger equation</strong> (TISE):</p>
+        <div class="eq">−(ℏ²/2m) · d²ψ/dx² + V(x) ψ(x) = E ψ(x)<small>Kinetic term (curvature of ψ) plus potential term equals energy E times ψ. ℏ is the reduced Planck constant.</small></div>
+        <p>The left side is the <strong>Hamiltonian operator</strong> H acting on ψ: H = −(ℏ²/2m) d²/dx² + V(x). So the whole physics collapses into one statement — <span class="key">H ψ = E ψ</span> — a continuous eigenvalue problem. The unknowns are pairs: each allowed energy E (an <em>eigenvalue</em>) comes with a wavefunction ψ (an <em>eigenfunction</em>). This is exactly the structure we spent the last seven weeks learning to solve, except H is an operator on an infinite-dimensional function space, not a finite matrix.</p>
+        <p>The plan for this lecture is the central trick of computational quantum mechanics: <strong>replace the operator with a matrix</strong>. Sample ψ at a finite set of grid points, approximate the derivative with finite differences, and the operator H becomes a finite matrix whose eigenvalues are the energy levels and whose eigenvectors are the sampled wavefunctions.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the wavefunction as the shape of a guitar string clamped at both ends. Only certain wavelengths "fit" between the clamps — those are the allowed harmonics. The Schrödinger equation plays the same game: the boundary conditions (ψ must vanish where the walls are infinitely high) allow only a discrete set of standing waves, each with its own energy. The potential V(x) just makes the "string tension" vary along its length.</div>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>Discretizing on a Grid</h2>
+        <p>Lay down N equally spaced interior points across the region of interest [a, b]: x_j = a + j·Δx for j = 1…N, with spacing Δx = (b − a)/(N+1). The wavefunction becomes a vector of samples ψ = (ψ_1, ψ_2, …, ψ_N), where ψ_j ≈ ψ(x_j). Outside the box we impose ψ = 0 at the walls (the endpoints x_0 and x_{N+1}), so they never appear as unknowns.</p>
+        <p>The only operator we must discretize is the second derivative. Using the <strong>central second-difference stencil</strong> (the same one you met for derivatives in Course 1, now applied to space):</p>
+        <div class="eq">d²ψ/dx² |_(x_j) ≈ (ψ_(j-1) − 2 ψ_j + ψ_(j+1)) / Δx²<small>Second-order accurate: the error shrinks like Δx². Each grid point couples only to its two nearest neighbours.</small></div>
+        <p>Because each row of the stencil touches only the point and its two neighbours, the kinetic operator becomes a <strong>tridiagonal matrix</strong> — sparse, banded, and exactly the structure Lanczos and ARPACK (Week 7) devour efficiently. The diagonal carries the −2 term; the two off-diagonals carry the +1 neighbour couplings.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 200" role="img" aria-label="A uniform grid of points across an interval with wavefunction samples; the central point couples to its two neighbours through the three-point stencil">
+                <line x1="30" y1="150" x2="390" y2="150" stroke="#a3a8c8" stroke-width="1.5"/>
+                <!-- walls -->
+                <line x1="40" y1="40" x2="40" y2="160" stroke="#fbbf24" stroke-width="2.5"/>
+                <line x1="380" y1="40" x2="380" y2="160" stroke="#fbbf24" stroke-width="2.5"/>
+                <text x="40" y="32" fill="#fbbf24" font-size="10" text-anchor="middle">wall</text>
+                <text x="380" y="32" fill="#fbbf24" font-size="10" text-anchor="middle">wall</text>
+                <!-- grid points -->
+                <circle cx="90" cy="150" r="4" fill="#818cf8"/>
+                <circle cx="150" cy="150" r="4" fill="#818cf8"/>
+                <circle cx="210" cy="150" r="5" fill="#a5b4fc"/>
+                <circle cx="270" cy="150" r="4" fill="#818cf8"/>
+                <circle cx="330" cy="150" r="4" fill="#818cf8"/>
+                <text x="150" y="170" fill="#a3a8c8" font-size="10" text-anchor="middle">x(j-1)</text>
+                <text x="210" y="170" fill="#a5b4fc" font-size="10" text-anchor="middle">x(j)</text>
+                <text x="270" y="170" fill="#a3a8c8" font-size="10" text-anchor="middle">x(j+1)</text>
+                <!-- spacing marker -->
+                <line x1="150" y1="135" x2="210" y2="135" stroke="#34d399" stroke-width="1.2"/>
+                <text x="180" y="128" fill="#34d399" font-size="10" text-anchor="middle">dx</text>
+                <!-- stencil couplings -->
+                <path d="M150,150 Q180,105 210,110" fill="none" stroke="#c084fc" stroke-width="1.6"/>
+                <path d="M270,150 Q240,105 210,110" fill="none" stroke="#c084fc" stroke-width="1.6"/>
+                <circle cx="210" cy="110" r="4" fill="#c084fc"/>
+                <text x="210" y="98" fill="#c084fc" font-size="10" text-anchor="middle">stencil: -1, +2, -1</text>
+            </svg>
+            <figcaption>The 1D grid between two infinite walls. The wavefunction is sampled at interior points spaced by Δx. The three-point second-difference stencil couples each point (violet) only to its two neighbours, making the kinetic matrix tridiagonal.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>Building the Hamiltonian Matrix</h2>
+        <p>Now assemble H = T + V as an N×N matrix. The <strong>kinetic part</strong> T comes from the second-difference stencil times the prefactor −ℏ²/2m. Plugging the stencil into the kinetic operator gives a tridiagonal matrix with a constant on the diagonal and its neighbours:</p>
+        <div class="eq">T_(jj) = +ℏ²/(m Δx²),&nbsp;&nbsp; T_(j,j±1) = −ℏ²/(2 m Δx²)<small>The minus signs from −ℏ²/2m flip the stencil: the +2/Δx² becomes a positive diagonal, the −1 neighbours become negative off-diagonals.</small></div>
+        <p>The <strong>potential part</strong> V is even simpler: V(x) is a multiplication operator, so in the grid basis it is just a <strong>diagonal matrix</strong> holding the potential evaluated at each grid point, V_jj = V(x_j). Adding the two:</p>
+        <div class="eq">H = T + diag(V(x_1), …, V(x_N))<small>A symmetric, real tridiagonal matrix: kinetic energy on the three bands, potential energy added to the diagonal.</small></div>
+        <p>Diagonalizing H gives N eigenpairs. The k-th smallest eigenvalue E_k approximates the k-th energy level; the corresponding eigenvector, plotted against x_j, is the discretized wavefunction ψ_k(x). Because H is real symmetric, all eigenvalues are real (as physical energies must be) and the eigenvectors are orthogonal — exactly the spectral theorem from Week 5 doing the heavy lifting.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Forgetting the Δx² in the kinetic prefactor. The stencil approximates d²/dx² <em>only after dividing by Δx²</em>; if you build the matrix with bare integers (2 on the diagonal, −1 off) you get eigenvalues that are off by a factor of Δx² and that change every time you refine the grid. Always include the 1/Δx² and the physical constants, or work in a clearly stated unit system where they are set to 1.</div>
+    </section>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>The Particle in a Box — The Check Case</h2>
+        <p>Every numerical method needs a problem with a known exact answer to validate against. For the 1D TISE that benchmark is the <strong>infinite square well</strong> ("particle in a box"): set V(x) = 0 inside a box of width L and infinite outside (which is exactly our wall boundary condition ψ = 0 at the edges). The analytic eigenstates are pure sine standing waves:</p>
+        <div class="eq">ψ_n(x) = sqrt(2/L) · sin(n pi x / L),&nbsp;&nbsp; E_n = n² pi² ℏ² / (2 m L²),&nbsp; n = 1, 2, 3, …<small>Energies grow as n²: the levels are 1, 4, 9, 16, … in units of the ground-state energy E_1.</small></div>
+        <p>When V = 0 the Hamiltonian is purely the kinetic tridiagonal matrix, and its eigenvectors come out as sampled sine waves with n−1 interior nodes — precisely the harmonics of the clamped string from our analogy. Comparing the computed E_k to the n² pattern (and the eigenvectors to the sines) tells you immediately whether the grid is fine enough.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 240" role="img" aria-label="The three lowest particle-in-a-box wavefunctions: ground state a single hump, first excited one node, second excited two nodes, all vanishing at the walls">
+                <!-- box walls -->
+                <line x1="50" y1="20" x2="50" y2="220" stroke="#fbbf24" stroke-width="2.5"/>
+                <line x1="370" y1="20" x2="370" y2="220" stroke="#fbbf24" stroke-width="2.5"/>
+                <!-- baselines -->
+                <line x1="50" y1="70" x2="370" y2="70" stroke="#2a3052" stroke-width="1"/>
+                <line x1="50" y1="140" x2="370" y2="140" stroke="#2a3052" stroke-width="1"/>
+                <line x1="50" y1="210" x2="370" y2="210" stroke="#2a3052" stroke-width="1"/>
+                <!-- n=1: single hump above baseline at y=210 -->
+                <path d="M50,210 C130,140 290,140 370,210" fill="none" stroke="#34d399" stroke-width="2.2"/>
+                <text x="385" y="214" fill="#34d399" font-size="11">n=1</text>
+                <!-- n=2: one node, sine through baseline at center y=140 -->
+                <path d="M50,140 C95,85 165,85 210,140 C255,195 325,195 370,140" fill="none" stroke="#60a5fa" stroke-width="2.2"/>
+                <text x="385" y="144" fill="#60a5fa" font-size="11">n=2</text>
+                <!-- n=3: two nodes, baseline y=70 -->
+                <path d="M50,70 C85,35 110,35 156,70 C200,103 220,103 264,70 C310,37 335,37 370,70" fill="none" stroke="#c084fc" stroke-width="2.2"/>
+                <text x="385" y="74" fill="#c084fc" font-size="11">n=3</text>
+                <text x="210" y="234" fill="#a3a8c8" font-size="10" text-anchor="middle">position x   (E grows as n^2: 1, 4, 9, ...)</text>
+            </svg>
+            <figcaption>The three lowest particle-in-a-box wavefunctions. The ground state (n=1) has no interior node, n=2 has one, n=3 has two — and all vanish at the walls. Energies scale as n². These are exactly the eigenvectors the finite-difference Hamiltonian reproduces.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — a 4-point box by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Take a box of width L = 1 with N = 4 interior points, and work in units where ℏ = m = 1. So Δx = L/(N+1) = 1/5 = 0.2 and the kinetic prefactor 1/Δx² = 25. With V = 0, build H and estimate the ground-state energy. Exact value: E_1 = π²/(2·1·1²) ≈ 4.9348.</p>
+        <ol>
+            <li><strong>Diagonal:</strong> T_jj = ℏ²/(m Δx²) = 1·25 = 25. So every diagonal entry of H is 25.</li>
+            <li><strong>Off-diagonals:</strong> T_(j,j±1) = −ℏ²/(2 m Δx²) = −0.5·25 = −12.5 on the two bands.</li>
+            <li><strong>The matrix:</strong> H is the 4×4 symmetric tridiagonal [25, −12.5; −12.5, 25, −12.5; …] — diagonal 25, neighbours −12.5.</li>
+            <li><strong>Eigenvalues</strong> of this tridiagonal: E_k = 25 − 25·cos(kπ/5) for k = 1…4. For k = 1: 25 − 25·cos(36°) = 25 − 25·0.8090 = <strong>4.775</strong>.</li>
+            <li><strong>Compare:</strong> 4.775 vs exact 4.9348 — about 3% low, with only 4 points. The error is the truncation error of the second-difference stencil and shrinks as Δx² when you add grid points; with N = 200 you reach better than 0.01%.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: solve the box and check against n²</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free Python + NumPy/SciPy/Matplotlib stack from the <strong>Week 1/2 setup</strong> is all you need — no new tools this lecture. We build the tridiagonal Hamiltonian, get its lowest eigenpairs, and compare to the analytic spectrum.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;">Build H as a dense symmetric tridiagonal and use <code>numpy.linalg.eigh</code> (symmetric eigensolver, real eigenvalues guaranteed). For large N, switch to a sparse matrix and <code>scipy.sparse.linalg.eigsh</code> (the ARPACK route from Week 7) to get only the lowest few levels cheaply.</p>
+        <pre><span class="c"># schrodinger_box.py — Lecture 8 (units: hbar = m = 1)</span>
+import numpy as np
+from scipy.sparse import diags
+from scipy.sparse.linalg import eigsh
+
+L  = 1.0                 <span class="c"># box width</span>
+N  = 500                 <span class="c"># interior grid points</span>
+dx = L / (N + 1)
+x  = np.linspace(dx, L - dx, N)        <span class="c"># interior points only</span>
+
+V  = np.zeros(N)         <span class="c"># particle in a box: V = 0 inside</span>
+
+<span class="c"># kinetic prefactor and the three bands</span>
+t        = 1.0 / (2 * dx**2)           <span class="c"># hbar^2/(2 m dx^2) = 1/(2 dx^2)</span>
+main     = 2 * t + V                   <span class="c"># diagonal: kinetic + potential</span>
+off      = -t * np.ones(N - 1)         <span class="c"># neighbour couplings</span>
+
+H = diags([off, main, off], offsets=[-1, 0, 1])    <span class="c"># sparse tridiagonal</span>
+
+<span class="c"># lowest 4 eigenpairs (smallest algebraic = lowest energies)</span>
+E, psi = eigsh(H, k=4, which='SA')
+order  = np.argsort(E)
+E, psi = E[order], psi[:, order]
+
+exact = np.array([(n**2) * np.pi**2 / (2 * L**2) for n in (1, 2, 3, 4)])
+for n in range(4):
+    print(f"n={n+1}  numeric={E[n]:.4f}  exact={exact[n]:.4f}")
+<span class="c"># n=1  numeric=4.9347  exact=4.9348   (matches to 4 digits at N=500)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Now make it a real physics problem: set <code>V = 0.5*k*(x - L/2)**2</code> for a harmonic oscillator and rerun. Predict the spectrum before you look — the levels should come out evenly spaced (E_n ∝ n + ½), not as n². Then plot <code>psi[:, 0]</code> against <code>x</code> and confirm the ground state is a single nodeless hump.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have the engine of computational quantum mechanics: any 1D potential — harmonic trap, double well, tunnelling barrier, the Coulomb-like wells of a quantum dot — becomes a diagonal you drop onto the same tridiagonal kinetic matrix. Next week (Week 9) we promote this to crystals: a periodic V(x) plus Bloch's theorem turns the Hamiltonian into the tight-binding model, and its eigenvalues sweep out electronic <em>band structure</em>. Later courses reuse the identical pattern — discretize an operator, build a sparse matrix, extract its spectrum — for the diffusion and wave PDEs of Course 4. <strong>Capstone checkpoint:</strong> by the end of this project week your solver should reproduce the particle-in-a-box spectrum to under 0.1% and correctly recover the evenly spaced harmonic-oscillator levels — the validated 1D eigensolver you will extend into a 2D quantum-well solver for the capstone.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> After discretizing the 1D TISE on a grid, what do the eigenvalues and eigenvectors of the Hamiltonian matrix represent?</div>
+            <div class="opt"><b>A.</b> eigenvalues are energy levels; eigenvectors are the sampled wavefunctions</div>
+            <div class="opt"><b>B.</b> eigenvalues are positions; eigenvectors are momenta</div>
+            <div class="opt"><b>C.</b> eigenvalues are probabilities; eigenvectors are potentials</div>
+            <div class="opt"><b>D.</b> eigenvalues are time steps; eigenvectors are forces</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> H ψ = E ψ means each eigenvalue E is an allowed energy and the matching eigenvector is ψ sampled on the grid. B, C, and D mix up unrelated quantities — position, probability, and time are not what diagonalizing H yields.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why is the finite-difference kinetic-energy matrix <em>tridiagonal</em>?</div>
+            <div class="opt"><b>A.</b> because the potential is diagonal</div>
+            <div class="opt"><b>B.</b> because the central second-difference stencil couples each grid point only to its two nearest neighbours</div>
+            <div class="opt"><b>C.</b> because the matrix must be symmetric</div>
+            <div class="opt"><b>D.</b> because energies are quantized</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The three-point stencil (ψ_(j-1) − 2ψ_j + ψ_(j+1)) touches only j and j±1, filling exactly three bands. A is about V (which is diagonal, not the reason T is tridiagonal); symmetry (C) and quantization (D) are consequences, not the cause of the band structure.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> How does the potential V(x) enter the finite-difference Hamiltonian matrix?</div>
+            <div class="opt"><b>A.</b> as the off-diagonal bands</div>
+            <div class="opt"><b>B.</b> as a full dense block</div>
+            <div class="opt"><b>C.</b> as the diagonal, with entries V(x_j)</div>
+            <div class="opt"><b>D.</b> it does not appear in the matrix</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> V is a multiplication operator, so in the grid basis it is purely diagonal: V_jj = V(x_j). The off-diagonals (A) belong to the kinetic stencil; V is never dense (B); and it certainly appears — it is what distinguishes one physical system from another (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For the particle in a box of width L, how do the exact energy levels scale with the quantum number n?</div>
+            <div class="opt"><b>A.</b> E_n ∝ n</div>
+            <div class="opt"><b>B.</b> E_n ∝ 1/n</div>
+            <div class="opt"><b>C.</b> E_n ∝ √n</div>
+            <div class="opt"><b>D.</b> E_n ∝ n²</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> E_n = n²π²ℏ²/(2mL²), so the levels go 1, 4, 9, 16, … Linear (A) describes the harmonic oscillator, not the box; 1/n (B) resembles hydrogen's −1/n² only loosely and is still wrong here; √n (C) appears nowhere.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You build the box Hamiltonian using the bare integer stencil (2 on the diagonal, −1 off-diagonal) and forget the 1/Δx² factor. What happens as you refine the grid?</div>
+            <div class="opt"><b>A.</b> nothing — the integer stencil is exact</div>
+            <div class="opt"><b>B.</b> the computed energies are wrong by a factor of Δx² and drift as N changes, never converging to the analytic values</div>
+            <div class="opt"><b>C.</b> the eigenvectors become complex</div>
+            <div class="opt"><b>D.</b> the matrix stops being symmetric</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The stencil only approximates d²/dx² after dividing by Δx²; omitting it scales every kinetic entry wrong by Δx², so the spectrum shifts and changes whenever you alter N. The matrix stays real symmetric (so C and D are false), and an integer stencil is not exact (A).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The 1D time-independent Schrödinger equation is an <b>eigenvalue problem</b> H ψ = E ψ for the Hamiltonian operator.</li>
+            <li>Sampling ψ on a uniform grid and using the <b>central second-difference stencil</b> turns the second derivative into a tridiagonal matrix.</li>
+            <li>The Hamiltonian is <b>kinetic (tridiagonal) plus potential (diagonal)</b> — a real symmetric matrix with real energies.</li>
+            <li><b>Eigenvalues are energy levels, eigenvectors are wavefunctions</b>; the spectral theorem guarantees orthogonal real states.</li>
+            <li>The <b>particle in a box</b> (E_n ∝ n², sine eigenfunctions) is the check case — and your capstone solver should match it to under 0.1%.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: make the potential periodic, invoke Bloch's theorem, and watch the Hamiltonian become the tight-binding model whose spectrum is electronic band structure.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-lanczos-arpack.html"><div class="dir">← Week 7</div><div class="ttl">Krylov Methods: Lanczos &amp; ARPACK</div></a>
+        <a class="next" href="l09-tight-binding-bands.html"><div class="dir">Week 9 →</div><div class="ttl">Tight-Binding &amp; Band Structure</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 LinAlg &amp; Quantum</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

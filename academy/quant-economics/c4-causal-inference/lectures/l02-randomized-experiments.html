@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C4 · Lecture 2 — Randomized Experiments</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C4 Causal Inference</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Randomized Experiments</h1>
+        <p class="sub">Flip a coin to decide who gets the treatment, and the confounders that haunt observational studies simply vanish — that is the quiet magic of randomization.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why a randomized controlled trial (RCT) is the "gold standard" for causal claims.</li>
+            <li>Show how random assignment makes treatment statistically independent of the potential outcomes.</li>
+            <li>Prove that the difference-in-means estimator is unbiased for the average treatment effect (ATE).</li>
+            <li>Use covariate balance as a check that randomization "worked."</li>
+            <li>Distinguish internal from external validity, and explain why pure RCTs are often infeasible in economics.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>The Identification Problem &amp; the Coin Flip</h2>
+        <p>Last week we wrote each unit <em>i</em> as having two <strong>potential outcomes</strong>: <span class="key">Y<sub>i</sub>(1)</span> if treated and <span class="key">Y<sub>i</sub>(0)</span> if not. The unit-level causal effect is <span class="key">Y<sub>i</sub>(1) − Y<sub>i</sub>(0)</span>, but we never observe both — the <strong>fundamental problem of causal inference</strong>. We settle instead for the population average, the <strong>average treatment effect</strong>:</p>
+        <div class="eq">ATE = E[ Y(1) - Y(0) ] = E[Y(1)] - E[Y(0)]<small>The average causal effect of moving everyone from untreated to treated.</small></div>
+        <p>The trouble is the data. A naive analyst compares the average outcome of those who happened to receive the treatment with those who didn't — the <strong>naive comparison</strong> E[Y | D=1] − E[Y | D=0]. But people who take a job-training program, enroll in a class, or buy insurance differ <em>systematically</em> from those who don't. Those differences (motivation, health, wealth) drive the outcome on their own, so the comparison mixes the true effect with <strong>selection bias</strong>.</p>
+        <p>Randomization is the surgical fix. If a coin flip — not the person, the doctor, or the market — decides who is treated, then the treated and untreated groups are, on average, identical in every respect <em>except</em> treatment. The "apples vs. oranges" comparison becomes apples vs. apples.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of two identical decks of cards shuffled from the same box. If you deal them into two piles <strong>at random</strong>, the piles will have nearly the same mix of suits, high cards, and aces — not because you arranged it, but because randomness spreads every trait evenly. An RCT shuffles people into treatment and control the same way: every hidden trait, measured or not, is dealt evenly across the two groups.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Why Random Assignment Identifies the ATE</h2>
+        <p>Let <span class="key">D<sub>i</sub></span> = 1 if unit <em>i</em> is treated and 0 otherwise. When treatment is assigned by a fair randomization device, the assignment cannot depend on anything about the person — including their (unobserved) potential outcomes. Formally, this is the <strong>independence (or "ignorability") assumption</strong>:</p>
+        <div class="eq">{ Y(1), Y(0) } &perp; D<small>The pair of potential outcomes is statistically independent of treatment assignment.</small></div>
+        <p>This single line is the engine of the whole method. Independence lets us swap a conditional expectation for an unconditional one. Because <em>D</em> carries no information about <em>Y(1)</em> or <em>Y(0)</em>:</p>
+        <div class="eq">E[Y(1) | D=1] = E[Y(1)]   and   E[Y(0) | D=0] = E[Y(0)]<small>The treated group's E[Y(1)] equals the whole population's, and likewise for the control group.</small></div>
+        <p>Now use the <strong>consistency assumption</strong> — that an observed outcome equals the potential outcome under the treatment actually received: <span class="key">Y<sub>i</sub> = D<sub>i</sub>·Y<sub>i</sub>(1) + (1−D<sub>i</sub>)·Y<sub>i</sub>(0)</span>. So observed outcomes among the treated <em>are</em> draws of Y(1), and among controls <em>are</em> draws of Y(0). Stringing it together:</p>
+        <div class="eq">E[Y | D=1] - E[Y | D=0] = E[Y(1)] - E[Y(0)] = ATE<small>Under randomization, the observable difference in group means equals the causal ATE.</small></div>
+        <p>The quantity on the left is something we can <em>estimate from data</em>; the quantity on the right is what we <em>want</em>. Randomization is the bridge that makes them equal — it converts an unanswerable counterfactual question into a difference of two sample averages.</p>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>The Difference-in-Means Estimator &amp; Covariate Balance</h2>
+        <p>The sample analog of the bridge above is the <strong>difference-in-means estimator</strong>. With <em>N<sub>1</sub></em> treated and <em>N<sub>0</sub></em> control units:</p>
+        <div class="eq">ATE-hat = (1/N1) &sum; Y<sub>i</sub> D<sub>i</sub> - (1/N0) &sum; Y<sub>i</sub> (1-D<sub>i</sub>)<small>Average outcome among the treated minus average outcome among controls.</small></div>
+        <p>Under random assignment this estimator is <strong>unbiased</strong> for the ATE, and you can compute it — with a valid standard error — simply by regressing the outcome on the treatment dummy: <span class="key">Y = &alpha; + &tau;·D + &epsilon;</span>. The OLS slope <em>&tau;-hat</em> is exactly the difference in means, and its <em>t</em>-statistic tells you whether the effect is distinguishable from zero.</p>
+        <h3>Checking that randomization "worked"</h3>
+        <p>Randomization balances <em>all</em> traits in expectation, but in any one finite sample the coin can land lopsided by chance. We diagnose this with a <strong>balance check</strong>: compare baseline (pre-treatment) covariates — age, prior income, test scores — across the two groups. If the groups look alike on these <em>before</em> treatment, we trust that the unobservables are balanced too. A <strong>balance table</strong> reporting each covariate's mean in each arm and the difference is the first table in nearly every credible experimental paper.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 480 250" role="img" aria-label="Covariate balance: a population is randomly split into treatment and control groups whose baseline covariate distributions overlap, then treatment shifts the treated group's outcome.">
+                <text x="240" y="20" fill="#93c5fd" font-size="13" text-anchor="middle" font-weight="bold">Random assignment balances baseline covariates</text>
+                <!-- population -->
+                <rect x="20" y="45" width="110" height="60" rx="8" fill="#16213a" stroke="#1f2f4a" stroke-width="2"/>
+                <text x="75" y="70" fill="#e6eef8" font-size="12" text-anchor="middle">Population</text>
+                <text x="75" y="90" fill="#93a8c8" font-size="10" text-anchor="middle">mixed traits</text>
+                <!-- arrows to split -->
+                <line x1="130" y1="62" x2="195" y2="62" stroke="#60a5fa" stroke-width="2"/>
+                <polygon points="195,62 187,58 187,66" fill="#60a5fa"/>
+                <line x1="130" y1="88" x2="195" y2="150" stroke="#60a5fa" stroke-width="2"/>
+                <polygon points="195,150 186,146 190,138" fill="#60a5fa"/>
+                <text x="150" y="110" fill="#fbbf24" font-size="10" text-anchor="middle">coin flip</text>
+                <!-- treatment group -->
+                <rect x="200" y="40" width="120" height="48" rx="8" fill="#16213a" stroke="#34d399" stroke-width="2"/>
+                <text x="260" y="60" fill="#34d399" font-size="12" text-anchor="middle">Treatment</text>
+                <text x="260" y="78" fill="#93a8c8" font-size="10" text-anchor="middle">gets D = 1</text>
+                <!-- control group -->
+                <rect x="200" y="128" width="120" height="48" rx="8" fill="#16213a" stroke="#818cf8" stroke-width="2"/>
+                <text x="260" y="148" fill="#818cf8" font-size="12" text-anchor="middle">Control</text>
+                <text x="260" y="166" fill="#93a8c8" font-size="10" text-anchor="middle">gets D = 0</text>
+                <!-- balance bars -->
+                <text x="400" y="40" fill="#93c5fd" font-size="11" text-anchor="middle">baseline age (mean)</text>
+                <line x1="345" y1="55" x2="345" y2="120" stroke="#1f2f4a" stroke-width="1.5"/>
+                <rect x="346" y="60" width="92" height="12" fill="#34d399" opacity="0.8"/>
+                <rect x="346" y="96" width="90" height="12" fill="#818cf8" opacity="0.8"/>
+                <text x="392" y="70" fill="#0a0f1a" font-size="9" text-anchor="middle" font-weight="bold">41.2</text>
+                <text x="392" y="106" fill="#0a0f1a" font-size="9" text-anchor="middle" font-weight="bold">41.0</text>
+                <text x="392" y="135" fill="#93a8c8" font-size="9.5" text-anchor="middle">nearly equal -&gt; balanced</text>
+                <!-- outcome shift -->
+                <line x1="345" y1="155" x2="345" y2="225" stroke="#1f2f4a" stroke-width="1.5"/>
+                <text x="400" y="200" fill="#fbbf24" font-size="11" text-anchor="middle">outcome Y (mean)</text>
+                <rect x="346" y="160" width="110" height="12" fill="#34d399" opacity="0.8"/>
+                <rect x="346" y="178" width="70" height="12" fill="#818cf8" opacity="0.8"/>
+                <text x="430" y="222" fill="#fbbf24" font-size="9.5" text-anchor="middle">gap = ATE-hat</text>
+            </svg>
+            <figcaption>Random assignment splits one population into two arms whose <em>baseline</em> covariates (e.g., age) match closely, so the post-treatment gap in outcome Y is attributable to the treatment itself — that gap is the difference-in-means estimate of the ATE.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> control for <em>post-treatment</em> variables (anything measured after treatment is assigned) in your balance check or your regression. Treatment can affect those variables, so conditioning on them reintroduces bias — the very thing randomization eliminated. Balance checks belong to <em>pre-treatment</em> covariates only. Likewise, a single imbalanced covariate out of twenty is expected by chance and is not, by itself, evidence that randomization failed.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Internal Validity, External Validity &amp; Why Economists Can't Always Randomize</h2>
+        <p>An RCT done right has superb <strong>internal validity</strong>: within the study, the estimated effect is genuinely causal because randomization closed every back door. But internal validity is local. <strong>External validity</strong> asks the harder question — will the same effect show up in a different population, time, or scale?</p>
+        <p>Several forces threaten external validity even when internal validity is airtight:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Non-representative samples:</strong> volunteers for an experiment may differ from the broader population the policy will reach.</li>
+            <li><strong>Scale &amp; general equilibrium effects:</strong> training 100 workers raises their wages; training a million might flood the labor market and depress wages — an effect invisible at small scale.</li>
+            <li><strong>Hawthorne / placebo effects:</strong> people behave differently simply because they know they are being studied.</li>
+        </ul>
+        <p>And often we <em>cannot</em> randomize at all. You cannot randomly assign people to be unemployed, to live through a recession, to smoke, or to receive a minimum-wage law. Ethics, law, politics, and cost rule out the coin flip for most of the big questions in economics. That is precisely why the rest of this course builds <strong>quasi-experimental</strong> tools — selection &amp; confounding next week, then matching, instrumental variables, difference-in-differences, and regression discontinuity — each one a way to <em>mimic</em> a coin flip when nature or policy won't run the experiment for us.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — estimating the ATE of a job-training program</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A pilot randomizes 200 unemployed workers: 100 into a training program (treatment), 100 into a control arm. After six months, average monthly earnings are <strong>$1,820</strong> in the treatment group and <strong>$1,650</strong> in the control group. Baseline (pre-program) earnings averaged $1,400 in treatment and $1,390 in control. Estimate the ATE and assess credibility.</p>
+        <ol>
+            <li><strong>Difference in means:</strong> ATE-hat = $1,820 − $1,650 = <strong>$170 / month</strong>.</li>
+            <li><strong>Balance check:</strong> baseline earnings differ by only $1,400 − $1,390 = $10 — tiny relative to the $170 effect, so the groups looked alike before treatment. Randomization appears to have worked.</li>
+            <li><strong>Inference:</strong> suppose each group's earnings have standard deviation ≈ $600, so SE = sqrt(600²/100 + 600²/100) = sqrt(3600+3600) = sqrt(7200) ≈ <strong>$84.9</strong>.</li>
+            <li><strong>t-statistic:</strong> t = 170 / 84.9 ≈ <strong>2.0</strong> — right at the 5% significance threshold, so the effect is marginally distinguishable from zero. A 95% CI is roughly 170 ± 1.96·84.9 = [$3, $337].</li>
+            <li><strong>Interpretation:</strong> the program raised earnings by about $170/month <em>in this sample</em> (strong internal validity). Whether it would help a national rollout — where scale and general-equilibrium effects bite — is an <em>external-validity</em> question the pilot cannot answer.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate an RCT in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This course runs on a free, open-source stack: <code>numpy</code>, <code>pandas</code>, <code>statsmodels</code>, and <code>linearmodels</code> (for the panel/IV methods in later weeks). <strong>Week 2 setup:</strong> install once below, then reuse it every lecture and for the project.</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + the causal-inference stack (one-time setup)</summary>
+            <p>With Python 3 installed, create an environment and install the stack:</p>
+            <pre>python3 -m venv causal-env
+source causal-env/bin/activate     <span class="c"># macOS / Linux</span>
+causal-env\Scripts\activate        <span class="c"># Windows (PowerShell)</span>
+pip install numpy pandas statsmodels linearmodels matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import statsmodels, linearmodels, pandas; print('ok')"</code> — printing <code>ok</code> means you're set.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">Here we <em>build the ground truth</em> by hand — we know the true ATE because we wrote it — then show that randomization recovers it while a naive comparison does not.</p>
+        <pre><span class="c"># rct_simulation.py — Lecture 2</span>
+import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+
+rng = np.random.default_rng(42)
+N = 2000
+
+<span class="c"># a confounder: "ability" raises earnings AND self-selection into training</span>
+ability = rng.normal(0, 1, N)
+
+<span class="c"># potential outcomes (in $): true ATE = 170 for everyone</span>
+Y0 = 1500 + 300 * ability + rng.normal(0, 200, N)
+Y1 = Y0 + 170                               <span class="c"># constant treatment effect</span>
+
+<span class="c"># --- (a) RANDOMIZED assignment: a coin flip, independent of ability ---</span>
+D_rand = rng.integers(0, 2, N)
+Y_rand = np.where(D_rand == 1, Y1, Y0)
+df = pd.DataFrame({"Y": Y_rand, "D": D_rand, "ability": ability})
+print(smf.ols("Y ~ D", data=df).fit().params["D"])   <span class="c"># ~170: unbiased!</span>
+
+<span class="c"># --- (b) SELF-SELECTION: high-ability people opt in (NOT random) ---</span>
+D_self = (ability + rng.normal(0, 0.5, N) &gt; 0).astype(int)
+Y_self = np.where(D_self == 1, Y1, Y0)
+df2 = pd.DataFrame({"Y": Y_self, "D": D_self})
+print(smf.ols("Y ~ D", data=df2).fit().params["D"])   <span class="c"># &gt;&gt;170: selection bias</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Block (a) recovers ≈170 because the coin flip made <code>D</code> independent of <code>ability</code>. Block (b) returns a number far above 170: the treated are also higher-ability, so the comparison conflates the treatment effect with the confounder. Add <code>ability</code> back as a control in (b) and watch the estimate snap back toward 170 — a preview of next week's confounding.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Randomization is the benchmark every other method is judged against. Next week (Week 3) we dissect exactly what goes wrong without it — <strong>selection bias and confounding</strong> — by decomposing the naive comparison into the ATE plus a bias term. Weeks 4–8 then build the quasi-experimental toolkit that recovers causal effects from observational data: <strong>matching &amp; regression</strong> when confounders are observed, <strong>instrumental variables</strong> when they aren't, <strong>difference-in-differences</strong> for policy roll-outs, and <strong>regression discontinuity</strong> for sharp eligibility cutoffs. The same potential-outcomes logic — and the same <code>statsmodels</code>/<code>linearmodels</code> stack you just installed — carries all the way through, and connects directly to the experimentation (A/B testing) systems used across the Quant Finance and product-analytics tracks.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why does random assignment let the difference in group means identify the ATE?</div>
+            <div class="opt"><b>A.</b> It guarantees the treatment effect is positive</div>
+            <div class="opt"><b>B.</b> It makes treatment independent of the potential outcomes, so each group's mean equals the population's</div>
+            <div class="opt"><b>C.</b> It eliminates all sampling variability</div>
+            <div class="opt"><b>D.</b> It forces both potential outcomes to be observed for every unit</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Independence is the key: with {Y(1),Y(0)} ⊥ D, E[Y(1)|D=1]=E[Y(1)] and E[Y(0)|D=0]=E[Y(0)], so the observable mean difference equals the ATE. A is false (sign isn't guaranteed); C confuses bias with variance (randomization removes bias, not noise); D is impossible — the fundamental problem of causal inference still holds.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A balance table in an RCT primarily checks that…</div>
+            <div class="opt"><b>A.</b> the outcome differs between treatment and control</div>
+            <div class="opt"><b>B.</b> the sample is representative of the whole country</div>
+            <div class="opt"><b>C.</b> pre-treatment covariates are similar across the two arms</div>
+            <div class="opt"><b>D.</b> the treatment effect is statistically significant</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Balance checks compare <em>baseline</em> covariates across arms to confirm randomization produced comparable groups. A and D concern the outcome/effect, not balance; B is about external validity (representativeness), a separate concern.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> An RCT shows a training program raises earnings for its participants, but the effect may not hold for a national rollout because of scale and general-equilibrium effects. This is a concern about…</div>
+            <div class="opt"><b>A.</b> external validity</div>
+            <div class="opt"><b>B.</b> internal validity</div>
+            <div class="opt"><b>C.</b> selection bias within the experiment</div>
+            <div class="opt"><b>D.</b> measurement error in the outcome</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Generalizing to a different population, scale, or setting is the definition of external validity. Internal validity (B) concerns whether the estimate is causal <em>within</em> the study, which randomization already secured; C and D are unrelated to the rollout question.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Which of these is the strongest reason economists often cannot run an RCT?</div>
+            <div class="opt"><b>A.</b> The difference-in-means estimator is biased</div>
+            <div class="opt"><b>B.</b> Potential outcomes don't exist outside experiments</div>
+            <div class="opt"><b>C.</b> OLS cannot estimate a treatment dummy</div>
+            <div class="opt"><b>D.</b> You cannot ethically or feasibly assign people to recessions, unemployment, or laws</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Many treatments of interest can't be randomly imposed for ethical, legal, political, or cost reasons. A is false (it's unbiased under randomization); B is false (potential outcomes are defined for any unit); C is false (regressing Y on D is exactly how we compute it).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In a randomized trial, you regress the outcome Y on the treatment dummy D and get a slope of 170. What does this slope represent?</div>
+            <div class="opt"><b>A.</b> The estimated average treatment effect (difference in means)</div>
+            <div class="opt"><b>B.</b> The correlation between Y and D</div>
+            <div class="opt"><b>C.</b> The selection bias term</div>
+            <div class="opt"><b>D.</b> The proportion of units that were treated</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Regressing Y on a single binary D gives a slope exactly equal to the difference in group means, which under randomization is the unbiased ATE estimate. B is a unitless quantity (not in dollars); C is zero <em>because</em> of randomization; D would be the mean of D, not the slope on D.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>RCT</b> is the gold standard because a coin flip severs treatment from every confounder, measured or not.</li>
+            <li><b>Random assignment</b> makes {Y(1),Y(0)} ⊥ D, which turns the unobservable ATE into an observable difference in means.</li>
+            <li>The <b>difference-in-means estimator</b> is unbiased for the ATE and is just the OLS slope of Y on the treatment dummy.</li>
+            <li><b>Covariate balance</b> on pre-treatment variables is the diagnostic that randomization "worked."</li>
+            <li><b>Internal vs. external validity</b> differ — and ethics, scale, and cost mean economists usually can't randomize, motivating quasi-experiments.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: <b>Selection Bias &amp; Confounding</b> — decomposing the naive comparison into the true effect plus a bias term, and seeing exactly what randomization was protecting us from.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-potential-outcomes.html"><div class="dir">← Week 1</div><div class="ttl">The Causal Question &amp; Potential Outcomes</div></a>
+        <a class="next" href="l03-selection-bias-confounding.html"><div class="dir">Week 3 →</div><div class="ttl">Selection Bias &amp; Confounding</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Causal Inference</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

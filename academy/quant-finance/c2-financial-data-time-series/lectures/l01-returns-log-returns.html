@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C2 · Lecture 1 — Prices, Returns &amp; Log-Returns</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C2 Time Series</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>Prices, Returns &amp; Log-Returns</h1>
+        <p class="sub">A price tells you where an asset is; a return tells you how it got there — and choosing the right kind of return decides whether your math adds up or quietly breaks.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why quants analyze <em>returns</em> rather than raw prices, and define gross vs. net returns.</li>
+            <li>Compute the simple (arithmetic) return and the log (continuously-compounded) return from a price series.</li>
+            <li>Show why log-returns <em>add</em> across time while simple returns multiply, and why log-returns are roughly symmetric.</li>
+            <li>Aggregate returns over time and annualize a daily return correctly.</li>
+            <li>Load a price series and compute both return types in pandas with yfinance.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>From Prices to Returns</h2>
+        <p>A market hands you a <strong>price series</strong>: a sequence of numbers P<sub>0</sub>, P<sub>1</sub>, P<sub>2</sub>, … recorded at regular times — a closing price each day, say. The price is the raw observable, but it is a poor object to model directly. Two assets at $5 and $500 are not comparable in dollars, prices drift upward over decades so their statistics keep shifting, and what an investor actually <em>earns</em> is the <em>change</em>, not the level.</p>
+        <p>So we work with <strong>returns</strong>: the fractional change in value over one period. The <span class="key">simple</span> (or arithmetic) return from time t−1 to time t is the gain divided by what you started with:</p>
+        <div class="eq">R<sub>t</sub> = (P<sub>t</sub> − P<sub>t−1</sub>) / P<sub>t−1</sub> = P<sub>t</sub> / P<sub>t−1</sub> − 1<small>If a stock goes from $100 to $105, R = 5/100 = 0.05 = 5%. This is the <em>net</em> return.</small></div>
+        <p>It's useful to name two flavors. The <strong>net return</strong> R<sub>t</sub> is the percentage gain (e.g. +5%). The <strong>gross return</strong> is one plus the net, 1 + R<sub>t</sub> = P<sub>t</sub>/P<sub>t−1</sub> — the multiplier that turns last period's wealth into this period's (1.05, here). Gross returns are the natural objects when you <em>compound</em>, because wealth multiplies; net returns are what you quote to a client.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a price as the <strong>odometer</strong> of a car and a return as the <strong>speedometer</strong>. The odometer just keeps climbing and tells you little about how the trip is going right now; the speedometer is bounded, comparable trip-to-trip, and is what you actually react to. Quants drive by the speedometer.</div>
+        <p>Returns make assets comparable (a 2% day means the same thing for a $5 stock and a $500 stock), and — crucially for the rest of this course — they are far closer to <span class="key">stationary</span>: their statistical character stays roughly constant over time, which is the precondition for almost every time-series model we'll build.</p>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>Log-Returns: the Quant's Default</h2>
+        <p>Alongside the simple return sits the <strong>log-return</strong> (also called the <em>continuously-compounded</em> return). It is the natural logarithm of the gross return:</p>
+        <div class="eq">r<sub>t</sub> = ln(P<sub>t</sub> / P<sub>t−1</sub>) = ln P<sub>t</sub> − ln P<sub>t−1</sub> = ln(1 + R<sub>t</sub>)<small>Lower-case r for log-return, upper-case R for simple return — a convention we keep all course.</small></div>
+        <p>Why introduce a second definition at all? Because the logarithm converts the awkward <em>multiplicative</em> world of compounding into a tidy <em>additive</em> one. The connection to continuous compounding is exact: if you compound a return continuously at rate r over one period, your money grows by e<sup>r</sup>, so the gross return is e<sup>r</sup> and the log of it is just r. The log-return is the rate that, compounded continuously, reproduces the observed price move.</p>
+        <p>For the small moves typical of daily data, the two returns are nearly identical. The Taylor expansion of ln(1+R) explains why:</p>
+        <div class="eq">r = ln(1 + R) ≈ R − R²/2 + R³/3 − …<small>For R = 0.01 (a 1% day), r ≈ 0.00995 — they differ in the fourth decimal. The gap only matters for large moves.</small></div>
+        <p>Because r ≈ R for small R, you lose almost nothing by switching to log-returns day to day — but you gain two properties (time-additivity and symmetry) that make every downstream calculation cleaner. That trade is why log-returns are the quant's default.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Log-returns are <strong>not</strong> "percentages" you can read off naively. A log-return of 0.05 corresponds to a simple return of e<sup>0.05</sup> − 1 ≈ 5.13%, not 5%. The two coincide only in the small-R limit; never report a log-return to a client as if it were the percentage gain.</div>
+    </section>
+
+    <!-- FIGURE 1 -->
+    <figure class="fig">
+        <svg viewBox="0 0 400 230" role="img" aria-label="Two curves over simple return R on the horizontal axis: the log-return r equals ln of one plus R, and the line y equals R. They overlap near the origin and diverge for large R, with the log curve bending below for gains and dropping steeply for losses.">
+            <!-- axes -->
+            <line x1="55" y1="120" x2="375" y2="120" stroke="#bcae8c" stroke-width="1.4"/>
+            <line x1="215" y1="30" x2="215" y2="200" stroke="#bcae8c" stroke-width="1.4"/>
+            <text x="368" y="113" fill="#bcae8c" font-size="10" text-anchor="end">R (simple)</text>
+            <text x="222" y="40" fill="#bcae8c" font-size="10">return</text>
+            <text x="208" y="116" fill="#bcae8c" font-size="9" text-anchor="end">0</text>
+            <!-- y = R reference line (blue), slope 1 through origin -->
+            <line x1="95" y1="180" x2="335" y2="60" stroke="#60a5fa" stroke-width="2"/>
+            <text x="338" y="60" fill="#93c5fd" font-size="10">r = R</text>
+            <!-- r = ln(1+R) curve (gold): below the line for R>0, steeply down for R near -1 -->
+            <path d="M82,200 C100,176 120,158 150,142 C175,131 195,125 215,120 C245,113 280,105 310,99 C328,95 338,93 348,91"
+                  fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+            <text x="350" y="89" fill="#fcd34d" font-size="10">r = ln(1+R)</text>
+            <!-- annotation near origin -->
+            <circle cx="215" cy="120" r="3" fill="#34d399"/>
+            <text x="158" y="148" fill="#6ee7b7" font-size="9">overlap for small R</text>
+        </svg>
+        <figcaption>Log-return r = ln(1+R) versus the simple return R. Near the origin (small moves) the gold curve hugs the blue r = R line, so the two returns agree. For large gains the log-return falls below R; for large losses it drops far faster — the log scale punishes crashes, which is exactly the asymmetry it builds in.</figcaption>
+    </figure>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>Why Log-Returns Add — and Are Symmetric</h2>
+        <p>Here is the property that earns log-returns their place. Suppose you hold an asset for two periods, with simple returns R<sub>1</sub> then R<sub>2</sub>. Your wealth multiplies:</p>
+        <div class="eq">P<sub>2</sub> / P<sub>0</sub> = (P<sub>1</sub>/P<sub>0</sub>)(P<sub>2</sub>/P<sub>1</sub>) = (1 + R<sub>1</sub>)(1 + R<sub>2</sub>)<small>Two-period gross return is the <em>product</em> of one-period gross returns — multiplicative, and ugly to sum over.</small></div>
+        <p>Take the logarithm of both sides and the product becomes a <strong>sum</strong>:</p>
+        <div class="eq">r<sub>0→2</sub> = ln(P<sub>2</sub>/P<sub>0</sub>) = r<sub>1</sub> + r<sub>2</sub><small>The total log-return over any span is just the <em>sum</em> of the single-period log-returns. This generalizes to n periods.</small></div>
+        <p>This <span class="key">time-additivity</span> is enormous. To get a stock's return over a quarter you simply add its daily log-returns; the mean and variance of a multi-day return follow from adding daily means and (for independent days) variances — the same √n scaling you met in Course 1. Try that with simple returns and you must multiply gross factors, which doesn't play nicely with sums, expectations, or linear regression.</p>
+        <p>The second gift is <strong>symmetry</strong>. A simple return is bounded below by −100% (you can't lose more than everything) but unbounded above, so its distribution is skewed. A +50% gain followed by a −50% loss does <em>not</em> get you back to even: 1.5 × 0.5 = 0.75, a 25% loss. In log space the picture is symmetric: a log-return of +x exactly undoes a log-return of −x, because ln is the mirror of exp. That makes log-returns far more plausibly modeled by a symmetric bell curve.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Log-returns are like <strong>decibels</strong> or <strong>musical octaves</strong>: a quantity built so that <em>ratios</em> turn into <em>distances</em> you can add. Going up an octave then down an octave lands you exactly where you started — just as +x then −x in log-return space returns you to the original price. Multiplicative reality, additive bookkeeping.</div>
+    </section>
+
+    <!-- FIGURE 2 -->
+    <figure class="fig">
+        <svg viewBox="0 0 400 210" role="img" aria-label="A price path over three days with arrows. Day one up arrow labeled r1, day two up arrow labeled r2, and a long bracket from start to end labeled r1 plus r2 equals total log-return, illustrating that log-returns add across time.">
+            <!-- baseline / axis -->
+            <line x1="40" y1="170" x2="375" y2="170" stroke="#bcae8c" stroke-width="1.3"/>
+            <text x="40" y="188" fill="#bcae8c" font-size="9" text-anchor="middle">day 0</text>
+            <text x="170" y="188" fill="#bcae8c" font-size="9" text-anchor="middle">day 1</text>
+            <text x="300" y="188" fill="#bcae8c" font-size="9" text-anchor="middle">day 2</text>
+            <!-- price points -->
+            <circle cx="40"  cy="150" r="4" fill="#fbbf24"/>
+            <circle cx="170" cy="110" r="4" fill="#fbbf24"/>
+            <circle cx="300" cy="60"  r="4" fill="#fbbf24"/>
+            <!-- price path -->
+            <line x1="40"  y1="150" x2="170" y2="110" stroke="#fbbf24" stroke-width="2"/>
+            <line x1="170" y1="110" x2="300" y2="60"  stroke="#fbbf24" stroke-width="2"/>
+            <text x="34" y="146" fill="#fcd34d" font-size="9" text-anchor="end">P₀</text>
+            <text x="178" y="106" fill="#fcd34d" font-size="9">P₁</text>
+            <text x="308" y="58" fill="#fcd34d" font-size="9">P₂</text>
+            <!-- step 1 log-return label -->
+            <text x="95" y="118" fill="#6ee7b7" font-size="10" text-anchor="middle">r₁</text>
+            <!-- step 2 log-return label -->
+            <text x="228" y="74" fill="#6ee7b7" font-size="10" text-anchor="middle">r₂</text>
+            <!-- total bracket (blue) below -->
+            <line x1="40"  y1="150" x2="40"  y2="195" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+            <line x1="300" y1="60"  x2="300" y2="195" stroke="#3a3119" stroke-width="1" stroke-dasharray="3 3"/>
+            <path d="M40,200 L300,200" stroke="#60a5fa" stroke-width="1.6"/>
+            <path d="M40,200 L48,196 M40,200 L48,204" stroke="#60a5fa" stroke-width="1.6" fill="none"/>
+            <path d="M300,200 L292,196 M300,200 L292,204" stroke="#60a5fa" stroke-width="1.6" fill="none"/>
+            <text x="170" y="20" fill="#93c5fd" font-size="11" text-anchor="middle">r₁ + r₂ = ln(P₂/P₀) = total log-return</text>
+        </svg>
+        <figcaption>Time-additivity in one picture: the total log-return from day 0 to day 2 is exactly the sum of the daily log-returns r₁ + r₂. Single-period log-returns simply stack along the time axis — the reason quants aggregate returns by adding rather than multiplying.</figcaption>
+    </figure>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>Time-Aggregation &amp; Annualizing</h2>
+        <p>Because log-returns add, aggregating them over a window is trivial: the n-period log-return is the sum of the single-period log-returns, and its <em>mean</em> over a horizon of n periods is n times the per-period mean. If daily log-returns are independent with mean μ and variance σ², then over n trading days:</p>
+        <div class="eq">E[r<sub>1→n</sub>] = n·μ &nbsp;&nbsp;&nbsp; Var(r<sub>1→n</sub>) = n·σ² &nbsp;&nbsp;&nbsp; SD(r<sub>1→n</sub>) = σ·√n<small>Mean scales with time n; volatility scales with √n — the "square-root-of-time" rule.</small></div>
+        <p><strong>Annualizing</strong> is the most common application. With about 252 trading days in a year, you scale a daily mean log-return by 252 and the daily volatility by √252 ≈ 15.87:</p>
+        <div class="eq">μ<sub>annual</sub> = 252·μ<sub>daily</sub> &nbsp;&nbsp;&nbsp; σ<sub>annual</sub> = σ<sub>daily</sub>·√252<small>A daily σ of 1% annualizes to ≈ 15.9% — the headline volatility number quoted everywhere.</small></div>
+        <p>To turn an annualized log-return back into the actual factor your money grows by, exponentiate: a year's gross return is e<sup>μ_annual</sup>, and the simple annual return is e<sup>μ_annual</sup> − 1. This is the clean round-trip that simple returns can't offer, because you'd have to compound 252 daily gross factors instead of adding 252 logs.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Volatility scales with <strong>√time, not time</strong>. Multiplying a daily σ by 252 (instead of √252) overstates annual risk by a factor of ~16. The √t rule also assumes returns are roughly <em>independent</em> across days; if they're autocorrelated (a theme later this course), the naive √n scaling is wrong.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — five days of a stock</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A stock closes at these prices on five consecutive days: 100, 102, 101, 105, 104. Compute the daily simple and log-returns, verify additivity, and annualize.</p>
+        <ol>
+            <li><strong>Daily simple returns</strong> R<sub>t</sub> = P<sub>t</sub>/P<sub>t−1</sub> − 1: &nbsp; 102/100−1 = <strong>+2.000%</strong>; 101/102−1 = −0.980%; 105/101−1 = +3.960%; 104/105−1 = −0.952%.</li>
+            <li><strong>Daily log-returns</strong> r<sub>t</sub> = ln(P<sub>t</sub>/P<sub>t−1</sub>): &nbsp; ln(1.02) = <strong>+1.980%</strong>; ln(0.9902) = −0.985%; ln(1.0396) = +3.883%; ln(0.9905) = −0.957%. (Each r is close to its R, slightly below for gains.)</li>
+            <li><strong>Sum the log-returns:</strong> 0.01980 − 0.00985 + 0.03883 − 0.00957 = <strong>0.03922</strong>.</li>
+            <li><strong>Check against the direct total:</strong> ln(104/100) = ln(1.04) = <strong>0.03922</strong>. The daily logs add exactly to the whole-period log-return. ✓</li>
+            <li><strong>Total simple return:</strong> e<sup>0.03922</sup> − 1 = 1.04 − 1 = <strong>+4.00%</strong> over the four days — matching 104/100 directly.</li>
+            <li><strong>Annualize the volatility:</strong> the standard deviation of the four daily log-returns is σ ≈ 0.0219 (2.19%/day). Annualized: 0.0219·√252 ≈ <strong>0.348 = 34.8%</strong> — a very volatile stock (tiny five-day sample, so treat as illustrative).</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: prices → returns in pandas</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This course's free stack is <strong>pandas + yfinance + statsmodels</strong> (with NumPy and Matplotlib). <strong>Week 1 setup:</strong> install it once below, then reuse it every lecture. We'll pull a real price series and compute both return types.</p>
+        <details class="install" open>
+            <summary>⬇ Install the C2 stack (one-time, Week 1 setup)</summary>
+            <p><strong>Get Python 3</strong> from <code>python.org</code> (macOS/Windows) or your package manager. Then create an isolated environment and install the data stack:</p>
+            <pre>python3 -m venv quant-env
+<span class="c"># activate it:</span>
+source quant-env/bin/activate      <span class="c"># macOS / Linux</span>
+quant-env\Scripts\activate         <span class="c"># Windows (PowerShell)</span>
+pip install pandas yfinance statsmodels numpy matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import pandas, yfinance, statsmodels; print('ok')"</code> — printing <code>ok</code> means you're set. Launch notebooks anytime with <code>jupyter lab</code>. (yfinance downloads free public market data; no API key needed.)</p>
+        </details>
+        <pre><span class="c"># returns_demo.py — C2 Lecture 1</span>
+import numpy as np
+import pandas as pd
+import yfinance as yf
+
+<span class="c"># download ~1 year of daily prices for a broad market ETF</span>
+px = yf.download("SPY", start="2023-01-01", end="2024-01-01")["Close"]
+
+<span class="c"># simple (arithmetic) returns: pct_change is P_t / P_{t-1} - 1</span>
+R = px.pct_change().dropna()
+
+<span class="c"># log-returns: difference of the log price series</span>
+r = np.log(px).diff().dropna()
+
+print("mean daily log-return :", r.mean())            <span class="c"># ~ tiny, e.g. 0.0008</span>
+print("daily volatility (std):", r.std())             <span class="c"># ~ 0.008  (0.8%/day)</span>
+print("annualized vol        :", r.std() * np.sqrt(252))   <span class="c"># ~ 0.13  (13%)</span>
+print("max |R - r| gap       :", float((R - r).abs().max()))  <span class="c"># small, grows with big moves</span>
+
+<span class="c"># additivity check: summed daily logs == total log-return</span>
+print("sum of log-returns    :", r.sum())
+print("direct ln(P_end/P_0)  :", np.log(px.iloc[-1] / px.iloc[0]))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The last two prints should match to machine precision — that's time-additivity in code. Note <code>pct_change()</code> gives simple returns and <code>np.log(px).diff()</code> gives log-returns; the gap between them is tiny day to day but widens on the largest moves, exactly as the Taylor expansion predicted.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Returns are the raw material for everything that follows. Next week you'll automate pulling and cleaning real price data with pandas and yfinance. From there the course models the <em>statistics</em> of these log-return series — stationarity and autocorrelation (the ACF/PACF), then ARMA and GARCH models that forecast the mean and the time-varying volatility you annualized here. The reason quants model log-returns rather than prices threads through all of it: log-returns add over time, are roughly symmetric and stationary, and feed directly into the random-walk and Brownian-motion models behind Black–Scholes pricing in Course 3 — where the continuously-compounded return you met today becomes the drift of the price process.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A stock rises from $80 to $84 in one day. Its simple (net) return is…</div>
+            <div class="opt"><b>A.</b> 4%</div>
+            <div class="opt"><b>B.</b> 5%</div>
+            <div class="opt"><b>C.</b> 1.05</div>
+            <div class="opt"><b>D.</b> $4</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> R = (84 − 80)/80 = 4/80 = 0.05 = 5%. Choice C (1.05) is the <em>gross</em> return P<sub>t</sub>/P<sub>t−1</sub>, not the net return. D is the dollar change, not a return. A (4%) wrongly divides the $4 gain by the new price 84 instead of the starting price 80 — return is always change over the <em>starting</em> value.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why do quants usually model <em>log-returns</em> instead of simple returns?</div>
+            <div class="opt"><b>A.</b> Log-returns are always larger, so profits look better</div>
+            <div class="opt"><b>B.</b> Log-returns add across time and are roughly symmetric, making the math and modeling cleaner</div>
+            <div class="opt"><b>C.</b> Simple returns cannot be computed from daily prices</div>
+            <div class="opt"><b>D.</b> Log-returns remove all risk from the data</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The logarithm turns multiplicative compounding into addition (time-additivity) and makes the distribution roughly symmetric. A is false — for gains the log-return is slightly <em>smaller</em> than the simple return. C is false (pct_change computes them easily). D is nonsense — no transformation removes risk.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Daily log-returns have mean μ and standard deviation σ and are independent. Over n trading days, the standard deviation of the total log-return is…</div>
+            <div class="opt"><b>A.</b> n·σ</div>
+            <div class="opt"><b>B.</b> σ / √n</div>
+            <div class="opt"><b>C.</b> σ</div>
+            <div class="opt"><b>D.</b> σ·√n</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Variances of independent terms add, so Var(total) = n·σ² and SD = σ·√n — the square-root-of-time rule. A (n·σ) overstates risk by scaling linearly. B (σ/√n) is the shrinking spread of an <em>average</em>, not a sum. C ignores aggregation entirely.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A daily log-return volatility of 1% annualizes (252 trading days) to approximately…</div>
+            <div class="opt"><b>A.</b> 252%</div>
+            <div class="opt"><b>B.</b> 1%</div>
+            <div class="opt"><b>C.</b> 16%</div>
+            <div class="opt"><b>D.</b> 50%</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> σ<sub>annual</sub> = σ<sub>daily</sub>·√252 = 1% × 15.87 ≈ 15.9% ≈ 16%. A wrongly multiplies by 252 (linear scaling — that's the classic error). B forgets to scale at all. D has no basis.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> An asset gains 50% one period then loses 50% the next. Your cumulative simple return over the two periods is…</div>
+            <div class="opt"><b>A.</b> −25% (you end below where you started)</div>
+            <div class="opt"><b>B.</b> 0% (the gain and loss cancel)</div>
+            <div class="opt"><b>C.</b> +25%</div>
+            <div class="opt"><b>D.</b> +100%</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Gross returns multiply: 1.50 × 0.50 = 0.75, a cumulative −25%. B is the tempting trap — simple returns do <em>not</em> add, so +50% and −50% don't cancel. This asymmetry is exactly why log-returns (where +x and −x truly cancel) are preferred. C and D have the wrong sign or magnitude.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Why quants model <b>returns, not prices</b> — returns are comparable across assets and roughly stationary; <b>gross = 1 + net</b>.</li>
+            <li>The <b>simple return</b> R = P<sub>t</sub>/P<sub>t−1</sub> − 1 and the <b>log-return</b> r = ln(1+R), the continuously-compounded rate, with r ≈ R for small moves.</li>
+            <li>Log-returns <b>add across time</b> (logs of products are sums) and are <b>roughly symmetric</b>, unlike skewed, multiplicative simple returns.</li>
+            <li>Time-aggregation: mean scales with <b>n</b>, volatility with <b>√n</b> — annualize a daily σ by <b>√252 ≈ 15.87</b>.</li>
+            <li>Computed both return types from a real price series in <b>pandas + yfinance</b> and verified additivity in code.</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: Working with Financial Data — automating downloads with yfinance, handling dates and missing values, and building clean return series in pandas you'll model for the rest of the course.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C2 Time Series Syllabus</div></a>
+        <a class="next" href="l02-pandas-yfinance.html"><div class="dir">Week 2 →</div><div class="ttl">Working with Financial Data</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Time Series</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

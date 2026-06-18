@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C4 · Lecture 2 — Finite Differences on a Grid</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Finite Differences on a Grid</h1>
+        <p class="sub">A continuous field lives at infinitely many points; a computer keeps only a lattice of samples — and a clever bit of algebra turns calculus on that lattice into arithmetic.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Discretize a continuous domain in space (and time) onto a uniform grid and name its spacings h and Δt.</li>
+            <li>Derive forward, backward, and central finite-difference stencils for the first derivative from Taylor series, and state their orders.</li>
+            <li>Build the standard second-derivative stencil and explain why it is second-order accurate.</li>
+            <li>Assemble the five-point Laplacian in 2D and read it as a stencil acting on grid neighbors.</li>
+            <li>Turn a PDE into a system of algebraic update rules on grid points and implement the Laplacian in NumPy.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>Discretizing Space and Time</h2>
+        <p>Last week we met the three families of PDEs — elliptic, parabolic, and hyperbolic — written for a continuous field u(x, t) defined at <em>every</em> point of space and time. A computer cannot hold a continuum. The first move of every finite-difference method is therefore to <strong>replace the continuum with a grid</strong>: a finite set of equally spaced sample points.</p>
+        <p>In one spatial dimension we chop the interval [0, L] into N equal cells, giving grid points</p>
+        <div class="eq">x<sub>i</sub> = i · h,&nbsp;&nbsp; i = 0, 1, …, N,&nbsp;&nbsp; h = L / N<small>h is the grid spacing. We store only the samples u<sub>i</sub> ≈ u(x<sub>i</sub>); everything between the dots is unknown to the machine.</small></div>
+        <p>If the problem also evolves in time we discretize that axis too, with a time step Δt, writing u<sub>i</sub><sup>n</sup> ≈ u(x<sub>i</sub>, t<sub>n</sub>) where t<sub>n</sub> = n·Δt. The superscript is a time index, never a power — a convention you will see everywhere in this course. The whole field becomes a 1D array (or, in higher dimensions, a 2D/3D array) of numbers, and a PDE becomes a recipe for filling that array.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 150" role="img" aria-label="A continuous curve overlaid with evenly spaced grid points; only the sampled values are stored, with spacing h between neighbors">
+                <line x1="30" y1="120" x2="360" y2="120" stroke="#a3a8c8" stroke-width="1.5"/>
+                <path d="M30,95 Q90,40 150,70 Q210,100 270,55 Q320,25 360,60" fill="none" stroke="#60a5fa" stroke-width="2" opacity="0.55"/>
+                <!-- grid points sampling the curve -->
+                <line x1="30" y1="120" x2="30" y2="92" stroke="#2a3052" stroke-width="1"/>
+                <line x1="85" y1="120" x2="85" y2="54" stroke="#2a3052" stroke-width="1"/>
+                <line x1="140" y1="120" x2="140" y2="68" stroke="#2a3052" stroke-width="1"/>
+                <line x1="195" y1="120" x2="195" y2="88" stroke="#2a3052" stroke-width="1"/>
+                <line x1="250" y1="120" x2="250" y2="64" stroke="#2a3052" stroke-width="1"/>
+                <line x1="305" y1="120" x2="305" y2="42" stroke="#2a3052" stroke-width="1"/>
+                <circle cx="30" cy="92" r="4" fill="#818cf8"/>
+                <circle cx="85" cy="54" r="4" fill="#818cf8"/>
+                <circle cx="140" cy="68" r="4" fill="#818cf8"/>
+                <circle cx="195" cy="88" r="4" fill="#818cf8"/>
+                <circle cx="250" cy="64" r="4" fill="#818cf8"/>
+                <circle cx="305" cy="42" r="4" fill="#818cf8"/>
+                <!-- spacing h marker -->
+                <line x1="140" y1="135" x2="195" y2="135" stroke="#34d399" stroke-width="1.5"/>
+                <line x1="140" y1="131" x2="140" y2="139" stroke="#34d399" stroke-width="1.5"/>
+                <line x1="195" y1="131" x2="195" y2="139" stroke="#34d399" stroke-width="1.5"/>
+                <text x="167" y="148" fill="#34d399" font-size="10" text-anchor="middle">h</text>
+                <text x="30" y="112" fill="#a3a8c8" font-size="10" text-anchor="middle">x0</text>
+                <text x="140" y="112" fill="#a3a8c8" font-size="10" text-anchor="middle">x(i-1)</text>
+                <text x="195" y="112" fill="#a3a8c8" font-size="10" text-anchor="middle">xi</text>
+                <text x="250" y="112" fill="#a3a8c8" font-size="10" text-anchor="middle">x(i+1)</text>
+                <text x="330" y="30" fill="#60a5fa" font-size="10">u(x)</text>
+            </svg>
+            <figcaption>A continuous field u(x) (faint blue) is sampled at evenly spaced grid points spaced h apart. The machine stores only the dots u<sub>i</sub>; finite differences reconstruct derivatives from neighboring dots.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>A grid is like the pixels of a digital photo. The real scene is continuous, but the camera keeps a finite array of samples. Make the pixels smaller (shrink h) and the picture sharpens toward the true field — at the cost of more storage and more arithmetic. Choosing h is choosing your resolution.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Stencils for the First Derivative</h2>
+        <p>How do we recover a derivative from samples? Taylor's theorem connects a neighbor to the center. Expanding u about x<sub>i</sub>:</p>
+        <div class="eq">u<sub>i+1</sub> = u<sub>i</sub> + h·u'<sub>i</sub> + (h²/2)·u''<sub>i</sub> + (h³/6)·u'''<sub>i</sub> + …<small>The value one cell to the right, written in terms of the value and derivatives at the center.</small></div>
+        <p>Solve for u'<sub>i</sub> and you get the <strong>forward difference</strong>. Doing the same with u<sub>i−1</sub> gives the <strong>backward difference</strong>. Each drops a term of order h, so each is <strong>first-order accurate</strong> — the leading error is proportional to h.</p>
+        <div class="eq">u'<sub>i</sub> ≈ (u<sub>i+1</sub> − u<sub>i</sub>) / h&nbsp;&nbsp;(forward),&nbsp;&nbsp; u'<sub>i</sub> ≈ (u<sub>i</sub> − u<sub>i−1</sub>) / h&nbsp;&nbsp;(backward)<small>Both have error O(h): halving h roughly halves the error.</small></div>
+        <p>Now subtract the expansion of u<sub>i−1</sub> from that of u<sub>i+1</sub>. The even-order terms (including u'') cancel, the leading error becomes O(h²), and we get the prized <strong>central difference</strong>:</p>
+        <div class="eq">u'<sub>i</sub> ≈ (u<sub>i+1</sub> − u<sub>i−1</sub>) / (2h)&nbsp;&nbsp;&nbsp;with error O(h²)<small>Symmetry buys an extra order of accuracy for the same number of points.</small></div>
+        <p>The list of weights applied to neighbors — here {−1/2h, 0, +1/2h} on {u<sub>i−1</sub>, u<sub>i</sub>, u<sub>i+1</sub>} — is called a <strong>stencil</strong>. A stencil is the entire idea of finite differences distilled into a small pattern of multipliers slid across the grid.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 170" role="img" aria-label="Three grid points labeled i minus 1, i, i plus 1 with arrows showing the central difference stencil weights minus one over two h and plus one over two h">
+                <line x1="40" y1="90" x2="340" y2="90" stroke="#a3a8c8" stroke-width="1.5"/>
+                <circle cx="90" cy="90" r="9" fill="#1f2440" stroke="#fbbf24" stroke-width="2"/>
+                <circle cx="190" cy="90" r="9" fill="#1f2440" stroke="#818cf8" stroke-width="2"/>
+                <circle cx="290" cy="90" r="9" fill="#1f2440" stroke="#34d399" stroke-width="2"/>
+                <text x="90" y="115" fill="#a3a8c8" font-size="11" text-anchor="middle">i-1</text>
+                <text x="190" y="115" fill="#a5b4fc" font-size="11" text-anchor="middle">i  (center)</text>
+                <text x="290" y="115" fill="#a3a8c8" font-size="11" text-anchor="middle">i+1</text>
+                <text x="90" y="62" fill="#fbbf24" font-size="12" text-anchor="middle">-1 / 2h</text>
+                <text x="190" y="62" fill="#a5b4fc" font-size="12" text-anchor="middle">0</text>
+                <text x="290" y="62" fill="#34d399" font-size="12" text-anchor="middle">+1 / 2h</text>
+                <text x="190" y="40" fill="#e9ebf8" font-size="12" text-anchor="middle">central difference stencil for u'</text>
+                <text x="190" y="148" fill="#a3a8c8" font-size="10" text-anchor="middle">u'(xi) = sum of (weight)(value) over the three points</text>
+            </svg>
+            <figcaption>The central-difference stencil for the first derivative: weights −1/2h and +1/2h on the two neighbors, 0 on the center. Sliding this three-point pattern across every interior grid point produces the whole derivative array.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>The Second Derivative and the 2D Laplacian</h2>
+        <p>Most physics PDEs feature the <em>second</em> derivative — diffusion, waves, and electrostatics all carry u''. To build its stencil, <strong>add</strong> the Taylor expansions of u<sub>i+1</sub> and u<sub>i−1</sub>. The odd terms cancel, the first derivative drops out, and solving for u'' gives:</p>
+        <div class="eq">u''<sub>i</sub> ≈ (u<sub>i+1</sub> − 2u<sub>i</sub> + u<sub>i−1</sub>) / h²&nbsp;&nbsp;&nbsp;with error O(h²)<small>The three-point second-derivative stencil: weights {1, −2, 1} / h². Second-order accurate.</small></div>
+        <p>This {1, −2, 1} pattern is the most-used stencil in computational physics. It reads as "how much does the center stick out above the average of its neighbors?" — exactly the curvature.</p>
+        <p>In two dimensions the Laplacian is ∇²u = u<sub>xx</sub> + u<sub>yy</sub>. We apply the second-derivative stencil once along x and once along y on a grid with the same spacing h in both directions, indexing points as u<sub>i,j</sub>. Adding the two gives the celebrated <strong>five-point Laplacian</strong>:</p>
+        <div class="eq">∇²u<sub>i,j</sub> ≈ (u<sub>i+1,j</sub> + u<sub>i−1,j</sub> + u<sub>i,j+1</sub> + u<sub>i,j−1</sub> − 4u<sub>i,j</sub>) / h²<small>Four neighbors with weight +1, the center with weight −4, all over h². Error O(h²).</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 380 220" role="img" aria-label="Five point Laplacian stencil: a center node with weight minus four connected to four neighbors above, below, left, and right each with weight plus one">
+                <!-- connecting bonds -->
+                <line x1="190" y1="110" x2="190" y2="50" stroke="#2a3052" stroke-width="2"/>
+                <line x1="190" y1="110" x2="190" y2="170" stroke="#2a3052" stroke-width="2"/>
+                <line x1="190" y1="110" x2="110" y2="110" stroke="#2a3052" stroke-width="2"/>
+                <line x1="190" y1="110" x2="270" y2="110" stroke="#2a3052" stroke-width="2"/>
+                <!-- center -->
+                <circle cx="190" cy="110" r="20" fill="rgba(129,140,248,.3)" stroke="#818cf8" stroke-width="2"/>
+                <text x="190" y="115" fill="#a5b4fc" font-size="14" text-anchor="middle">-4</text>
+                <text x="190" y="138" fill="#a3a8c8" font-size="9" text-anchor="middle">i,j</text>
+                <!-- top -->
+                <circle cx="190" cy="50" r="16" fill="rgba(52,211,153,.18)" stroke="#34d399" stroke-width="2"/>
+                <text x="190" y="55" fill="#34d399" font-size="13" text-anchor="middle">+1</text>
+                <text x="230" y="44" fill="#a3a8c8" font-size="9" text-anchor="middle">i,j+1</text>
+                <!-- bottom -->
+                <circle cx="190" cy="170" r="16" fill="rgba(52,211,153,.18)" stroke="#34d399" stroke-width="2"/>
+                <text x="190" y="175" fill="#34d399" font-size="13" text-anchor="middle">+1</text>
+                <text x="230" y="190" fill="#a3a8c8" font-size="9" text-anchor="middle">i,j-1</text>
+                <!-- left -->
+                <circle cx="110" cy="110" r="16" fill="rgba(52,211,153,.18)" stroke="#34d399" stroke-width="2"/>
+                <text x="110" y="115" fill="#34d399" font-size="13" text-anchor="middle">+1</text>
+                <text x="110" y="140" fill="#a3a8c8" font-size="9" text-anchor="middle">i-1,j</text>
+                <!-- right -->
+                <circle cx="270" cy="110" r="16" fill="rgba(52,211,153,.18)" stroke="#34d399" stroke-width="2"/>
+                <text x="270" y="115" fill="#34d399" font-size="13" text-anchor="middle">+1</text>
+                <text x="270" y="140" fill="#a3a8c8" font-size="9" text-anchor="middle">i+1,j</text>
+                <text x="190" y="210" fill="#a3a8c8" font-size="10" text-anchor="middle">divide the weighted sum by h^2</text>
+            </svg>
+            <figcaption>The five-point Laplacian stencil in 2D: center weight −4, four edge-neighbors weight +1, divided by h². It estimates ∇²u at every interior grid point and underlies heat, Poisson, and wave solvers.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Forgetting the <strong>1/h²</strong>. The pattern {1, 1, 1, 1, −4} gives the correct <em>shape</em>, but it is dimensionally wrong and numerically off by a factor of h². If your simulation blows up or freezes the moment you change the grid spacing, the missing (or mis-placed) h² is the first suspect. A second classic slip: applying the interior stencil at a boundary point, where neighbor u<sub>i−1</sub> or u<sub>i+1</sub> does not exist — boundaries need their own rule (next section).</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>From PDE to Algebraic Update Rules</h2>
+        <p>Here is the payoff. A PDE relates derivatives of a field. Replace every derivative by its stencil and the differential equation collapses into <strong>algebra on grid values</strong> — one equation per interior grid point. Two flavors arise depending on the PDE type.</p>
+        <p><strong>Time-dependent (parabolic/hyperbolic).</strong> Take the 1D heat equation u<sub>t</sub> = α·u<sub>xx</sub>. Use a forward difference in time and the second-derivative stencil in space:</p>
+        <div class="eq">u<sub>i</sub><sup>n+1</sup> = u<sub>i</sub><sup>n</sup> + (α·Δt / h²)·(u<sub>i+1</sub><sup>n</sup> − 2u<sub>i</sub><sup>n</sup> + u<sub>i−1</sub><sup>n</sup>)<small>An explicit update rule: the new value at a point is computed directly from the three old neighbors.</small></div>
+        <p>This is a literal recipe — loop over i, compute the right side from the current array, store it as the next time level. We "march" the field forward step by step. (Next week we'll discover this only works when Δt is small enough — the stability condition.)</p>
+        <p><strong>Steady-state (elliptic).</strong> For Poisson's equation ∇²u = f the time index is gone. The five-point stencil set equal to f at every interior point yields one linear equation per point, i.e. a large sparse linear system A·u = b — solved all at once by the linear-algebra tools of Course 3.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Turning a PDE into stencil updates is like replacing a smooth conversation with a game of telephone on a grid of people. Each person only listens to immediate neighbors and updates their own number by a fixed rule. Run enough rounds and the local whispering reproduces the global behavior of the continuous field — diffusion, equilibrium, or a traveling wave.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — Laplacian of a known field</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">On a grid with spacing h = 0.5, a field has these values near point (i, j): center u<sub>i,j</sub> = 4.0, and neighbors u<sub>i+1,j</sub> = 5.0, u<sub>i−1,j</sub> = 3.0, u<sub>i,j+1</sub> = 6.0, u<sub>i,j−1</sub> = 2.0. Estimate ∇²u at the center with the five-point stencil.</p>
+        <ol>
+            <li><strong>Write the stencil:</strong> ∇²u ≈ (u<sub>i+1,j</sub> + u<sub>i−1,j</sub> + u<sub>i,j+1</sub> + u<sub>i,j−1</sub> − 4u<sub>i,j</sub>) / h².</li>
+            <li><strong>Sum the four neighbors:</strong> 5.0 + 3.0 + 6.0 + 2.0 = 16.0.</li>
+            <li><strong>Subtract 4× the center:</strong> 16.0 − 4(4.0) = 16.0 − 16.0 = 0.0.</li>
+            <li><strong>Divide by h²:</strong> h² = 0.25, so ∇²u ≈ 0.0 / 0.25 = <strong>0.0</strong>.</li>
+            <li><strong>Interpret:</strong> the center exactly equals the average of its four neighbors (16/4 = 4), so the discrete Laplacian is zero — locally <em>harmonic</em>, as it would be for a steady-state solution of Laplace's equation. Bump u<sub>i,j</sub> to 3.5 and you'd get (16 − 14)/0.25 = +8.0: the field now curves upward away from the center.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: build a Laplacian without a single loop</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free Python + NumPy / Matplotlib stack runs everything in this specialization (Numba is optional, added later only for speed). <strong>Week 2 setup:</strong> install it once below, then reuse it for every lecture and the course project.</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + NumPy / Matplotlib (one-time, course setup)</summary>
+            <p>With Python 3 installed (from <code>python.org</code> or your package manager), create an environment and install the scientific stack:</p>
+            <pre>python3 -m venv compphys-env
+source compphys-env/bin/activate     <span class="c"># macOS / Linux</span>
+compphys-env\Scripts\activate         <span class="c"># Windows (PowerShell)</span>
+pip install numpy matplotlib jupyter
+pip install numba                     <span class="c"># optional, for speed in later weeks</span></pre>
+            <p><strong>Verify:</strong> run <code>python -c "import numpy, matplotlib; print(numpy.__version__)"</code> — a version string means you're set.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">The key trick: array <em>slicing</em> applies a stencil to every interior point at once — shifting the array by one index is the same as picking the neighbor. We test it on u(x, y) = x² + y², whose exact Laplacian is the constant 4.</p>
+        <pre><span class="c"># laplacian.py — Lecture 2 (C4)</span>
+import numpy as np
+
+N, L = 50, 1.0
+h = L / N
+x = np.linspace(0, L, N + 1)
+X, Y = np.meshgrid(x, x, indexing="ij")
+u = X**2 + Y**2                          <span class="c"># exact Laplacian = 4 everywhere</span>
+
+lap = np.zeros_like(u)
+<span class="c"># five-point stencil on interior points, via slicing (no Python loop)</span>
+lap[1:-1, 1:-1] = (
+    u[2:, 1:-1] + u[:-2, 1:-1] +          <span class="c"># i+1 and i-1 neighbors</span>
+    u[1:-1, 2:] + u[1:-1, :-2] -          <span class="c"># j+1 and j-1 neighbors</span>
+    4 * u[1:-1, 1:-1]                     <span class="c"># center, weight -4</span>
+) / h**2
+
+print("interior min/max:", lap[1:-1, 1:-1].min(), lap[1:-1, 1:-1].max())
+<span class="c"># both ~ 4.0 (small round-off): the discrete Laplacian recovers the exact value</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Try u = sin(pi·X)·sin(pi·Y): its exact Laplacian is −2pi²·u. Compare the slice result to that and watch the error shrink like h² as you double N.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The five-point Laplacian you built today is the engine of nearly everything ahead. Next week it powers the explicit heat equation, where we meet the CFL-like stability limit on Δt; in later weeks it becomes the matrix A in Poisson's equation, solved with the sparse linear algebra of Course 3, and grows into the wave and Schrödinger operators used across the Quantum and Plasma tracks. The same slicing trick scales to the millions-of-cells grids behind fluid solvers, heat-management design, and electrostatics — and when Python loops get too slow, the optional Numba pass turns these stencils into compiled speed. Master the stencil and the grid, and every field simulation downstream is just a bigger version of this lecture.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> On a uniform 1D grid, what does the spacing h represent?</div>
+            <div class="opt"><b>A.</b> the total length of the domain</div>
+            <div class="opt"><b>B.</b> the number of grid points</div>
+            <div class="opt"><b>C.</b> the time step of the simulation</div>
+            <div class="opt"><b>D.</b> the distance between adjacent grid points</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> h is the gap between neighboring samples, h = L/N. The domain length (A) is L; the count of points (B) is N+1; the time step (C) is the separate Δt.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why is the central difference (u<sub>i+1</sub> − u<sub>i−1</sub>)/(2h) more accurate than the forward difference (u<sub>i+1</sub> − u<sub>i</sub>)/h?</div>
+            <div class="opt"><b>A.</b> it uses fewer grid points</div>
+            <div class="opt"><b>B.</b> it avoids all round-off error</div>
+            <div class="opt"><b>C.</b> its symmetry cancels the leading h term, giving O(h²) instead of O(h)</div>
+            <div class="opt"><b>D.</b> it does not require a Taylor series</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Subtracting the two symmetric expansions cancels the even-order terms, raising the order from O(h) to O(h²). It actually uses the <em>same</em> number of points (A is false), still has round-off (B), and is derived <em>from</em> Taylor series (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The second-derivative stencil (u<sub>i+1</sub> − 2u<sub>i</sub> + u<sub>i−1</sub>)/h² has what order of accuracy?</div>
+            <div class="opt"><b>A.</b> first order, O(h)</div>
+            <div class="opt"><b>B.</b> second order, O(h²)</div>
+            <div class="opt"><b>C.</b> zeroth order (no convergence)</div>
+            <div class="opt"><b>D.</b> fourth order, O(h⁴)</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Adding the symmetric Taylor expansions cancels the odd terms, leaving a leading error proportional to h², so it is second-order. Wider stencils can reach O(h⁴) (D), but not this three-point one.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The five-point Laplacian assigns which weights to the center and its four edge-neighbors (before dividing by h²)?</div>
+            <div class="opt"><b>A.</b> center +4, neighbors −1 each</div>
+            <div class="opt"><b>B.</b> center −2, neighbors +1 each</div>
+            <div class="opt"><b>C.</b> center −4, neighbors +1 each</div>
+            <div class="opt"><b>D.</b> center 0, neighbors +1 each</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Summing the 1D stencils along x and y gives center −4 and +1 on each of the four neighbors, all over h². (A) has the wrong signs; (B) is the 1D second-derivative center; (D) would compute a neighbor sum, not a Laplacian.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Turning the heat equation u<sub>t</sub> = α·u<sub>xx</sub> into u<sub>i</sub><sup>n+1</sup> = u<sub>i</sub><sup>n</sup> + (αΔt/h²)(u<sub>i+1</sub><sup>n</sup> − 2u<sub>i</sub><sup>n</sup> + u<sub>i−1</sub><sup>n</sup>) is an example of…</div>
+            <div class="opt"><b>A.</b> replacing derivatives by stencils to get an explicit algebraic update rule</div>
+            <div class="opt"><b>B.</b> solving the PDE exactly with no approximation</div>
+            <div class="opt"><b>C.</b> a method that needs no grid</div>
+            <div class="opt"><b>D.</b> integrating the PDE analytically over the domain</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Both the time and space derivatives are swapped for finite-difference stencils, yielding an explicit recipe for the next time level from the current one. It is an approximation (B false), defined on a grid (C false), and purely algebraic rather than analytic (D false).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>A continuous field is <b>discretized</b> onto a uniform grid with spacing h (and time step Δt), storing only samples u<sub>i</sub> (or u<sub>i,j</sub><sup>n</sup>).</li>
+            <li><b>Forward and backward</b> first-derivative differences are O(h); the symmetric <b>central</b> difference is O(h²).</li>
+            <li>The three-point <b>second-derivative stencil</b> {1, −2, 1}/h² measures curvature and is second-order accurate.</li>
+            <li>The <b>five-point Laplacian</b> (center −4, neighbors +1, over h²) estimates ∇²u and drives heat, Poisson, and wave solvers.</li>
+            <li>Replacing derivatives by stencils turns a PDE into <b>algebraic update rules</b> — explicit marching for time problems, a sparse linear system for steady states.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: the explicit heat equation in action, marching the field forward in time and meeting the stability limit that caps Δt.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-pdes-three-types.html"><div class="dir">← Week 1</div><div class="ttl">PDEs &amp; the Three Types</div></a>
+        <a class="next" href="l03-heat-equation-explicit.html"><div class="dir">Week 3 →</div><div class="ttl">The Heat Equation (Explicit)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

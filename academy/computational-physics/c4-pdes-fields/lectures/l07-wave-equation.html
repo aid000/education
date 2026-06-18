@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C4 · Lecture 7 — The Wave Equation</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>The Wave Equation</h1>
+        <p class="sub">Pluck a string and a disturbance races outward at a fixed speed — the wave equation is how a computer learns to let ripples travel, reflect, and carry energy without losing a drop.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Derive the second-order wave equation from a vibrating string and read off the meaning of the wave speed c.</li>
+            <li>Build the central-time central-space (leapfrog) update from finite differences and identify it as a three-time-level scheme.</li>
+            <li>State and apply the CFL condition for waves (c·dt ≤ dx) and explain physically why violating it blows up.</li>
+            <li>Predict reflection and transmission of a pulse at fixed, free, and impedance-mismatched boundaries.</li>
+            <li>Track discrete energy as a stability diagnostic and simulate a vibrating string in NumPy.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>From a Plucked String to a PDE</h2>
+        <p>Imagine a taut string under tension T with mass per unit length ρ. Let u(x,t) be the small sideways displacement at position x and time t. Pick a tiny segment between x and x+dx. The string is pulled at both ends; because it is slightly curved, the two tension forces do not quite cancel, and the leftover points sideways. The net vertical force is proportional to how much the slope changes across the segment — that is, to the <strong>curvature</strong> ∂²u/∂x². Newton's second law (mass × acceleration = force) then reads ρ dx · ∂²u/∂t² = T · (∂²u/∂x²) dx. Cancel dx and define c² = T/ρ:</p>
+        <div class="eq">∂²u/∂t² = c² · ∂²u/∂x²<small>The 1-D wave equation. c = sqrt(T/rho) is the wave speed; curvature in space drives acceleration in time.</small></div>
+        <p>This is the prototype <strong>hyperbolic</strong> PDE. Unlike the diffusion equation of Week 5 (which smooths everything out), the wave equation <em>preserves</em> shape: d'Alembert showed any solution is a sum of a right-mover and a left-mover, u(x,t) = f(x − ct) + g(x + ct). Two rigid profiles slide past each other at speed c. Our entire numerical job is to reproduce that sliding faithfully on a grid.</p>
+        <p>The same equation governs sound in air (c from pressure and density), light in a vacuum (c from Maxwell's equations), seismic P-waves through rock, and ripples on a guitar or piano string. Change what c means and the math is identical — which is exactly why one solver serves so many fields.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a long line of children holding hands. If one child lurches, the pull on their neighbors depends on how <em>bent</em> the line is right there — a straight stretch feels no net tug, a sharp kink yanks hard. That "force from local bending" is curvature, and the lurch it triggers ripples down the line at a fixed pace set by how strongly they grip (tension) and how heavy they are (mass). That fixed pace is c.</div>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>The Leapfrog Scheme: Central in Time, Central in Space</h2>
+        <p>Lay down a grid: positions x<sub>i</sub> = i·dx and times t<sup>n</sup> = n·dt. Write u<sub>i</sub><sup>n</sup> for the displacement at node i and step n. We replace <em>both</em> second derivatives with the standard centered second difference. In space:</p>
+        <div class="eq">∂²u/∂x² ≈ (u[i+1] - 2 u[i] + u[i-1]) / dx²<small>Centered second difference in space, evaluated at the current time level n. Error is O(dx^2).</small></div>
+        <p>In time, applied to the same node:</p>
+        <div class="eq">∂²u/∂t² ≈ (u[i] at n+1 - 2 u[i] at n + u[i] at n-1) / dt²<small>Centered second difference in time. It links three time levels: past (n-1), present (n), future (n+1).</small></div>
+        <p>Set them equal through the PDE and solve for the only unknown, the future value u<sub>i</sub><sup>n+1</sup>. Defining the dimensionless <strong>Courant number</strong> r = c·dt/dx:</p>
+        <div class="eq">u[i] at n+1 = 2 u[i] - u[i] at n-1 + r^2 ( u[i+1] - 2 u[i] + u[i-1] )<small>The leapfrog (CTCS) update. r = c*dt/dx. Every term on the right is already known, so this is fully explicit.</small></div>
+        <p>This is gorgeously simple: no matrix to invert, just one weighted stencil per node per step. The name <strong>leapfrog</strong> comes from needing two past levels (n and n−1) to leap to n+1 — the scheme hops over the present. That raises a wrinkle: at the very first step we only have the initial shape u<sup>0</sup>. We get the missing u<sup>−1</sup> from the initial velocity v(x) = ∂u/∂t using a centered approximation, which gives the special starter step u<sub>i</sub><sup>1</sup> = u<sub>i</sub><sup>0</sup> + dt·v<sub>i</sub> + ½r²(u<sub>i+1</sub><sup>0</sup> − 2u<sub>i</sub><sup>0</sup> + u<sub>i−1</sub><sup>0</sup>). After that, the three-level update runs forever.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 240" role="img" aria-label="Leapfrog stencil: three points at time level n in space (i-1, i, i+1), one point below at level n-1, one point above at level n+1, with arrows showing they combine to give the future value">
+                <!-- horizontal time-level guide lines -->
+                <line x1="40" y1="60" x2="350" y2="60" stroke="#2a3052" stroke-width="1"/>
+                <line x1="40" y1="140" x2="350" y2="140" stroke="#2a3052" stroke-width="1"/>
+                <line x1="40" y1="200" x2="350" y2="200" stroke="#2a3052" stroke-width="1"/>
+                <text x="34" y="64" fill="#a3a8c8" font-size="10" text-anchor="end">n+1</text>
+                <text x="34" y="144" fill="#a3a8c8" font-size="10" text-anchor="end">n</text>
+                <text x="34" y="204" fill="#a3a8c8" font-size="10" text-anchor="end">n-1</text>
+                <text x="20" y="130" fill="#a3a8c8" font-size="10" transform="rotate(-90 20 130)">time</text>
+                <!-- present-level trio -->
+                <circle cx="120" cy="140" r="6" fill="rgba(96,165,250,.5)" stroke="#60a5fa" stroke-width="1.5"/>
+                <circle cx="195" cy="140" r="6" fill="rgba(96,165,250,.5)" stroke="#60a5fa" stroke-width="1.5"/>
+                <circle cx="270" cy="140" r="6" fill="rgba(96,165,250,.5)" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="120" y="162" fill="#60a5fa" font-size="10" text-anchor="middle">i-1</text>
+                <text x="195" y="162" fill="#60a5fa" font-size="10" text-anchor="middle">i</text>
+                <text x="270" y="162" fill="#60a5fa" font-size="10" text-anchor="middle">i+1</text>
+                <!-- past point -->
+                <circle cx="195" cy="200" r="6" fill="rgba(251,191,36,.5)" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="215" y="204" fill="#fbbf24" font-size="10">past</text>
+                <!-- future point -->
+                <circle cx="195" cy="60" r="6" fill="rgba(52,211,153,.5)" stroke="#34d399" stroke-width="1.5"/>
+                <text x="215" y="64" fill="#34d399" font-size="10">future (unknown)</text>
+                <!-- arrows feeding the future -->
+                <line x1="120" y1="134" x2="190" y2="66" stroke="#818cf8" stroke-width="1.5"/>
+                <line x1="195" y1="134" x2="195" y2="68" stroke="#818cf8" stroke-width="1.5"/>
+                <line x1="270" y1="134" x2="200" y2="66" stroke="#818cf8" stroke-width="1.5"/>
+                <line x1="195" y1="194" x2="195" y2="68" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <text x="120" y="226" fill="#a3a8c8" font-size="10" text-anchor="middle">space (x) ->  </text>
+            </svg>
+            <figcaption>The leapfrog stencil. The future value (green, top) is built from three present-level neighbors (blue) and one past value (amber). Five points, one explicit formula, no linear solve.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>The CFL Condition: Don't Outrun the Wave</h2>
+        <p>The explicit scheme is cheap, but it is only <strong>conditionally stable</strong>. A von Neumann stability analysis — plug a single Fourier mode u<sub>i</sub><sup>n</sup> = G<sup>n</sup> e<sup>i k x</sup> into the update and demand the amplification |G| ≤ 1 for every wavenumber k — yields one clean requirement on the Courant number:</p>
+        <div class="eq">r = c·dt/dx ≤ 1&nbsp;&nbsp;&nbsp;i.e.&nbsp;&nbsp;&nbsp;c·dt ≤ dx<small>The Courant-Friedrichs-Lewy (CFL) condition for the explicit wave scheme in 1-D.</small></div>
+        <p>The physics is beautifully intuitive. In one time step a real wave travels a distance c·dt. The numerical stencil, meanwhile, only "looks" one grid cell to each side, so information can spread at most dx per step. If c·dt &gt; dx, the true wave outruns what the grid can communicate: the scheme is being asked to know something it has no access to, and the missing information manifests as exponentially growing garbage. The <strong>numerical domain of dependence must contain the physical one</strong> — that is the whole content of CFL.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Treating CFL like the diffusion limit from Week 5. There the stable step scaled as dt &lt;= dx<sup>2</sup>/(2D) — quadratic in dx, brutally small on fine grids. The wave condition is <em>linear</em>: dt &lt;= dx/c. Halving dx only halves dt, not quarters it. Don't import the wrong scaling, and don't forget to recompute dt when you change c or dx — the most common cause of a "stable code that suddenly explodes."</div>
+        <p>Choosing r exactly equal to 1 is a magical sweet spot in 1-D: the leapfrog scheme then reproduces d'Alembert's solution <em>exactly</em>, with zero numerical dispersion, because the update collapses to u<sub>i</sub><sup>n+1</sup> = u<sub>i+1</sub><sup>n</sup> + u<sub>i−1</sub><sup>n</sup> − u<sub>i</sub><sup>n−1</sup>. In practice we use r slightly below 1 (say 0.9) for safety margin and to handle variable c.</p>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>Boundaries, Reflection &amp; Energy</h2>
+        <p>A wave eventually hits the edge of the domain, and what happens there is set entirely by the <strong>boundary condition</strong> (Week 6). Two cases dominate:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>Fixed (Dirichlet) end:</strong> clamp u = 0, like a guitar string pinned to the bridge. A pulse reflects <em>inverted</em> — an upward bump returns as a downward one. The clamp must push back, and Newton's third law flips the sign.</li>
+            <li><strong>Free (Neumann) end:</strong> set ∂u/∂x = 0, like a string end on a frictionless ring that slides vertically. A pulse reflects <em>upright</em>, same sign. Numerically you enforce it with a ghost node u<sub>−1</sub> = u<sub>1</sub>.</li>
+        </ul>
+        <p>When two media with different wave speeds meet (a light string tied to a heavy one), part of the wave transmits and part reflects. The split is governed by the <strong>impedance</strong> Z = sqrt(T·ρ). The amplitude reflection coefficient is</p>
+        <div class="eq">R = (Z1 - Z2) / (Z1 + Z2)<small>Amplitude reflection coefficient at an interface between impedances Z1 and Z2. A fixed end is the Z2 -> infinity limit (R = -1, full inverted reflection); a free end is Z2 -> 0 (R = +1).</small></div>
+        <p>Because the wave equation conserves energy in the continuous world, a good scheme should very nearly conserve it too. The total <strong>discrete energy</strong> is kinetic plus potential:</p>
+        <div class="eq">E = sum_i [ (1/2) (du/dt)_i^2 + (c^2/2) ((u[i+1]-u[i])/dx)^2 ] dx<small>Discrete energy of the string. Kinetic from the velocity, potential from the local stretch (slope). Monitor it: drift signals instability or a boundary leak.</small></div>
+        <p>Energy is your free lie-detector. On a closed domain with fixed or free ends and r ≤ 1, the leapfrog scheme conserves a closely related discrete energy to round-off over very long runs. If you watch E climb, your CFL number is too big or a boundary is wrong; if it bleeds away, you have an absorbing or lossy boundary (sometimes deliberately, to fake an infinite domain).</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 230" role="img" aria-label="A pulse reflecting off two boundary types: at a fixed end the reflected pulse is inverted (below the axis), at a free end it is upright (above the axis)">
+                <!-- fixed end panel -->
+                <text x="100" y="22" fill="#a5b4fc" font-size="11" text-anchor="middle">Fixed end (u=0)</text>
+                <line x1="20" y1="70" x2="180" y2="70" stroke="#2a3052" stroke-width="1"/>
+                <line x1="180" y1="40" x2="180" y2="100" stroke="#a3a8c8" stroke-width="2.5"/>
+                <text x="180" y="114" fill="#a3a8c8" font-size="9" text-anchor="middle">wall</text>
+                <!-- incoming pulse (up) -->
+                <path d="M40,70 Q60,42 80,70" fill="none" stroke="#60a5fa" stroke-width="2"/>
+                <text x="60" y="38" fill="#60a5fa" font-size="9" text-anchor="middle">in -></text>
+                <!-- reflected pulse (inverted, down) -->
+                <path d="M100,70 Q120,98 140,70" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <text x="120" y="113" fill="#fbbf24" font-size="9" text-anchor="middle">&lt;- inverted</text>
+                <!-- free end panel -->
+                <text x="290" y="22" fill="#a5b4fc" font-size="11" text-anchor="middle">Free end (du/dx=0)</text>
+                <line x1="210" y1="70" x2="370" y2="70" stroke="#2a3052" stroke-width="1"/>
+                <line x1="370" y1="40" x2="370" y2="100" stroke="#a3a8c8" stroke-width="2.5" stroke-dasharray="3 3"/>
+                <text x="362" y="114" fill="#a3a8c8" font-size="9" text-anchor="middle">ring</text>
+                <!-- incoming pulse (up) -->
+                <path d="M230,70 Q250,42 270,70" fill="none" stroke="#60a5fa" stroke-width="2"/>
+                <text x="250" y="38" fill="#60a5fa" font-size="9" text-anchor="middle">in -></text>
+                <!-- reflected pulse (upright) -->
+                <path d="M290,70 Q310,42 330,70" fill="none" stroke="#34d399" stroke-width="2"/>
+                <text x="310" y="38" fill="#34d399" font-size="9" text-anchor="middle">&lt;- upright</text>
+                <!-- energy conservation note -->
+                <rect x="40" y="150" width="300" height="60" rx="8" fill="rgba(52,211,153,.08)" stroke="#34d399" stroke-width="1"/>
+                <text x="190" y="172" fill="#34d399" font-size="10" text-anchor="middle">Both ends are lossless: total energy E is conserved.</text>
+                <text x="190" y="192" fill="#a3a8c8" font-size="10" text-anchor="middle">Only the sign of the reflected pulse differs (R = -1 vs R = +1).</text>
+            </svg>
+            <figcaption>Pulse reflection. A fixed end (clamped, R = −1) flips the pulse upside-down; a free end (sliding ring, R = +1) returns it upright. Neither end loses energy — only the phase changes.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — picking dt for a guitar string</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A string of length L = 0.65 m has wave speed c = 200 m/s (a low-E-ish note). You discretize with N = 500 intervals and want a safety factor so the Courant number is r = 0.9. Find dx, the largest CFL-stable dt, your chosen dt, and how many steps it takes a pulse to cross the string once.</p>
+        <ol>
+            <li><strong>Grid spacing:</strong> dx = L/N = 0.65/500 = 1.3×10⁻³ m = 1.3 mm.</li>
+            <li><strong>CFL limit:</strong> the stability bound is dt ≤ dx/c = 1.3×10⁻³ / 200 = 6.5×10⁻⁶ s. Any larger and the scheme blows up.</li>
+            <li><strong>Chosen step:</strong> with r = 0.9, dt = r·dx/c = 0.9 × 6.5×10⁻⁶ = 5.85×10⁻⁶ s ≈ 5.9 µs.</li>
+            <li><strong>Crossing time:</strong> a pulse travels L at speed c, taking T<sub>cross</sub> = L/c = 0.65/200 = 3.25×10⁻³ s.</li>
+            <li><strong>Steps per crossing:</strong> T<sub>cross</sub>/dt = 3.25×10⁻³ / 5.85×10⁻⁶ ≈ <strong>556 steps</strong>. (Sanity check: with r = 0.9 a wave moves 0.9 cells/step, so crossing 500 cells needs 500/0.9 ≈ 556 steps — consistent.) Simulating one full back-and-forth round trip (a half-period of the fundamental) is just twice that.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a vibrating string from one pluck</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free Python + NumPy + Matplotlib stack runs everything here (set up once in <strong>Week 1</strong> — reuse that environment; no new tools needed for this lecture). We start the string with a Gaussian bump at rest, march the leapfrog scheme with fixed ends, and watch the energy stay flat to confirm stability.</p>
+        <pre><span class="c"># wave_string.py — Lecture 7: leapfrog wave equation, fixed ends</span>
+import numpy as np
+import matplotlib.pyplot as plt
+
+L, c = 1.0, 1.0                 <span class="c"># length and wave speed</span>
+N = 400
+dx = L / N
+r  = 0.9                        <span class="c"># Courant number &lt;= 1 (CFL)</span>
+dt = r * dx / c
+x  = np.linspace(0, L, N + 1)
+
+<span class="c"># initial shape: a Gaussian pulse at rest (velocity = 0)</span>
+u_prev = np.exp(-((x - 0.5) / 0.05) ** 2)
+u      = u_prev.copy()          <span class="c"># starter: zero initial velocity</span>
+<span class="c"># special first step (v=0): u^1 = u^0 + 0.5 r^2 (lap)</span>
+u[1:-1] = u_prev[1:-1] + 0.5 * r**2 * (u_prev[2:] - 2*u_prev[1:-1] + u_prev[:-2])
+u[0] = u[-1] = 0.0              <span class="c"># fixed (Dirichlet) ends</span>
+
+def energy(u, u_old):
+    v = (u - u_old) / dt                       <span class="c"># time derivative</span>
+    ke = 0.5 * np.sum(v**2) * dx
+    pe = 0.5 * c**2 * np.sum(np.diff(u)**2) / dx
+    return ke + pe
+
+steps = 2000
+for n in range(steps):
+    u_new = np.empty_like(u)
+    u_new[1:-1] = (2*u[1:-1] - u_prev[1:-1]
+                   + r**2 * (u[2:] - 2*u[1:-1] + u[:-2]))
+    u_new[0] = u_new[-1] = 0.0                  <span class="c"># clamp both ends</span>
+    u_prev, u = u, u_new
+    if n % 500 == 0:
+        print(f"step {n:5d}   E = {energy(u, u_prev):.6f}")
+
+plt.plot(x, u); plt.title("string after 2000 steps"); plt.show()
+<span class="c"># E stays ~constant -> stable. Set r = 1.05 and watch it explode (CFL violated).</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Experiments: (1) bump r to 1.05 and watch the energy diverge within a few steps — that is CFL. (2) Switch one end to free with a ghost node (<code>u_new[-1] = u_new[-2]</code> via reflection) and confirm the pulse comes back <em>upright</em>. (3) Give the string an initial velocity instead of a displacement and hear (plot) the difference.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The leapfrog stencil and CFL thinking you just met scale straight up. In 2-D and 3-D the same explicit update drives <strong>finite-difference time-domain (FDTD)</strong> solvers for Maxwell's equations — the workhorse of antenna, photonics, and radar design — where CFL becomes c·dt ≤ dx/sqrt(dimensions). Next week (Week 8) you'll meet the <em>elliptic</em> cousin, the Poisson/Laplace equation, which has no time at all and is solved by relaxation. Later in the specialization, absorbing boundaries (perfectly matched layers) extend today's reflection ideas to fake an infinite world, and the Schrödinger equation in the Quantum track is solved with a close relative of leapfrog. Master the wave equation and you hold the key to acoustics, seismology, electromagnetics, and quantum dynamics alike.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In the wave equation ∂²u/∂t² = c²∂²u/∂x², the quantity c represents…</div>
+            <div class="opt"><b>A.</b> the speed at which disturbances propagate, with c = sqrt(T/ρ) for a string</div>
+            <div class="opt"><b>B.</b> the amplitude of the wave</div>
+            <div class="opt"><b>C.</b> a diffusion coefficient that smooths the profile</div>
+            <div class="opt"><b>D.</b> the machine epsilon of the grid</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> c is the wave speed, set by tension and mass density (c = sqrt(T/ρ)). It is not an amplitude (B). It is not a diffusion coefficient (C) — that is the heat equation, which smooths rather than propagates. (D) is unrelated floating-point jargon.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The CFL condition for the explicit 1-D leapfrog wave scheme is…</div>
+            <div class="opt"><b>A.</b> dt ≤ dx²/(2c)</div>
+            <div class="opt"><b>B.</b> c·dt ≤ dx (Courant number r ≤ 1)</div>
+            <div class="opt"><b>C.</b> dt ≥ dx/c</div>
+            <div class="opt"><b>D.</b> dt can be arbitrarily large because the scheme is implicit</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Stability requires r = c·dt/dx ≤ 1. (A) is the quadratic diffusion limit — wrong equation. (C) reverses the inequality (it would force CFL to be violated). (D) is false: the scheme is explicit and only conditionally stable.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A right-moving pulse hits a <em>fixed</em> (clamped, u = 0) end of a string. The reflected pulse is…</div>
+            <div class="opt"><b>A.</b> upright and unchanged in sign</div>
+            <div class="opt"><b>B.</b> completely absorbed, with no reflection</div>
+            <div class="opt"><b>C.</b> inverted (flipped to the opposite sign), reflection coefficient R = −1</div>
+            <div class="opt"><b>D.</b> doubled in amplitude</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A fixed end is the Z2 → ∞ limit, giving R = −1: the pulse returns inverted. Upright reflection (A) is the <em>free</em> end (R = +1). A lossless clamp does not absorb (B) or amplify (D) energy.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why is the scheme called "leapfrog," and what extra information does it need to start?</div>
+            <div class="opt"><b>A.</b> It uses only the current time level, and needs nothing extra</div>
+            <div class="opt"><b>B.</b> It inverts a large matrix each step, needing an initial guess</div>
+            <div class="opt"><b>C.</b> It uses one-sided differences, needing values from outside the domain</div>
+            <div class="opt"><b>D.</b> It links three time levels (past, present, future), so the first step needs a special starter built from the initial velocity</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The centered time derivative ties n−1, n, n+1 together, hopping over the present like a leapfrog; with only u⁰ known, the first step uses the initial velocity to supply the missing past level. (A) describes a one-level method. (B) describes an implicit solve — leapfrog is explicit. (C) misstates the (centered, in-domain) stencil.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> You run the string solver with fixed ends and r = 0.9, but the total discrete energy slowly climbs each step. The most likely cause is…</div>
+            <div class="opt"><b>A.</b> energy is supposed to grow for a wave on a closed domain</div>
+            <div class="opt"><b>B.</b> a bug — a lossless closed domain should conserve energy, so a boundary or starter step is implemented wrong</div>
+            <div class="opt"><b>C.</b> the grid is too fine</div>
+            <div class="opt"><b>D.</b> floating-point round-off, which always makes energy grow exponentially</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> With r ≤ 1 and lossless ends, leapfrog conserves a discrete energy to round-off — steady growth flags a wrong boundary or starter step. Energy should not grow on a closed lossless domain (A). A finer grid (C) does not create energy. Round-off (D) causes tiny random drift, not systematic exponential growth.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>wave equation</b> ∂²u/∂t² = c²∂²u/∂x² comes from Newton's law on a string; <b>c = sqrt(T/ρ)</b> is the propagation speed and solutions are shape-preserving left- and right-movers.</li>
+            <li>The <b>leapfrog (CTCS) scheme</b> is an explicit three-time-level update built from centered second differences, needing a special <b>starter step</b> from the initial velocity.</li>
+            <li>The <b>CFL condition</b> c·dt ≤ dx is linear in dx (unlike diffusion's dx²) and means the numerical domain of dependence must contain the physical one.</li>
+            <li><b>Fixed ends invert</b> a pulse (R = −1), <b>free ends keep it upright</b> (R = +1), and partial reflection at an interface is set by <b>impedance</b> Z = sqrt(Tρ).</li>
+            <li>Tracking <b>discrete energy</b> is a free stability diagnostic: it stays flat on a lossless closed domain when the scheme is correct and CFL-stable.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: the Poisson and Laplace equations, the time-free elliptic PDEs of electrostatics and steady-state fields, solved by iterative relaxation (Jacobi, Gauss-Seidel, and SOR).</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-boundary-conditions.html"><div class="dir">← Week 6</div><div class="ttl">Boundary Conditions</div></a>
+        <a class="next" href="l08-poisson-relaxation.html"><div class="dir">Week 8 →</div><div class="ttl">Poisson/Laplace &amp; Relaxation</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

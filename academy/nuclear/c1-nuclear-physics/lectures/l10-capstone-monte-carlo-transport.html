@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuclear C1 · Lecture 10 — Capstone: Monte-Carlo Particle Transport</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11241a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f8071; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1530, #1d1a3a); border: 1px solid #3a2f60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #d6cdee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C1 Nuclear Physics</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Capstone: Monte-Carlo Particle Transport</h1>
+        <p class="sub">Nine weeks of cross sections, fission, and shielding converge here — we throw a million random neutrons at a reactor and let chance reveal its flux and its criticality.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why neutron transport is solved by simulating random histories instead of by closed-form integration.</li>
+            <li>Trace one neutron history: sample a flight distance, choose a reaction, and tally what it deposits.</li>
+            <li>Estimate flux and the multiplication factor k-eff from many histories, with a Monte-Carlo error bar that shrinks like 1/sqrt(N).</li>
+            <li>Set up a minimal geometry and material in OpenMC and run a fixed-source or eigenvalue calculation.</li>
+            <li>Frame and deliver the C1 capstone: a self-contained criticality study with quantified uncertainty.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>Why Simulate Random Neutrons?</h2>
+        <p>A neutron born in a reactor does not travel in a tidy straight line. It flies a random distance, scatters off a nucleus into a random new direction with a random new energy, flies again, and eventually is absorbed or leaks out. Over its life it visits dozens of materials and samples cross sections that swing by orders of magnitude with energy (recall the resonance forest from Week 4). The quantity we want — the <strong>neutron flux</strong> &phi;(r, E, &Omega;) everywhere, in every energy group, in every direction — is the solution of the <strong>Boltzmann transport equation</strong>, a seven-dimensional integro-differential beast.</p>
+        <div class="eq">flux phi = (neutrons crossing area) / (area x time) = n(r,E) v<small>n is the neutron number density; v is the speed. Reaction rate density = Sigma(E) x phi, the master quantity every tally is built from.</small></div>
+        <p>For all but the simplest slab geometries that equation has no closed-form answer. We have two honest options. One is to <em>discretize</em> everything — chop space into a mesh, energy into groups, angle into directions — and solve a giant linear system (the deterministic approach). The other is the <strong>Monte-Carlo method</strong>: stop trying to integrate, and instead <em>play out</em> the physics. Simulate one neutron's random walk faithfully using the actual cross sections, then do it again for millions of neutrons, and let the law of large numbers turn those random histories into accurate averages.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>You want the average path length of water draining through a complicated maze of gravel. You could write the fluid equations for every pore — hopeless. Or you could drop a thousand tracer dye droplets in, time each one, and average. Monte-Carlo transport is the dye-droplet method: each neutron is a tracer, the gravel is the cross-section data, and the average over many droplets <em>is</em> the answer.</div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>The Life of One Neutron History</h2>
+        <p>The engine of Monte-Carlo transport is a loop that follows a single neutron from birth to death. Every step is a random draw from a distribution that the cross sections define. The key physics fact: in a uniform material with total macroscopic cross section &Sigma;<sub>t</sub>, the distance a neutron flies before its next collision is <strong>exponentially distributed</strong>, with mean free path 1/&Sigma;<sub>t</sub>.</p>
+        <div class="eq">s = -ln(xi) / Sigma_t<small>xi is a uniform random number in (0,1). This inverts the exponential attenuation law exp(-Sigma_t x s) to sample a flight distance s.</small></div>
+        <p>At the collision site we draw a second random number to pick which reaction happened, weighting each channel by its share of the total cross section: scatter with probability &Sigma;<sub>s</sub>/&Sigma;<sub>t</sub>, capture with &Sigma;<sub>&gamma;</sub>/&Sigma;<sub>t</sub>, fission with &Sigma;<sub>f</sub>/&Sigma;<sub>t</sub>, and so on. A scatter sends the neutron off in a new sampled direction and energy; a capture ends the history; a fission ends this history but <em>banks</em> &nu; new neutrons for the next generation. Along every flight segment we add to running <strong>tallies</strong> — the path length contributes to the flux estimate, and reaction events contribute to reaction-rate estimates.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 240" role="img" aria-label="Flowchart of one neutron history: born, sample flight distance, move, sample reaction; scatter loops back, capture or leak ends the history, fission banks new neutrons and ends.">
+                <!-- born -->
+                <rect x="14" y="100" width="74" height="40" rx="8" fill="#122017" stroke="#34d399" stroke-width="2"/>
+                <text x="51" y="124" fill="#6ee7b7" font-size="12" text-anchor="middle">born</text>
+                <!-- arrow -->
+                <line x1="88" y1="120" x2="126" y2="120" stroke="#94b8a2" stroke-width="2"/>
+                <polygon points="126,120 118,116 118,124" fill="#94b8a2"/>
+                <!-- sample flight -->
+                <rect x="126" y="96" width="104" height="48" rx="8" fill="#122017" stroke="#60a5fa" stroke-width="2"/>
+                <text x="178" y="116" fill="#e8f4ec" font-size="11" text-anchor="middle">sample flight</text>
+                <text x="178" y="132" fill="#94b8a2" font-size="10" text-anchor="middle">s = -ln(xi)/Sigma_t</text>
+                <!-- arrow -->
+                <line x1="230" y1="120" x2="266" y2="120" stroke="#94b8a2" stroke-width="2"/>
+                <polygon points="266,120 258,116 258,124" fill="#94b8a2"/>
+                <!-- pick reaction -->
+                <rect x="266" y="96" width="104" height="48" rx="8" fill="#122017" stroke="#fbbf24" stroke-width="2"/>
+                <text x="318" y="116" fill="#e8f4ec" font-size="11" text-anchor="middle">pick reaction</text>
+                <text x="318" y="132" fill="#94b8a2" font-size="10" text-anchor="middle">by Sigma_i/Sigma_t</text>
+                <!-- branch up: scatter loops back -->
+                <line x1="318" y1="96" x2="318" y2="60" stroke="#34d399" stroke-width="2"/>
+                <line x1="318" y1="60" x2="178" y2="60" stroke="#34d399" stroke-width="2"/>
+                <line x1="178" y1="60" x2="178" y2="96" stroke="#34d399" stroke-width="2"/>
+                <polygon points="178,96 174,88 182,88" fill="#34d399"/>
+                <text x="248" y="52" fill="#34d399" font-size="11" text-anchor="middle">scatter -> fly again</text>
+                <!-- branch right: capture -->
+                <line x1="370" y1="120" x2="406" y2="120" stroke="#94b8a2" stroke-width="2"/>
+                <polygon points="406,120 398,116 398,124" fill="#94b8a2"/>
+                <rect x="406" y="100" width="140" height="40" rx="8" fill="#122017" stroke="#94b8a2" stroke-width="2"/>
+                <text x="476" y="118" fill="#e8f4ec" font-size="11" text-anchor="middle">capture / leak</text>
+                <text x="476" y="132" fill="#94b8a2" font-size="10" text-anchor="middle">history ends</text>
+                <!-- branch down: fission -->
+                <line x1="318" y1="144" x2="318" y2="184" stroke="#a78bfa" stroke-width="2"/>
+                <polygon points="318,184 314,176 322,176" fill="#a78bfa"/>
+                <rect x="246" y="184" width="144" height="40" rx="8" fill="#122017" stroke="#a78bfa" stroke-width="2"/>
+                <text x="318" y="202" fill="#e8f4ec" font-size="11" text-anchor="middle">fission: bank nu new</text>
+                <text x="318" y="216" fill="#94b8a2" font-size="10" text-anchor="middle">neutrons, end history</text>
+            </svg>
+            <figcaption>One neutron history. After each flight a reaction is sampled in proportion to &Sigma;<sub>i</sub>/&Sigma;<sub>t</sub>: scattering (green) loops back to fly again; capture or leak (gray) ends the walk; fission (violet) ends this history but banks &nu; neutrons for the next generation.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>From Histories to k-eff and Error Bars</h2>
+        <p>A reactor is a chain reaction, so the central question is whether each generation of neutrons reproduces itself. The <strong>effective multiplication factor</strong> k-eff is exactly that ratio:</p>
+        <div class="eq">k_eff = (neutrons produced in generation g+1) / (neutrons produced in generation g)<small>k &lt; 1 subcritical (chain dies out); k = 1 critical (steady); k &gt; 1 supercritical (chain grows). This is the eigenvalue of the transport operator.</small></div>
+        <p>In a Monte-Carlo eigenvalue ("k-code") run we follow a <strong>batch</strong> of, say, 10,000 neutrons, count how many fission neutrons they bank, and form the ratio to the previous batch. We discard the first several <em>inactive</em> batches while the spatial fission distribution settles into its fundamental mode, then average k over the <strong>active</strong> batches. Because each batch is a random sample, the answer comes with a statistical uncertainty — and this is the defining feature of Monte-Carlo: the standard error of the mean shrinks as you run more histories.</p>
+        <div class="eq">standard error  ~  s / sqrt(N)<small>s is the sample standard deviation across batches; N is the number of independent samples. To halve the error bar you must run 4x as many neutrons.</small></div>
+        <p>That 1/sqrt(N) law is both the promise and the cost. It guarantees convergence to the true answer with no mesh or group approximation — but cutting the uncertainty by 10x demands 100x the compute. Knowing when "good enough" is good enough is a core skill of the practicing analyst.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Never report a Monte-Carlo k-eff without its uncertainty, and never trust an eigenvalue run whose <strong>inactive batches were too few</strong> for the source to converge. A tight-looking k = 1.00021 ± 0.00008 is meaningless if the fission source had not yet settled — the result is biased even though the error bar is small. A small error bar measures <em>precision</em>, not <em>correctness</em>; always check the source-convergence (Shannon entropy) diagnostic too.</div>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>The Simulation Workflow &amp; the Capstone</h2>
+        <p>Every Monte-Carlo transport study, whether a homework slab or a full power-reactor core, follows the same five-stage pipeline. OpenMC — a free, open-source Monte-Carlo code with a Python API — organizes its inputs around exactly these stages.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 130" role="img" aria-label="Five-stage Monte-Carlo workflow: materials, geometry, settings/source, tallies, run and analyze, connected left to right by arrows.">
+                <g font-size="11" text-anchor="middle">
+                    <rect x="8" y="45" width="92" height="44" rx="9" fill="#122017" stroke="#34d399" stroke-width="2"/>
+                    <text x="54" y="64" fill="#e8f4ec">Materials</text>
+                    <text x="54" y="79" fill="#94b8a2" font-size="9">nuclides, density</text>
+
+                    <rect x="124" y="45" width="92" height="44" rx="9" fill="#122017" stroke="#60a5fa" stroke-width="2"/>
+                    <text x="170" y="64" fill="#e8f4ec">Geometry</text>
+                    <text x="170" y="79" fill="#94b8a2" font-size="9">cells, surfaces</text>
+
+                    <rect x="240" y="45" width="92" height="44" rx="9" fill="#122017" stroke="#fbbf24" stroke-width="2"/>
+                    <text x="286" y="64" fill="#e8f4ec">Settings</text>
+                    <text x="286" y="79" fill="#94b8a2" font-size="9">source, batches</text>
+
+                    <rect x="356" y="45" width="92" height="44" rx="9" fill="#122017" stroke="#a78bfa" stroke-width="2"/>
+                    <text x="402" y="64" fill="#e8f4ec">Tallies</text>
+                    <text x="402" y="79" fill="#94b8a2" font-size="9">flux, k-eff</text>
+
+                    <rect x="472" y="45" width="80" height="44" rx="9" fill="#122017" stroke="#6ee7b7" stroke-width="2"/>
+                    <text x="512" y="64" fill="#e8f4ec">Run +</text>
+                    <text x="512" y="79" fill="#e8f4ec">analyze</text>
+                </g>
+                <g stroke="#94b8a2" stroke-width="2" fill="#94b8a2">
+                    <line x1="100" y1="67" x2="120" y2="67"/><polygon points="124,67 116,63 116,71"/>
+                    <line x1="216" y1="67" x2="236" y2="67"/><polygon points="240,67 232,63 232,71"/>
+                    <line x1="332" y1="67" x2="352" y2="67"/><polygon points="352,67 344,63 344,71"/>
+                    <line x1="448" y1="67" x2="468" y2="67"/><polygon points="468,67 460,63 460,71"/>
+                </g>
+                <text x="280" y="22" fill="#6ee7b7" font-size="12" text-anchor="middle">The Monte-Carlo transport pipeline</text>
+            </svg>
+            <figcaption>The five-stage workflow shared by every Monte-Carlo transport run. OpenMC builds <em>Materials</em>, <em>Geometry</em>, <em>Settings</em> (the neutron source and batch counts), and <em>Tallies</em>, then runs and post-processes — the structure your capstone deliverable will follow.</figcaption>
+        </figure>
+        <p>The <strong>C1 capstone, due this week</strong>, is the payoff for the whole course. You will build a small but complete criticality study: a bare or reflected sphere/cylinder of fissile material, defined material by material, with geometry, an initial fission source, and a tally that reports k-eff and the radial flux profile. The deliverable is a single notebook that (1) defines the model, (2) runs an eigenvalue calculation with enough active batches to reach a stated precision, (3) reports k-eff ± its uncertainty, and (4) interprets the result physically — is it subcritical, critical, or supercritical, and what would push it toward k = 1?</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the workflow like staging a play: <em>Materials</em> are the actors, <em>Geometry</em> is the set they stand on, <em>Settings</em> is the script and cast size, <em>Tallies</em> are the critics taking notes, and the <em>run</em> is opening night. Skip any stage and the show falls apart — OpenMC will refuse to run a geometry with an undefined material, just as a play can't open without a set.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — k-eff and its error bar from batch data</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">An eigenvalue run uses 5 inactive and then 5 active batches. The per-batch k estimates from the <em>active</em> batches are: 1.012, 0.997, 1.005, 1.001, 0.995. Report the best estimate of k-eff with its 1-sigma standard error.</p>
+        <ol>
+            <li><strong>Discard inactive batches.</strong> Only the 5 active values count; the inactive ones merely let the source converge.</li>
+            <li><strong>Mean.</strong> k&#772; = (1.012 + 0.997 + 1.005 + 1.001 + 0.995) / 5 = 5.010 / 5 = <strong>1.0020</strong>.</li>
+            <li><strong>Deviations.</strong> +0.0100, -0.0050, +0.0030, -0.0010, -0.0070. Squares: 1.00e-4, 2.5e-5, 9e-6, 1e-6, 4.9e-5; sum = 1.84e-4.</li>
+            <li><strong>Sample standard deviation.</strong> s = sqrt(1.84e-4 / (5-1)) = sqrt(4.6e-5) = <strong>0.00678</strong> (divide by N-1, Bessel's correction).</li>
+            <li><strong>Standard error of the mean.</strong> SE = s / sqrt(N) = 0.00678 / sqrt(5) = 0.00678 / 2.236 = <strong>0.0030</strong>.</li>
+            <li><strong>Report.</strong> k-eff = <strong>1.0020 ± 0.0030</strong>. Since 1.0000 lies within one sigma, this configuration is statistically consistent with critical — but to <em>claim</em> super- vs sub-critical you'd need a tighter error bar, i.e. more active batches (the 1/sqrt(N) law).</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a criticality run in OpenMC</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the free Python stack from Week 1 (NumPy + Jupyter) plus <strong>OpenMC</strong>, the open-source Monte-Carlo transport code introduced here for the capstone. The full Python/Jupyter setup lives in the Week-1 install note; OpenMC is the one new tool, so install just it below.</p>
+        <details class="install">
+            <summary>⬇ Install OpenMC + nuclear data (one-time, for the capstone)</summary>
+            <p>OpenMC installs cleanly from conda-forge (it ships the compiled transport solver):</p>
+            <pre>conda create -n omc -c conda-forge openmc python=3.11 numpy matplotlib jupyter
+conda activate omc</pre>
+            <p>Then download a free cross-section data library and point OpenMC at it:</p>
+            <pre>python -c "import openmc; print(openmc.__version__)"
+<span class="c"># set OPENMC_CROSS_SECTIONS to your cross_sections.xml path</span>
+export OPENMC_CROSS_SECTIONS=/path/to/endfb-vii.1-hdf5/cross_sections.xml</pre>
+            <p>Printing a version number and a valid data path means you're ready to run criticality calculations.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">A minimal eigenvalue model: a bare sphere of highly enriched metal. The vacuum boundary lets escaping neutrons leak away (no reflection).</p>
+        <pre><span class="c"># bare_sphere_keff.py — Lecture 10 capstone starter</span>
+import openmc
+
+<span class="c"># 1. MATERIAL: enriched uranium metal</span>
+fuel = openmc.Material(name="HEU metal")
+fuel.add_nuclide("U235", 0.93, "wo")   <span class="c"># 93 wt% U-235</span>
+fuel.add_nuclide("U238", 0.07, "wo")
+fuel.set_density("g/cm3", 18.7)
+mats = openmc.Materials([fuel])
+mats.export_to_xml()
+
+<span class="c"># 2. GEOMETRY: sphere with a vacuum (leakage) boundary</span>
+sph = openmc.Sphere(r=8.7, boundary_type="vacuum")
+core = openmc.Cell(fill=fuel, region=-sph)   <span class="c"># inside the sphere</span>
+openmc.Geometry([core]).export_to_xml()
+
+<span class="c"># 3. SETTINGS: eigenvalue (k) run, point source at center</span>
+s = openmc.Settings()
+s.run_mode = "eigenvalue"
+s.batches = 130           <span class="c"># total batches</span>
+s.inactive = 30           <span class="c"># discard while source converges</span>
+s.particles = 10000       <span class="c"># neutrons per batch</span>
+s.source = openmc.IndependentSource(
+    space=openmc.stats.Point((0, 0, 0)))
+s.export_to_xml()
+
+<span class="c"># 4. RUN -> k-eff +/- sigma printed and saved to statepoint.h5</span>
+openmc.run()</pre>
+        <p style="font-size:.88rem; color:var(--text2);">OpenMC prints the combined <code>k-effective</code> with its uncertainty at the end. For the capstone, grow the radius until k crosses 1.0 to find the bare critical radius, add a <code>openmc.Tally</code> with a spatial mesh filter for the radial flux, and write up what each result means. Reuse the 1/sqrt(N) reasoning from §10.3 to justify how many active batches you chose.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The same neutron random walk you just simulated scales straight up to professional practice. Add <em>burnup</em> coupling and you track how fuel composition evolves over a reactor cycle; add <em>thermal-hydraulic feedback</em> and you model how temperature changes cross sections in real time. Swap neutrons for photons and the identical Monte-Carlo machinery becomes the engine of <strong>medical-physics dose calculation</strong> for radiotherapy and the <strong>radiation-shielding</strong> design you met in Week 9. Beyond this course, these methods feed reactor licensing, fusion blanket design, and detector modeling for particle physics — every one of them a chain of random histories, averaged until the noise drops below the engineering tolerance.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why do reactor analysts use the Monte-Carlo method for neutron transport instead of solving the Boltzmann equation directly?</div>
+            <div class="opt"><b>A.</b> Monte-Carlo is always faster than any deterministic method</div>
+            <div class="opt"><b>B.</b> The full transport equation has no closed-form solution for realistic geometries, so simulating random histories estimates it without mesh/group approximations</div>
+            <div class="opt"><b>C.</b> Neutrons genuinely move according to random-number generators</div>
+            <div class="opt"><b>D.</b> Monte-Carlo gives exact answers with zero uncertainty</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The 7-D transport equation is intractable in closed form for real geometries; Monte-Carlo samples physical histories to estimate it. (A) is false — MC is often slower but more faithful. (C) confuses the model's random sampling with real physics. (D) is false — MC always carries statistical uncertainty.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The flight distance to a neutron's next collision is sampled as s = -ln(&xi;)/&Sigma;<sub>t</sub>. This reflects that flight distances are…</div>
+            <div class="opt"><b>A.</b> uniformly distributed between 0 and the cell size</div>
+            <div class="opt"><b>B.</b> always equal to the mean free path</div>
+            <div class="opt"><b>C.</b> exponentially distributed with mean free path 1/&Sigma;<sub>t</sub></div>
+            <div class="opt"><b>D.</b> normally distributed about the cell center</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Attenuation exp(-&Sigma;<sub>t</sub>s) makes path lengths exponential with mean 1/&Sigma;<sub>t</sub>; inverting it gives the formula. (A,D) are the wrong distributions; (B) is just the mean, not the per-flight random value.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A criticality run reports k-eff = 0.94 ± 0.001. The configuration is…</div>
+            <div class="opt"><b>A.</b> subcritical — the chain reaction dies out</div>
+            <div class="opt"><b>B.</b> critical and self-sustaining</div>
+            <div class="opt"><b>C.</b> supercritical — the chain reaction grows</div>
+            <div class="opt"><b>D.</b> impossible, since k must equal 1</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> k &lt; 1 means each generation produces fewer neutrons than the last, so the chain dies — subcritical. (B) needs k = 1, (C) needs k &gt; 1, and (D) is wrong because k can take any value depending on the design.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> You ran 1,000,000 neutrons and want to halve the statistical error bar on k-eff. Roughly how many should you run?</div>
+            <div class="opt"><b>A.</b> 2,000,000</div>
+            <div class="opt"><b>B.</b> 1,500,000</div>
+            <div class="opt"><b>C.</b> 500,000</div>
+            <div class="opt"><b>D.</b> 4,000,000</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Error ~ 1/sqrt(N), so halving it needs 4x the histories: 4,000,000. (A) and (B) under-shoot; (C) would <em>increase</em> the error.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why does an eigenvalue run discard its first several "inactive" batches?</div>
+            <div class="opt"><b>A.</b> To warm up the computer's cache</div>
+            <div class="opt"><b>B.</b> To let the spatial fission source converge to its fundamental mode before tallying k</div>
+            <div class="opt"><b>C.</b> Because those batches use a different cross-section library</div>
+            <div class="opt"><b>D.</b> They are the only batches that count toward the final answer</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The initial guessed source is wrong; inactive batches let it settle so the active-batch average is unbiased. (A) is irrelevant, (C) is false (same data throughout), and (D) is backwards — it's the <em>active</em> batches that count.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Why the <b>Boltzmann transport equation</b> is solved by simulating random neutron histories rather than integrating it directly.</li>
+            <li>How to trace <b>one history</b> — sample an exponential flight, pick a reaction by &Sigma;<sub>i</sub>/&Sigma;<sub>t</sub>, scatter, capture, leak, or fission.</li>
+            <li>How <b>k-eff</b> and its <b>1/sqrt(N) error bar</b> emerge from averaging many batches, and why source convergence matters.</li>
+            <li>The five-stage <b>Materials → Geometry → Settings → Tallies → Run</b> workflow, realized in <b>OpenMC</b>.</li>
+            <li>How to frame and deliver the <b>capstone</b>: a criticality study reporting k-eff ± uncertainty with a physical interpretation.</li>
+        </ul>
+        <p class="next-up">Next up — the <b>Final Exam</b> (building) ties together cross sections, decay, fission, dose, and this Monte-Carlo capstone into one comprehensive assessment.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-radiation-dose-shielding.html"><div class="dir">← Week 9</div><div class="ttl">Radiation, Dose &amp; Shielding</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Nuclear Physics</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C3 · Lecture 6 — Sparse Matrices &amp; Large Systems</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C3 LinAlg &amp; Quantum</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Sparse Matrices &amp; Large Systems</h1>
+        <p class="sub">Physics couples each point only to its neighbors — so the matrices are almost all zeros, and learning not to store those zeros is what lets you simulate a million-atom system on a laptop.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why matrices from physics simulations are <em>sparse</em>: discretized operators couple each site only to its local neighbors.</li>
+            <li>Quantify the memory and arithmetic cost of dense storage and see why it explodes for large systems.</li>
+            <li>Read and reason about the Compressed Sparse Row (CSR) format and its three arrays.</li>
+            <li>Use SciPy's <code>scipy.sparse</code> to build, store, and multiply sparse matrices.</li>
+            <li>Recognize the sparse matrix–vector product (SpMV) as the single operation iterative solvers repeat — and the gateway to next week's Krylov methods.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Why Physics Matrices Are Almost All Zeros</h2>
+        <p>When you discretize a physical operator — a Laplacian for a diffusion problem, a Hamiltonian for a quantum lattice, a stiffness matrix for a vibrating structure — you place the system on a grid or a mesh of <span class="key">N</span> sites. The matrix <strong>A</strong> that results has one row and one column per site. Its entry A<sub>ij</sub> answers a physical question: <em>how strongly does site i couple to site j?</em></p>
+        <p>The crucial fact is that <strong>physics is local</strong>. A particle on a lattice hops to adjacent sites; heat flows between touching cells; a spring connects only the masses it is attached to. A site couples to a handful of neighbors and to <em>nothing else</em>. So in row i, only a few entries are nonzero and the rest — the overwhelming majority — are exactly zero.</p>
+        <p>Take the standard second-derivative (1-D Laplacian) operator. The finite-difference rule</p>
+        <div class="eq">f''(x<sub>i</sub>) &approx; [ f<sub>i-1</sub> - 2 f<sub>i</sub> + f<sub>i+1</sub> ] / h<sup>2</sup><small>Each grid point talks only to its immediate left and right neighbor, so each matrix row has at most three nonzeros.</small></div>
+        <p>produces a <strong>tridiagonal</strong> matrix: nonzeros only on the main diagonal and the two adjacent diagonals. Out of N<sup>2</sup> entries, only about 3N are nonzero. We call a matrix <span class="key">sparse</span> when the number of nonzeros, <strong>nnz</strong>, grows like N rather than N<sup>2</sup> — formally, when the fraction of nonzeros vanishes as the system grows.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 200" role="img" aria-label="A 6 by 6 tridiagonal matrix: shaded cells form three diagonals; all off-diagonal cells are zero">
+                <text x="210" y="20" fill="#a5b4fc" font-size="13" text-anchor="middle">Tridiagonal Laplacian (N = 6): only 3 diagonals are nonzero</text>
+                <!-- grid 6x6, cell 26px, origin 100,40 -->
+                <g stroke="#2a3052" stroke-width="1">
+                    <!-- column lines -->
+                    <line x1="120" y1="40" x2="120" y2="196"/>
+                    <line x1="146" y1="40" x2="146" y2="196"/>
+                    <line x1="172" y1="40" x2="172" y2="196"/>
+                    <line x1="198" y1="40" x2="198" y2="196"/>
+                    <line x1="224" y1="40" x2="224" y2="196"/>
+                    <line x1="250" y1="40" x2="250" y2="196"/>
+                    <line x1="276" y1="40" x2="276" y2="196"/>
+                    <!-- row lines -->
+                    <line x1="120" y1="40" x2="276" y2="40"/>
+                    <line x1="120" y1="66" x2="276" y2="66"/>
+                    <line x1="120" y1="92" x2="276" y2="92"/>
+                    <line x1="120" y1="118" x2="276" y2="118"/>
+                    <line x1="120" y1="144" x2="276" y2="144"/>
+                    <line x1="120" y1="170" x2="276" y2="170"/>
+                    <line x1="120" y1="196" x2="276" y2="196"/>
+                </g>
+                <!-- diagonal (i,i) violet, sub/super blue -->
+                <!-- row0 -->
+                <rect x="120" y="40" width="26" height="26" fill="rgba(192,132,252,.55)"/>
+                <rect x="146" y="40" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <!-- row1 -->
+                <rect x="120" y="66" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <rect x="146" y="66" width="26" height="26" fill="rgba(192,132,252,.55)"/>
+                <rect x="172" y="66" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <!-- row2 -->
+                <rect x="146" y="92" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <rect x="172" y="92" width="26" height="26" fill="rgba(192,132,252,.55)"/>
+                <rect x="198" y="92" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <!-- row3 -->
+                <rect x="172" y="118" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <rect x="198" y="118" width="26" height="26" fill="rgba(192,132,252,.55)"/>
+                <rect x="224" y="118" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <!-- row4 -->
+                <rect x="198" y="144" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <rect x="224" y="144" width="26" height="26" fill="rgba(192,132,252,.55)"/>
+                <rect x="250" y="144" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <!-- row5 -->
+                <rect x="224" y="170" width="26" height="26" fill="rgba(96,165,250,.4)"/>
+                <rect x="250" y="170" width="26" height="26" fill="rgba(192,132,252,.55)"/>
+                <text x="198" y="40" fill="#a3a8c8" font-size="11" text-anchor="middle">diagonal = -2</text>
+                <text x="345" y="100" fill="#60a5fa" font-size="11" text-anchor="middle">off-diag = +1</text>
+                <text x="345" y="120" fill="#a3a8c8" font-size="11" text-anchor="middle">everything</text>
+                <text x="345" y="135" fill="#a3a8c8" font-size="11" text-anchor="middle">else = 0</text>
+            </svg>
+            <figcaption>The 1-D Laplacian is tridiagonal: the violet main diagonal (-2) and two blue off-diagonals (+1) carry all the structure. Of the 36 entries in this 6&times;6 matrix only 16 are nonzero; for N = 10<sup>6</sup>, the fraction of nonzeros is about 3 in a million.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a class seating chart where you record who each student can pass a note to. They can only reach the people sitting right next to them. The full "who-can-reach-whom" table for 1000 students has a million cells, but every row has just two or three names in it. Writing out all 997 "no" entries per row is a colossal waste of paper — you would only ever list the few neighbors. A sparse matrix format does exactly that.</div>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>The Cost of Storing Zeros</h2>
+        <p>A dense matrix stores every entry, so it needs N<sup>2</sup> numbers. In IEEE 754 double precision each number is 8 bytes, giving:</p>
+        <div class="eq">dense memory = 8 N<sup>2</sup> bytes<small>For N = 100,000 this is 8 &times; 10<sup>10</sup> bytes = 80 GB — already impossible on a laptop, and we have not done any arithmetic yet.</small></div>
+        <p>The quadratic growth is brutal. A 3-D simulation on a modest 200&times;200&times;200 grid has N = 8&times;10<sup>6</sup> unknowns; the dense matrix would need 8N<sup>2</sup> &approx; 5&times;10<sup>14</sup> bytes — half a petabyte — to hold a matrix that is more than 99.9999% zeros. A dense matrix–vector multiply costs 2N<sup>2</sup> floating-point operations, and a dense direct solve (LU/Gaussian elimination) costs about (2/3)N<sup>3</sup> — both hopeless at this scale.</p>
+        <p>Sparse storage keeps only the nonzeros and their locations. If each row has a fixed handful of nonzeros (call it the bandwidth or stencil size <span class="key">k</span>), then:</p>
+        <div class="eq">sparse memory &approx; (8 + 4) &middot; nnz &approx; 12 k N bytes&nbsp;&nbsp;(linear in N)<small>8 bytes for each value, ~4 bytes for each column index. Cost grows like N, not N<sup>2</sup>.</small></div>
+        <p>For the 8-million-site grid with k &approx; 7 nonzeros per row, that is roughly 12 &times; 7 &times; 8&times;10<sup>6</sup> &approx; 0.7 GB — it fits in memory, and a sparse multiply costs only about 2&middot;nnz &approx; 10<sup>8</sup> operations instead of 10<sup>14</sup>. The same shift turns the impossible into the routine.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> build a dense matrix and then convert it to sparse — you will run out of memory at the <em>dense</em> step, before the conversion ever runs. The whole point is to never materialize the N&times;N array. Build sparsely from the start (e.g. with diagonals or coordinate triplets) and assemble directly into a sparse format. Likewise, never call a dense solver like <code>numpy.linalg.solve</code> on a problem big enough to need sparsity.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Compressed Sparse Row (CSR)</h2>
+        <p>The most widely used sparse format is <strong>Compressed Sparse Row (CSR)</strong>. It throws away every zero and stores the matrix in three flat arrays:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><code>data</code> — the nnz nonzero values, listed row by row.</li>
+            <li><code>indices</code> — the column index of each value in <code>data</code> (same length, nnz).</li>
+            <li><code>indptr</code> — length N+1. Entry <code>indptr[i]</code> is where row i's values begin in <code>data</code>; the nonzeros of row i are the slice <code>data[indptr[i] : indptr[i+1]]</code>.</li>
+        </ul>
+        <p>The <code>indptr</code> ("index pointer") array is the clever part: instead of storing a row index for every nonzero, it stores N+1 boundaries, so the number of nonzeros in row i is simply <code>indptr[i+1] - indptr[i]</code>. Total storage is 2&middot;nnz + N + 1 numbers — linear in the size of the problem.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 250" role="img" aria-label="A 4 by 4 sparse matrix and its CSR representation as three arrays: data, indices, and indptr">
+                <text x="230" y="18" fill="#a5b4fc" font-size="13" text-anchor="middle">A 4x4 matrix and its CSR arrays</text>
+                <!-- matrix -->
+                <g font-size="12" fill="#e9ebf8" text-anchor="middle">
+                    <text x="40" y="56">5</text><text x="70" y="56">0</text><text x="100" y="56">0</text><text x="130" y="56">2</text>
+                    <text x="40" y="86">0</text><text x="70" y="86">8</text><text x="100" y="86">0</text><text x="130" y="86">0</text>
+                    <text x="40" y="116">3</text><text x="70" y="116">0</text><text x="100" y="116">4</text><text x="130" y="116">0</text>
+                    <text x="40" y="146">0</text><text x="70" y="146">0</text><text x="100" y="146">0</text><text x="130" y="146">7</text>
+                </g>
+                <!-- highlight nonzeros -->
+                <g fill="rgba(129,140,248,.25)" stroke="#818cf8" stroke-width="1">
+                    <rect x="28" y="44" width="24" height="20"/><rect x="118" y="44" width="24" height="20"/>
+                    <rect x="58" y="74" width="24" height="20"/>
+                    <rect x="28" y="104" width="24" height="20"/><rect x="88" y="104" width="24" height="20"/>
+                    <rect x="118" y="134" width="24" height="20"/>
+                </g>
+                <!-- bracket -->
+                <path d="M22 42 L18 42 L18 152 L22 152" fill="none" stroke="#a3a8c8" stroke-width="1.2"/>
+                <path d="M148 42 L152 42 L152 152 L148 152" fill="none" stroke="#a3a8c8" stroke-width="1.2"/>
+                <!-- arrays -->
+                <text x="190" y="185" fill="#34d399" font-size="11">data    =</text>
+                <text x="190" y="207" fill="#60a5fa" font-size="11">indices =</text>
+                <text x="190" y="229" fill="#fbbf24" font-size="11">indptr  =</text>
+                <g font-family="monospace" font-size="11" fill="#e9ebf8">
+                    <text x="262" y="185">[5, 2, 8, 3, 4, 7]</text>
+                    <text x="262" y="207">[0, 3, 1, 0, 2, 3]</text>
+                    <text x="262" y="229">[0, 2, 3, 5, 6]</text>
+                </g>
+                <text x="230" y="60" fill="#a3a8c8" font-size="10">row 0: cols 0,3</text>
+            </svg>
+            <figcaption>CSR stores the six nonzeros in <code>data</code>, their column positions in <code>indices</code>, and per-row boundaries in <code>indptr</code>. Row 2's values are <code>data[indptr[2]:indptr[3]]</code> = <code>data[3:5]</code> = [3, 4], sitting in columns [0, 2]. Total: 2&middot;6 + 5 = 17 numbers instead of 16 dense entries here — but for a tridiagonal 10<sup>6</sup>-row matrix it is ~5 million numbers instead of 10<sup>12</sup>.</figcaption>
+        </figure>
+        <p>Related cousins exist: <strong>CSC</strong> (compressed sparse column, the same idea transposed) is efficient for column operations; <strong>COO</strong> (coordinate format: parallel arrays of row, column, value) is the easiest to <em>build</em> and is usually converted to CSR for fast arithmetic. SciPy lets you assemble in one format and convert in a single call.</p>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>The Sparse Matrix–Vector Product (SpMV)</h2>
+        <p>Why is CSR organized by rows? Because the single most important operation on a large sparse matrix is the <strong>matrix–vector product</strong> <strong>y = A x</strong>, and in CSR each output entry is a tidy row-slice dot product:</p>
+        <div class="eq">y<sub>i</sub> = sum over the nonzeros in row i of A<sub>ij</sub> x<sub>j</sub><small>In CSR: for k from indptr[i] to indptr[i+1]-1, accumulate data[k] * x[indices[k]].</small></div>
+        <p>This costs only about <strong>2&middot;nnz</strong> floating-point operations — proportional to the number of nonzeros, not to N<sup>2</sup>. For a tridiagonal matrix that is ~6N operations: a million-row multiply is a few million flops, done in well under a millisecond.</p>
+        <p>Here is the decisive point for the rest of this course: <strong>iterative solvers and eigensolvers never need the matrix itself — only the ability to compute A x for an arbitrary vector x.</strong> Conjugate Gradient, GMRES, and the Lanczos and Arnoldi algorithms (next week) all build their answer from a sequence of SpMV calls. The matrix can even stay implicit — defined only by a function that returns A x — which is exactly what SciPy's <code>LinearOperator</code> abstraction allows.</p>
+        <div class="eq">work per iteration &approx; SpMV cost &approx; O(nnz)&nbsp;&nbsp;&rarr;&nbsp;&nbsp;total &approx; O(nnz &middot; iterations)<small>Replace the O(N<sup>3</sup>) of a dense solve with O(nnz) per iteration; for well-conditioned sparse systems the iteration count is modest.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>An iterative solver is like finding your way through a city by only ever asking "which streets leave <em>this</em> intersection?" You never need a printed map of every road in the country (the dense matrix) — you just need a rule that, given where you stand, tells you your immediate neighbors. SpMV is that rule, and Krylov methods are the strategy for walking it efficiently toward the destination.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — CSR storage and a multiply by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Take the 4&times;4 matrix from the figure and compute y = A x by hand using its CSR arrays, with x = [1, 1, 1, 1]<sup>T</sup>.</p>
+        <ol>
+            <li><strong>The matrix:</strong> row 0 = [5,0,0,2], row 1 = [0,8,0,0], row 2 = [3,0,4,0], row 3 = [0,0,0,7]. There are <strong>nnz = 6</strong> nonzeros.</li>
+            <li><strong>CSR arrays:</strong> <code>data = [5,2,8,3,4,7]</code>, <code>indices = [0,3,1,0,2,3]</code>, <code>indptr = [0,2,3,5,6]</code>. Storage = 2&middot;6 + (4+1) = <strong>17 numbers</strong> vs 16 dense — no savings at this toy size, but linear growth at scale.</li>
+            <li><strong>Row 0</strong> uses <code>data[0:2]</code> = [5,2] at columns [0,3]: y<sub>0</sub> = 5&middot;x<sub>0</sub> + 2&middot;x<sub>3</sub> = 5 + 2 = <strong>7</strong>.</li>
+            <li><strong>Row 1</strong> uses <code>data[2:3]</code> = [8] at column [1]: y<sub>1</sub> = 8&middot;x<sub>1</sub> = <strong>8</strong>.</li>
+            <li><strong>Row 2</strong> uses <code>data[3:5]</code> = [3,4] at columns [0,2]: y<sub>2</sub> = 3&middot;x<sub>0</sub> + 4&middot;x<sub>2</sub> = 3 + 4 = <strong>7</strong>.</li>
+            <li><strong>Row 3</strong> uses <code>data[5:6]</code> = [7] at column [3]: y<sub>3</sub> = 7&middot;x<sub>3</sub> = <strong>7</strong>.</li>
+            <li><strong>Result:</strong> y = [7, 8, 7, 7]<sup>T</sup>, computed with exactly 2&middot;nnz = 12 multiply-adds and without ever touching a single one of the 10 zero entries.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: build a Laplacian sparsely and watch it scale</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This uses the free <strong>Python + NumPy + SciPy</strong> stack you set up in Week 1 (see the install <code>details</code> in Lecture 1 of Course 1). We lean on <code>scipy.sparse</code> here — it ships with SciPy, so there is nothing new to install. We build the 1-D Laplacian with <code>diags</code>, confirm it is stored as CSR, and compare memory and SpMV time against the dense version as N grows.</p>
+        <pre><span class="c"># sparse_laplacian.py — Lecture 6</span>
+import numpy as np
+import scipy.sparse as sp
+import time
+
+def laplacian_1d(N):
+    <span class="c"># tridiagonal: -2 on the diagonal, +1 on the off-diagonals</span>
+    main = -2.0 * np.ones(N)
+    off  =  1.0 * np.ones(N - 1)
+    A = sp.diags([off, main, off], offsets=[-1, 0, 1], format="csr")
+    return A
+
+A = laplacian_1d(8)
+print(A.toarray())            <span class="c"># peek at the small dense form</span>
+print("nnz =", A.nnz)         <span class="c"># 22 for N=8 (3N - 2)</span>
+print("format:", A.getformat(), "| indptr:", A.indptr)
+
+<span class="c"># the key operation: sparse matrix-vector product</span>
+x = np.ones(8)
+print("A @ x =", A @ x)       <span class="c"># interior rows give 0, ends give -1</span>
+
+<span class="c"># memory + speed: sparse stays linear, dense blows up</span>
+for N in [1_000, 10_000, 100_000]:
+    A = laplacian_1d(N)
+    x = np.random.rand(N)
+    sparse_mb = (A.data.nbytes + A.indices.nbytes + A.indptr.nbytes) / 1e6
+    dense_mb  = 8 * N * N / 1e6
+    t0 = time.perf_counter(); _ = A @ x; t = time.perf_counter() - t0
+    print(f"N={N:>7}: sparse={sparse_mb:7.3f} MB  dense={dense_mb:12.1f} MB  SpMV={t*1e3:.3f} ms")
+<span class="c"># dense memory grows as N^2 (80 GB at N=100k); sparse grows as N (~1 MB)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Try wrapping the action <code>x -> A @ x</code> in <code>scipy.sparse.linalg.LinearOperator</code> and pass it to <code>scipy.sparse.linalg.cg</code> to solve A&middot;u = b without ever forming a dense matrix — a preview of next week. Predict the SpMV time at N = 10<sup>6</sup> before you run it (hint: it scales linearly).</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Sparsity is the hinge that the rest of this course swings on. <strong>Next week</strong> the Lanczos and Arnoldi (ARPACK) methods compute a few eigenvalues of a giant sparse Hamiltonian using nothing but repeated SpMV calls — the way real quantum-lattice and band-structure calculations find ground states. In <strong>Course 4</strong>, every implicit PDE time-step and every Poisson solve assembles a sparse operator and hands it to an iterative solver, often with a preconditioner to cut the iteration count. The same sparse machinery underlies large-scale optimization in the Quant track and the giant linear systems of plasma and structural simulations. Master "store only the couplings, and only ever multiply" now, and million-unknown physics becomes a laptop-sized problem.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="ext" style="background:linear-gradient(135deg,#13233a,#142a3c);border-color:#2c4a66;">
+        <h3 style="color:var(--blue);">💬 Discussion</h3>
+        <p style="color:#cfe0f0;">A colleague hands you a working dense-matrix simulation of a 1-D quantum well: it builds the N&times;N Hamiltonian, calls a dense eigensolver for the ground state, and runs fine at N = 2,000. They now want N = 2,000,000 to resolve fine spatial detail, and they ask you whether they "just need a bigger machine." How would you explain what actually breaks, what stays cheap, and what they should change? In your answer, distinguish the <em>storage</em> problem from the <em>algorithm</em> problem, and say which single operation their new code must be built around.</p>
+        <details>
+            <summary>Show a model response</summary>
+            <p style="color:#cfe0f0;font-size:.9rem;margin-top:10px;">A bigger machine cannot save them, because both costs grow super-linearly. <strong>Storage:</strong> a dense N&times;N matrix needs 8N<sup>2</sup> bytes. At N = 2&times;10<sup>6</sup> that is 8 &times; (2&times;10<sup>6</sup>)<sup>2</sup> = 3.2&times;10<sup>13</sup> bytes &approx; 32 TB — no single machine holds it. But the Hamiltonian of a 1-D well is tridiagonal: only ~3N &approx; 6&times;10<sup>6</sup> nonzeros, which in CSR is only tens of megabytes. So the matrix itself is not the problem — storing its zeros is.</p>
+            <p style="color:#cfe0f0;font-size:.9rem;">There are really two separate problems. The <em>storage</em> problem is solved by switching to a sparse format (build it with <code>scipy.sparse.diags</code>, never materialize the dense array). The <em>algorithm</em> problem is that a dense eigensolver costs O(N<sup>3</sup>) and returns <em>all</em> N eigenpairs — wasteful when they only want the ground state. The fix is an iterative eigensolver (Lanczos / ARPACK via <code>scipy.sparse.linalg.eigsh</code>) that finds just the few lowest states.</p>
+            <p style="color:#cfe0f0;font-size:.9rem;">The single operation their new code must be built around is the <strong>sparse matrix–vector product</strong> A x, costing O(nnz). Every iterative eigensolver and linear solver is just a smart sequence of those products; the matrix can even stay implicit behind a <code>LinearOperator</code>. So: switch to sparse storage, switch to an iterative solver that asks only for the few states they want, and make SpMV the core primitive.</p>
+            <p style="color:var(--green);font-size:.86rem;margin-top:10px;"><strong>✓ Self-check rubric.</strong> A strong answer (1) names the 8N<sup>2</sup> dense-memory blow-up with a concrete number, (2) separates the storage fix (sparse/CSR) from the algorithm fix (iterative eigensolver returning only a few states, not O(N<sup>3</sup>) for all of them), and (3) identifies the sparse matrix–vector product as the central O(nnz) operation everything is built on.</p>
+        </details>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Matrices that arise from discretizing physical operators (Laplacians, lattice Hamiltonians, stiffness matrices) are typically sparse because…</div>
+            <div class="opt"><b>A.</b> physical couplings are local, so each site interacts with only a few neighbors</div>
+            <div class="opt"><b>B.</b> floating-point round-off forces most entries to exactly zero</div>
+            <div class="opt"><b>C.</b> the matrices are always diagonal</div>
+            <div class="opt"><b>D.</b> sparsity is an arbitrary choice with no physical basis</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Locality of physics (a site couples only to its neighbors) makes most off-diagonal entries exactly zero. B confuses sparsity with round-off — the zeros are structural, not numerical. C is false (a tridiagonal Laplacian is not diagonal). D ignores the physical origin.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A dense N&times;N matrix in double precision needs 8N<sup>2</sup> bytes. Roughly how much memory is that for N = 100,000?</div>
+            <div class="opt"><b>A.</b> about 80 MB</div>
+            <div class="opt"><b>B.</b> about 80 GB</div>
+            <div class="opt"><b>C.</b> about 800 KB</div>
+            <div class="opt"><b>D.</b> about 8 GB</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> 8 &times; (10<sup>5</sup>)<sup>2</sup> = 8 &times; 10<sup>10</sup> bytes = 80 GB. A and C ignore the quadratic N<sup>2</sup> term; D is off by a factor of ten. The sparse version of the same operator would be only a few MB.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In CSR format, what is stored in the <code>indptr</code> array?</div>
+            <div class="opt"><b>A.</b> the value of every nonzero entry</div>
+            <div class="opt"><b>B.</b> the column index of every nonzero entry</div>
+            <div class="opt"><b>C.</b> the per-row boundaries: where each row's nonzeros begin and end in <code>data</code></div>
+            <div class="opt"><b>D.</b> the row and column of every nonzero, stored as pairs</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> <code>indptr</code> has length N+1 and marks where each row starts in <code>data</code>; row i's nonzeros are <code>data[indptr[i]:indptr[i+1]]</code>. A is <code>data</code>; B is <code>indices</code>; D describes the COO (coordinate) format, not CSR's compressed pointers.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For a sparse matrix with nnz nonzeros, the cost of one matrix–vector product A x is about…</div>
+            <div class="opt"><b>A.</b> O(N<sup>3</sup>)</div>
+            <div class="opt"><b>B.</b> O(N<sup>2</sup>)</div>
+            <div class="opt"><b>C.</b> O(log N)</div>
+            <div class="opt"><b>D.</b> O(nnz), i.e. proportional to the number of nonzeros</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> SpMV touches each nonzero once with a multiply-add, so the cost is ~2&middot;nnz = O(nnz). A is a dense direct solve; B is a dense multiply; C is far too optimistic — you must at least read every nonzero.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why are iterative solvers (Conjugate Gradient, GMRES) and iterative eigensolvers (Lanczos/ARPACK) natural partners for sparse matrices?</div>
+            <div class="opt"><b>A.</b> they require the matrix only through repeated matrix–vector products, which are cheap and sparse-friendly</div>
+            <div class="opt"><b>B.</b> they need the full inverse of the matrix computed up front</div>
+            <div class="opt"><b>C.</b> they only work on diagonal matrices</div>
+            <div class="opt"><b>D.</b> they convert the sparse matrix to dense form before solving</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Krylov methods build their answer from a sequence of SpMV calls, each O(nnz), so they exploit sparsity perfectly — the matrix can even stay implicit behind a <code>LinearOperator</code>. B (forming an inverse) and D (densifying) destroy sparsity; C is false (they handle general sparse matrices).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Physics matrices are <b>sparse</b> because couplings are local: each discretized site touches only a few neighbors, so nnz grows like N, not N<sup>2</sup>.</li>
+            <li>Dense storage costs <b>8N<sup>2</sup> bytes</b> and dense solves cost O(N<sup>3</sup>) — both explode; sparse storage and SpMV are <b>linear in N</b>.</li>
+            <li><b>CSR</b> packs a matrix into three arrays — <code>data</code>, <code>indices</code>, <code>indptr</code> — storing only nonzeros and per-row boundaries.</li>
+            <li>SciPy's <code>scipy.sparse</code> builds and multiplies sparse matrices directly, without ever materializing the dense array.</li>
+            <li>The <b>sparse matrix–vector product (SpMV)</b>, costing O(nnz), is the single operation every iterative solver and eigensolver repeats.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Krylov methods. The Lanczos and Arnoldi (ARPACK) algorithms turn a stream of SpMV calls into the few eigenvalues of a giant sparse Hamiltonian — the workhorse of real quantum simulation.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-svd.html"><div class="dir">← Week 5</div><div class="ttl">Singular Value Decomposition</div></a>
+        <a class="next" href="l07-lanczos-arpack.html"><div class="dir">Week 7 →</div><div class="ttl">Krylov Methods: Lanczos &amp; ARPACK</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 LinAlg &amp; Quantum</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

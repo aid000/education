@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Finance C2 · Lecture 2 — Working with Financial Data</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        table.dist { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .86rem; }
+        table.dist th, table.dist td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+        table.dist th { background: var(--surface2); color: var(--accent2); font-weight: 700; }
+        table.dist td { color: var(--text2); }
+        table.dist td b { color: var(--text); }
+        table.dist tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); color: #f3dca6; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a7a52; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1a1322, #1e1526); border: 1px solid #3a2d52; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdc0e6; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C2 Time Series</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Working with Financial Data</h1>
+        <p class="sub">Before you can model a market you have to wrangle it — pull the prices, line up the dates, patch the gaps, and turn raw quotes into clean returns.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Load price data into a pandas <code>Series</code> and <code>DataFrame</code> and explain why a <code>DatetimeIndex</code> is the right spine for a price series.</li>
+            <li>Fetch historical prices with <code>yfinance</code> and understand the difference between <em>raw close</em> and <em>adjusted close</em>.</li>
+            <li>Resample a series to a coarser frequency and handle missing data without silently fabricating prices.</li>
+            <li>Adjust for splits and dividends, and explain why unadjusted prices break a returns calculation.</li>
+            <li>Compute simple and log returns with <code>pct_change</code> and <code>np.log</code>, and produce a basic price/return plot.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>Prices Live in a pandas Series</h2>
+        <p>A price history is the most basic object in quant finance: a list of numbers, each stamped with a date. The natural home for it in Python is a pandas <strong>Series</strong> — a one-dimensional array of values paired with an <strong>index</strong> of labels. For prices, that index should be the <span class="key">timestamps</span>, not a default 0,1,2,… integer position. When the index is a <code>DatetimeIndex</code>, pandas <em>knows</em> the rows are points in time and unlocks date-aware slicing, alignment, and resampling.</p>
+        <p>Stack several Series side by side — one column per ticker — and you get a <strong>DataFrame</strong>: a table sharing a single date index. The magic is <span class="key">automatic alignment</span>. When you combine two Series, pandas matches them on the index labels, not on row position, so a missing trading day in one asset doesn't shift everything below it out of register.</p>
+        <div class="eq">price&nbsp;Series:&nbsp; index = dates&nbsp; →&nbsp; values = closes<small>A DataFrame is just several such Series glued together on one shared DatetimeIndex.</small></div>
+        <p>This matters because financial data is famously misaligned: holidays differ across countries, some assets trade 24/7 and others 9:30–4:00, and history starts on different days. Indexing on the date — not the row number — is what keeps a portfolio's columns honestly lined up.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the <code>DatetimeIndex</code> as the <strong>spine of a ledger</strong>. Each asset is a column of entries; the dates are the ruled lines they must sit on. Align by row-number instead and it's like photocopying two ledgers and stacking them — one missing line and every figure below is attributed to the wrong day.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Fetching Data with yfinance — and the Adjusted Close</h2>
+        <p>You rarely type prices by hand. <code>yfinance</code> is a free library that downloads historical daily (or intraday) bars into a ready-made DataFrame indexed by date. A typical daily bar carries <strong>Open, High, Low, Close, Volume</strong> (OHLCV) plus an <strong>Adjusted Close</strong>. The last one is the column that matters most, and the one beginners get wrong.</p>
+        <p>The raw <span class="key">Close</span> is the literal price the asset last traded at that day. But two events change the price <em>without</em> changing your wealth: a <strong>stock split</strong> (a 2-for-1 split halves the quoted price and doubles your share count) and a <strong>dividend</strong> (cash leaves the company, so the price drops by roughly the payout on the ex-dividend date). The <strong>Adjusted Close</strong> rewrites history so that these mechanical drops are removed — it answers "what would yesterday's price be, restated in today's share terms, with dividends reinvested?"</p>
+        <div class="eq">adjusted&nbsp;return = (P<sub>t</sub><sup>adj</sup> − P<sub>t−1</sub><sup>adj</sup>) / P<sub>t−1</sub><sup>adj</sup><small>Using adjusted closes makes a split look like a non-event and folds dividends into the return — exactly the total return an investor actually earns.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Computing returns from the <em>raw</em> Close will show a fake −50% crash on a 2-for-1 split day, or a phantom −2% drop every ex-dividend date. Always build returns from the <strong>Adjusted Close</strong> unless you have a specific reason to want the raw quote. Note that <code>yfinance</code>'s <code>auto_adjust=True</code> (now the default) overwrites the <code>Close</code> column with the adjusted figure — know which mode you asked for.</div>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Resampling &amp; Missing Data</h2>
+        <p>Raw data almost never arrives at the frequency you want to model. You might have daily bars but want monthly returns; you might have ragged intraday ticks but want a clean 1-minute grid. <strong>Resampling</strong> is pandas' tool for changing the time step. <span class="key">Downsampling</span> (daily → monthly) groups many rows into one and you must say <em>how</em> to aggregate: for a price you usually take the <strong>last</strong> value in each period (the period-end close); for volume you <strong>sum</strong>.</p>
+        <div class="eq">df.resample('ME').last()&nbsp;&nbsp;&nbsp;<span style="color:var(--text2)">// month-end closing price</span><small>'ME' = month-end, 'W' = weekly, 'QE' = quarter-end. Pair with .last() for prices, .sum() for volume, .ohlc() for bars.</small></div>
+        <p>Then there are <strong>holes</strong>. A market holiday simply has no row. A data error can leave a <code>NaN</code> (not-a-number) in an otherwise present row. You have three honest moves: <span class="key">drop</span> the missing rows (<code>dropna</code>), <span class="key">forward-fill</span> the last known price (<code>ffill</code> — defensible for a price that genuinely didn't change because the market was closed), or <span class="key">interpolate</span>. What you must never do is back-fill a price from the <em>future</em>, which leaks information that wasn't available at the time.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Forward-filling a <em>price</em> is often fine; forward-filling a <em>return</em> is a bug. A filled price simply repeats — the return across that gap is correctly 0. But if you fill returns directly you invent non-zero moves on days the market never traded, biasing volatility and any strategy built on it. Resample/clean the <strong>prices</strong>, then compute returns.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>From Prices to Returns: pct_change and np.log</h2>
+        <p>Models live on <strong>returns</strong>, not price levels, because returns are roughly stationary and comparable across assets (Week 1). Two flavors, both one line in pandas. The <strong>simple return</strong> is the percentage change; <code>pct_change()</code> computes it directly:</p>
+        <div class="eq">r<sub>t</sub> = P<sub>t</sub> / P<sub>t−1</sub> − 1&nbsp;&nbsp;≡&nbsp;&nbsp; prices.pct_change()</div>
+        <p>The <strong>log return</strong> is the natural log of the price ratio. It has the prized property of <span class="key">time-additivity</span>: log returns over consecutive days simply add up to the multi-day log return, which makes aggregating across time trivial.</p>
+        <div class="eq">ℓ<sub>t</sub> = ln(P<sub>t</sub> / P<sub>t−1</sub>) = ln P<sub>t</sub> − ln P<sub>t−1</sub>&nbsp;&nbsp;≡&nbsp;&nbsp; np.log(prices).diff()<small>Σ of daily log returns over a window = the log return of the whole window. Simple returns compound (multiply), they don't add.</small></div>
+        <p>For small daily moves the two are nearly identical (ln(1+r) ≈ r when r is small), so the choice rarely changes a chart. It matters for the math: log returns are what you sum, scale by √t, and feed into the Gaussian models of later courses. The very first row of any return series is <code>NaN</code> — there is no "day before" the first day — so <code>dropna()</code> before you compute statistics.</p>
+        <p>Plotting closes the loop. A quick <code>prices.plot()</code> shows the level; <code>(1 + returns).cumprod()</code> rebases every asset to a common starting wealth of 1 so you can compare growth on one axis regardless of nominal price.</p>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 440 220" role="img" aria-label="Two price paths on a shared date axis: a raw close that drops in half on a split day, and an adjusted close that continues smoothly upward">
+            <!-- axes -->
+            <line x1="46" y1="180" x2="420" y2="180" stroke="#bcae8c" stroke-width="1.5"/>
+            <line x1="46" y1="24" x2="46" y2="180" stroke="#bcae8c" stroke-width="1.5"/>
+            <text x="14" y="36" fill="#bcae8c" font-size="11">price</text>
+            <text x="372" y="198" fill="#bcae8c" font-size="11">date →</text>
+            <!-- split day marker -->
+            <line x1="250" y1="40" x2="250" y2="180" stroke="#3a3119" stroke-width="1" stroke-dasharray="4 4"/>
+            <text x="250" y="34" fill="#bcae8c" font-size="10" text-anchor="middle">2-for-1 split</text>
+            <!-- adjusted close: smooth rising green line -->
+            <path d="M46,150 L100,140 L150,128 L200,112 L250,96 L300,82 L350,66 L410,52"
+                  fill="none" stroke="#34d399" stroke-width="2.5"/>
+            <text x="356" y="46" fill="#6ee7b7" font-size="10.5" text-anchor="middle">adjusted close</text>
+            <!-- raw close: rises, then HALVES at split, then rises again (amber) -->
+            <path d="M46,150 L100,140 L150,128 L200,112 L250,96 L250,138 L300,131 L350,123 L410,116"
+                  fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+            <text x="378" y="110" fill="#fbbf24" font-size="10.5" text-anchor="middle">raw close</text>
+            <!-- drop annotation -->
+            <text x="258" y="122" fill="#f59e0b" font-size="9.5" text-anchor="start">−50% jump</text>
+        </svg>
+        <figcaption>The same asset, two ways. The raw close (amber) shows a mechanical −50% drop on the split day that no investor actually lost. The adjusted close (green) rewrites earlier prices so the path is continuous — returns computed from it reflect true wealth change.</figcaption>
+    </figure>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — adjusted vs. raw return across a split</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A stock closes at $200 on Monday. After the close it does a 2-for-1 split; Tuesday it opens around $100 and closes at $102. You held 5 shares. What return should your data show, and what does the raw close wrongly show?</p>
+        <ol>
+            <li><strong>Your real wealth:</strong> Monday you held 5 × $200 = <strong>$1,000</strong>. The split gives you 10 shares; Tuesday they close at $102 each → 10 × $102 = <strong>$1,020</strong>. Your true one-day return is 1020/1000 − 1 = <strong>+2.0%</strong>.</li>
+            <li><strong>Raw close return (wrong):</strong> 102 / 200 − 1 = <strong>−49%</strong>. The naive calculation reports a near-halving that never happened to your money.</li>
+            <li><strong>What adjustment does:</strong> the adjusted series scales every pre-split price by the split ratio (½). Monday's $200 becomes $100 in adjusted terms.</li>
+            <li><strong>Adjusted close return (right):</strong> 102 / 100 − 1 = <strong>+2.0%</strong> — matching your actual wealth change.</li>
+            <li><strong>Log-return check:</strong> ln(102/100) = ln(1.02) ≈ <strong>+0.0198</strong>, essentially the same +2% for a small move, and it would <em>add</em> cleanly to the next day's log return.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: download, clean, and return-ify real prices</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This is the data-skills lecture, so we'll go end to end: install the stack once, pull a few years of daily prices with <code>yfinance</code>, inspect the index, resample to monthly, handle gaps, then compute both return types and plot. Everything here is free and pip-installable.</p>
+        <details class="install" open>
+            <summary>⬇ Install the C2 data stack (one-time, Week-2 setup)</summary>
+            <p><strong>Get Python 3</strong> from <code>python.org</code> or your package manager, then create an isolated environment and install the stack we use all course:</p>
+            <pre>python3 -m venv quant-env
+<span class="c"># activate it:</span>
+source quant-env/bin/activate      <span class="c"># macOS / Linux</span>
+quant-env\Scripts\activate         <span class="c"># Windows (PowerShell)</span>
+pip install pandas numpy yfinance statsmodels matplotlib jupyter</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import pandas, yfinance; print(pandas.__version__)"</code> — a version string means you're set. Launch notebooks anytime with <code>jupyter lab</code>.</p>
+        </details>
+        <pre><span class="c"># financial_data.py — Lecture 2</span>
+import numpy as np
+import pandas as pd
+import yfinance as yf
+import matplotlib.pyplot as plt
+
+<span class="c"># 1) FETCH — daily bars, dividends/splits folded into Close (auto_adjust default)</span>
+data = yf.download("AAPL MSFT", start="2018-01-01", end="2024-01-01",
+                   auto_adjust=True)        <span class="c"># adjusted prices</span>
+prices = data["Close"]                       <span class="c"># DataFrame: one column per ticker</span>
+
+print(type(prices.index))                    <span class="c"># &lt;class 'pandas...DatetimeIndex'&gt;</span>
+print(prices.head())
+print("missing values per column:\n", prices.isna().sum())
+
+<span class="c"># 2) CLEAN — align on the date index, forward-fill stray gaps in PRICES</span>
+prices = prices.ffill().dropna()             <span class="c"># fill holes, then drop any leading NaN</span>
+
+<span class="c"># 3) RESAMPLE — daily -&gt; month-end closing price</span>
+monthly = prices.resample("ME").last()       <span class="c"># 'ME' = month end; .last() = period close</span>
+
+<span class="c"># 4) RETURNS — simple and log, on the cleaned daily prices</span>
+simple_ret = prices.pct_change().dropna()    <span class="c"># P_t / P_{t-1} - 1</span>
+log_ret    = np.log(prices).diff().dropna()  <span class="c"># ln(P_t) - ln(P_{t-1}), time-additive</span>
+
+<span class="c"># sanity: a window of log returns SUMS to the window's total log return</span>
+total = np.log(prices.iloc[-1] / prices.iloc[0])
+print("sum of daily log returns:\n", log_ret.sum())
+print("direct window log return:\n", total)   <span class="c"># matches log_ret.sum()</span>
+
+<span class="c"># 5) PLOT — rebase to growth of $1 so different price levels compare</span>
+growth = (1 + simple_ret).cumprod()
+growth.plot(title="Growth of $1 (adjusted, total return)")
+plt.ylabel("multiple of starting wealth"); plt.show()</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Notice the workflow order: <strong>fetch → clean the prices → resample → compute returns → plot</strong>. The <code>log_ret.sum()</code> check should equal the single direct window log return, demonstrating time-additivity. Try swapping <code>auto_adjust=False</code> and re-running across a known split or dividend date — you'll see the phantom jump the warning above describes.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Clean returns are the raw material for everything ahead. Next week (Week 3) you'll study the <strong>stylized facts</strong> these series reliably show — fat tails, volatility clustering, near-zero autocorrelation of returns — all of which you'll measure on the exact DataFrame you just built. The same <code>statsmodels</code> you installed here drives the <strong>ARIMA</strong> and <strong>GARCH</strong> models later in this course, and the adjusted-return series feeds the covariance estimates behind <strong>Markowitz</strong> portfolio optimization and the <strong>Sharpe</strong> ratio in the risk-and-portfolio course. Sloppy data here silently corrupts every model downstream — which is why professionals spend most of their time on exactly this step.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why should a price history use a <code>DatetimeIndex</code> rather than a default integer index?</div>
+            <div class="opt"><b>A.</b> It lets pandas align and resample by date, so misaligned assets stay correctly matched</div>
+            <div class="opt"><b>B.</b> It makes the file smaller on disk</div>
+            <div class="opt"><b>C.</b> It is required for pandas to store floating-point numbers</div>
+            <div class="opt"><b>D.</b> It automatically removes all missing values</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A DatetimeIndex tells pandas the rows are points in time, enabling date-aware alignment, slicing, and resampling. It has no effect on file size (B) or float storage (C), and it does not clean missing data on its own (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> You compute returns from the <em>raw</em> Close and see a sudden −50% drop on one day with no news. The most likely explanation is…</div>
+            <div class="opt"><b>A.</b> the market was closed that day</div>
+            <div class="opt"><b>B.</b> a 2-for-1 stock split that the raw price reflects but adjustment would remove</div>
+            <div class="opt"><b>C.</b> log returns were used instead of simple returns</div>
+            <div class="opt"><b>D.</b> the DatetimeIndex was sorted incorrectly</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A 2-for-1 split halves the quoted price; on the raw close that looks like a −50% return even though wealth is unchanged. The adjusted close removes it. A closed market just has no row (A); log vs. simple returns barely differ for real moves (C); index sorting wouldn't create a clean −50% (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> When downsampling a daily <em>price</em> series to month-end, the correct aggregation is generally…</div>
+            <div class="opt"><b>A.</b> <code>.sum()</code> of the prices in the month</div>
+            <div class="opt"><b>B.</b> <code>.mean()</code> of the prices in the month</div>
+            <div class="opt"><b>C.</b> <code>.last()</code> — the period-end closing price</div>
+            <div class="opt"><b>D.</b> <code>.count()</code> of trading days</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A month-end price series takes the last close of each month. Summing prices (A) is meaningless; the mean (B) is a different (smoothed) quantity, not the close; count (D) gives trading-day counts, not a price. (Volume, by contrast, is the case where you'd sum.)</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Which property makes <em>log</em> returns especially convenient for aggregating over time?</div>
+            <div class="opt"><b>A.</b> They are always positive</div>
+            <div class="opt"><b>B.</b> They are time-additive: daily log returns sum to the multi-day log return</div>
+            <div class="opt"><b>C.</b> They never produce a NaN on the first row</div>
+            <div class="opt"><b>D.</b> They are identical to simple returns for large moves</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> ln(P_t/P_{t-1}) summed over a window equals ln of the whole window's price ratio — they add instead of compounding. Returns can be negative (A); the first row is still NaN because there's no prior price (C); log and simple returns diverge for <em>large</em> moves, agreeing only for small ones (D).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Which data-cleaning step is a genuine <em>bug</em> that leaks future information or invents moves?</div>
+            <div class="opt"><b>A.</b> Forward-filling a missing price with the last known close</div>
+            <div class="opt"><b>B.</b> Dropping the first NaN row of a return series</div>
+            <div class="opt"><b>C.</b> Resampling daily prices to weekly with <code>.last()</code></div>
+            <div class="opt"><b>D.</b> Back-filling today's price from tomorrow's value, or filling returns directly</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Back-filling uses future data that wasn't available at the time (look-ahead bias), and filling returns directly fabricates non-zero moves on non-trading days. Forward-filling a price (A) is a defensible choice, dropping the leading return NaN (B) is correct, and weekly resampling with .last() (C) is standard.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Stored a price history as a pandas <b>Series</b> / <b>DataFrame</b> on a <b>DatetimeIndex</b>, gaining date-aware automatic alignment.</li>
+            <li>Fetched prices with <b>yfinance</b> and learned to build returns from the <b>Adjusted Close</b>, not the raw quote.</li>
+            <li><b>Resampled</b> with <code>.resample('ME').last()</code> and handled gaps honestly with <code>ffill</code>/<code>dropna</code> — never back-filling from the future.</li>
+            <li>Saw why <b>splits and dividends</b> distort raw-close returns, and worked a split end to end (true +2% vs. fake −49%).</li>
+            <li>Computed <b>simple</b> (<code>pct_change</code>) and <b>log</b> (<code>np.log(...).diff()</code>) returns, confirmed log-return time-additivity, and plotted growth of $1.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: the <b>stylized facts</b> of returns — fat tails, volatility clustering, and the autocorrelation patterns that every real return series shows, measured on the data you just cleaned.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-returns-log-returns.html"><div class="dir">← Week 1</div><div class="ttl">Prices, Returns &amp; Log-Returns</div></a>
+        <a class="next" href="l03-stylized-facts.html"><div class="dir">Week 3 →</div><div class="ttl">Stylized Facts of Returns</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Time Series</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

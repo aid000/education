@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Lecture 2 — Power &amp; Clock Planning</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+
+        /* recap */
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C5 Physical Design</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Power &amp; Clock Planning</h1>
+        <p class="sub">Delivering clean power to every cell and planning where the clock and voltage domains go.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Describe the power delivery network (PDN): rings, straps, and rails carrying VDD/VSS from the pads to every cell.</li>
+            <li>Explain the IR-drop budget and why the PDN must supply peak current with low voltage loss.</li>
+            <li>Reason about the trade-off between PDN density and the signal-routing tracks it consumes.</li>
+            <li>Budget clock distribution early and identify clock-domain crossings that need synchronizers.</li>
+            <li>Use voltage islands, level shifters, and power switches to save energy across a multi-voltage design.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>The Power Delivery Network (PDN)</h2>
+        <p>Once the floorplan fixes where blocks sit, the chip needs a way to get power to all of them. The <strong>power delivery network (PDN)</strong> is the metal mesh that carries <span class="key">VDD</span> (supply) and <span class="key">VSS</span> (ground) from the package pads down to every standard cell. It is built in layers:</p>
+        <p>Wide <strong>rings</strong> encircle the core on the upper, thick metal layers. <strong>Straps</strong> cross the core at intervals, tapping off the rings. Finally, thin <strong>rails</strong> run along each standard-cell row, delivering VDD/VSS directly to the cell pins.</p>
+        <p>The whole network has one hard job: deliver the chip's <em>peak</em> switching current while losing as little voltage as possible along the way. That voltage loss is called <span class="key">IR drop</span> — current (I) times the grid's resistance (R):</p>
+        <div class="eq">V<sub>drop</sub> = I · R<small>Lower grid resistance ⟹ less voltage lost ⟹ cells see closer to the full supply.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 460 280" role="img" aria-label="Power delivery network: VDD and VSS rings around the core, vertical straps crossing it, and horizontal rails feeding standard-cell rows">
+                <!-- core area -->
+                <rect x="70" y="55" width="320" height="180" fill="#0d1b27" stroke="#243648" stroke-width="1"/>
+                <!-- outer VDD ring -->
+                <rect x="58" y="43" width="344" height="204" fill="none" stroke="#22d3ee" stroke-width="6"/>
+                <!-- inner VSS ring -->
+                <rect x="74" y="59" width="312" height="172" fill="none" stroke="#a78bfa" stroke-width="5"/>
+                <!-- vertical straps -->
+                <line x1="140" y1="59" x2="140" y2="231" stroke="#22d3ee" stroke-width="3"/>
+                <line x1="230" y1="59" x2="230" y2="231" stroke="#a78bfa" stroke-width="3"/>
+                <line x1="320" y1="59" x2="320" y2="231" stroke="#22d3ee" stroke-width="3"/>
+                <!-- horizontal rails feeding cell rows -->
+                <line x1="74" y1="85" x2="386" y2="85" stroke="#67e8f9" stroke-width="1.5"/>
+                <line x1="74" y1="115" x2="386" y2="115" stroke="#67e8f9" stroke-width="1.5"/>
+                <line x1="74" y1="145" x2="386" y2="145" stroke="#67e8f9" stroke-width="1.5"/>
+                <line x1="74" y1="175" x2="386" y2="175" stroke="#67e8f9" stroke-width="1.5"/>
+                <line x1="74" y1="205" x2="386" y2="205" stroke="#67e8f9" stroke-width="1.5"/>
+                <!-- standard cells on a couple rows -->
+                <rect x="150" y="118" width="16" height="20" fill="#1c2c3e" stroke="#34d399" stroke-width="1"/>
+                <rect x="172" y="118" width="16" height="20" fill="#1c2c3e" stroke="#34d399" stroke-width="1"/>
+                <rect x="250" y="148" width="16" height="20" fill="#1c2c3e" stroke="#34d399" stroke-width="1"/>
+                <rect x="272" y="148" width="16" height="20" fill="#1c2c3e" stroke="#34d399" stroke-width="1"/>
+                <!-- labels -->
+                <text x="230" y="32" fill="#22d3ee" font-size="13" text-anchor="middle">VDD ring</text>
+                <text x="230" y="263" fill="#a78bfa" font-size="13" text-anchor="middle">VSS ring (inner)</text>
+                <text x="406" y="58" fill="#22d3ee" font-size="12">straps</text>
+                <text x="406" y="73" fill="#22d3ee" font-size="11">(vertical)</text>
+                <text x="406" y="148" fill="#67e8f9" font-size="12">rails</text>
+                <text x="406" y="163" fill="#67e8f9" font-size="11">(per row)</text>
+                <text x="406" y="218" fill="#34d399" font-size="12">cells</text>
+            </svg>
+            <figcaption>The PDN hierarchy: thick VDD/VSS rings around the core, straps crossing it, and thin rails running along each standard-cell row to deliver power to the cells.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>The power delivery network is a building's electrical system. The <em>main feeders</em> are the rings around the perimeter; the <em>risers</em> climbing through the floors are the straps; and the <em>branch circuits</em> in each room are the rails feeding the cells. Everything is sized so that when every appliance switches on at once, the lights don't dim — that dimming is IR drop.</div>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Power Planning Trade-offs</h2>
+        <p>It is tempting to just make the PDN as big and dense as possible — wider straps, more of them, closer together. That would crush IR drop. But there is a catch: <strong>power metal and signal metal compete for the same routing layers</strong>.</p>
+        <p>Every strap you add occupies tracks that signal nets would otherwise use. A denser PDN means <span class="key">fewer signal-routing tracks</span>, which can make the design harder (or impossible) to route. So power planning is a <strong>balance</strong>:</p>
+        <div class="eq">denser PDN ⟹ lower IR drop&nbsp;&nbsp;·&nbsp;&nbsp;sparser PDN ⟹ more signal tracks<small>The goal is the lightest grid that still meets the IR-drop budget.</small></div>
+        <p>The art is to spend exactly enough metal to keep IR drop within spec — typically a few percent of the supply — and not a track more, leaving the rest for signals.</p>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Clock Planning &amp; Multiple Domains</h2>
+        <p>The clock is the single highest-activity net on the chip — it toggles everywhere, every cycle. So its distribution must be <strong>budgeted early</strong>, during planning, reserving routing and buffering resources before placement and routing fill them up.</p>
+        <p>Real designs rarely run on one clock. They have <strong>multiple clock domains</strong> — separate regions each timed by their own clock (different frequencies or unrelated phases). A CPU core, a memory interface, and an I/O block might each have their own.</p>
+        <h3>Crossing between domains</h3>
+        <p>When a signal travels from one clock domain into another, it is a <span class="key">clock-domain crossing (CDC)</span>. The receiving flip-flop may sample the signal right as it changes, leaving its output stuck halfway between 0 and 1 — a hazardous state called <strong>metastability</strong>. To avoid it, every crossing needs a <strong>synchronizer</strong> (typically two back-to-back flip-flops) to let the signal settle before the rest of the logic uses it.</p>
+        <div class="eq">signal crosses clock domains ⟹ insert a <span class="key">synchronizer</span> ⟹ avoid metastability</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Multi-Voltage &amp; Power Gating</h2>
+        <p>Not every block needs to run at the same voltage. Lowering a block's supply saves energy (dynamic power scales with V²), so designers create <strong>voltage islands</strong> — regions powered at different VDD levels, each tuned to what its logic actually needs.</p>
+        <p>That flexibility comes with rules. A signal leaving one island at one voltage and entering another at a different voltage must pass through a <strong>level shifter</strong>, a cell that translates the logic levels so the receiving gates read it correctly.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 230" role="img" aria-label="Two voltage islands at different VDD with a level shifter on the signal crossing between them">
+                <!-- island A -->
+                <rect x="30" y="55" width="150" height="120" fill="rgba(34,211,238,.08)" stroke="#22d3ee" stroke-width="2" rx="8"/>
+                <text x="105" y="48" fill="#22d3ee" font-size="13" text-anchor="middle">Island A</text>
+                <text x="105" y="100" fill="#67e8f9" font-size="14" text-anchor="middle">VDD = 1.0 V</text>
+                <rect x="70" y="120" width="70" height="34" fill="#1c2c3e" stroke="#34d399" stroke-width="1" rx="4"/>
+                <text x="105" y="141" fill="#e8f0f8" font-size="11" text-anchor="middle">logic</text>
+                <!-- island B -->
+                <rect x="280" y="55" width="150" height="120" fill="rgba(167,139,250,.08)" stroke="#a78bfa" stroke-width="2" rx="8"/>
+                <text x="355" y="48" fill="#a78bfa" font-size="13" text-anchor="middle">Island B</text>
+                <text x="355" y="100" fill="#c4b5fd" font-size="14" text-anchor="middle">VDD = 0.7 V</text>
+                <rect x="320" y="120" width="70" height="34" fill="#1c2c3e" stroke="#34d399" stroke-width="1" rx="4"/>
+                <text x="355" y="141" fill="#e8f0f8" font-size="11" text-anchor="middle">logic</text>
+                <!-- level shifter between them -->
+                <rect x="195" y="118" width="70" height="38" fill="#14202e" stroke="#fbbf24" stroke-width="2" rx="4"/>
+                <text x="230" y="135" fill="#fbbf24" font-size="11" text-anchor="middle">level</text>
+                <text x="230" y="149" fill="#fbbf24" font-size="11" text-anchor="middle">shifter</text>
+                <!-- signal path -->
+                <defs><marker id="aS" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#67e8f9"/></marker></defs>
+                <line x1="140" y1="137" x2="193" y2="137" stroke="#67e8f9" stroke-width="2" marker-end="url(#aS)"/>
+                <line x1="265" y1="137" x2="318" y2="137" stroke="#67e8f9" stroke-width="2" marker-end="url(#aS)"/>
+                <text x="230" y="200" fill="#94a8bc" font-size="11" text-anchor="middle">signal crossing between islands → shifted to the new voltage</text>
+            </svg>
+            <figcaption>A signal leaving a 1.0 V island and entering a 0.7 V island must pass through a level shifter, which translates the logic levels so the destination reads them correctly.</figcaption>
+        </figure>
+        <p>Energy can be saved more aggressively still: a block that is idle can be switched off entirely with <strong>power switches</strong> (power gating). The switches disconnect the block's VDD when it isn't needed, eliminating its leakage, and reconnect it when work arrives.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Keep three planning rules straight. (1) <strong>PDN density trades against signal routing</strong> — more power metal means fewer signal tracks, not a free lunch. (2) A <strong>clock-domain crossing must be synchronized</strong> — skip the synchronizer and you risk <em>metastability</em>, not just a timing miss. (3) A signal moving between two <strong>voltage islands needs a level shifter</strong> — a plain wire (or a via) will not translate the levels.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A block draws 1 A at peak. The power grid from the package pad to that block has a total resistance of 0.05 Ω. On a 1.0 V supply, find the static IR drop and decide whether it meets the usual ~5% budget.</p>
+        <ol>
+            <li><strong>IR drop:</strong> V = I·R = 1 A × 0.05 Ω = 0.05 V = <strong>50 mV</strong>.</li>
+            <li><strong>As a fraction of supply:</strong> 50 mV / 1.0 V = <strong>5%</strong>.</li>
+            <li><strong>Verdict:</strong> right at the usual budget limit — acceptable, but with no margin.</li>
+            <li><strong>What pushes it over:</strong> more current (a hotter block) or a thinner grid (higher R) raises the drop past spec, so the cells see a lower voltage and <strong>switch more slowly</strong>.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: generate a PDN and read the IR-drop report</h3>
+        <p>In <code>OpenROAD</code>, the PDN is built from a script and then analyzed for IR drop. Define the grid, generate it, and run the static IR analysis on a block.</p>
+        <pre><span class="c"># OpenROAD — define and build the power grid, then check IR drop</span>
+pdngen                         <span class="c"># generate the PDN from the pdn.cfg (rings/straps/rails)</span>
+set_pdnsim_net_voltage -net VDD -voltage 1.0
+analyze_power_grid -net VDD    <span class="c"># static IR-drop analysis on VDD</span>
+report_power_grid -net VDD     <span class="c"># worst-case IR drop + node voltages</span></pre>
+        <p>Read the report's worst-case IR drop and compare it to your budget (e.g. 5% of 1.0 V = 50 mV). If it's over, add straps or widen the grid and re-run — then watch the signal-track count fall as you do.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The power delivery network (PDN)…</div>
+            <div class="opt"><b>A.</b> carries VDD/VSS from the pads to all cells with low IR drop</div>
+            <div class="opt"><b>B.</b> distributes the clock to every flip-flop</div>
+            <div class="opt"><b>C.</b> routes the signal nets between cells</div>
+            <div class="opt"><b>D.</b> stores charge for the logic</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The PDN is the metal mesh — rings, straps, rails — that delivers VDD/VSS from the package pads to every cell while keeping IR drop low.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Making the power grid denser…</div>
+            <div class="opt"><b>A.</b> raises IR drop</div>
+            <div class="opt"><b>B.</b> lowers IR drop but leaves fewer signal-routing tracks</div>
+            <div class="opt"><b>C.</b> has no trade-off</div>
+            <div class="opt"><b>D.</b> speeds up the clock</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> More power metal lowers grid resistance (lower IR drop) but occupies routing layers, leaving fewer tracks for signals — a balance.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A clock-domain crossing requires…</div>
+            <div class="opt"><b>A.</b> a level shifter</div>
+            <div class="opt"><b>B.</b> synchronization to avoid metastability</div>
+            <div class="opt"><b>C.</b> a wider wire</div>
+            <div class="opt"><b>D.</b> nothing special</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A signal sampled across unrelated clocks can go metastable; a synchronizer (two back-to-back flip-flops) lets it settle first.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A signal crossing between two voltage islands needs…</div>
+            <div class="opt"><b>A.</b> a decap</div>
+            <div class="opt"><b>B.</b> a synchronizer</div>
+            <div class="opt"><b>C.</b> a level shifter</div>
+            <div class="opt"><b>D.</b> a via only</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Different islands run at different VDD, so the signal's logic levels must be translated by a level shifter — a plain wire or via won't do it.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> IR drop is…</div>
+            <div class="opt"><b>A.</b> crosstalk noise</div>
+            <div class="opt"><b>B.</b> clock skew</div>
+            <div class="opt"><b>C.</b> the voltage lost across the power-grid resistance under load</div>
+            <div class="opt"><b>D.</b> leakage power</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> IR drop = I·R, the supply voltage lost across the PDN's resistance when current flows; too much of it starves and slows the cells.</p></details>
+        </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>PDN</b> — rings, straps, and rails — carries VDD/VSS from the pads to every cell with low <b>IR drop</b> (V = I·R).</li>
+            <li>Power planning is a <b>trade-off</b>: a denser PDN lowers IR drop but leaves fewer signal-routing tracks.</li>
+            <li>Budget the <b>clock</b> early; designs have multiple <b>clock domains</b>, and crossings need a <b>synchronizer</b> to avoid <b>metastability</b>.</li>
+            <li><b>Voltage islands</b> save energy; signals between them need a <b>level shifter</b>, and idle blocks can be power-gated with <b>power switches</b>.</li>
+            <li>Generated a PDN and read an <b>IR-drop report</b> in OpenROAD.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: Placement — putting the standard cells down on the floorplan to meet timing and congestion.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l01-floorplanning.html"><div class="dir">← Week 1</div><div class="ttl">Floorplanning</div></a>
+        <a href="l03-placement.html" class="next"><div class="dir">Week 3 →</div><div class="ttl">Placement</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Physical Design</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        bar.style.width = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100 + '%';
+    });
+</script>
+
+</body>
+</html>

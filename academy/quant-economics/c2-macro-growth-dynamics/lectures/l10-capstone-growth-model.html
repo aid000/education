@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C2 · Lecture 10 — Capstone: Calibrate &amp; Solve a Growth Model</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C2 Macro Dynamics</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10</span>
+        <h1>Capstone: Calibrate &amp; Solve a Growth Model</h1>
+        <p class="sub">Ten weeks of theory converge into one task: take a real economy, pin a growth model to its numbers, solve it on a laptop, and let it forecast what a policy change would do.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Calibrate a growth model's deep parameters (α, δ, n, ρ, θ) to real macro data using long-run moments.</li>
+            <li>Solve the calibrated model numerically for its steady state and full transition path.</li>
+            <li>Run a <strong>transition experiment</strong>: shock the economy off steady state and trace its convergence back.</li>
+            <li>Run a <strong>policy experiment</strong>: change a parameter, recompute, and quantify the effect on output, consumption, and welfare.</li>
+            <li>Frame and structure the capstone deliverable — a calibrated, solved, and validated growth-model report.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>Putting It Together: What a Capstone Actually Is</h2>
+        <p>For nine weeks you built the pieces one at a time: Solow's accumulation equation (Weeks 2–3), growth accounting and the Solow residual (Week 4), the consumption–savings trade-off (Week 5), the Ramsey household's optimal path (Week 6), and the stochastic business-cycle layer (Week 9). The <strong>capstone</strong> is where those pieces stop being separate exercises and become a single working artifact: a model that has been <em>made to agree with a real economy</em> and then used to <em>answer a counterfactual question</em>.</p>
+        <p>Every quantitative macro study follows the same three-step arc, and your capstone is a small instance of it:</p>
+        <div class="eq">Calibrate &nbsp;-&gt;&nbsp; Solve &nbsp;-&gt;&nbsp; Experiment<small>Pin parameters to data, compute the model's equilibrium path, then perturb something and re-solve to read off the counterfactual.</small></div>
+        <p>The deliverable is not "a clever derivation." It is a short, honest report that says: here is my model, here are the numbers I fed it and <em>why</em>, here is what it predicts, and here is how I checked that the prediction is not nonsense. That last clause — validation — is what separates a model that informs a decision from one that merely decorates a slide.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the model as a flight simulator for an economy. <strong>Calibration</strong> is tuning the simulator so that, flown level, it matches the real aircraft's cruise speed and fuel burn — its long-run behavior. <strong>Solving</strong> is letting the simulator actually fly. An <strong>experiment</strong> is asking "what if we cut the engine thrust by 10%?" — you change one dial and watch the trajectory bend. You'd never bet a real flight plan on a simulator you never checked against the real plane; calibration is that check.</div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Calibration: Tying the Model to Real Data</h2>
+        <p><strong>Calibration</strong> means choosing the model's deep parameters so that, at its steady state, the model reproduces a handful of well-measured long-run features of the economy — the <strong>great ratios</strong> and average growth rates that macroeconomists treat as stable targets. We do <em>not</em> fit every wiggle; we match a few robust moments and trust the theory for the rest.</p>
+        <p>For the calibrated Ramsey-Solow model from Weeks 2–6, the workhorse mapping is:</p>
+        <div class="eq">&alpha; = capital share of income &nbsp;&asymp;&nbsp; 0.33<small>In Cobb-Douglas Y = K^&alpha; (AL)^(1-&alpha;), the exponent &alpha; equals capital's share of national income, read straight off the national accounts.</small></div>
+        <div class="eq">f'(k*) = &rho; + &delta; &nbsp;and&nbsp; &alpha; / (capital-output ratio) = &rho; + &delta;<small>The steady-state Euler condition. With K/Y observed (~3 in annual data) and &delta; pinned from depreciation data, this equation closes for &rho;.</small></div>
+        <p>The standard recipe, in order:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><span class="key">α</span> from the labor/capital income split (~1/3 capital, 2/3 labor).</li>
+            <li><span class="key">n</span> from the long-run labor-force growth rate; <span class="key">g</span> (technology growth) from trend per-capita output growth (~2%/yr).</li>
+            <li><span class="key">δ</span> from the ratio of depreciation to the capital stock (~5–10%/yr).</li>
+            <li><span class="key">ρ</span> backed out from the steady-state interest condition f'(k*) = ρ + δ once K/Y is known.</li>
+            <li><span class="key">θ</span> from micro evidence on the elasticity of intertemporal substitution (Week 5), typically θ ≈ 1–2.</li>
+        </ul>
+        <p>The point of calibration is <em>discipline</em>: every number has a real-world source you can defend, so the model's later predictions inherit that credibility instead of being free-floating assumptions.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not confuse <strong>calibration</strong> with <strong>estimation</strong>. Calibration sets parameters to match a few <em>long-run targets</em> by construction and then judges the model by how well it fits moments you did <em>not</em> target. Estimation (econometrics) chooses parameters to minimize fit error over the whole sample. Reporting an R-squared on the data you calibrated to is double-counting — the model was <em>built</em> to hit those moments, so a good fit there proves nothing.</div>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Solving Numerically &amp; Running the Transition</h2>
+        <p>With parameters fixed, "solving" the model means two things: finding the <strong>steady state</strong> (an algebra/root-finding problem) and computing the <strong>transition path</strong> from some starting capital k(0) to that steady state (a dynamic problem). For Solow the transition is a simple forward iteration of k&#775; = s·f(k) − (δ + n + g)k. For Ramsey it is a <strong>two-point boundary-value problem</strong> — you must find the unique initial consumption c(0) that lands the economy on the saddle path (Week 6), which we solve by <strong>shooting</strong>.</p>
+        <p>Once the model can be solved, a <strong>transition experiment</strong> is straightforward: start the economy below steady state (say at half its steady-state capital, as after a war or a catch-up takeoff) and watch how fast it converges. The speed is governed by the convergence rate <span class="key">β</span> from Week 3:</p>
+        <div class="eq">k(t) - k* &nbsp;&asymp;&nbsp; ( k(0) - k* ) &middot; e^(-&beta; t),&nbsp; with &nbsp;&beta; &asymp; (1-&alpha;)(&delta; + n + g)<small>Near the steady state the gap shrinks exponentially. With &alpha;=1/3 and (&delta;+n+g)&asymp;0.08, &beta;&asymp;0.053 — about a 5%/yr closing of the gap, the empirical "iron law of convergence."</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 520 320" role="img" aria-label="Transition path of capital per effective worker over time. Capital rises from a low starting value and converges smoothly to a horizontal dashed steady-state line k-star.">
+                <!-- axes -->
+                <line x1="60" y1="270" x2="490" y2="270" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="270" x2="60" y2="30" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="495" y="274" fill="#93a8c8" font-size="13" text-anchor="start">t</text>
+                <text x="52" y="26" fill="#93a8c8" font-size="13" text-anchor="end">k</text>
+                <!-- steady state dashed line at y=80 -->
+                <line x1="60" y1="80" x2="470" y2="80" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6 4"/>
+                <text x="476" y="84" fill="#fbbf24" font-size="12" text-anchor="start">k*</text>
+                <!-- transition curve: starts low at (60,240) rises and flattens toward 80 -->
+                <path d="M 60 240 Q 160 110 250 90 Q 350 80 470 80" fill="none" stroke="#34d399" stroke-width="2.5"/>
+                <text x="250" y="135" fill="#34d399" font-size="12" text-anchor="middle">k(t) -&gt; k*</text>
+                <!-- starting point -->
+                <circle cx="60" cy="240" r="4.5" fill="#60a5fa"/>
+                <text x="70" y="252" fill="#93c5fd" font-size="11" text-anchor="start">k(0)</text>
+                <!-- gap bracket near start -->
+                <line x1="44" y1="80" x2="44" y2="240" stroke="#a78bfa" stroke-width="1.4"/>
+                <text x="30" y="165" fill="#a78bfa" font-size="11" text-anchor="middle" transform="rotate(-90 30 165)">initial gap</text>
+            </svg>
+            <figcaption>Transition experiment: starting from k(0) below steady state, capital per effective worker rises fastest when the gap is largest and flattens as it nears k* (amber dashed). The exponential closing of the violet "initial gap" is the convergence law from Section 10.3.</figcaption>
+        </figure>
+        <p>The <em>same</em> machinery powers a <strong>policy experiment</strong>: change one parameter — a higher savings rate, a lower tax wedge on capital (which raises the effective ρ households face), or a one-time jump in TFP — recompute the new steady state, and trace the new transition. The difference between the baseline path and the policy path <em>is</em> the policy's effect, period by period. This is the core technique behind every quantitative answer to "what would this reform do to growth?"</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A policy experiment is a controlled lab swap. You run the model once as the <strong>baseline</strong> (the control), freeze that trajectory, then change a single ingredient and run it again (the treatment). Subtracting the two paths isolates the effect of that one change — exactly like a chemist running two identical reactions and varying only the temperature. If you change three dials at once, you can no longer attribute the result to any one of them.</div>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>Interpreting Results &amp; Framing the Report</h2>
+        <p>A solved model spits out numbers; your job is to turn them into a <em>claim a reader can trust</em>. Three habits make the difference. First, report <strong>levels and rates separately</strong>: a savings-rate hike raises the <em>level</em> of long-run output but, in Solow, leaves the long-run growth <em>rate</em> unchanged (only g shifts the rate) — confusing the two is the classic error. Second, report the <strong>transition timing</strong>: a reform that doubles output "eventually" but takes 60 years to do half of it is a very different policy from one that pays off in a decade. Third, translate output gains into <strong>welfare</strong>, using the household utility you calibrated, since more capital bought by crushing today's consumption is not obviously a gain.</p>
+        <p>Welfare is naturally expressed as a <strong>consumption-equivalent variation (CEV)</strong>: the constant percentage by which baseline consumption would have to rise, in every period, to make the household as well off as the policy does.</p>
+        <div class="eq">CEV: &nbsp;V_policy = V_baseline( c &middot; (1 + &lambda;) ) &nbsp;=&gt; solve for &lambda;<small>&lambda; is the permanent % consumption boost equivalent to the reform. Positive &lambda; means the policy raises welfare; a level gain financed by painful early saving can still give &lambda; &lt; 0.</small></div>
+        <p>The report itself should be short and reproducible. A clean structure: (1) the question, (2) the model and its equations, (3) a calibration table — every parameter, its value, and its data source, (4) results: steady state, baseline transition, and the policy/transition experiment with figures, (5) validation against untargeted moments, and (6) a candid limitations paragraph. Anyone should be able to re-run your code and land on your numbers.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not declare victory because output rises. A higher savings rate <em>always</em> raises steady-state capital and output in this class of models — that is mechanical, not insight. The real question is whether <strong>welfare</strong> rises, accounting for the consumption you sacrifice during the transition. A capstone that reports only the output gain and ignores the welfare cost of the transition has answered the easy half of the question and skipped the hard half.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — calibrate, solve, and run a savings policy</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Calibrate a Solow model in per-effective-worker terms with Cobb-Douglas f(k) = k<sup>α</sup>. Targets: capital share α = 1/3, depreciation δ = 0.05, population growth n = 0.01, technology growth g = 0.02. The economy currently saves s = 0.20. A reform proposes raising the savings rate to s′ = 0.25. Find the old and new steady states and the long-run output gain.</p>
+        <ol>
+            <li><strong>Steady-state condition:</strong> set k&#775; = 0 in k&#775; = s·k<sup>α</sup> − (δ+n+g)k, giving s·k<sup>α</sup> = (δ+n+g)k, so <strong>k* = [ s / (δ+n+g) ]<sup>1/(1−α)</sup></strong>.</li>
+            <li><strong>Effective depreciation:</strong> δ + n + g = 0.05 + 0.01 + 0.02 = <strong>0.08</strong>.</li>
+            <li><strong>Baseline k* (s = 0.20):</strong> k* = (0.20/0.08)<sup>1/(1−1/3)</sup> = (2.5)<sup>1.5</sup> ≈ <strong>3.953</strong>. Output y* = k*<sup>1/3</sup> = 3.953<sup>0.333</sup> ≈ <strong>1.581</strong>.</li>
+            <li><strong>Policy k* (s′ = 0.25):</strong> k*′ = (0.25/0.08)<sup>1.5</sup> = (3.125)<sup>1.5</sup> ≈ <strong>5.524</strong>. Output y*′ = 5.524<sup>0.333</sup> ≈ <strong>1.768</strong>.</li>
+            <li><strong>Long-run output gain:</strong> y*′ / y* = 1.768 / 1.581 ≈ <strong>1.118</strong> — about an <strong>11.8% higher</strong> long-run output level. Shortcut check: y*′/y* = (s′/s)<sup>α/(1−α)</sup> = (1.25)<sup>0.5</sup> = 1.118. ✓</li>
+            <li><strong>Convergence speed:</strong> β ≈ (1−α)(δ+n+g) = (2/3)(0.08) ≈ <strong>0.053</strong>, so the economy closes ~5.3% of the gap to the new k* per year — roughly a 13-year half-life. The 11.8% gain is real but <em>slow</em>; consumption actually <em>dips</em> in the early years while the extra 5% of output is diverted into capital. That early dip is exactly the welfare cost a CEV calculation would price in (Section 10.4).</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: calibrate, solve, and run the policy experiment</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the free QuantEcon stack — <code>numpy</code>, <code>scipy</code>, <code>matplotlib</code> — installed back in the <strong>Week 1/2 setup</strong> (see the install <code>&lt;details&gt;</code> in Lecture 1). Nothing new to install here; this capstone script wires together calibration, a steady-state solve, the transition, and the savings policy experiment from the worked example.</p>
+        <pre><span class="c"># capstone_growth.py — Lecture 10</span>
+import numpy as np
+from scipy.optimize import brentq
+
+<span class="c"># --- 1. CALIBRATION (parameters tied to data targets) ---</span>
+alpha = 1/3        <span class="c"># capital share of income</span>
+delta = 0.05       <span class="c"># depreciation rate</span>
+n     = 0.01       <span class="c"># population growth</span>
+g     = 0.02       <span class="c"># technology growth</span>
+deff  = delta + n + g            <span class="c"># effective depreciation = 0.08</span>
+
+f      = lambda k: k**alpha      <span class="c"># per-effective-worker output</span>
+
+<span class="c"># --- 2. SOLVE for steady state, given a savings rate ---</span>
+def steady_state(s):
+    <span class="c"># root of s*f(k) - deff*k = 0  (closed form, but solve numerically)</span>
+    return brentq(lambda k: s*f(k) - deff*k, 1e-6, 100)
+
+k_base = steady_state(0.20)
+k_pol  = steady_state(0.25)
+print(f"baseline k*={k_base:.3f}  y*={f(k_base):.3f}")
+print(f"policy   k*={k_pol:.3f}  y*={f(k_pol):.3f}")
+print(f"long-run output gain: {f(k_pol)/f(k_base)-1:+.1%}")
+
+<span class="c"># --- 3. TRANSITION + POLICY EXPERIMENT (forward-iterate the ODE) ---</span>
+def transition(s, k0, T=120, dt=0.25):
+    k = k0; path = [k]
+    for _ in range(int(T/dt)):
+        k += dt*(s*f(k) - deff*k)   <span class="c"># Euler step of k-dot</span>
+        path.append(k)
+    return np.array(path)
+
+<span class="c"># start AT the old steady state, then flip on the reform at t=0</span>
+base = transition(0.20, k_base)        <span class="c"># control: stays flat</span>
+pol  = transition(0.25, k_base)        <span class="c"># treatment: climbs to k_pol</span>
+print(f"half the gain reached at ~year {0.25*np.argmax(f(pol) >= (f(k_base)+f(k_pol))/2):.0f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Subtracting <code>f(base)</code> from <code>f(pol)</code> period by period is the policy's output effect over time — the heart of the capstone. Next, compute the discounted utility of each consumption path c = (1−s)·f(k) and solve for the CEV λ to price the early-transition consumption dip.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You have just built, in miniature, the engine that drives modern quantitative macro. The <strong>Final Exam</strong> (building now) will test exactly this calibrate → solve → experiment workflow end to end. Beyond this course, the same loop scales up: add uncertainty and the stochastic shocks of Week 9 and you get the real business cycle and DSGE models used for policy forecasting; add heterogeneous households and you reach the incomplete-markets models behind inequality and fiscal-policy analysis. The Quant Finance track reuses the identical machinery — calibrate a model to market data, solve it, and run scenario experiments — to price assets and stress-test portfolios. Calibration discipline is the through-line of the entire specialization.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The three-step arc of a quantitative growth study is best described as…</div>
+            <div class="opt"><b>A.</b> calibrate, solve, experiment</div>
+            <div class="opt"><b>B.</b> regress, forecast, publish</div>
+            <div class="opt"><b>C.</b> assume, prove, generalize</div>
+            <div class="opt"><b>D.</b> observe, randomize, control</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Pin parameters to data (calibrate), compute the equilibrium path (solve), then perturb and re-solve (experiment). B describes a pure econometrics workflow; C is abstract theorem-proving; D is the structure of a field RCT, not a model study.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In a Cobb-Douglas calibration, the capital share parameter α is most directly read from…</div>
+            <div class="opt"><b>A.</b> the unemployment rate</div>
+            <div class="opt"><b>B.</b> capital's share of national income</div>
+            <div class="opt"><b>C.</b> the inflation rate</div>
+            <div class="opt"><b>D.</b> the savings rate</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> With Y = K<sup>α</sup>(AL)<sup>1−α</sup>, the exponent α equals capital's income share — about 1/3 in the data. The savings rate (D) is a separate parameter; unemployment (A) and inflation (C) play no role in this real growth model.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A reform permanently raises the Solow savings rate. In the long run this changes output's…</div>
+            <div class="opt"><b>A.</b> growth rate but not its level</div>
+            <div class="opt"><b>B.</b> level but not its long-run growth rate</div>
+            <div class="opt"><b>C.</b> both level and long-run growth rate permanently</div>
+            <div class="opt"><b>D.</b> neither — savings is irrelevant in Solow</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A higher s lifts steady-state capital and the <em>level</em> of output per effective worker, but the long-run growth rate is set by g (technology) alone. A and C wrongly grant savings a permanent growth effect; D ignores the clear level effect.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why is calibration <em>not</em> the same as econometric estimation?</div>
+            <div class="opt"><b>A.</b> Calibration uses more data than estimation</div>
+            <div class="opt"><b>B.</b> Calibration requires a supercomputer; estimation does not</div>
+            <div class="opt"><b>C.</b> Calibration matches a few long-run targets by construction and is judged on untargeted moments, rather than minimizing fit error over the whole sample</div>
+            <div class="opt"><b>D.</b> Calibration can only be used for financial data</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Calibration sets parameters to hit chosen long-run moments and validates against moments it did <em>not</em> target; estimation minimizes overall fit error. A is backwards (calibration typically uses fewer moments); B and D are simply false.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A capstone reports that a savings-rate hike raises long-run output by 12%. The most important thing still missing is…</div>
+            <div class="opt"><b>A.</b> a proof that the steady state exists</div>
+            <div class="opt"><b>B.</b> a higher value for α</div>
+            <div class="opt"><b>C.</b> a faster computer to run the model</div>
+            <div class="opt"><b>D.</b> a welfare measure accounting for the consumption sacrificed during the transition</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> A higher s mechanically raises output, so the level gain is no surprise; the open question is whether <em>welfare</em> rises once you price the early consumption dip (e.g., via a consumption-equivalent variation). A is already implied by the model; B would change the answer, not complete it; C is irrelevant to a model this small.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Calibrated</b> a growth model by tying α, δ, n, g, ρ, and θ to defensible data targets and the steady-state Euler condition.</li>
+            <li><b>Solved</b> the calibrated model for its steady state and full <b>transition path</b> numerically.</li>
+            <li>Ran a <b>transition experiment</b> and connected its speed to the Week-3 <b>convergence rate</b> β.</li>
+            <li>Ran a <b>policy experiment</b> by changing one parameter, re-solving, and differencing the paths — and priced its welfare via the <b>CEV</b>.</li>
+            <li>Framed the capstone <b>report</b>: question, model, calibration table, results, validation, and limitations.</li>
+        </ul>
+        <p class="next-up">Next up — the <b>Final Exam</b> (building): a timed, end-to-end calibrate → solve → experiment problem that pulls together all ten weeks of C2 Macro Dynamics.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-business-cycles.html"><div class="dir">← Week 9</div><div class="ttl">Business Cycles &amp; Stochastic Dynamics</div></a>
+        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Macro Dynamics</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

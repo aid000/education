@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Final Exam — Computer Architecture</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C3 Architecture</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C3 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week architecture syllabus, from CMOS gates to a pipelined CPU.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">CMOS <b>2</b></span>
+            <span class="wchip">Gates <b>3</b></span>
+            <span class="wchip">Sequential <b>3</b></span>
+            <span class="wchip">ALU <b>3</b></span>
+            <span class="wchip">Datapath <b>2</b></span>
+            <span class="wchip">Control <b>3</b></span>
+            <span class="wchip">ISA/cycle <b>2</b></span>
+            <span class="wchip">Pipelining <b>3</b></span>
+            <span class="wchip">Memory <b>2</b></span>
+            <span class="wchip">Clocking <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ CMOS & LOGIC GATES (Weeks 1–2) ============ -->
+    <div class="exam-sec">CMOS &amp; logic gates · Weeks 1–2</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>1.</span> In a CMOS inverter, when the input is HIGH the output is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> HIGH</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> LOW (the n-MOS pulls it down)</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> floating</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> V<sub>DD</sub>/2</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A HIGH input turns the n-MOS on and the p-MOS off, connecting the output to ground — so the output goes LOW. The inverter negates its input.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>2.</span> CMOS draws almost no static power because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> it has no capacitance</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> the clock stops</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> one of the two transistors is always off, breaking the V<sub>DD</sub>-to-ground path</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> the transistors are tiny</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> In a static CMOS gate the pull-up and pull-down networks are complementary, so in either steady state one network is off — there is no DC path from V<sub>DD</sub> to ground, so static current is near zero.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>3.</span> Which gates are universal (any logic function can be built from them alone)?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> NAND (and NOR)</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> AND and OR</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> XOR only</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> NOT only</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> NAND and NOR are each functionally complete — any Boolean function can be realized using only NAND gates (or only NOR gates).</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> A multiplexer…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> stores a bit</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> adds numbers</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> inverts a signal</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> selects one of several inputs to pass to the output</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A mux uses select lines to route one chosen data input through to its single output — a fundamental steering element in a datapath.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>5.</span> In CMOS the most natural, efficient basic gates are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> AND and OR</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> NAND and NOR</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> XOR and XNOR</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> buffers</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> CMOS naturally produces inverting gates; NAND and NOR are the simplest and most efficient. AND/OR cost more because they are a NAND/NOR followed by an inverter.</div>
+    </div>
+
+    <!-- ============ SEQUENTIAL LOGIC & THE ALU (Weeks 3–4) ============ -->
+    <div class="exam-sec">Sequential logic &amp; the ALU · Weeks 3–4</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>6.</span> Sequential logic's output depends on…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> the current inputs AND stored state</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> only the current inputs</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> only the clock</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> only the previous inputs</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Unlike combinational logic, a sequential circuit has memory — its output is a function of both the present inputs and the stored internal state.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> A D flip-flop captures its input…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> continuously</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> whenever D changes</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> on the clock edge (edge-triggered)</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> at power-up only</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> A D flip-flop is edge-triggered: it samples D and updates Q only at the active clock edge, holding the value steady between edges.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>8.</span> An N-bit register is built from…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> N latches with no clock</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> N flip-flops sharing a clock</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> one capacitor</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> N multiplexers</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A register is just N flip-flops sharing a common clock, so all bits load on the same edge — storing one N-bit word.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>9.</span> In two's complement, A − B is computed as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> A + B − 1</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> A XOR B</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> B − A</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> A + (NOT B) + 1</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Negating B in two's complement means inverting its bits and adding 1, so A − B = A + (NOT B) + 1 — letting one adder do both add and subtract.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>10.</span> An ALU is what kind of circuit?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> combinational — computes from its inputs, no internal state</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> sequential</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> analog</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> clocked memory</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The ALU is purely combinational: given operands and an operation-select code it produces a result with no stored state of its own.</div>
+    </div>
+
+    <!-- ============ DATAPATH & CONTROL (Weeks 5–6) ============ -->
+    <div class="exam-sec">Datapath &amp; control · Weeks 5–6</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> The datapath consists of…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> the control unit and clock</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> the cache only</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> the ALU, register file, buses, and PC</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> the decoder only</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The datapath is where data moves and is operated on — the ALU, register file, buses/muxes, and program counter. The control unit steers it but is separate.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>12.</span> The register file…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> is the main memory</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> holds operands in fast on-chip storage, read/written each cycle</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> stores the program</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> decodes instructions</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The register file is a small, fast bank of registers right next to the ALU; instructions read their operands from it and write results back each cycle.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>13.</span> The program counter (PC)…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> stores the ALU result</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> counts cache misses</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> selects registers</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> holds the address of the current/next instruction</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The PC is a register holding the memory address of the instruction being fetched; it advances each cycle (or is loaded by a branch).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>14.</span> The control unit…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> decodes instructions and generates signals that steer the datapath</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> performs the arithmetic</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> stores operands</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> holds the program</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The control unit interprets the opcode and produces the control signals (mux selects, ALU op, write-enables) that direct the datapath each cycle.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> Hardwired control is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> slow but flexible</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> stored in ROM</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> fast but rigid and hard to modify</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> identical to microcode</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Hardwired control implements the logic directly in fixed gates — fast, but changing the design means redesigning the circuitry. Microcoded control trades speed for flexibility.</div>
+    </div>
+
+    <!-- ============ ISA, CYCLE & PIPELINING (Weeks 7–8) ============ -->
+    <div class="exam-sec">ISA, cycle &amp; pipelining · Weeks 7–8</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>16.</span> The ISA defines…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> the transistor layout</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> the instructions, registers, and formats the CPU understands</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> the clock speed</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> the cache size</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The Instruction Set Architecture is the hardware/software contract: the set of instructions, the registers, and the instruction formats software can rely on, independent of how it's built.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>17.</span> In the FETCH step…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> the ALU computes a result</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> the result is stored</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> the PC is reset</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> the instruction at the PC's address is read</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Fetch reads the instruction from memory at the address held in the PC; later steps (decode, execute, memory, write-back) act on it.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>18.</span> Pipelining improves…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> throughput, not single-instruction latency</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> single-instruction latency</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> clock frequency only</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> memory size</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Pipelining overlaps stages so a new instruction can finish each cycle — raising throughput. A single instruction still takes the same (or slightly more) total time.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> The classic 5 pipeline stages are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> fetch, add, store, branch, halt</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> read, write, refresh, sync, idle</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> IF, ID, EX, MEM, WB</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> decode only</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The classic RISC pipeline is Instruction Fetch, Instruction Decode, Execute, Memory access, and Write-Back.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>20.</span> A data hazard occurs when…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> two instructions use different registers</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> an instruction needs a result not yet produced by an earlier one</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> the clock is slow</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> memory is full</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A data hazard is a dependency: a later instruction needs an operand that an earlier, still-in-flight instruction hasn't written back yet. Forwarding or stalls resolve it.</div>
+    </div>
+
+    <!-- ============ MEMORY & CLOCKING (Weeks 9–10) ============ -->
+    <div class="exam-sec">Memory &amp; clocking · Weeks 9–10</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>21.</span> Compared with DRAM, SRAM (used for cache) is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> slower but cheaper</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> denser</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> identical</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> faster but less dense and more expensive per bit</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> SRAM's 6-transistor cell is fast and needs no refresh, but it's bigger and pricier per bit — so it's used for small, fast caches, while dense cheap DRAM is main memory.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>22.</span> DRAM requires…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> periodic refresh because its 1T1C cell leaks charge</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> no power</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> 6 transistors per bit</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> a clock edge to read</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Each DRAM cell stores a bit as charge on a tiny capacitor (one transistor, one capacitor). The charge leaks away, so the array must be periodically refreshed.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> With a hit time of 1 ns, a miss rate of 5%, and a miss penalty of 100 ns, the AMAT is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> 100 ns</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> 5 ns</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> 6 ns</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> 101 ns</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> AMAT = hit time + miss rate × miss penalty = 1 + 0.05 × 100 = 1 + 5 = 6 ns.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>24.</span> The clock period must be at least…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> the average path delay</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> the critical (longest) path delay plus setup time</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> one gate delay</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> the wire length</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Signals must propagate through the longest (critical) combinational path and meet the flip-flop's setup time before the next edge, so the period is bounded by that delay.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>25.</span> The "power wall" refers to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> running out of transistors</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> memory being too small</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> a manufacturing defect</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> power density limiting clock-frequency scaling, pushing designs toward multicore</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Power (and heat) density rises sharply with clock frequency, so chips could no longer just clock faster — the industry turned to multiple cores instead.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C3 Syllabus</div></a>
+        <a href="../lectures/l01-cmos-transistor-review.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Architecture</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reactor Systems C4 · Lecture 5 — Control Systems: Rods, Reactivity &amp; Poisons</title>
+    <style>
+        :root { --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b; --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7; --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C4 Reactor Systems</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Control Systems: Rods, Reactivity &amp; Poisons</h1>
+        <p class="sub">A reactor's power is balanced on a knife-edge of neutron bookkeeping — and the operator's whole job is to add and subtract tiny fractions of a percent of reactivity without ever letting the balance run away.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define reactivity ρ in terms of k<sub>eff</sub> and explain why operators trade in units of pcm and dollars.</li>
+            <li>Describe control-rod worth, differential and integral worth curves, and why rods are grouped into banks.</li>
+            <li>Explain how soluble boron acts as a chemical shim to compensate for fuel burnup over a cycle.</li>
+            <li>Show how burnable poisons hold down beginning-of-cycle reactivity and flatten the power profile.</li>
+            <li>Define shutdown margin and explain the xenon-135 transient and why it complicates control after a power change.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>Reactivity: The Currency of Reactor Control</h2>
+        <p>By now you know the multiplication factor <strong>k<sub>eff</sub></strong>: the ratio of neutrons in one fission generation to the number in the generation before it. When k<sub>eff</sub> = 1 the chain reaction exactly sustains itself — the reactor is <strong>critical</strong> and power holds steady. When k<sub>eff</sub> &gt; 1 power climbs; when k<sub>eff</sub> &lt; 1 it falls. Controlling a reactor means nudging k<sub>eff</sub> by minuscule amounts and holding it at one for months on end.</p>
+        <p>k<sub>eff</sub> itself is awkward to work with because the useful range is so close to 1.0000. Operators instead speak in <strong>reactivity</strong>, the fractional departure from criticality:</p>
+        <div class="eq">rho = (k_eff - 1) / k_eff<small>rho = 0 is critical; rho &gt; 0 is supercritical (power rising); rho &lt; 0 is subcritical (power falling).</small></div>
+        <p>Reactivity is dimensionless but the numbers are tiny, so the field uses scaled units. <strong>pcm</strong> ("per cent mille") is 10<sup>-5</sup> of reactivity: a 100 pcm change is Δρ = 0.001. Even more revealing is the <strong>dollar</strong>, which measures reactivity in units of the delayed-neutron fraction β (about 0.0065 for uranium-235):</p>
+        <div class="eq">rho [$] = rho / beta<small>One dollar of reactivity = beta. Below $1 the reactor is controllable on delayed neutrons; at or above $1 it is "prompt critical" and uncontrollable.</small></div>
+        <p>That dollar scale is not bookkeeping vanity — it is the dividing line between a reactor you can steer and one you cannot. Recall from earlier weeks that a handful of fission products emit neutrons seconds to minutes after fission. These <strong>delayed neutrons</strong> stretch the effective generation time from microseconds to about a tenth of a second, slowing power changes enough for mechanical control. As long as the reactivity you insert stays well below $1, the reactor's response is governed by those slow delayed neutrons and an operator (or control system) has ample time to react.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of reactivity as the throttle of a car whose accelerator is incredibly sensitive and whose engine has tremendous momentum. k<sub>eff</sub> = 1 is cruising at constant speed. A few pcm is a feather-touch on the pedal. The delayed neutrons are like a long delay between pressing the pedal and the engine actually revving — annoying for a sports car, but a lifesaver for a reactor, because it gives the driver time to ease off before the speed runs away. Push past $1 of reactivity and the delay vanishes: now the car responds in microseconds and no human can steer it.</div>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>Control Rods: Worth, Banks &amp; the S-Curve</h2>
+        <p>The fastest, most direct way to move reactivity is the <strong>control rod</strong>: a rod of strongly neutron-absorbing material — typically a silver-indium-cadmium alloy or boron carbide — that slides into a channel in the core. Where the rod sits, it swallows neutrons that would otherwise cause fission, locally driving down k<sub>eff</sub>. Withdraw the rod and those neutrons are returned to the chain reaction, adding positive reactivity.</p>
+        <p>The total reactivity a fully inserted rod or bank removes is its <strong>integral worth</strong>. But the worth is not spread evenly along the rod's travel, because reactivity change is proportional to the neutron flux where the rod tip moves. Flux in a bare core is roughly cosine-shaped — peaked in the center, low at the ends — so a rod near the top or bottom of the core moves through weak flux and changes little reactivity per centimeter, while a rod crossing the high-flux midplane changes a great deal. This sensitivity is the <strong>differential rod worth</strong>:</p>
+        <div class="eq">differential worth = d(rho)/dx  proportional to  phi(x)^2<small>x = rod position; phi(x) = neutron flux at the rod tip. Worth per cm is largest at the core midplane and small at the ends.</small></div>
+        <p>Integrate that bell-shaped differential curve over position and you get the characteristic <strong>S-shaped integral worth curve</strong>: shallow at the top of travel, steep through the middle, shallow again at the bottom. Operators read these curves constantly to know exactly how much reactivity a given rod motion will add.</p>
+        <p>A large core has dozens of rods. Moving them individually would distort the power shape, so they are wired into <strong>banks</strong> (groups) that move together, and banks are sequenced with <strong>overlap</strong> so that as one bank reaches the bottom of its high-worth region another is entering it. The aim is a smooth, nearly linear relationship between total bank position and inserted reactivity, and a power distribution that stays flat. A few rods or banks are held fully withdrawn in reserve purely for fast shutdown.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> assume a control rod's reactivity worth is constant along its stroke. Pulling a rod 10 cm out of the bottom of the core barely changes reactivity, while pulling it 10 cm through the midplane can change it many times more. Treating worth as linear leads to badly mis-estimating the reactivity of a rod motion — and in the high-worth midplane region that error can be the difference between a small adjustment and an unintended power excursion.</div>
+    </section>
+
+    <!-- FIGURE 1: differential & integral rod worth -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 300" role="img" aria-label="Differential rod worth, a bell-shaped curve peaking at the core midplane, plotted alongside the S-shaped integral worth curve that rises slowly, then steeply, then slowly, as the rod is withdrawn from bottom to top.">
+            <!-- axes -->
+            <line x1="60" y1="250" x2="530" y2="250" stroke="#94b8a2" stroke-width="1.5"/>
+            <line x1="60" y1="250" x2="60" y2="40" stroke="#94b8a2" stroke-width="1.5"/>
+            <text x="295" y="285" fill="#94b8a2" font-size="12" text-anchor="middle">Rod position  (bottom -> fully withdrawn at top)</text>
+            <text x="22" y="150" fill="#94b8a2" font-size="12" text-anchor="middle" transform="rotate(-90 22 150)">reactivity</text>
+            <!-- x markers -->
+            <text x="75" y="266" fill="#94b8a2" font-size="10" text-anchor="middle">bottom</text>
+            <text x="295" y="266" fill="#94b8a2" font-size="10" text-anchor="middle">midplane</text>
+            <text x="515" y="266" fill="#94b8a2" font-size="10" text-anchor="middle">top</text>
+            <!-- integral S-curve (green): rises slow, steep, slow -->
+            <path d="M 60,250 L 100,242 L 140,228 L 180,200 L 230,150 L 295,110 L 360,70 L 410,52 L 460,46 L 510,44"
+                  fill="none" stroke="#34d399" stroke-width="3"/>
+            <text x="430" y="80" fill="#34d399" font-size="11" text-anchor="start">integral worth</text>
+            <text x="430" y="94" fill="#34d399" font-size="10" text-anchor="start">(S-curve)</text>
+            <!-- differential bell (amber) -->
+            <path d="M 60,248 L 110,244 L 150,236 L 195,216 L 240,180 L 295,162 L 350,180 L 395,216 L 440,236 L 490,244 L 510,247"
+                  fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="6 4"/>
+            <text x="300" y="150" fill="#fbbf24" font-size="11" text-anchor="middle">differential worth (per cm)</text>
+            <!-- peak marker -->
+            <circle cx="295" cy="162" r="3.5" fill="#fbbf24"/>
+            <line x1="295" y1="162" x2="295" y2="250" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2 3"/>
+            <text x="295" y="40" fill="#6ee7b7" font-size="10" text-anchor="middle">flux peaks here -> steepest integral slope</text>
+        </svg>
+        <figcaption>Differential rod worth (<span style="color:#fbbf24">amber</span>, per cm) tracks the square of the local flux and peaks at the core midplane; integrating it gives the <span style="color:#34d399">green</span> S-shaped integral worth curve. The integral curve is steepest exactly where the differential curve peaks — the midplane — and flattens at both ends of travel.</figcaption>
+    </figure>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>Soluble Boron &amp; Burnable Poisons: Slow Reactivity Control</h2>
+        <p>Control rods are excellent for fast, local adjustments, but they are a poor tool for the slow, core-wide reactivity loss that happens as fuel burns. A fresh core is loaded with far more fissile material than it needs for one critical configuration — enough excess reactivity to run 12 to 18 months. If you held all that excess down with inserted rods, the rods would badly distort the power shape and waste neutrons. Two chemistry-based tools handle the slow trend instead.</p>
+        <h3>Soluble boron: the chemical shim</h3>
+        <p>In a pressurized-water reactor the coolant doubles as the moderator and circulates everywhere, so dissolving a neutron absorber in it spreads the absorption uniformly across the whole core without distorting the flux shape. <strong>Boric acid</strong> is exactly that absorber, and the dissolved-boron concentration is called the <strong>chemical shim</strong>. At the start of a cycle the boron concentration is high — perhaps 1500 to 2000 parts per million — holding down the large excess reactivity of fresh fuel. As the fuel burns and reactivity slowly drops, operators dilute the boron a few ppm at a time to keep k<sub>eff</sub> at exactly one, with rods nearly fully withdrawn:</p>
+        <div class="eq">boron worth ~ -10 pcm per ppm  (typical)<small>Roughly linear: removing about 10 ppm of boron adds about +100 pcm of reactivity. Concentration falls from ~1800 ppm to near 0 over a cycle.</small></div>
+        <h3>Burnable poisons</h3>
+        <p>Boron alone cannot hold down <em>all</em> of beginning-of-cycle excess — too much dissolved boron can drive the moderator temperature coefficient positive, which is unsafe. So designers also build fixed <strong>burnable poisons</strong> — gadolinium or boron compounds blended into selected fuel rods or as discrete absorber rods. These absorb neutrons strongly when fresh, suppressing early reactivity, then <em>burn out</em> (transmute into weak absorbers) at roughly the same rate the fuel depletes. The net effect is to flatten the reactivity-versus-time curve and let designers shape the local power distribution, putting extra poison where the fuel is freshest and hottest.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Managing a cycle's reactivity is like flying a long route on a single tank of fuel. The control rods are the yoke — quick, precise, for immediate maneuvers. Soluble boron is the throttle trim you ease open as the plane burns off weight and wants to climb. Burnable poisons are ballast that slowly evaporates: heavy at takeoff to counter a full fuel load, gone by the time the tanks are nearly empty. All three together keep you level for the entire flight without fighting the controls.</div>
+    </section>
+
+    <!-- FIGURE 2: reactivity balance over a cycle -->
+    <figure class="fig">
+        <svg viewBox="0 0 560 300" role="img" aria-label="Stacked reactivity control over a fuel cycle: fuel excess reactivity falls linearly from beginning to end of cycle; it is held down by a shrinking burnable-poison contribution early and a steadily diluted soluble-boron contribution, so net reactivity stays at zero throughout.">
+            <!-- axes -->
+            <line x1="60" y1="250" x2="530" y2="250" stroke="#94b8a2" stroke-width="1.5"/>
+            <line x1="60" y1="250" x2="60" y2="40" stroke="#94b8a2" stroke-width="1.5"/>
+            <text x="295" y="285" fill="#94b8a2" font-size="12" text-anchor="middle">Time through cycle  (BOC -> EOC)</text>
+            <text x="22" y="150" fill="#94b8a2" font-size="12" text-anchor="middle" transform="rotate(-90 22 150)">reactivity held down</text>
+            <text x="75" y="266" fill="#94b8a2" font-size="10" text-anchor="middle">BOC</text>
+            <text x="515" y="266" fill="#94b8a2" font-size="10" text-anchor="middle">EOC</text>
+            <!-- total excess fuel reactivity (green descending line) -->
+            <line x1="60" y1="60" x2="510" y2="240" stroke="#34d399" stroke-width="3"/>
+            <text x="120" y="52" fill="#34d399" font-size="11" text-anchor="start">fuel excess reactivity</text>
+            <!-- burnable poison contribution: large at BOC, gone by mid (amber) -->
+            <path d="M 60,60 L 130,120 L 200,175 L 270,228 L 300,240"
+                  fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+            <text x="150" y="135" fill="#fbbf24" font-size="10" text-anchor="start">burnable poison</text>
+            <text x="150" y="148" fill="#fbbf24" font-size="10" text-anchor="start">(burns out)</text>
+            <!-- soluble boron: fills remaining gap, diluted to zero by EOC (blue) -->
+            <path d="M 60,155 L 150,178 L 250,205 L 360,227 L 460,240 L 510,243"
+                  fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-dasharray="6 4"/>
+            <text x="300" y="195" fill="#60a5fa" font-size="10" text-anchor="start">soluble boron (diluted)</text>
+            <!-- net line at zero -->
+            <line x1="60" y1="250" x2="510" y2="250" stroke="#6ee7b7" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <text x="400" y="245" fill="#6ee7b7" font-size="10" text-anchor="middle">net rho = 0 (critical)</text>
+        </svg>
+        <figcaption>Over a fuel cycle the fuel's <span style="color:#34d399">excess reactivity</span> falls steadily as fuel depletes. Early on, <span style="color:#fbbf24">burnable poison</span> absorbs the largest share and then burns out; <span style="color:#60a5fa">soluble boron</span> is diluted to track the remainder. Together they hold net reactivity at zero (critical) from beginning to end of cycle.</figcaption>
+    </figure>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>Shutdown Margin &amp; the Xenon Transient</h2>
+        <p>Two harder ideas round out reactor control. The first is a safety requirement; the second is the most notorious dynamic poison in reactor physics.</p>
+        <h3>Shutdown margin</h3>
+        <p>It is not enough that the reactor <em>can</em> be shut down — it must be guaranteed to stay shut down even in the worst plausible case. <strong>Shutdown margin (SDM)</strong> is the amount of negative reactivity by which the core is subcritical after a full scram (all rods dropped) <em>with the single highest-worth rod assumed stuck fully out</em>. That "stuck-rod" assumption is the conservative heart of the definition:</p>
+        <div class="eq">SDM = |rho_subcritical|  with most-reactive rod stuck out<small>Must remain more negative than a required minimum (e.g. 1000-2000 pcm) at all times. Also accounts for cooldown adding positive reactivity.</small></div>
+        <p>SDM must hold across the whole cycle and must allow for the positive reactivity added when the core cools down and xenon decays away. If a planned condition would violate the minimum SDM, the plant cannot proceed to it. This is why operators continuously track rod positions and boron concentration: both feed the running SDM calculation.</p>
+        <h3>The xenon-135 transient</h3>
+        <p>Xenon-135 is the single strongest neutron absorber that arises naturally in an operating core, with an absorption cross-section of roughly 2.6 million barns. It is produced two ways: directly from fission (a little) and, more importantly, from the beta decay of iodine-135 (half-life ~6.7 h), which is itself a fission product. Xenon-135 is destroyed two ways: by its own beta decay (half-life ~9.2 h) and by absorbing a neutron and transmuting to xenon-136. The competition between these production and loss paths is what makes xenon so troublesome:</p>
+        <div class="eq">I-135  --(beta, ~6.7 h)-->  Xe-135  --(beta, ~9.2 h)-->  Cs-135
+Xe-135 + n -> Xe-136  (burnup, fast only while flux is high)<small>At steady high power, neutron burnup removes Xe-135 quickly. Drop the power and that burnup path shuts off while iodine keeps feeding xenon.</small></div>
+        <p>Here is the trap. When a reactor running at high power suddenly reduces power, the neutron flux drops, so the burnup path that was destroying xenon nearly shuts off. But the large inventory of iodine-135 built up at high power keeps decaying into <em>more</em> xenon. For several hours the xenon concentration <strong>rises</strong> even though power has fallen — a "xenon peak" that adds a large slug of negative reactivity. To stay critical the operator must withdraw rods or dilute boron to compensate. Then, hours later, as the iodine source depletes and xenon decays, the negative reactivity unwinds and the operator must reinsert reactivity. After a full shutdown the peak can be so deep that there is not enough excess reactivity to restart for many hours — the reactor is <strong>xenon-precluded</strong> (in operator slang, a "xenon dead time").</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do <strong>not</strong> assume xenon poisoning goes <em>down</em> right after you reduce power. The opposite happens: xenon first <strong>rises</strong> for several hours because the iodine-135 already in the core keeps decaying into xenon while the neutron-burnup removal path has been switched off by the lower flux. Mistaking the direction of the transient is exactly the kind of error that, combined with operator actions that defeated safety features, contributed to the most severe reactor accidents in history.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — reactivity of a rod withdrawal, in pcm and dollars</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A reactor is exactly critical (k<sub>eff</sub> = 1.00000). An operator withdraws a control bank from a region of its travel where the integral worth curve has a local slope of 8 pcm/cm, moving it 15 cm. Take the delayed-neutron fraction β = 0.0065. Find the inserted reactivity in pcm, in absolute ρ, and in dollars, and state whether the reactor is prompt critical.</p>
+        <ol>
+            <li><strong>Reactivity added (pcm):</strong> 8 pcm/cm &times; 15 cm = <strong>120 pcm</strong> of positive reactivity (rods out = +ρ).</li>
+            <li><strong>Convert to absolute ρ:</strong> 1 pcm = 10<sup>-5</sup>, so Δρ = 120 &times; 10<sup>-5</sup> = <strong>0.00120</strong>.</li>
+            <li><strong>Convert to dollars:</strong> ρ[$] = Δρ / β = 0.00120 / 0.0065 &approx; <strong>$0.185</strong>, or about 18.5 cents.</li>
+            <li><strong>Prompt-critical check:</strong> $0.185 is far below $1.00, so the reactor stays well within the delayed-neutron-controlled regime — the power rise is slow and easily managed. It is <strong>not</strong> prompt critical.</li>
+            <li><strong>New k<sub>eff</sub> (approx):</strong> from ρ = (k&minus;1)/k with ρ = 0.00120, k &approx; 1/(1&minus;0.00120) &approx; <strong>1.00120</strong> — a tiny supercritical step, exactly the size of adjustment routine control demands.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate the xenon transient in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This course's design work runs on a free stack — <code>FreeCAD</code> and <code>Salome-Meca</code> for geometry and structural/thermal models, plus <code>Python</code> and <code>NumPy</code> for the physics. (See the Week 1–2 lectures for the one-time install of the full stack.) The iodine-xenon dynamics are just two coupled ordinary differential equations, so plain NumPy is all we need here — no extra tools to install.</p>
+        <pre><span class="c"># xenon_transient.py — Lecture 5</span>
+<span class="c"># Iodine-135 / Xenon-135 inventory after a step power reduction.</span>
+import numpy as np
+
+<span class="c"># Decay constants (1/s)</span>
+lam_I  = np.log(2) / (6.7 * 3600.0)    <span class="c"># I-135 half-life 6.7 h</span>
+lam_Xe = np.log(2) / (9.2 * 3600.0)    <span class="c"># Xe-135 half-life 9.2 h</span>
+
+<span class="c"># Fission yields and cross sections (representative)</span>
+gamma_I  = 0.061      <span class="c"># I-135 yield per fission</span>
+gamma_Xe = 0.003      <span class="c"># direct Xe-135 yield per fission</span>
+sigma_a  = 2.6e-18    <span class="c"># Xe-135 absorption (cm^2 ~ 2.6e6 barns)</span>
+Sigma_f  = 0.07       <span class="c"># macroscopic fission cross section (1/cm)</span>
+
+def flux(t):
+    <span class="c"># 100% power until t=0, then step down to 20%</span>
+    return 3.0e13 if t &lt; 0 else 0.6e13   <span class="c"># n/cm^2/s</span>
+
+def derivs(I, Xe, phi):
+    dI  = gamma_I * Sigma_f * phi - lam_I * I
+    dXe = (gamma_Xe * Sigma_f * phi + lam_I * I
+           - lam_Xe * Xe - sigma_a * phi * Xe)
+    return dI, dXe
+
+<span class="c"># Start from the steady state at full power</span>
+phi0 = 3.0e13
+I  = gamma_I * Sigma_f * phi0 / lam_I
+Xe = (gamma_Xe * Sigma_f * phi0 + lam_I * I) / (lam_Xe + sigma_a * phi0)
+
+dt = 10.0                          <span class="c"># s</span>
+Xe0 = Xe
+peak = Xe; t_peak = 0.0
+for step in range(int(40 * 3600 / dt)):   <span class="c"># 40 hours</span>
+    t = step * dt
+    phi = flux(t)
+    dI, dXe = derivs(I, Xe, phi)
+    I  += dI  * dt
+    Xe += dXe * dt
+    if Xe &gt; peak:
+        peak = Xe; t_peak = t / 3600.0
+
+print(f"Xe peak / initial = {peak / Xe0:.2f}  at  t = {t_peak:.1f} h")
+<span class="c"># Xe peak / initial = 1.40  at  t = 7.6 h</span>
+<span class="c"># Xenon RISES ~40% and peaks ~7-8 h AFTER the power cut, then decays.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The result captures the whole lesson of 5.4: after the power drop, xenon climbs for hours before it falls. Multiply the xenon excess by sigma_a and the flux to turn it into a reactivity penalty, and you have the negative-reactivity slug the operator must chase with rods or boron.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The reactivity balance you have just learned is the control side of the safety story. In <strong>Week 6</strong> we put a containment around all of this and study the structures that hold the line when control fails. Later in this course, the rod-worth and boron curves feed directly into the <strong>transient and accident analysis</strong> weeks, where the same ODEs you ran for xenon are coupled to thermal-hydraulics to model scrams and loss-of-flow events. And in the advanced reactor-physics course, the flux-shaped rod worth of section 5.2 becomes a full spatial-kinetics problem — the differential worth curve you sketched here is the eigenfunction-weighted perturbation integral computed in earnest.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A reactor has k<sub>eff</sub> = 1.0020. Approximately what is its reactivity in pcm?</div>
+            <div class="opt"><b>A.</b> About 200 pcm</div>
+            <div class="opt"><b>B.</b> About 20 pcm</div>
+            <div class="opt"><b>C.</b> About 2000 pcm</div>
+            <div class="opt"><b>D.</b> About 0.002 pcm</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> ρ = (k&minus;1)/k = 0.0020/1.0020 ≈ 0.001996 ≈ 200 pcm (since 1 pcm = 10<sup>-5</sup>). (B) and (C) are off by a factor of ten; (D) confuses ρ itself (0.002) with pcm.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A control rod has its greatest differential worth (most reactivity per centimeter of travel) when its tip is…</div>
+            <div class="opt"><b>A.</b> at the very top of the core, just entering</div>
+            <div class="opt"><b>B.</b> at the very bottom of the core</div>
+            <div class="opt"><b>C.</b> near the core midplane, where the neutron flux is highest</div>
+            <div class="opt"><b>D.</b> the same everywhere; rod worth is constant</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Differential worth tracks the local flux (roughly phi squared), which peaks at the midplane, giving the steep middle of the S-curve. (A) and (B) are the low-flux ends where worth per cm is small; (D) is the classic mistake — worth is strongly position-dependent.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> What is the primary role of soluble boron (chemical shim) in a pressurized-water reactor?</div>
+            <div class="opt"><b>A.</b> To provide fast, localized reactivity changes for load-following</div>
+            <div class="opt"><b>B.</b> To compensate uniformly for the slow loss of reactivity as fuel burns over a cycle</div>
+            <div class="opt"><b>C.</b> To act as the primary fast-shutdown system in place of rods</div>
+            <div class="opt"><b>D.</b> To increase the moderating power of the coolant</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Dissolved boron spreads absorption uniformly and is diluted slowly to track fuel depletion over months. (A) describes control rods; (C) boron is far too slow to add/remove for fast shutdown — that is the rods' job; (D) boron absorbs neutrons, it does not improve moderation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Shutdown margin is conservatively defined assuming which condition?</div>
+            <div class="opt"><b>A.</b> All control rods successfully insert on a scram</div>
+            <div class="opt"><b>B.</b> The boron concentration is at its cycle maximum</div>
+            <div class="opt"><b>C.</b> Xenon is at its peak negative-reactivity value</div>
+            <div class="opt"><b>D.</b> The single highest-worth control rod is stuck fully withdrawn</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> SDM assumes the most reactive rod fails to insert — the worst single failure — and still requires the core to be subcritical by a set minimum. (A) is the non-conservative best case, not the design basis; (B) and (C) would actually <em>add</em> negative reactivity and make shutdown easier, so they are not the limiting assumption.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Several hours after a reactor steps down from full power to a lower power, what does the xenon-135 concentration do, and why?</div>
+            <div class="opt"><b>A.</b> Falls immediately, because less fission means less xenon is produced</div>
+            <div class="opt"><b>B.</b> Stays constant, because xenon is in equilibrium at any power</div>
+            <div class="opt"><b>C.</b> Rises forever, because xenon is a stable end product</div>
+            <div class="opt"><b>D.</b> Rises, then later falls, because neutron burnup of xenon drops while iodine-135 keeps decaying into xenon</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Lower flux nearly shuts off the neutron-burnup loss path, while the iodine-135 inventory built up at high power keeps decaying into xenon — so xenon rises for hours (the peak), then decays away. (A) ignores the iodine source; (B) equilibrium depends on power, so a step breaks it; (C) xenon-135 is radioactive (~9.2 h) and decays, it is not stable.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined <b>reactivity</b> ρ = (k&minus;1)/k and worked in <b>pcm</b> and <b>dollars</b>, with $1 = β marking the prompt-critical limit.</li>
+            <li>Explained <b>control-rod worth</b>, the flux-shaped S-curve, and why rods move in sequenced <b>banks</b>.</li>
+            <li>Described <b>soluble boron</b> as a uniform chemical shim diluted across a cycle, and <b>burnable poisons</b> that hold down and flatten early reactivity.</li>
+            <li>Defined <b>shutdown margin</b> with its conservative stuck-rod assumption.</li>
+            <li>Traced the <b>xenon-135 transient</b> — why xenon rises after a power cut — and simulated it in Python.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: Containment &amp; Structures. We surround the controlled core with the engineered barriers that contain radioactivity and withstand the worst-case pressures and loads.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-steam-generators-secondary.html"><div class="dir">← Week 4</div><div class="ttl">Steam Generators &amp; Secondary Loop</div></a>
+        <a class="next" href="l06-containment-structures.html"><div class="dir">Week 6 →</div><div class="ttl">Containment &amp; Structures</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Reactor Systems</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Lecture 6 — RTL Synthesis</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; } .objectives li { font-size: .92rem; margin-bottom: 5px; }
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; } .key { color: var(--accent2); font-weight: 600; }
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; } .worked li { margin-bottom: 6px; }
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; } .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; } .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .quiz { margin: 48px 0 24px; } .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; } .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); } .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; } .q details .ans { color: var(--green); font-weight: 700; }
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08121a; border-color: var(--accent); } .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); } .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); } .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; } .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; } .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; } .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .data-note { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; } .lec-nav a.next { text-align: right; }
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C4 VLSI</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>RTL Synthesis</h1>
+        <p class="sub">Turning RTL into a gate-level netlist — and why your constraints, not just your code, decide the chip.</p>
+    </div>
+</header>
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain what logic synthesis does: RTL in, a gate-level netlist of standard cells out.</li>
+            <li>Walk through the synthesis steps: elaborate → generic logic → technology-map → optimize.</li>
+            <li>Describe how timing/area/power constraints steer the trade-offs the tool makes.</li>
+            <li>Define a standard-cell library (<code>.lib</code>) and the timing/area/power data it holds.</li>
+            <li>Predict how the same RTL produces different netlists under different constraints.</li>
+        </ul>
+    </div>
+
+    <section class="lec">
+        <h2><span class="n">6.1</span>What Synthesis Does</h2>
+        <p>Logic <span class="key">synthesis</span> translates your RTL (Verilog/VHDL describing behavior at the register-transfer level) into a <strong>gate-level netlist</strong> — a concrete list of interconnected logic gates and flip-flops. Those gates aren't abstract: they're drawn from a <strong>standard-cell library</strong>, a <code>.lib</code> file that holds each cell's timing, area, and power characteristics for a specific manufacturing process.</p>
+        <p>So synthesis is the bridge from "what the circuit should do" (RTL) to "which real cells implement it" (netlist). Everything downstream — placement, routing, timing sign-off — operates on that netlist of actual library cells.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 220" role="img" aria-label="Synthesis flow: RTL plus constraints plus dot-lib library feed into a Yosys synthesis block, which produces a gate netlist">
+                <rect x="20" y="40" width="150" height="42" rx="8" fill="#1c2c3e" stroke="#60a5fa" stroke-width="1.6"/>
+                <text x="95" y="66" fill="#cfe0f2" font-size="12" text-anchor="middle">RTL (Verilog)</text>
+                <rect x="20" y="90" width="150" height="42" rx="8" fill="#1c2c3e" stroke="#60a5fa" stroke-width="1.6"/>
+                <text x="95" y="116" fill="#cfe0f2" font-size="12" text-anchor="middle">constraints</text>
+                <rect x="20" y="140" width="150" height="42" rx="8" fill="#1c2c3e" stroke="#60a5fa" stroke-width="1.6"/>
+                <text x="95" y="166" fill="#cfe0f2" font-size="12" text-anchor="middle">.lib library</text>
+                <line x1="170" y1="61" x2="248" y2="100" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#ar)"/>
+                <line x1="170" y1="111" x2="248" y2="111" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#ar)"/>
+                <line x1="170" y1="161" x2="248" y2="122" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#ar)"/>
+                <rect x="250" y="86" width="150" height="50" rx="10" fill="#0d2230" stroke="#22d3ee" stroke-width="2"/>
+                <text x="325" y="106" fill="#67e8f9" font-size="13" text-anchor="middle" font-weight="bold">Yosys</text>
+                <text x="325" y="123" fill="#94a8bc" font-size="11" text-anchor="middle">(synthesis)</text>
+                <line x1="400" y1="111" x2="470" y2="111" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#ar)"/>
+                <rect x="472" y="86" width="78" height="50" rx="10" fill="#1c2c3e" stroke="#34d399" stroke-width="2"/>
+                <text x="511" y="107" fill="#6ee7b7" font-size="11" text-anchor="middle">gate</text>
+                <text x="511" y="123" fill="#6ee7b7" font-size="11" text-anchor="middle">netlist</text>
+                <defs>
+                    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#94a8bc"/></marker>
+                </defs>
+            </svg>
+            <figcaption>Synthesis takes three inputs — RTL, constraints, and a standard-cell library — and emits a gate-level netlist.</figcaption>
+        </figure>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.2</span>The Synthesis Steps</h2>
+        <p>Under the hood, synthesis is a pipeline of distinct stages:</p>
+        <p><strong>1. Elaborate the RTL.</strong> Parse the HDL, resolve parameters and generate-blocks, and build an internal representation of the design's logic and registers.</p>
+        <p><strong>2. Build generic logic.</strong> Convert that behavior into technology-independent logic — generic gates, adders, muxes, and registers — without yet committing to any real cell.</p>
+        <p><strong>3. Technology-map.</strong> Map the generic logic onto the actual cells in the <code>.lib</code> library: each chunk of logic is matched to NANDs, NORs, AOIs, flip-flops, etc. that exist in the target process.</p>
+        <p><strong>4. Optimize.</strong> Restructure, resize, and re-map cells to meet the constraints — collapsing redundant logic, buffering long paths, and swapping cell sizes to hit timing, area, or power targets.</p>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.3</span>Optimizing for Area, Power &amp; Timing</h2>
+        <p>The optimizer doesn't have a single "right" answer — it has a <strong>goal you hand it</strong>. The <span class="key">constraints</span> you provide (most importantly the clock period, plus area and power budgets) tell the tool what to trade against what. A tight clock forces it to spend area and power buying speed; a loose clock lets it shrink the design.</p>
+        <p>The consequence is fundamental: the <strong>same RTL produces different netlists under different constraints</strong>. The HDL describes the function; the constraints describe the goal; only together do they determine the gates you actually get.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Synthesis is a translator <em>plus</em> optimizer. It takes your intent (the RTL) and renders it in the best available "words" — the standard cells — for the goal you set. Ask the same translator for the <em>fastest</em> phrasing, the <em>shortest</em>, or the <em>quietest</em>, and you get three different sentences from one identical intent. The constraints are the brief you give the translator.</div>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">6.4</span>The Standard-Cell Library</h2>
+        <p>A <span class="key">standard-cell library</span> is a set of pre-designed, pre-characterized logic cells — inverters, NANDs, NORs, AOI/OAI gates, multiplexers, flip-flops, and more — each available in several drive strengths (sizes). For every cell the <code>.lib</code> file records its <strong>delay</strong> (as a function of load and input slew), its <strong>area</strong>, and its <strong>power</strong>.</p>
+        <p>Synthesis uses that data to choose <em>which</em> cell and <em>what size</em> at each point in the netlist. A bigger drive-strength cell switches faster but costs more area and leakage; a smaller one saves area and power but is slower. Picking and sizing cells against the library's numbers is exactly how the optimizer hits your targets.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Synthesis output is decided by the <strong>constraints</strong>, not the RTL alone. The same RTL with a tight clock gives a bigger, faster netlist; with a loose clock, a smaller one. The tool also needs a target standard-cell library <em>and</em> a clock constraint to do anything meaningful — without them it has no cells to map to and no goal to optimize for. And synthesis is <em>not</em> simulation: it builds hardware, it doesn't run your testbench.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Take one fixed piece of RTL — say, a 32-bit adder, <code>assign sum = a + b;</code> — and synthesize it twice against the same cell library but with different clock constraints. Watch the netlist change.</p>
+        <ol>
+            <li><strong>Loose clock (5 ns).</strong> The path has plenty of time, so the tool picks the cheapest implementation that still meets timing — a small, slow <strong>ripple-carry-style</strong> adder using minimum-size cells. Result: <strong>low area, low power</strong>.</li>
+            <li><strong>Tight clock (1 ns).</strong> A ripple-carry chain can't propagate the carry in time, so the optimizer restructures the carry logic into a faster, more parallel <strong>carry-lookahead-style</strong> structure and upsizes cells on the critical path. Result: <strong>more cells, bigger cells — more area and power</strong>.</li>
+            <li><strong>Takeaway.</strong> Identical RTL, identical library, two different chips. The <strong>timing constraint alone</strong> drove the change — which is why you can't judge the RTL without knowing the constraints it'll be synthesized under.</li>
+        </ol>
+    </div>
+    <figure class="fig">
+        <svg viewBox="0 0 560 230" role="img" aria-label="One RTL source branches to two outcomes: an area-optimized small netlist with few small cells, and a timing-optimized larger netlist with more bigger cells">
+            <rect x="20" y="92" width="120" height="46" rx="8" fill="#1c2c3e" stroke="#22d3ee" stroke-width="1.8"/>
+            <text x="80" y="112" fill="#67e8f9" font-size="12" text-anchor="middle">same RTL</text>
+            <text x="80" y="128" fill="#94a8bc" font-size="11" text-anchor="middle">(one adder)</text>
+            <line x1="140" y1="105" x2="228" y2="58" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#ar2)"/>
+            <line x1="140" y1="125" x2="228" y2="172" stroke="#94a8bc" stroke-width="1.6" marker-end="url(#ar2)"/>
+            <text x="178" y="68" fill="#6ee7b7" font-size="10">loose clk</text>
+            <text x="178" y="182" fill="#fbbf24" font-size="10">tight clk</text>
+            <rect x="232" y="26" width="306" height="62" rx="10" fill="#14202e" stroke="#34d399" stroke-width="1.8"/>
+            <text x="246" y="46" fill="#6ee7b7" font-size="12" font-weight="bold">area-optimized</text>
+            <rect x="246" y="56" width="22" height="20" rx="3" fill="#1c2c3e" stroke="#34d399" stroke-width="1.2"/>
+            <rect x="276" y="56" width="22" height="20" rx="3" fill="#1c2c3e" stroke="#34d399" stroke-width="1.2"/>
+            <rect x="306" y="56" width="22" height="20" rx="3" fill="#1c2c3e" stroke="#34d399" stroke-width="1.2"/>
+            <text x="430" y="71" fill="#94a8bc" font-size="10" text-anchor="middle">few / small cells</text>
+            <rect x="232" y="142" width="306" height="74" rx="10" fill="#14202e" stroke="#fbbf24" stroke-width="1.8"/>
+            <text x="246" y="162" fill="#fbbf24" font-size="12" font-weight="bold">timing-optimized</text>
+            <rect x="246" y="172" width="30" height="30" rx="3" fill="#1c2c3e" stroke="#fbbf24" stroke-width="1.2"/>
+            <rect x="284" y="172" width="30" height="30" rx="3" fill="#1c2c3e" stroke="#fbbf24" stroke-width="1.2"/>
+            <rect x="322" y="172" width="30" height="30" rx="3" fill="#1c2c3e" stroke="#fbbf24" stroke-width="1.2"/>
+            <rect x="360" y="172" width="30" height="30" rx="3" fill="#1c2c3e" stroke="#fbbf24" stroke-width="1.2"/>
+            <text x="468" y="190" fill="#94a8bc" font-size="10" text-anchor="middle">more / bigger cells</text>
+            <defs>
+                <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#94a8bc"/></marker>
+            </defs>
+        </svg>
+        <figcaption>One RTL source, two netlists: a loose clock yields a small area-optimized result; a tight clock yields a larger timing-optimized one.</figcaption>
+    </figure>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: synthesize with Yosys, then tighten the clock</h3>
+        <p>Yosys is the open-source synthesis tool. Synthesize a small module against a cell library, note the reported cell count and area, then re-run with a tighter clock target and compare.</p>
+        <pre><span class="c"># synth.ys — synthesize an adder with Yosys (Lecture 6)</span>
+read_verilog adder.v
+hierarchy -top adder
+synth -top adder
+dfflibmap -liberty sky130.lib   <span class="c">; map flip-flops to the library</span>
+abc -liberty sky130.lib -D 5000 <span class="c">; -D = target delay in ps (5 ns, loose)</span>
+stat -liberty sky130.lib        <span class="c">; report cell count + area</span></pre>
+        <p>Now re-run with <code>-D 1000</code> (a 1 ns target) and compare the <code>stat</code> output. The tighter target should report <em>more cells and larger area</em> — same RTL, different netlist, driven entirely by the constraint.</p>
+    </div>
+
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Logic synthesis…</div>
+            <div class="opt"><b>A.</b> translates RTL into a gate-level netlist of standard cells</div>
+            <div class="opt"><b>B.</b> places and routes the cells</div>
+            <div class="opt"><b>C.</b> simulates the testbench</div>
+            <div class="opt"><b>D.</b> draws the layout polygons</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Synthesis maps your RTL onto real library cells, producing a gate-level netlist. Placement/routing, simulation, and layout are separate steps.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The standard-cell library (<code>.lib</code>) provides…</div>
+            <div class="opt"><b>A.</b> the RTL source</div>
+            <div class="opt"><b>B.</b> each cell's timing, area, and power</div>
+            <div class="opt"><b>C.</b> the floorplan</div>
+            <div class="opt"><b>D.</b> the clock waveform</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The <code>.lib</code> characterizes every cell's delay, area, and power so the optimizer can pick and size cells.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The same RTL can produce different netlists depending on…</div>
+            <div class="opt"><b>A.</b> the file name</div>
+            <div class="opt"><b>B.</b> the simulator used</div>
+            <div class="opt"><b>C.</b> the constraints (timing/area/power targets)</div>
+            <div class="opt"><b>D.</b> the monitor resolution</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The optimizer is goal-driven, so the constraints — not the filename or tooling around it — decide the resulting gates.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the open-source flow, synthesis is performed by…</div>
+            <div class="opt"><b>A.</b> Yosys</div>
+            <div class="opt"><b>B.</b> OpenROAD</div>
+            <div class="opt"><b>C.</b> KLayout</div>
+            <div class="opt"><b>D.</b> GTKWave</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Yosys is the synthesis tool. OpenROAD does place-and-route, KLayout views/edits layout, and GTKWave displays simulation waveforms.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q5.</span> To optimize for speed, synthesis tends to…</div>
+            <div class="opt"><b>A.</b> remove flip-flops</div>
+            <div class="opt"><b>B.</b> lower the clock</div>
+            <div class="opt"><b>C.</b> use larger/faster (and more) cells, at the cost of area and power</div>
+            <div class="opt"><b>D.</b> shrink the die automatically</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Hitting a tight clock means upsizing cells and adding parallel logic — buying speed with area and power.</p></details>
+        </div>
+    </div>
+
+    <!-- DISCUSSION 2 -->
+    <div class="discussion">
+        <div class="disc-head"><span class="wkbadge">Discussion 2 · Week 6</span><h2>💬 Discuss &amp; get feedback</h2></div>
+        <div class="disc-item" data-disc="c4-l6-d2">
+            <p class="disc-prompt" id="prompt-c4l6">Synthesis turns the same RTL into very different gate-level chips depending on the constraints you give it. What does synthesis actually do, and why is it impossible to judge RTL quality without also specifying the constraints and the target standard-cell library?</p>
+            <textarea id="ans-c4l6" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta"><span class="saved-note" id="saved-c4l6">Not saved yet</span><span class="toast" id="toast-c4l6"></span></div>
+            <div class="disc-model" id="model-c4l6" hidden>
+                <h4>Model response</h4>
+                <p>Synthesis <strong>elaborates</strong> the RTL into generic logic, <strong>technology-maps</strong> that logic onto a specific process's standard cells, and <strong>optimizes</strong> the result against your constraints using the library's timing/area/power data. Because the optimization is goal-driven, the "best" netlist is entirely goal-dependent: a tight clock pushes the tool toward bigger, faster cells and more parallel structures (more area and power), while a loose clock yields a smaller, lower-power result from identical RTL.</p>
+                <p>So the RTL alone does not determine the chip — the <strong>constraints and the target library do</strong>. Judging RTL "quality" without knowing the clock target, the area/power budget, and the cell library is meaningless, because the same code can be excellent for one set of constraints and poor for another.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Synthesis = elaborate → technology-map to cells → optimize</li>
+                    <li>Constraints (clock/area/power) drive the trade-off, so the same RTL → different chips</li>
+                    <li>It also needs the target standard-cell library, so RTL can't be judged in isolation</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="data-note">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty. The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Synthesis</b> translates RTL into a gate-level netlist built from a standard-cell library.</li>
+            <li>The steps: <b>elaborate</b> the RTL → build generic logic → <b>technology-map</b> onto cells → <b>optimize</b>.</li>
+            <li>The <b>constraints</b> (clock period, area, power) steer the trade-offs, so the same RTL yields different netlists.</li>
+            <li>A <b>standard-cell library (.lib)</b> characterizes each cell's delay, area, and power; synthesis selects and sizes cells to hit your goals.</li>
+            <li>Ran <b>Yosys</b> on an adder and saw cell count/area grow when the clock target tightened.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: Static Timing Analysis — checking that every path meets its setup and hold timing across the netlist.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l05-sequential-memory.html"><div class="dir">← Week 5</div><div class="ttl">Sequential Logic &amp; Memory</div></a>
+        <a href="l07-timing-analysis.html" class="next"><div class="dir">Week 7 →</div><div class="ttl">Static Timing Analysis</div></a>
+    </div>
+</div>
+<footer>
+    <p><a href="../index.html">← C4 VLSI</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => { const h = document.documentElement; bar.style.width = (h.scrollTop)/(h.scrollHeight - h.clientHeight)*100 + '%'; });
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my VLSI / digital-design tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\nMY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) { const t = item.querySelector('.toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500); }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.')); }
+        else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) { const item = btn.closest('.disc-item'); const full = buildPrompt(item); copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.'); window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener'); }
+    function copyForAI(btn) { const item = btn.closest('.disc-item'); copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.'); }
+    function toggleModel(btn) { const m = btn.closest('.disc-item').querySelector('.disc-model'); if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; } else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; } }
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => { localStorage.setItem(key, t.value); if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet'; });
+    });
+</script>
+</body>
+</html>

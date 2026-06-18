@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Economics C4 · Lecture 5 — Matching &amp; Propensity Scores</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.28); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #5f7191; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #161a30, #1a1d3a); border: 1px solid #2f3360; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #cdd0ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C4 Causal Inference</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Matching &amp; Propensity Scores</h1>
+        <p class="sub">If you can't randomize, the next best thing is to build a fair comparison by hand — pairing each treated unit with the control it could have been.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why matching treated and control units on covariates removes confounding under selection-on-observables.</li>
+            <li>Perform nearest-neighbor matching and reason about distance metrics and the curse of dimensionality.</li>
+            <li>Define the propensity score and use it for matching and inverse-probability weighting.</li>
+            <li>State the common-support / overlap requirement and diagnose violations.</li>
+            <li>Check covariate balance after matching and explain how matching relates to regression adjustment.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>Matching: Building the Counterfactual by Hand</h2>
+        <p>Last week (Lecture 4) you adjusted for confounders with a regression that <em>models</em> the outcome as a smooth function of covariates. <strong>Matching</strong> takes a more direct, model-light route: for every treated unit, find an untreated unit that looks the same on the observed covariates <span class="key">X</span> and compare their outcomes. If two job-training participants and non-participants are identical in age, education, prior earnings, and region, then the difference in their later earnings is plausibly the <em>effect of training</em> rather than a difference in who they were to begin with.</p>
+        <p>This works only under the same identifying assumption from Week 3 — <strong>unconfoundedness</strong> (a.k.a. selection on observables): once we condition on <span class="key">X</span>, treatment is as good as randomly assigned.</p>
+        <div class="eq">{ Y(1), Y(0) } ⊥ D | X<small>Conditional on covariates X, the potential outcomes are independent of treatment D. Within a cell of identical X, who got treated is effectively random.</small></div>
+        <p>Given that, the treatment effect for the treated population (the <strong>ATT</strong>) is the average, over treated units, of the difference between each treated unit's outcome and the outcome of its matched control:</p>
+        <div class="eq">ATT = (1/N_t) * sum over treated i of [ Y_i - Y_(j(i)) ]<small>j(i) is the control matched to treated unit i. We impute each treated unit's missing Y(0) with a comparable control's observed outcome.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Matching is like a dating app for data. Each treated unit "swipes" for the control that most resembles it — same age bracket, same background, same starting point. A randomized trial hands you perfect matches for free (randomization balances everything). With observational data you have to <em>search</em> for each unit's near-twin, and the quality of your answer is only as good as the quality of those pairings.</div>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>Nearest-Neighbor Matching &amp; the Curse of Dimensionality</h2>
+        <p>"Looks the same" needs a definition. With a single covariate it is just the closest value. With several covariates we need a <strong>distance metric</strong> on the covariate vector. The standard choice is the <strong>Mahalanobis distance</strong>, which rescales each covariate by its spread and accounts for correlations so that no single high-variance variable dominates:</p>
+        <div class="eq">d(X_i, X_j) = sqrt[ (X_i - X_j)' * S^(-1) * (X_i - X_j) ]<small>S is the covariance matrix of X. Setting S = I gives ordinary (Euclidean) distance; using S standardizes the scales.</small></div>
+        <p><strong>Nearest-neighbor (NN) matching</strong> pairs each treated unit with the control of smallest distance. Variants include matching with replacement (a good control can be reused — lowers bias, raises variance), <em>k</em>-nearest-neighbor matching (average over the <em>k</em> closest controls), and <strong>caliper</strong> matching (refuse any match farther than a threshold, to avoid forcing bad pairs).</p>
+        <p>The trouble is dimension. As the number of covariates grows, the data spread out and even the "nearest" neighbor can be far away — there is simply no control that closely resembles a given treated unit on all of <span class="key">X</span> at once. This <strong>curse of dimensionality</strong> is exactly the problem the propensity score was invented to solve.</p>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>The Propensity Score: One Number Instead of Many</h2>
+        <p>The <strong>propensity score</strong> is the probability of receiving treatment given the covariates:</p>
+        <div class="eq">e(X) = P( D = 1 | X )<small>Typically estimated with a logistic regression of treatment D on covariates X.</small></div>
+        <p>The remarkable <strong>Rosenbaum–Rubin theorem</strong> (1983) says that if treatment is unconfounded given the full vector <span class="key">X</span>, then it is also unconfounded given the single scalar <span class="key">e(X)</span>. The propensity score is a <strong>balancing score</strong>: among units with the same <span class="key">e(X)</span>, the distribution of <span class="key">X</span> is the same for treated and control. So you can collapse a high-dimensional matching problem onto one dimension and match (or stratify) on that.</p>
+        <p>Two workhorse uses follow. <strong>Propensity-score matching</strong> pairs treated and control units with similar <span class="key">e(X)</span>. <strong>Inverse-probability weighting (IPW)</strong> instead reweights everyone so the treated and control groups become comparable — upweighting controls that look "treatment-like" and treated units that look "control-like":</p>
+        <div class="eq">ATE = E[ D*Y / e(X) ] - E[ (1-D)*Y / (1 - e(X)) ]<small>Each unit is weighted by the inverse of its probability of the treatment it actually received, creating a pseudo-population in which D is independent of X.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>The propensity score is <strong>not</strong> meant to predict treatment well — a near-perfect classifier is a disaster, not a triumph. If <span class="key">e(X)</span> for some treated units is close to 1, the IPW weight 1/e(X) is fine, but the controls' weight 1/(1−e(X)) explodes and a handful of observations dominate the estimate. The goal is <em>balance</em>, not predictive accuracy. Extreme propensity scores signal an <em>overlap</em> problem, covered next.</div>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>Overlap, Balance, and the Link to Regression</h2>
+        <p>Matching and weighting only make sense where treated and control units actually <em>coexist</em>. The <strong>common-support / overlap</strong> condition requires that for every covariate value the propensity score is strictly between 0 and 1:</p>
+        <div class="eq">0 &lt; e(X) &lt; 1 for all X<small>Every unit has a positive chance of being either treated or control. Regions where one group is absent offer no valid comparison.</small></div>
+        <p>If a slice of the treated group has no comparable controls (e.g. everyone over a certain prior-earnings level was treated), there is no counterfactual to estimate there — you must either trim those units or restrict your claim to the region of overlap.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 520 280" role="img" aria-label="Two overlapping density curves of the propensity score, one for treated units shifted right and one for controls shifted left, with a shaded common-support region in the middle and non-overlap tails at the extremes.">
+                <!-- axes -->
+                <line x1="60" y1="230" x2="490" y2="230" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="60" y1="40" x2="60" y2="230" stroke="#93a8c8" stroke-width="1.5"/>
+                <text x="275" y="266" fill="#93a8c8" font-size="13" text-anchor="middle">propensity score e(X)</text>
+                <text x="30" y="135" fill="#93a8c8" font-size="13" text-anchor="middle" transform="rotate(-90 30 135)">density</text>
+                <text x="60" y="248" fill="#93a8c8" font-size="11" text-anchor="middle">0</text>
+                <text x="490" y="248" fill="#93a8c8" font-size="11" text-anchor="middle">1</text>
+                <!-- common-support shaded band -->
+                <rect x="150" y="40" width="250" height="190" fill="rgba(52,211,153,.10)"/>
+                <line x1="150" y1="40" x2="150" y2="230" stroke="#34d399" stroke-width="1.2" stroke-dasharray="4 4"/>
+                <line x1="400" y1="40" x2="400" y2="230" stroke="#34d399" stroke-width="1.2" stroke-dasharray="4 4"/>
+                <text x="275" y="58" fill="#34d399" font-size="11" text-anchor="middle">common support</text>
+                <!-- control density (shifted left), blue -->
+                <path d="M 60 230 C 140 70, 230 70, 360 230" fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+                <!-- treated density (shifted right), violet -->
+                <path d="M 190 230 C 320 70, 410 70, 490 230" fill="none" stroke="#a78bfa" stroke-width="2.5"/>
+                <!-- labels for curves -->
+                <text x="150" y="105" fill="#60a5fa" font-size="12" text-anchor="middle">controls</text>
+                <text x="410" y="105" fill="#a78bfa" font-size="12" text-anchor="middle">treated</text>
+                <!-- non-overlap tails -->
+                <text x="95" y="215" fill="#fbbf24" font-size="9.5" text-anchor="middle">no treated here</text>
+                <text x="455" y="215" fill="#fbbf24" font-size="9.5" text-anchor="middle">no controls here</text>
+            </svg>
+            <figcaption>Propensity-score densities for controls (blue) and treated (violet). Only inside the shaded common-support band do both groups exist; the amber tails have no counterfactual and are typically trimmed.</figcaption>
+        </figure>
+        <p>After matching you must <strong>check balance</strong>: did the procedure actually equalize the covariates? The standard diagnostic is the <strong>standardized mean difference (SMD)</strong> for each covariate, before vs. after matching:</p>
+        <div class="eq">SMD = ( mean_treated(X) - mean_control(X) ) / sd_pooled(X)<small>A common rule of thumb: |SMD| below 0.1 after matching indicates acceptable balance. Compare a "Love plot" of SMDs before and after.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 520 250" role="img" aria-label="A Love plot showing standardized mean differences for four covariates. Before-matching points sit far from zero; after-matching points are clustered inside the plus or minus 0.1 balance band around zero.">
+                <!-- vertical zero line and threshold lines -->
+                <line x1="270" y1="40" x2="270" y2="210" stroke="#93a8c8" stroke-width="1.5"/>
+                <line x1="240" y1="40" x2="240" y2="210" stroke="#34d399" stroke-width="1" stroke-dasharray="4 4"/>
+                <line x1="300" y1="40" x2="300" y2="210" stroke="#34d399" stroke-width="1" stroke-dasharray="4 4"/>
+                <text x="270" y="232" fill="#93a8c8" font-size="11" text-anchor="middle">standardized mean difference</text>
+                <text x="270" y="32" fill="#93a8c8" font-size="10" text-anchor="middle">0</text>
+                <text x="240" y="32" fill="#34d399" font-size="9" text-anchor="middle">-0.1</text>
+                <text x="300" y="32" fill="#34d399" font-size="9" text-anchor="middle">+0.1</text>
+                <!-- covariate rows -->
+                <text x="55" y="68" fill="#93a8c8" font-size="11" text-anchor="start">age</text>
+                <text x="55" y="108" fill="#93a8c8" font-size="11" text-anchor="start">education</text>
+                <text x="55" y="148" fill="#93a8c8" font-size="11" text-anchor="start">prior earn.</text>
+                <text x="55" y="188" fill="#93a8c8" font-size="11" text-anchor="start">region</text>
+                <!-- before points (amber, far from 0) -->
+                <circle cx="420" cy="64" r="5" fill="#fbbf24"/>
+                <circle cx="130" cy="104" r="5" fill="#fbbf24"/>
+                <circle cx="440" cy="144" r="5" fill="#fbbf24"/>
+                <circle cx="170" cy="184" r="5" fill="#fbbf24"/>
+                <!-- after points (green, near 0) -->
+                <circle cx="282" cy="64" r="5" fill="#34d399"/>
+                <circle cx="258" cy="104" r="5" fill="#34d399"/>
+                <circle cx="288" cy="144" r="5" fill="#34d399"/>
+                <circle cx="263" cy="184" r="5" fill="#34d399"/>
+                <!-- legend -->
+                <circle cx="360" cy="232" r="5" fill="#fbbf24"/>
+                <text x="370" y="236" fill="#fbbf24" font-size="10" text-anchor="start">before</text>
+                <circle cx="430" cy="232" r="5" fill="#34d399"/>
+                <text x="440" y="236" fill="#34d399" font-size="10" text-anchor="start">after</text>
+            </svg>
+            <figcaption>A "Love plot" of covariate balance. Amber dots (before matching) sit far from zero; green dots (after matching) fall inside the +/-0.1 band — evidence the match succeeded.</figcaption>
+        </figure>
+        <p><strong>How does this relate to regression?</strong> Both rely on the same unconfoundedness assumption and both estimate the same kind of adjusted effect. Regression adjustment (Lecture 4) extrapolates with a parametric model and implicitly weights observations by treatment variance; matching is nonparametric and refuses to extrapolate beyond the data's support. The modern best practice combines them: match first to enforce overlap and balance, then run a regression on the matched sample. This <strong>doubly robust</strong> idea (a regression model <em>and</em> a propensity model) is consistent if <em>either</em> model is correct — a recurring theme in the rest of this course.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — nearest-neighbor match by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A small job-training study has 2 treated and 3 control workers. We match on one covariate, <strong>prior annual earnings</strong> (in $1000s). Outcome <strong>Y</strong> is later earnings ($1000s).</p>
+        <p style="font-size:.9rem; margin-bottom:10px; color:var(--text2);">Treated: <b>T1</b> (prior=20, Y=34), <b>T2</b> (prior=30, Y=41). &nbsp; Control: <b>C1</b> (prior=18, Y=29), <b>C2</b> (prior=28, Y=33), <b>C3</b> (prior=42, Y=40).</p>
+        <ol>
+            <li><strong>Match T1 (prior=20):</strong> distances to controls are |20−18|=2, |20−28|=8, |20−42|=22. Nearest is <strong>C1</strong> (Y=29).</li>
+            <li><strong>Match T2 (prior=30):</strong> distances are |30−18|=12, |30−28|=2, |30−42|=12. Nearest is <strong>C2</strong> (Y=33).</li>
+            <li><strong>Per-pair effects:</strong> T1: 34 − 29 = <strong>+5</strong>. T2: 41 − 33 = <strong>+8</strong>.</li>
+            <li><strong>Estimated ATT:</strong> (5 + 8) / 2 = <strong>+6.5</strong> thousand dollars — the imputed effect of training on the treated.</li>
+            <li><strong>Sanity check:</strong> a naive difference in group means is (34+41)/2 − (29+33+40)/3 = 37.5 − 34 = 3.5. The naive number is smaller because C3 (prior=42) inflates the control mean — yet C3 is so dissimilar it was correctly <em>never matched</em>. That is matching doing its job: discarding the bad comparison.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: propensity scores &amp; IPW in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);">We use the course's free stack — <code>pandas</code>, <code>NumPy</code>, and <code>statsmodels</code> — from the <strong>Week 1/2 setup</strong> (the install <code>details</code> in Lectures 1–2). The only new tool here is <code>scikit-learn</code>'s <code>NearestNeighbors</code> for the matching step.</p>
+        <details class="install">
+            <summary>⬇ One extra package for this lecture: scikit-learn</summary>
+            <p>Activate the Week-1 environment, then add scikit-learn (matching utilities):</p>
+            <pre>source econ-env/bin/activate       <span class="c"># macOS / Linux</span>
+pip install scikit-learn</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import sklearn; print('ok')"</code>.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">Estimate a propensity score by logistic regression, check overlap, then compute the ATE by inverse-probability weighting.</p>
+        <pre><span class="c"># propensity.py — Lecture 5</span>
+import numpy as np, pandas as pd
+import statsmodels.api as sm
+from sklearn.neighbors import NearestNeighbors
+
+rng = np.random.default_rng(4)
+n = 2000
+age   = rng.normal(40, 10, n)
+educ  = rng.normal(12, 3, n)
+<span class="c"># treatment depends on covariates -> confounding</span>
+lin   = -6 + 0.10*age + 0.20*educ
+p     = 1/(1 + np.exp(-lin))
+D     = rng.binomial(1, p)
+<span class="c"># true treatment effect = 5; outcome also depends on covariates</span>
+Y     = 10 + 5*D + 0.8*age + 1.2*educ + rng.normal(0, 5, n)
+df = pd.DataFrame(dict(Y=Y, D=D, age=age, educ=educ))
+
+<span class="c"># 1) estimate propensity score e(X) by logistic regression</span>
+X = sm.add_constant(df[['age','educ']])
+ps_model = sm.Logit(df['D'], X).fit(disp=0)
+df['e'] = ps_model.predict(X)
+
+<span class="c"># 2) check overlap: trim units outside common support</span>
+lo, hi = df.loc[df.D==1,'e'].min(), df.loc[df.D==0,'e'].max()
+df = df[(df.e &gt;= lo) &amp; (df.e &lt;= hi)].copy()
+
+<span class="c"># 3) inverse-probability weighting estimate of the ATE</span>
+<span class="c"># weight each unit by 1/P(treatment it actually got)</span>
+mu1 = np.average(df.loc[df.D==1,'Y'], weights=1/df.loc[df.D==1,'e'])
+mu0 = np.average(df.loc[df.D==0,'Y'], weights=1/(1-df.loc[df.D==0,'e']))
+print(f"naive diff : {df[df.D==1].Y.mean() - df[df.D==0].Y.mean():.2f}")
+print(f"IPW ATE    : {mu1 - mu0:.2f}")   <span class="c"># ~5, recovering the truth</span>
+
+<span class="c"># 4) nearest-neighbor match on the propensity score (ATT)</span>
+treat, ctrl = df[df.D==1], df[df.D==0]
+nn = NearestNeighbors(n_neighbors=1).fit(ctrl[['e']])
+_, idx = nn.kneighbors(treat[['e']])
+matched_y0 = ctrl['Y'].iloc[idx.flatten()].to_numpy()
+att = (treat['Y'].to_numpy() - matched_y0).mean()
+print(f"NN-matched ATT: {att:.2f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The naive difference is biased upward (treated workers have more education); IPW and propensity-matching both recover the true effect of about 5. Try printing an SMD table before and after matching to confirm balance improved.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Matching and weighting buy you a credible answer <em>only</em> when unconfoundedness holds — when every confounder is observed. That is a strong, untestable assumption. Next week (Lecture 6) we relax it with <strong>instrumental variables</strong>, which can identify effects even with unobserved confounders. Later, propensity scores reappear inside <strong>doubly robust</strong> and machine-learning estimators (double/debiased ML), and the overlap logic returns in <strong>regression discontinuity</strong> and <strong>difference-in-differences</strong>. The same balance-checking discipline underpins how policy evaluators and quantitative researchers defend a causal claim to a skeptical audience.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Matching estimates a credible causal effect under which key assumption?</div>
+            <div class="opt"><b>A.</b> Treatment was randomly assigned by a coin flip</div>
+            <div class="opt"><b>B.</b> Unconfoundedness — treatment is as good as random given the observed covariates X</div>
+            <div class="opt"><b>C.</b> The outcome is normally distributed</div>
+            <div class="opt"><b>D.</b> There are more controls than treated units</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Matching needs selection-on-observables: { Y(1),Y(0) } independent of D given X. (A) describes an experiment, where matching is unnecessary. (C) and (D) are neither required nor sufficient.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The propensity score e(X) is defined as…</div>
+            <div class="opt"><b>A.</b> the probability of treatment given the covariates, P(D=1 | X)</div>
+            <div class="opt"><b>B.</b> the probability of the outcome given treatment, P(Y=1 | D)</div>
+            <div class="opt"><b>C.</b> the correlation between treatment and outcome</div>
+            <div class="opt"><b>D.</b> the average treatment effect</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The propensity score is the conditional probability of <em>treatment</em> given X. (B) confuses it with an outcome model; (C) and (D) are different quantities entirely.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The common-support (overlap) condition requires that…</div>
+            <div class="opt"><b>A.</b> the treated and control groups have equal sample sizes</div>
+            <div class="opt"><b>B.</b> every covariate is normally distributed</div>
+            <div class="opt"><b>C.</b> 0 &lt; e(X) &lt; 1 for all X, so both groups exist at every covariate value</div>
+            <div class="opt"><b>D.</b> the propensity score perfectly predicts treatment</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Overlap means each unit has a positive chance of either treatment status, so a counterfactual exists everywhere. (D) is the opposite — perfect prediction means e(X) hits 0 or 1, destroying overlap.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> After propensity-score matching you compute standardized mean differences (SMDs) for each covariate. Why?</div>
+            <div class="opt"><b>A.</b> To test whether the treatment effect is statistically significant</div>
+            <div class="opt"><b>B.</b> To estimate the propensity score more precisely</div>
+            <div class="opt"><b>C.</b> To predict which units will be treated</div>
+            <div class="opt"><b>D.</b> To check covariate balance — whether matching made the groups comparable on X</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> SMDs (often shown in a Love plot, target |SMD| &lt; 0.1) verify the match actually equalized covariates. They are a balance diagnostic, not a significance test (A) or a prediction tool (C).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A key contrast between matching and regression adjustment is that…</div>
+            <div class="opt"><b>A.</b> matching does not extrapolate beyond the data's support, while regression can</div>
+            <div class="opt"><b>B.</b> matching requires randomized data but regression does not</div>
+            <div class="opt"><b>C.</b> regression cannot adjust for any confounders</div>
+            <div class="opt"><b>D.</b> matching and regression rely on completely different identifying assumptions</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Matching is nonparametric and refuses to compare units with no counterpart, whereas regression extrapolates via its model. (D) is wrong — both rest on unconfoundedness. (B) and (C) are simply false.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Matching builds counterfactuals by pairing treated units with similar controls under <b>unconfoundedness</b>.</li>
+            <li><b>Nearest-neighbor matching</b> uses a distance metric (e.g. Mahalanobis), but suffers the <b>curse of dimensionality</b>.</li>
+            <li>The <b>propensity score</b> e(X)=P(D=1|X) is a balancing score; it powers PS-matching and <b>inverse-probability weighting</b>.</li>
+            <li>The <b>common-support / overlap</b> condition (0 &lt; e(X) &lt; 1) and a post-match <b>balance check</b> (SMD / Love plot) are mandatory diagnostics.</li>
+            <li>Matching and regression share the same assumption; combining them gives a <b>doubly robust</b> estimator.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: Instrumental Variables, which identify causal effects even when confounders are <em>unobserved</em> — escaping the selection-on-observables straitjacket.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-regression-adjustment.html"><div class="dir">← Week 4</div><div class="ttl">Regression Adjustment</div></a>
+        <a class="next" href="l06-instrumental-variables.html"><div class="dir">Week 6 →</div><div class="ttl">Instrumental Variables</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Causal Inference</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

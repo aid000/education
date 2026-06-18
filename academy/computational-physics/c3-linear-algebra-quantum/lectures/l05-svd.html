@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computational Physics C3 · Lecture 5 — Singular Value Decomposition (SVD)</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(129,140,248,.14); border: 1px solid rgba(129,140,248,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C3 LinAlg &amp; Quantum</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Singular Value Decomposition (SVD)</h1>
+        <p class="sub">Every matrix, no matter how lopsided, is secretly just a rotation, a stretch, and another rotation — and the SVD hands you all three.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the singular value decomposition A = U &Sigma; V<sup>T</sup> and identify what U, &Sigma;, and V hold.</li>
+            <li>Read the SVD geometrically as the composition rotate &rarr; stretch &rarr; rotate acting on a sphere.</li>
+            <li>Relate singular values to the rank, range, and norm of a matrix.</li>
+            <li>Build the best rank-<em>k</em> approximation of a matrix and quantify the error it leaves behind.</li>
+            <li>Connect the SVD to principal component analysis and use NumPy to compress an image.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>Every Matrix Is Three Simple Steps</h2>
+        <p>An eigendecomposition only exists for special (square, diagonalizable) matrices, and even then its eigenvectors need not be orthogonal. The <strong>singular value decomposition</strong> fixes both problems: <em>every</em> real matrix A, of any shape m&times;n, can be written as a product of two orthogonal matrices and one diagonal matrix.</p>
+        <div class="eq">A = U &Sigma; V<sup>T</sup><small>U is m&times;m orthogonal, V is n&times;n orthogonal, &Sigma; is m&times;n diagonal with entries &sigma;<sub>1</sub> &ge; &sigma;<sub>2</sub> &ge; &hellip; &ge; 0.</small></div>
+        <p>The columns of V are the <strong>right singular vectors</strong> (an orthonormal basis of the input space), the columns of U are the <strong>left singular vectors</strong> (an orthonormal basis of the output space), and the diagonal of &Sigma; holds the <strong>singular values</strong> &sigma;<sub>1</sub> &ge; &sigma;<sub>2</sub> &ge; &hellip; &ge; 0, sorted largest first. Because U and V are orthogonal, U<sup>T</sup>U = I and V<sup>T</sup>V = I — they rotate and reflect but never stretch.</p>
+        <p>The fundamental relation linking the three pieces is wonderfully clean: A maps the <em>i</em>-th right singular vector onto the <em>i</em>-th left singular vector, scaled by &sigma;<sub>i</sub>.</p>
+        <div class="eq">A v<sub>i</sub> = &sigma;<sub>i</sub> u<sub>i</sub><small>The input direction v<sub>i</sub> comes out pointing along u<sub>i</sub>, stretched by the factor &sigma;<sub>i</sub>. Compare with eigenvectors A x = &lambda; x, where input and output share a direction.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a matrix as a machine that reshapes clay. The SVD says any such reshaping is really three plain moves done in order: <strong>spin the clay</strong> (V<sup>T</sup>), <strong>squash or stretch it along fixed axes</strong> (&Sigma;), then <strong>spin it again</strong> (U). No matter how tangled the matrix looks, it never does anything more exotic than turn, scale, turn.</div>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>The Geometry: Rotate, Stretch, Rotate</h2>
+        <p>The cleanest way to <em>see</em> the SVD is to watch what A does to the unit sphere (in 2-D, the unit circle). A linear map always sends the unit sphere to an ellipsoid. The SVD names every part of that picture:</p>
+        <ul style="margin:0 0 14px 20px; font-size:.94rem;">
+            <li><strong>V<sup>T</sup> rotates first.</strong> It aligns the special input directions v<sub>1</sub>, v<sub>2</sub>, &hellip; with the coordinate axes.</li>
+            <li><strong>&Sigma; stretches.</strong> Each axis is scaled by its singular value &sigma;<sub>i</sub>, turning the circle into an axis-aligned ellipse whose semi-axis lengths are exactly the &sigma;<sub>i</sub>.</li>
+            <li><strong>U rotates last.</strong> It spins the ellipse into its final orientation; its columns u<sub>i</sub> are the ellipse's axis directions.</li>
+        </ul>
+        <p>So the singular values are nothing mysterious: they are the <strong>lengths of the ellipse's semi-axes</strong> — how far A can stretch a unit vector (&sigma;<sub>1</sub>, the largest) and how little (&sigma;<sub>n</sub>, the smallest). This is why &sigma;<sub>1</sub> equals the matrix's 2-norm, the maximum gain ||Ax|| / ||x||.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 620 200" role="img" aria-label="Three panels showing the SVD acting on the unit circle: V transpose rotates it, Sigma stretches it into an ellipse along the axes, U rotates the ellipse to its final orientation">
+                <!-- Panel 1: unit circle with v1, v2 -->
+                <circle cx="90" cy="100" r="48" fill="rgba(129,140,248,.15)" stroke="#818cf8" stroke-width="2"/>
+                <line x1="90" y1="100" x2="124" y2="66" stroke="#60a5fa" stroke-width="2"/>
+                <line x1="90" y1="100" x2="56" y2="66" stroke="#34d399" stroke-width="2"/>
+                <text x="128" y="62" fill="#60a5fa" font-size="11">v1</text>
+                <text x="38" y="62" fill="#34d399" font-size="11">v2</text>
+                <text x="90" y="172" fill="#a3a8c8" font-size="11" text-anchor="middle">unit circle</text>
+                <!-- arrow 1 -->
+                <line x1="150" y1="100" x2="208" y2="100" stroke="#a5b4fc" stroke-width="1.5"/>
+                <polygon points="208,100 200,96 200,104" fill="#a5b4fc"/>
+                <text x="179" y="92" fill="#a5b4fc" font-size="11" text-anchor="middle">V^T</text>
+                <!-- Panel 2: axis-aligned circle -> ellipse via Sigma -->
+                <ellipse cx="300" cy="100" rx="60" ry="30" fill="rgba(251,191,36,.13)" stroke="#fbbf24" stroke-width="2"/>
+                <line x1="300" y1="100" x2="360" y2="100" stroke="#60a5fa" stroke-width="2"/>
+                <line x1="300" y1="100" x2="300" y2="70" stroke="#34d399" stroke-width="2"/>
+                <text x="338" y="148" fill="#60a5fa" font-size="11" text-anchor="middle">sigma1</text>
+                <text x="306" y="66" fill="#34d399" font-size="11">sigma2</text>
+                <text x="300" y="172" fill="#a3a8c8" font-size="11" text-anchor="middle">stretched ellipse</text>
+                <!-- arrow 2 -->
+                <line x1="372" y1="100" x2="430" y2="100" stroke="#a5b4fc" stroke-width="1.5"/>
+                <polygon points="430,100 422,96 422,104" fill="#a5b4fc"/>
+                <text x="401" y="92" fill="#a5b4fc" font-size="11" text-anchor="middle">U</text>
+                <!-- Panel 3: rotated ellipse with u1,u2 -->
+                <g transform="rotate(-28 530 100)">
+                    <ellipse cx="530" cy="100" rx="60" ry="30" fill="rgba(192,132,252,.15)" stroke="#c084fc" stroke-width="2"/>
+                    <line x1="530" y1="100" x2="590" y2="100" stroke="#60a5fa" stroke-width="2"/>
+                    <line x1="530" y1="100" x2="530" y2="70" stroke="#34d399" stroke-width="2"/>
+                </g>
+                <text x="588" y="58" fill="#60a5fa" font-size="11">u1</text>
+                <text x="548" y="58" fill="#34d399" font-size="11">u2</text>
+                <text x="530" y="172" fill="#a3a8c8" font-size="11" text-anchor="middle">final image = A</text>
+            </svg>
+            <figcaption>The SVD of a 2&times;2 matrix as three moves on the unit circle: V<sup>T</sup> rotates the input axes onto the coordinate axes, &Sigma; stretches them by &sigma;<sub>1</sub> and &sigma;<sub>2</sub> into an axis-aligned ellipse, and U rotates that ellipse into the true image of A. The semi-axis lengths are the singular values.</figcaption>
+        </figure>
+        <div class="box warn"><span class="lbl">Common mistake</span>Singular values are <strong>not</strong> eigenvalues. They are always real and non-negative (they are lengths), even when A is non-square or has complex eigenvalues. They are the square roots of the eigenvalues of A<sup>T</sup>A, not of A itself: &sigma;<sub>i</sub> = &radic;&lambda;<sub>i</sub>(A<sup>T</sup>A). Confusing the two gives wrong signs and wrong magnitudes.</div>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>Singular Values, Rank, and the Sum of Pieces</h2>
+        <p>Count the singular values that are <em>nonzero</em> and you have counted the <strong>rank</strong> of A — the number of independent directions it can actually reach. A singular value of exactly zero means A collapses one input direction to nothing; a singular value that is tiny but nonzero means A nearly does so, which is the numerical fingerprint of an ill-conditioned matrix. In fact the ratio of largest to smallest nonzero singular value is the <strong>condition number</strong> &kappa;<sub>2</sub>(A) = &sigma;<sub>1</sub> / &sigma;<sub>r</sub> that governs how errors amplify when you solve Ax = b.</p>
+        <p>The single most useful way to rewrite the SVD is as a <strong>sum of rank-one pieces</strong>, one per singular value:</p>
+        <div class="eq">A = &Sigma;<sub>i=1..r</sub> &sigma;<sub>i</sub> u<sub>i</sub> v<sub>i</sub><sup>T</sup><small>Each term &sigma;<sub>i</sub> u<sub>i</sub> v<sub>i</sub><sup>T</sup> is a rank-one matrix (an outer product). The full matrix is a weighted stack of them, ordered by importance &sigma;<sub>1</sub> &ge; &sigma;<sub>2</sub> &ge; &hellip;</small></div>
+        <p>Because the &sigma;<sub>i</sub> are sorted, the early terms carry the most "energy" of the matrix and the late terms carry almost none. That ordering is the seed of everything in the next section. The total energy itself has a clean name — the squared Frobenius norm is the sum of squared singular values:</p>
+        <div class="eq">||A||<sub>F</sub><sup>2</sup> = &Sigma;<sub>i</sub> &sigma;<sub>i</sub><sup>2</sup><small>So keeping the largest singular values keeps the largest possible share of the matrix's total energy.</small></div>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>Low-Rank Approximation, Compression, and PCA</h2>
+        <p>If the full matrix is a stack of rank-one pieces ordered by importance, then the obvious idea is to <strong>throw away the small ones</strong>. Keep only the first <em>k</em> terms and you get A<sub>k</sub>, the best possible rank-<em>k</em> approximation of A:</p>
+        <div class="eq">A<sub>k</sub> = &Sigma;<sub>i=1..k</sub> &sigma;<sub>i</sub> u<sub>i</sub> v<sub>i</sub><sup>T</sup><small>The Eckart-Young theorem: no rank-k matrix is closer to A than A<sub>k</sub>, in either the 2-norm or the Frobenius norm.</small></div>
+        <p>The error you accept by truncating is set <em>exactly</em> by the singular values you discarded — the first one you drop is the spectral-norm error, and the rest determine the Frobenius error:</p>
+        <div class="eq">||A &minus; A<sub>k</sub>||<sub>2</sub> = &sigma;<sub>k+1</sub>&nbsp;&nbsp;&nbsp; ||A &minus; A<sub>k</sub>||<sub>F</sub><sup>2</sup> = &Sigma;<sub>i&gt;k</sub> &sigma;<sub>i</sub><sup>2</sup><small>If the singular values decay fast, a small k already captures almost all of A — that is compressibility.</small></div>
+        <p>This is the engine behind <strong>image compression</strong>: a grayscale photo is just an m&times;n matrix of pixel intensities. Real images have rapidly decaying singular values, so storing only the first k triples (u<sub>i</sub>, &sigma;<sub>i</sub>, v<sub>i</sub>) — that is k(m + n + 1) numbers instead of mn — reproduces the image almost perfectly while shrinking the storage dramatically.</p>
+        <p>The same mathematics is <strong>principal component analysis (PCA)</strong>. Center your data matrix (subtract the mean of each column), take its SVD, and the right singular vectors v<sub>i</sub> are exactly the principal component directions, while &sigma;<sub>i</sub><sup>2</sup> / (N&minus;1) is the variance captured along each. Keeping the top k components is the same Eckart-Young truncation — you are compressing the data onto the directions of greatest variance.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 540 220" role="img" aria-label="Two stacked bar charts: singular value magnitudes decay steeply from sigma1 to sigma8, and cumulative captured energy rises from sigma1 quickly toward 100 percent, with the first few terms doing most of the work">
+                <!-- left: decaying singular values -->
+                <line x1="50" y1="180" x2="250" y2="180" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="50" y1="40" x2="50" y2="180" stroke="#a3a8c8" stroke-width="1.5"/>
+                <rect x="60" y="56" width="18" height="124" fill="rgba(129,140,248,.7)" stroke="#818cf8"/>
+                <rect x="84" y="96" width="18" height="84" fill="rgba(129,140,248,.6)" stroke="#818cf8"/>
+                <rect x="108" y="128" width="18" height="52" fill="rgba(129,140,248,.5)" stroke="#818cf8"/>
+                <rect x="132" y="150" width="18" height="30" fill="rgba(129,140,248,.45)" stroke="#818cf8"/>
+                <rect x="156" y="162" width="18" height="18" fill="rgba(129,140,248,.4)" stroke="#818cf8"/>
+                <rect x="180" y="170" width="18" height="10" fill="rgba(129,140,248,.35)" stroke="#818cf8"/>
+                <rect x="204" y="175" width="18" height="5" fill="rgba(129,140,248,.3)" stroke="#818cf8"/>
+                <rect x="228" y="178" width="18" height="2" fill="rgba(129,140,248,.3)" stroke="#818cf8"/>
+                <text x="40" y="50" fill="#a3a8c8" font-size="10" text-anchor="end">sigma</text>
+                <text x="150" y="200" fill="#a3a8c8" font-size="11" text-anchor="middle">index i -></text>
+                <text x="150" y="32" fill="#818cf8" font-size="11" text-anchor="middle">singular values decay</text>
+                <!-- right: cumulative energy -->
+                <line x1="300" y1="180" x2="500" y2="180" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="300" y1="40" x2="300" y2="180" stroke="#a3a8c8" stroke-width="1.5"/>
+                <line x1="300" y1="56" x2="500" y2="56" stroke="#34d399" stroke-width="1" stroke-dasharray="4 4"/>
+                <text x="505" y="59" fill="#34d399" font-size="9">100%</text>
+                <polyline points="300,180 320,108 340,76 360,64 380,59 400,57 420,56 440,56 460,56" fill="none" stroke="#34d399" stroke-width="2.5"/>
+                <circle cx="340" cy="76" r="3" fill="#34d399"/>
+                <text x="346" y="92" fill="#34d399" font-size="10">k = 3 keeps most</text>
+                <text x="400" y="200" fill="#a3a8c8" font-size="11" text-anchor="middle">terms kept k -></text>
+                <text x="400" y="32" fill="#34d399" font-size="11" text-anchor="middle">cumulative energy</text>
+            </svg>
+            <figcaption>Left: the singular values of a typical real matrix fall off steeply. Right: cumulative captured energy &Sigma;<sub>i&le;k</sub>&sigma;<sub>i</sub><sup>2</sup> / &Sigma;<sub>i</sub>&sigma;<sub>i</sub><sup>2</sup> climbs toward 100% after only a few terms — so a small rank k reconstructs the matrix (or the image) almost exactly.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — SVD of a 2&times;2 matrix by hand</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Find the singular values and the rank-1 approximation of A = [[3, 0], [4, 5]] (rows: [3, 0] and [4, 5]). Verify the error formula.</p>
+        <ol>
+            <li><strong>Form A<sup>T</sup>A:</strong> A<sup>T</sup>A = [[25, 20], [20, 25]] (since the columns of A are (3,4) and (0,5): dot products 25, 20, 20, 25).</li>
+            <li><strong>Eigenvalues of A<sup>T</sup>A:</strong> for [[25,20],[20,25]] they are 25&plusmn;20, i.e. &lambda;<sub>1</sub> = 45 and &lambda;<sub>2</sub> = 5.</li>
+            <li><strong>Singular values:</strong> &sigma;<sub>i</sub> = &radic;&lambda;<sub>i</sub>, so &sigma;<sub>1</sub> = &radic;45 &asymp; <strong>6.708</strong> and &sigma;<sub>2</sub> = &radic;5 &asymp; <strong>2.236</strong>. Both nonzero, so rank(A) = 2.</li>
+            <li><strong>Total energy check:</strong> &sigma;<sub>1</sub><sup>2</sup> + &sigma;<sub>2</sub><sup>2</sup> = 45 + 5 = 50, which equals ||A||<sub>F</sub><sup>2</sup> = 3<sup>2</sup>+0+4<sup>2</sup>+5<sup>2</sup> = 9+16+25 = 50. ✓</li>
+            <li><strong>Rank-1 error:</strong> drop the smallest term, so ||A &minus; A<sub>1</sub>||<sub>2</sub> = &sigma;<sub>2</sub> = &radic;5 &asymp; 2.236, and ||A &minus; A<sub>1</sub>||<sub>F</sub><sup>2</sup> = &sigma;<sub>2</sub><sup>2</sup> = 5. The best rank-1 approximation captures &sigma;<sub>1</sub><sup>2</sup>/50 = 45/50 = <strong>90%</strong> of the energy with a single rank-one piece.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: compress an image with the SVD</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The free Python + NumPy / SciPy / Matplotlib stack from the <strong>Week 1/2 setup</strong> (see the install panel in the early lectures) has everything we need — <code>numpy.linalg.svd</code> does the heavy lifting. Below we compress a grayscale image to a handful of singular values and watch the error track the discarded &sigma;'s exactly.</p>
+        <pre><span class="c"># svd_compress.py — Lecture 5</span>
+import numpy as np
+import matplotlib.pyplot as plt
+
+<span class="c"># A stand-in "image": any m x n grayscale array works the same way.</span>
+img = plt.imread("photo.png")
+if img.ndim == 3:
+    img = img[..., :3].mean(axis=2)        <span class="c"># to grayscale (m x n)</span>
+
+U, s, Vt = np.linalg.svd(img, full_matrices=False)
+print("shape:", img.shape, " num singular values:", s.size)
+
+<span class="c"># Energy captured by the first k singular values</span>
+energy = np.cumsum(s**2) / np.sum(s**2)
+
+for k in [5, 20, 50]:
+    Ak = (U[:, :k] * s[:k]) @ Vt[:k, :]    <span class="c"># rank-k reconstruction</span>
+    err = np.linalg.norm(img - Ak, 2)       <span class="c"># spectral-norm error</span>
+    print(f"k={k:3d}  energy={energy[k-1]:.4f}  ||A-Ak||2={err:.4f}  (sigma_k+1={s[k]:.4f})")
+    <span class="c"># err should equal sigma_{k+1} exactly (Eckart-Young)</span>
+
+<span class="c"># Storage: k*(m+n+1) numbers vs m*n for the full image</span>
+m, n = img.shape
+for k in [5, 20, 50]:
+    print(f"k={k}: {k*(m+n+1)} numbers  vs  {m*n} full  "
+          f"({100*k*(m+n+1)/(m*n):.1f}% of original)")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Confirm the printed <code>||A-Ak||2</code> matches <code>s[k]</code> to machine precision — that is Eckart-Young in action. Then plot <code>plt.imshow(Ak, cmap="gray")</code> for k = 5, 20, 50 and see how few singular values your eye actually needs.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The SVD is the quiet workhorse behind the rest of this specialization. Next week's <em>sparse matrices and large systems</em> rely on truncated and randomized SVDs to compress operators that never fit in memory, and the pseudoinverse A<sup>+</sup> = V&Sigma;<sup>+</sup>U<sup>T</sup> built from the SVD is the backbone of least-squares fitting. In the quantum half of this course, the same decomposition becomes the <em>Schmidt decomposition</em> that measures entanglement between two subsystems, and its low-rank truncation is precisely what makes tensor-network and matrix-product-state simulations of many-body systems tractable. In later courses the singular-value spectrum reappears as the diagnostic for model reduction in fluid and plasma simulations and for noise filtering in data-driven physics. Master the SVD once and you have one lens for compression, conditioning, fitting, and entanglement all at the same time.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In the SVD A = U &Sigma; V<sup>T</sup>, the diagonal entries of &Sigma; (the singular values) are…</div>
+            <div class="opt"><b>A.</b> always real and non-negative, sorted largest first</div>
+            <div class="opt"><b>B.</b> the eigenvalues of A, which may be negative or complex</div>
+            <div class="opt"><b>C.</b> always equal to 1 because U and V are orthogonal</div>
+            <div class="opt"><b>D.</b> the diagonal entries of A itself</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Singular values are lengths (semi-axes of the image ellipsoid): real, &ge; 0, and conventionally sorted descending. B confuses them with eigenvalues — they are &radic; of the eigenvalues of A<sup>T</sup>A, never negative or complex. C describes U and V's columns being unit length, not &Sigma;. D is false in general.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Geometrically, applying A to the unit sphere produces an ellipsoid. The singular values are…</div>
+            <div class="opt"><b>A.</b> the angles between the axes of the ellipsoid</div>
+            <div class="opt"><b>B.</b> the lengths of the ellipsoid's semi-axes</div>
+            <div class="opt"><b>C.</b> the volume of the ellipsoid</div>
+            <div class="opt"><b>D.</b> always zero unless A is symmetric</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> &Sigma; stretches each axis by its singular value, so the semi-axis lengths ARE the &sigma;<sub>i</sub>. A is wrong — the axes are orthogonal (set by U), not described by angles. C: the volume is the product of the &sigma;<sub>i</sub> (|det A| up to a constant), not a single &sigma;. D is false; nonzero singular values exist for any nonzero matrix.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A 100&times;100 matrix has exactly 7 nonzero singular values. Its rank is…</div>
+            <div class="opt"><b>A.</b> 100</div>
+            <div class="opt"><b>B.</b> 93</div>
+            <div class="opt"><b>C.</b> 7</div>
+            <div class="opt"><b>D.</b> impossible to tell from the SVD</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The rank equals the number of nonzero singular values — here 7. A would require all 100 to be nonzero. B (100&minus;7) confuses rank with the nullity / number of zero singular values. D is wrong: the SVD reveals rank exactly, which is precisely why it is the numerically reliable way to compute rank.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> By the Eckart-Young theorem, the best rank-<em>k</em> approximation A<sub>k</sub> leaves a spectral-norm error ||A &minus; A<sub>k</sub>||<sub>2</sub> equal to…</div>
+            <div class="opt"><b>A.</b> &sigma;<sub>1</sub>, the largest singular value</div>
+            <div class="opt"><b>B.</b> the sum of all singular values</div>
+            <div class="opt"><b>C.</b> zero, always</div>
+            <div class="opt"><b>D.</b> &sigma;<sub>k+1</sub>, the first discarded singular value</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Truncating after k terms leaves the dropped pieces; the largest of those is &sigma;<sub>k+1</sub>u<sub>k+1</sub>v<sub>k+1</sub><sup>T</sup>, so the 2-norm error is exactly &sigma;<sub>k+1</sub>. A is the error of keeping <em>nothing</em> (k=0). B describes neither the 2-norm nor the (squared-summed) Frobenius error. C only holds if k &ge; rank(A).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> How is the SVD related to principal component analysis (PCA)?</div>
+            <div class="opt"><b>A.</b> They are unrelated; PCA needs eigenvectors, SVD does not use them</div>
+            <div class="opt"><b>B.</b> The right singular vectors of the mean-centered data are the principal components, with variance &prop; &sigma;<sub>i</sub><sup>2</sup></div>
+            <div class="opt"><b>C.</b> PCA keeps the <em>smallest</em> singular values to remove signal</div>
+            <div class="opt"><b>D.</b> PCA only works on square matrices, unlike the SVD</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Center the data, take its SVD: the v<sub>i</sub> are the principal directions and &sigma;<sub>i</sub><sup>2</sup>/(N&minus;1) is the variance captured along each. A is wrong — the SVD of centered data is exactly an eigendecomposition of the covariance matrix. C is backwards: PCA keeps the <em>largest</em> &sigma; (most variance). D is false; both handle any m&times;n data.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Every matrix factors as <b>A = U &Sigma; V<sup>T</sup></b> — two orthogonal rotations around one diagonal stretch.</li>
+            <li>The SVD is geometry: <b>rotate (V<sup>T</sup>), stretch by &sigma;<sub>i</sub> (&Sigma;), rotate (U)</b>, turning the unit sphere into an ellipsoid whose semi-axes are the singular values.</li>
+            <li>The number of nonzero singular values is the <b>rank</b>, &sigma;<sub>1</sub> is the 2-norm, and &sigma;<sub>1</sub>/&sigma;<sub>r</sub> is the <b>condition number</b>.</li>
+            <li>The <b>Eckart-Young</b> rank-<em>k</em> truncation A<sub>k</sub> is the best low-rank fit, with error set exactly by the discarded &sigma;'s.</li>
+            <li>Low-rank truncation powers <b>image compression and PCA</b>, both implemented with one call to <code>np.linalg.svd</code>.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: sparse matrices &amp; large systems — how to store and solve problems with millions of unknowns that would never fit as dense arrays.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-power-method.html"><div class="dir">← Week 4</div><div class="ttl">The Power Method</div></a>
+        <a class="next" href="l06-sparse-matrices.html"><div class="dir">Week 6 →</div><div class="ttl">Sparse Matrices &amp; Large Systems</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 LinAlg &amp; Quantum</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

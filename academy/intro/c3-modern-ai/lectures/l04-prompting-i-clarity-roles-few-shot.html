@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern AI C3 · Lecture 4 — Prompting I: Clarity, Roles, Few-Shot &amp; Chain-of-Thought</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6670a0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #1c1733, #21183c); border: 1px solid #3c2d60; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #ddcdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Intro</a> / <a href="../index.html">C3 Modern AI — From Impossible to Agentic</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Prompting I — Clarity, Roles, Few-Shot &amp; Chain-of-Thought</h1>
+        <p class="sub">A model can only answer the question you actually asked. The fastest way to get better output is almost never a better model — it's a clearer prompt.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Write specific, context-rich prompts and explain why vagueness forces the model to guess.</li>
+            <li>Use <strong>role prompting</strong> to set audience, tone, and depth.</li>
+            <li>Steer format and style with <strong>few-shot examples</strong> instead of long instructions.</li>
+            <li>Trigger <strong>chain-of-thought</strong> reasoning for multi-step problems and know when it helps.</li>
+            <li>Give the model "an out" so it admits uncertainty instead of hallucinating.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>Specificity: the Model Fills Every Gap You Leave</h2>
+        <p>Recall from Week 2 that a language model works by repeatedly predicting the most likely <em>next token</em> given everything before it. Your prompt <em>is</em> that "everything before." When the prompt is vague, the model has no way to know what you meant — so it falls back on the most <em>statistically average</em> continuation. Ask "write about dogs" and you get a bland, generic essay, because that is the average of everything the model ever saw about dogs.</p>
+        <p>A useful prompt narrows the space of likely answers down to the one you want. Four levers do most of the work: <span class="key">task</span> (what to produce), <span class="key">context</span> (background and constraints), <span class="key">audience</span> (who it's for), and <span class="key">format</span> (how the answer should look).</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 200" role="img" aria-label="A vague prompt maps to a wide cloud of many possible average answers, while a specific prompt with task, context, audience and format narrows down to one targeted answer">
+                <text x="100" y="22" fill="#fbbf24" font-size="12" text-anchor="middle" font-weight="bold">Vague prompt</text>
+                <rect x="40" y="34" width="120" height="26" rx="6" fill="rgba(251,191,36,.15)" stroke="#fbbf24" stroke-width="1.3"/>
+                <text x="100" y="51" fill="#f0e1a7" font-size="10" text-anchor="middle">"write about dogs"</text>
+                <circle cx="60" cy="110" r="13" fill="rgba(251,191,36,.18)" stroke="#fbbf24" stroke-width="1"/>
+                <circle cx="100" cy="100" r="13" fill="rgba(251,191,36,.18)" stroke="#fbbf24" stroke-width="1"/>
+                <circle cx="140" cy="112" r="13" fill="rgba(251,191,36,.18)" stroke="#fbbf24" stroke-width="1"/>
+                <circle cx="80" cy="140" r="13" fill="rgba(251,191,36,.18)" stroke="#fbbf24" stroke-width="1"/>
+                <circle cx="122" cy="142" r="13" fill="rgba(251,191,36,.18)" stroke="#fbbf24" stroke-width="1"/>
+                <text x="100" y="180" fill="#a3a8c8" font-size="10" text-anchor="middle">many average answers</text>
+
+                <line x1="200" y1="100" x2="240" y2="100" stroke="#a3a8c8" stroke-width="1.5" marker-end="url(#ar)"/>
+                <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#a3a8c8"/></marker></defs>
+
+                <text x="300" y="22" fill="#a78bfa" font-size="12" text-anchor="middle" font-weight="bold">Specific prompt</text>
+                <rect x="250" y="34" width="130" height="40" rx="6" fill="rgba(167,139,250,.15)" stroke="#a78bfa" stroke-width="1.3"/>
+                <text x="315" y="49" fill="#c4b5fd" font-size="8.5" text-anchor="middle">task + context +</text>
+                <text x="315" y="62" fill="#c4b5fd" font-size="8.5" text-anchor="middle">audience + format</text>
+                <circle cx="315" cy="125" r="18" fill="rgba(167,139,250,.3)" stroke="#a78bfa" stroke-width="1.6"/>
+                <text x="315" y="129" fill="#e9ebf8" font-size="10" text-anchor="middle">one</text>
+                <text x="315" y="180" fill="#a3a8c8" font-size="10" text-anchor="middle">one targeted answer</text>
+            </svg>
+            <figcaption>Every detail you add removes a whole cloud of "average" continuations. Specificity is not about length — it's about constraint.</figcaption>
+        </figure>
+        <div class="box analogy"><span class="lbl">Analogy</span>Prompting is like briefing a brilliant new freelancer who has read almost everything but has <strong>never met you</strong> and <strong>can't ask follow-up questions</strong>. "Make me a logo" gets you a guess. "Make a minimalist wordmark logo for a kids' coding camp called Bitlings, friendly and rounded, in two colors, as an SVG" gets you something usable. The talent is the same — the brief is everything.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Role Prompting: Set the Voice and the Depth</h2>
+        <p>One of the cheapest ways to add context is to tell the model <em>who it should be</em> and <em>who it's talking to</em>. A role steers vocabulary, depth, and assumptions all at once, because it pulls the model toward the region of its training data that matches that role.</p>
+        <div class="eq">"Explain recursion."<br>vs.<br>"You are a patient CS tutor. Explain recursion to a 12-year-old<br>using one everyday analogy, then a 5-line Python example."<small>The role + audience + format do far more than the extra words suggest.</small></div>
+        <p>Roles are powerful but not magic. Telling a model "you are a world-class cardiologist" makes it <em>sound</em> more like medical writing; it does <strong>not</strong> give it new facts or make it safe to rely on for medical decisions. Use roles to shape <strong>style and framing</strong>, never to manufacture authority the model doesn't actually have.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't confuse <em>persona</em> with <em>competence</em>. "Act as a senior security auditor" improves the framing and checklist of an answer, but the model can still miss real vulnerabilities or invent fake ones. A role changes <strong>how it answers</strong>, not <strong>what it knows</strong>. Always keep the limits and hallucination caveats from Week 3 in mind.</div>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Few-Shot: Show, Don't Just Tell</h2>
+        <p>Often the easiest way to specify a format is to <em>demonstrate</em> it. A <strong>few-shot prompt</strong> includes a handful of input→output examples before the real request. The model infers the pattern from the examples and continues it — no rules-lawyering required. (A prompt with zero examples is <span class="key">zero-shot</span>; one example is <span class="key">one-shot</span>.)</p>
+        <p>This works because next-token prediction is, at heart, pattern continuation. Two or three clean, consistent examples often beat a paragraph of instructions, especially for classification, extraction, and rigid output shapes.</p>
+        <div class="eq">Review: "Loved it, came early!" → Sentiment: positive<br>Review: "Broke in a week." → Sentiment: negative<br>Review: "It's fine, nothing special." → Sentiment: ?<small>The model continues the established pattern and answers: neutral.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 400 170" role="img" aria-label="Few-shot prompting: two example input-output pairs establish a pattern, then a new input gets a matching output">
+                <text x="200" y="18" fill="#c4b5fd" font-size="11" text-anchor="middle" font-weight="bold">Examples establish the pattern</text>
+                <rect x="30" y="34" width="150" height="30" rx="5" fill="rgba(96,165,250,.12)" stroke="#60a5fa" stroke-width="1.1"/>
+                <text x="105" y="53" fill="#cfe0fb" font-size="9.5" text-anchor="middle">input 1  →  output 1</text>
+                <rect x="30" y="72" width="150" height="30" rx="5" fill="rgba(96,165,250,.12)" stroke="#60a5fa" stroke-width="1.1"/>
+                <text x="105" y="91" fill="#cfe0fb" font-size="9.5" text-anchor="middle">input 2  →  output 2</text>
+                <rect x="30" y="118" width="150" height="30" rx="5" fill="rgba(167,139,250,.18)" stroke="#a78bfa" stroke-width="1.4"/>
+                <text x="105" y="137" fill="#e9ebf8" font-size="9.5" text-anchor="middle">new input  →  &#160;?</text>
+
+                <path d="M188,133 C230,133 230,133 260,133" stroke="#a78bfa" stroke-width="1.5" fill="none" marker-end="url(#ar2)"/>
+                <defs><marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#a78bfa"/></marker></defs>
+                <rect x="266" y="118" width="110" height="30" rx="5" fill="rgba(52,211,153,.15)" stroke="#34d399" stroke-width="1.4"/>
+                <text x="321" y="137" fill="#a7f3d0" font-size="9.5" text-anchor="middle">matching output</text>
+                <text x="321" y="70" fill="#a3a8c8" font-size="9" text-anchor="middle">model copies the</text>
+                <text x="321" y="84" fill="#a3a8c8" font-size="9" text-anchor="middle">shape it just saw</text>
+            </svg>
+            <figcaption>Few-shot prompting teaches by demonstration: consistent examples are usually a stronger format spec than prose instructions.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>Chain-of-Thought: Ask for the Work</h2>
+        <p>For anything multi-step — arithmetic, logic puzzles, planning — a model that answers in one shot often guesses wrong, because it's committing to a final token before "thinking." <strong>Chain-of-thought (CoT)</strong> prompting fixes this by asking the model to reason <em>step by step</em> before giving the answer. The classic trigger is literally adding <code>"Let's think step by step."</code> (introduced by Wei et al. and colleagues around 2022).</p>
+        <p>Why it works: each reasoning token the model writes becomes part of the context for the next token. Spreading the work across many intermediate steps gives the model more "room" to get each small step right, rather than forcing the whole computation into a single prediction.</p>
+        <div class="eq">Bad: "What's 17 × 24?" → "408" (often wrong)<br>Good: "What's 17 × 24? Show each step." →<br>"17 × 24 = 17 × 20 + 17 × 4 = 340 + 68 = 408"<small>Intermediate steps become context that supports the final token.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Asking for the answer alone is like demanding a chess player blurt out a move in half a second. Chain-of-thought is "take your time and think out loud." A grandmaster who reasons through the position plays far better than one forced to move instantly — even though it's the same player.</div>
+        <p>CoT shines on reasoning tasks but adds length and cost, and it is overkill for simple lookups or rewrites. Many newer "reasoning" models do a version of this internally; even so, explicitly asking for steps still helps you <em>see</em> and <em>check</em> the logic — which matters for trust.</p>
+    </section>
+
+    <!-- 4.5 -->
+    <section class="lec">
+        <h2><span class="n">4.5</span>Giving the Model an Out</h2>
+        <p>A model trained to be helpful will, by default, try to answer <em>everything</em> — even when it doesn't know. That default is a major source of <strong>hallucinations</strong>: confident, fluent, wrong. The fix is simple and underused: explicitly <strong>permit "I don't know."</strong></p>
+        <p>Add a sentence like: <em>"If the document doesn't contain the answer, say 'Not stated' rather than guessing."</em> This gives the model an acceptable, low-pressure path that isn't a fabricated answer. Pair it with a request to cite or quote its source, and you make unsupported claims easy to catch.</p>
+        <div class="eq">"Answer ONLY from the text below. If the answer isn't there,<br>reply exactly: 'Not stated.' Quote the sentence you used."<small>An explicit "out" + a citation requirement sharply reduces confident fabrication.</small></div>
+        <div class="box warn"><span class="lbl">Note · this never fully removes hallucination</span>Giving an out <em>reduces</em> made-up answers; it does not eliminate them. Models can still misread a source or cite the wrong line. Treat AI output as a fast, fallible draft — verify anything that matters, exactly as you'll practice in Week 9 (Limits, Hallucinations &amp; Ethics).</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — rebuilding a weak prompt, one lever at a time</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Goal: turn three messy customer emails into a clean status table. Watch each technique from this lecture earn its place.</p>
+        <ol>
+            <li><strong>Start vague:</strong> <em>"Summarize these emails."</em> → You get three loose paragraphs in random formats. Unusable for a spreadsheet.</li>
+            <li><strong>Add specificity + format:</strong> <em>"For each email, extract the customer name, the issue, and whether it's resolved. Output a Markdown table with columns Name | Issue | Status."</em> → Now it's tabular, but "Status" wording is inconsistent ("done", "fixed", "pending").</li>
+            <li><strong>Add a role + audience:</strong> <em>"You are a support-ops analyst preparing a daily standup table for a busy manager."</em> → Tone tightens; entries get terse and scannable.</li>
+            <li><strong>Add few-shot to lock the vocabulary:</strong> show one example row whose Status is exactly one of <code>Open / Resolved / Waiting</code>. → Every row now uses only those three labels.</li>
+            <li><strong>Add an out:</strong> <em>"If an email doesn't state whether it's resolved, put 'Open' and add (unclear) — never guess a resolution."</em> → Ambiguous emails stop being silently marked Resolved.</li>
+            <li><strong>Result:</strong> a consistent, trustworthy table from the same model — improved entirely by the <em>prompt</em>, no fine-tuning, no better model. That is the whole point of Prompting I.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: A/B your prompts and log the wins</h3>
+        <p style="font-size:.9rem; color:var(--text2);">You only need a free-tier chat account on any one assistant (Claude, ChatGPT, or Grok all work) and the Jupyter you set up in <strong>Week 1</strong> — no new installs. The skill is comparing prompts deliberately, not collecting tools.</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:14px;"><strong>Exercise — run the same task four ways</strong> in your chat assistant and paste the outputs into a notebook log:</p>
+        <ol style="margin:6px 0 12px 20px; font-size:.9rem; color:var(--text2);">
+            <li><strong>Zero-shot, vague:</strong> "Classify this review: <em>It arrived late but works great.</em>"</li>
+            <li><strong>+ Specificity/format:</strong> add "Reply with only one word: positive, negative, or mixed."</li>
+            <li><strong>+ Few-shot:</strong> prepend two labeled example reviews in that exact format.</li>
+            <li><strong>+ Chain-of-thought:</strong> "Think step by step about each clause, then give the final label."</li>
+        </ol>
+        <p style="font-size:.9rem; color:var(--text2);">Keep a structured prompt log so you can see which lever changed the output. A Jupyter cell makes a tidy record:</p>
+        <pre><span class="c"># prompt_log.py — Week 4 prompt journal (no API needed; paste outputs by hand)</span>
+log = [
+    {<span class="c"># 1. baseline</span>
+     "technique": "zero-shot",
+     "prompt": "Classify this review: It arrived late but works great.",
+     "output": "...paste model reply...",
+     "good?": False},
+    {<span class="c"># 2. add specificity + format constraint</span>
+     "technique": "specific+format",
+     "prompt": "...one word: positive/negative/mixed...",
+     "output": "...",
+     "good?": True},
+    {<span class="c"># 3. few-shot, 4. chain-of-thought ... add rows the same way</span>},
+]
+
+for row in log:
+    print(row.get("technique"), "->", row.get("good?"))
+<span class="c"># Goal: SEE which lever fixed the output. That habit is the real skill.</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Stretch: add a 5th run with "an out" — tell the model to answer "unclear" if a review is genuinely ambiguous — and feed it a deliberately vague review to test it.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>These five levers — specificity, roles, few-shot, chain-of-thought, and giving an out — are the manual basics. Next week (Prompting II) we scale them up: <strong>structured output</strong> (JSON/schemas) for feeding other programs, working in <strong>long context</strong> windows without burying your instructions, <strong>self-critique</strong> (asking the model to check its own work), and <strong>tree-of-thoughts</strong>, which explores several reasoning branches instead of one. By Weeks 6–7 these same prompts become the building blocks of <em>agents</em> that reason and act in a loop — so the clarity habits you build now pay off everywhere downstream.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">6 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why does a vague prompt like "write about dogs" tend to produce bland output?</div>
+            <div class="opt"><b>A.</b> The model refuses ambiguous prompts</div>
+            <div class="opt"><b>B.</b> With no constraints, the model falls back on the most statistically average continuation</div>
+            <div class="opt"><b>C.</b> Short prompts are always rejected</div>
+            <div class="opt"><b>D.</b> The model can only write about topics in its system prompt</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Your prompt is the context for next-token prediction. Without task, audience, or format constraints, the most likely continuation is the generic average of everything it saw.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> What does role prompting ("You are a patient CS tutor…") actually change?</div>
+            <div class="opt"><b>A.</b> It gives the model new facts it didn't have</div>
+            <div class="opt"><b>B.</b> It makes the model's answers guaranteed correct</div>
+            <div class="opt"><b>C.</b> It shapes style, depth, and framing, not the underlying knowledge</div>
+            <div class="opt"><b>D.</b> It permanently fine-tunes the model</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A persona steers <em>how</em> the model answers — vocabulary, depth, tone — by pulling toward matching training data. It does not add competence or guarantee accuracy.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A prompt that includes two labeled input→output examples before the real request is called…</div>
+            <div class="opt"><b>A.</b> few-shot prompting</div>
+            <div class="opt"><b>B.</b> zero-shot prompting</div>
+            <div class="opt"><b>C.</b> role prompting</div>
+            <div class="opt"><b>D.</b> retrieval prompting</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A handful of examples = few-shot (zero examples = zero-shot, one = one-shot). The model infers and continues the demonstrated pattern.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why does "Let's think step by step" often improve answers to multi-step problems?</div>
+            <div class="opt"><b>A.</b> It switches the model to a faster mode</div>
+            <div class="opt"><b>B.</b> It deletes earlier mistakes from memory</div>
+            <div class="opt"><b>C.</b> It contacts a calculator service</div>
+            <div class="opt"><b>D.</b> Each reasoning token becomes context for the next, giving room to get small steps right</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Chain-of-thought spreads the work across intermediate tokens instead of forcing the whole computation into a single prediction — and lets you check the logic.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Which prompt addition best reduces confident, made-up answers?</div>
+            <div class="opt"><b>A.</b> "Be as confident as possible."</div>
+            <div class="opt"><b>B.</b> "If the answer isn't in the text, reply 'Not stated' instead of guessing."</div>
+            <div class="opt"><b>C.</b> "Always give a definitive answer."</div>
+            <div class="opt"><b>D.</b> "Make the answer longer."</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Giving the model an explicit "out" — permission to say it doesn't know — provides a low-pressure path that isn't fabrication. It reduces, though never fully removes, hallucination.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q6.</span> Your customer-status table keeps using inconsistent labels ("done", "fixed", "pending"). Which technique most directly locks the vocabulary to exactly Open / Resolved / Waiting?</div>
+            <div class="opt"><b>A.</b> Raising the temperature setting</div>
+            <div class="opt"><b>B.</b> Adding a longer role description</div>
+            <div class="opt"><b>C.</b> Few-shot — show an example row using only the three allowed labels</div>
+            <div class="opt"><b>D.</b> Asking it to think step by step</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> A concrete example demonstrating the exact allowed values is the strongest, simplest way to pin down output format and vocabulary.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Specificity</b> — task, context, audience, and format each remove a cloud of average answers; the prompt is the model's only brief.</li>
+            <li><b>Role prompting</b> shapes voice and depth, but not knowledge or correctness.</li>
+            <li><b>Few-shot</b> examples specify a format by demonstration — usually stronger than prose rules.</li>
+            <li><b>Chain-of-thought</b> ("think step by step") helps multi-step reasoning and lets you check the work.</li>
+            <li>Giving the model <b>an out</b> ("say 'Not stated'") cuts confident fabrication — but never fully removes hallucination.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: <b>Prompting II — Structure, Long Context &amp; Tree-of-Thoughts</b>: JSON/schemas, working in long context windows, self-critique, and exploring multiple reasoning branches.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-what-frontier-models-can-do.html"><div class="dir">← Previous</div><div class="ttl">What Frontier Models Can Do</div></a>
+        <a class="next" href="l05-prompting-ii-structure-long-context-and.html"><div class="dir">Week 5 →</div><div class="ttl">Prompting II — Structure, Long Context &amp; Tree-of-Thoughts</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Modern AI — From Impossible to Agentic</a> · <a href="../../index.html">Intro</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

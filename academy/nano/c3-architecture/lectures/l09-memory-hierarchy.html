@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Lecture 9 — Memory Hierarchy</title>
+    <style>
+        :root {
+            --bg: #0a121a; --surface: #14202e; --surface2: #1c2c3e; --border: #243648;
+            --text: #e8f0f8; --text2: #94a8bc; --accent: #22d3ee; --accent2: #67e8f9;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #0d2230 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.28); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; } .objectives li { font-size: .92rem; margin-bottom: 5px; }
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; } .key { color: var(--accent2); font-weight: 600; }
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 540px; margin-left: auto; margin-right: auto; }
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; } .worked li { margin-bottom: 6px; }
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; } .hands p { font-size: .9rem; color: var(--text2); }
+        .hands code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #6b8299; }
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; } .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .quiz { margin: 48px 0 24px; } .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; } .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); } .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; } .q details .ans { color: var(--green); font-weight: 700; }
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08121a; border-color: var(--accent); } .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); } .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); } .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; } .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; } .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; } .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .data-note { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; } .lec-nav a.next { text-align: right; }
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nano</a> / <a href="../index.html">C3 Architecture</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Memory Hierarchy</h1>
+        <p class="sub">Bridging the gap between a fast CPU and slow, cheap memory.</p>
+    </div>
+</header>
+<div class="container">
+
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain the "memory wall" — why CPUs vastly outrun main memory.</li>
+            <li>Lay out the memory hierarchy from registers down to disk and state how each level trades speed for size and cost.</li>
+            <li>Define temporal and spatial locality and explain why they make caching work.</li>
+            <li>Contrast SRAM and DRAM cells and where each is used.</li>
+            <li>Compute average memory access time (AMAT) and reason about the cache-coherence problem.</li>
+        </ul>
+    </div>
+
+    <section class="lec">
+        <h2><span class="n">9.1</span>The Memory Wall</h2>
+        <p>Over decades, CPU speed grew far faster than the speed of <strong>DRAM</strong>, the cheap, dense memory that holds main memory. The result is the <span class="key">memory wall</span>: a modern processor can execute many instructions in the time it takes a single access to main memory to return. If every load and store had to wait on DRAM, a fast CPU would sit idle most of the time.</p>
+        <p>The fix is not one perfect memory — no technology is simultaneously fast, large, and cheap. Instead we stack several memories of different speeds and sizes into a <strong>hierarchy</strong>, keeping the data the CPU is actively using in the fast levels and the rest in the slow, cheap levels. The hierarchy bridges the speed gap so the CPU rarely stalls.</p>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">9.2</span>The Hierarchy</h2>
+        <p>Reading from the CPU outward, each level is <strong>larger, slower, and cheaper per bit</strong> than the one before it:</p>
+        <p><span class="key">Registers</span> (inside the datapath, a handful of bytes, ~1 cycle) → <span class="key">L1 / L2 / L3 cache</span> (SRAM, kilobytes to megabytes, a few cycles) → <span class="key">main memory</span> (DRAM, gigabytes, ~100 ns) → <span class="key">disk / SSD</span> (terabytes, microseconds to milliseconds). Moving toward the CPU buys speed at huge cost per bit; moving away buys capacity for almost nothing.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 380 280" role="img" aria-label="Memory pyramid with tiers from registers at the narrow top down to disk at the wide bottom, with an arrow noting faster, smaller, costlier toward the top">
+                <polygon points="170,30 110,80 230,80" fill="#22d3ee" stroke="#0a121a" stroke-width="1"/>
+                <polygon points="110,82 230,82 260,127 80,127" fill="#34d399" stroke="#0a121a" stroke-width="1"/>
+                <polygon points="80,129 260,129 290,174 50,174" fill="#60a5fa" stroke="#0a121a" stroke-width="1"/>
+                <polygon points="50,176 290,176 320,221 20,221" fill="#fbbf24" stroke="#0a121a" stroke-width="1"/>
+                <polygon points="20,223 320,223 335,260 5,260" fill="#a78bfa" stroke="#0a121a" stroke-width="1"/>
+                <text x="170" y="68" fill="#08121a" font-size="11" font-weight="700" text-anchor="middle">Registers</text>
+                <text x="170" y="110" fill="#08121a" font-size="11" font-weight="700" text-anchor="middle">L1 / L2 cache</text>
+                <text x="170" y="156" fill="#08121a" font-size="11" font-weight="700" text-anchor="middle">L3 cache (SRAM)</text>
+                <text x="170" y="203" fill="#08121a" font-size="11" font-weight="700" text-anchor="middle">Main memory (DRAM)</text>
+                <text x="170" y="246" fill="#08121a" font-size="11" font-weight="700" text-anchor="middle">Disk / SSD</text>
+                <line x1="350" y1="255" x2="350" y2="40" stroke="#94a8bc" stroke-width="1.4" marker-end="url(#ar)"/>
+                <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94a8bc"/></marker></defs>
+                <text x="368" y="150" fill="#94a8bc" font-size="10" transform="rotate(90 368 150)" text-anchor="middle">faster · smaller · costlier</text>
+            </svg>
+            <figcaption>The memory pyramid: the narrow top is fast, tiny, and expensive; the wide bottom is slow, huge, and cheap. The CPU sits at the very top.</figcaption>
+        </figure>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">9.3</span>Locality &amp; Caching</h2>
+        <p>A hierarchy only helps if the fast levels usually hold what the CPU wants. They do, because real programs exhibit <span class="key">locality</span>. <strong>Temporal locality</strong>: data used recently is likely to be used again soon (loop counters, hot variables). <strong>Spatial locality</strong>: data near a recent access is likely to be used soon (array elements, the next instruction).</p>
+        <p>A <strong>cache</strong> exploits both. When the CPU requests an address, it either <strong>hits</strong> (the data is already in cache — fast) or <strong>misses</strong> (the data must be fetched from a slower level). On a miss, the cache pulls in a whole <span class="key">cache line</span> — a block of nearby bytes, not just the one requested — so that spatial locality turns the next several accesses into hits.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The memory hierarchy is a desk, a shelf, and a library. What you use constantly sits on the <em>desk</em> (cache) within arm's reach; the rest lives on <em>shelves</em> across the room (main memory); everything else is at the <em>library</em> downtown (disk). You keep recently and soon-needed items closest, and fetch a whole folder at once rather than one page at a time.</div>
+    </section>
+
+    <section class="lec">
+        <h2><span class="n">9.4</span>SRAM vs DRAM &amp; Coherence</h2>
+        <p>The fast and slow levels are built from different cells. <span class="key">SRAM</span> (static RAM) stores each bit in about <strong>6 transistors</strong> arranged as a latch: fast, no refresh needed, but bulky and power-hungry per bit — so it's used for on-chip <strong>cache</strong>. <span class="key">DRAM</span> (dynamic RAM) stores a bit in just <strong>1 transistor + 1 capacitor</strong>: tiny and cheap, so it packs the gigabytes of <strong>main memory</strong> — but the capacitor leaks, so DRAM must be periodically <strong>refreshed</strong>, and it's slower and lives off-chip.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 360 200" role="img" aria-label="Side by side comparison of a 6-transistor SRAM cell and a 1-transistor 1-capacitor DRAM cell">
+                <text x="90" y="24" fill="#67e8f9" font-size="12" font-weight="700" text-anchor="middle">SRAM cell (6T)</text>
+                <rect x="30" y="40" width="120" height="120" rx="8" fill="none" stroke="#22d3ee" stroke-width="1.6"/>
+                <rect x="52" y="70" width="22" height="22" rx="3" fill="#22d3ee"/>
+                <rect x="106" y="70" width="22" height="22" rx="3" fill="#22d3ee"/>
+                <rect x="52" y="108" width="22" height="22" rx="3" fill="#22d3ee"/>
+                <rect x="106" y="108" width="22" height="22" rx="3" fill="#22d3ee"/>
+                <rect x="42" y="48" width="16" height="16" rx="3" fill="#34d399"/>
+                <rect x="122" y="48" width="16" height="16" rx="3" fill="#34d399"/>
+                <text x="90" y="100" fill="#08121a" font-size="9" text-anchor="middle">latch</text>
+                <text x="90" y="178" fill="#94a8bc" font-size="10" text-anchor="middle">fast · big · costly</text>
+                <text x="270" y="24" fill="#fbbf24" font-size="12" font-weight="700" text-anchor="middle">DRAM cell (1T1C)</text>
+                <rect x="210" y="40" width="120" height="120" rx="8" fill="none" stroke="#fbbf24" stroke-width="1.6"/>
+                <rect x="244" y="78" width="24" height="24" rx="3" fill="#fbbf24"/>
+                <text x="256" y="116" fill="#fbbf24" font-size="9" text-anchor="middle">1T</text>
+                <line x1="268" y1="90" x2="294" y2="90" stroke="#fbbf24" stroke-width="1.6"/>
+                <line x1="294" y1="78" x2="294" y2="102" stroke="#34d399" stroke-width="2.4"/>
+                <line x1="300" y1="78" x2="300" y2="102" stroke="#34d399" stroke-width="2.4"/>
+                <text x="297" y="118" fill="#6ee7b7" font-size="9" text-anchor="middle">1C</text>
+                <text x="270" y="178" fill="#94a8bc" font-size="10" text-anchor="middle">dense · cheap · needs refresh</text>
+            </svg>
+            <figcaption>SRAM uses ~6 transistors per bit (a stable latch); DRAM uses 1 transistor plus 1 capacitor — far denser, but the capacitor leaks and must be refreshed.</figcaption>
+        </figure>
+        <p>One more wrinkle: in a multicore chip, several cores each have their own cache, and they may hold copies of the <em>same</em> memory location. If one core writes its copy, the others must not keep using stale data. Keeping all those copies consistent is the <span class="key">cache-coherence problem</span>, solved by hardware protocols that track and invalidate shared lines.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't swap SRAM and DRAM. <strong>SRAM is fast but large and expensive per bit</strong>, which is exactly why it's reserved for cache; <strong>DRAM is dense and cheap but slower and needs refresh</strong>, which is why it's main memory. And remember caches help because of <strong>locality</strong>, not magic — without reuse and nearby access, a cache buys you nothing.</div>
+    </section>
+
+    <div class="worked">
+        <div class="lbl">✦ Worked Example</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Average memory access time models how the hierarchy hides slow DRAM. With an L1 hit time of 1 ns, a miss rate of 5%, and a miss penalty of 100 ns, find the AMAT.</p>
+        <ol>
+            <li><strong>Formula:</strong> AMAT = hit_time + miss_rate × miss_penalty.</li>
+            <li><strong>Plug in:</strong> AMAT = 1 + 0.05 × 100.</li>
+            <li><strong>Compute:</strong> 0.05 × 100 = 5, so AMAT = 1 + 5 = <strong>6 ns</strong>.</li>
+            <li><strong>Read it:</strong> even though a miss costs 100 ns, a 95% hit rate keeps the average near the 1 ns hit time. A high hit rate hides most of the slow DRAM latency.</li>
+        </ol>
+    </div>
+
+    <div class="hands">
+        <h3>🛠️ Hands-On: AMAT &amp; hit-rate trade-offs</h3>
+        <p>On paper, compute the average memory access time for a couple of different miss rates using the same numbers from the worked example (hit time 1 ns, miss penalty 100 ns).</p>
+        <pre><span class="c">* AMAT = hit_time + miss_rate * miss_penalty</span>
+hit_time     = 1 ns
+miss_penalty = 100 ns
+
+<span class="c">; miss_rate = 2%</span>   AMAT = 1 + 0.02 * 100 = 3 ns
+<span class="c">; miss_rate = 5%</span>   AMAT = 1 + 0.05 * 100 = 6 ns
+<span class="c">; miss_rate = 10%</span>  AMAT = 1 + 0.10 * 100 = 11 ns</pre>
+        <p>Notice how fast AMAT climbs as the miss rate rises — halving the miss rate from 10% to 5% nearly halves the average access time. That's why architects fight hard for a few extra percent of hit rate.</p>
+    </div>
+
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The memory hierarchy exists because…</div>
+            <div class="opt"><b>A.</b> DRAM is faster than SRAM</div>
+            <div class="opt"><b>B.</b> fast memory is small/expensive and large memory is slow, so caching bridges the gap</div>
+            <div class="opt"><b>C.</b> CPUs are slow</div>
+            <div class="opt"><b>D.</b> to save power only</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> No single technology is fast, large, and cheap at once, so we stack levels and cache the active data near the CPU.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Compared with DRAM, SRAM (used for cache) is…</div>
+            <div class="opt"><b>A.</b> slower but cheaper</div>
+            <div class="opt"><b>B.</b> denser</div>
+            <div class="opt"><b>C.</b> faster but less dense and more expensive per bit</div>
+            <div class="opt"><b>D.</b> identical</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> SRAM's ~6-transistor cell is fast but bulky and costly per bit, which is why it's reserved for cache.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Caches work because of…</div>
+            <div class="opt"><b>A.</b> random access</div>
+            <div class="opt"><b>B.</b> locality (programs reuse recent and nearby data)</div>
+            <div class="opt"><b>C.</b> large block sizes alone</div>
+            <div class="opt"><b>D.</b> having no misses</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Temporal locality (reuse) and spatial locality (nearby access) make recently/soon-needed data likely to be in cache.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q4.</span> DRAM requires…</div>
+            <div class="opt"><b>A.</b> no power</div>
+            <div class="opt"><b>B.</b> 6 transistors per bit</div>
+            <div class="opt"><b>C.</b> periodic refresh, because its 1T1C cell leaks charge</div>
+            <div class="opt"><b>D.</b> a clock edge to read</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The single capacitor storing each DRAM bit leaks, so its charge must be periodically refreshed.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q5.</span> With hit time 1 ns, miss rate 5%, and miss penalty 100 ns, the AMAT is…</div>
+            <div class="opt"><b>A.</b> 100 ns</div>
+            <div class="opt"><b>B.</b> 6 ns</div>
+            <div class="opt"><b>C.</b> 5 ns</div>
+            <div class="opt"><b>D.</b> 101 ns</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> AMAT = 1 + 0.05 × 100 = 1 + 5 = 6 ns. The high hit rate hides most of the 100 ns penalty.</p></details>
+        </div>
+    </div>
+
+    <!-- DISCUSSION 3 -->
+    <div class="discussion">
+        <div class="disc-head"><span class="wkbadge">Discussion 3 · Week 9</span><h2>💬 Discuss &amp; get feedback</h2></div>
+        <div class="disc-item" data-disc="c3-l9-d3">
+            <p class="disc-prompt" id="prompt-c3l9">If SRAM is so much faster than DRAM, why don't we build all of main memory from SRAM? Frame your answer in terms of the trade-offs that create the memory hierarchy.</p>
+            <textarea id="ans-c3l9" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta"><span class="saved-note" id="saved-c3l9">Not saved yet</span><span class="toast" id="toast-c3l9"></span></div>
+            <div class="disc-model" id="model-c3l9" hidden>
+                <h4>Model response</h4>
+                <p>SRAM stores each bit with ~6 transistors, so it's large in area, expensive, and power-hungry per bit, though very fast. DRAM stores a bit with just 1 transistor and 1 capacitor, so it's dense and cheap but slower and must be refreshed because the capacitor leaks. Building gigabytes of SRAM would be enormous and unaffordable.</p>
+                <p>So we use a small, fast SRAM cache close to the CPU plus large, cheap DRAM for main memory, and rely on locality so the cache catches the great majority of accesses — giving roughly the speed of SRAM at roughly the cost of DRAM. That cost/speed/density trade-off is exactly what creates the memory hierarchy.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>SRAM ~6T → big/expensive/power-hungry; DRAM 1T1C → dense/cheap/slower/needs refresh</li>
+                    <li>All-SRAM is infeasible on cost/area/power</li>
+                    <li>Hierarchy + locality delivers SRAM-like speed at DRAM-like cost</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="data-note">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty. The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
+    <!-- RECAP -->
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The <b>memory wall</b> — CPUs vastly outrun DRAM, so a hierarchy of memories bridges the speed gap.</li>
+            <li>The hierarchy runs <b>registers → L1/L2/L3 cache (SRAM) → main memory (DRAM) → disk/SSD</b>, each level larger, slower, and cheaper per bit moving outward.</li>
+            <li>Caches work because of <b>temporal and spatial locality</b>; accesses hit or miss, and data moves in <b>cache lines</b>.</li>
+            <li><b>SRAM (~6T)</b> is fast/costly → cache; <b>DRAM (1T1C)</b> is dense/cheap but needs refresh → main memory; shared copies raise the <b>cache-coherence</b> problem.</li>
+            <li>Computed <b>AMAT = hit_time + miss_rate × miss_penalty</b> and saw how a high hit rate hides DRAM latency.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10: Clocking, Power &amp; Scaling — clock distribution, dynamic and static power, and how scaling shapes modern chips.</p>
+    </div>
+
+    <div class="lec-nav">
+        <a href="l08-pipelining.html"><div class="dir">← Week 8</div><div class="ttl">Pipelining</div></a>
+        <a href="l10-clocking-power-scaling.html" class="next"><div class="dir">Week 10 →</div><div class="ttl">Clocking, Power &amp; Scaling</div></a>
+    </div>
+</div>
+<footer>
+    <p><a href="../index.html">← C3 Architecture</a> · <a href="../../index.html">Nano</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => { const h = document.documentElement; bar.style.width = (h.scrollTop)/(h.scrollHeight - h.clientHeight)*100 + '%'; });
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my computer-architecture tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\nMY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) { const t = item.querySelector('.toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500); }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.')); }
+        else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) { const item = btn.closest('.disc-item'); const full = buildPrompt(item); copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.'); window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener'); }
+    function copyForAI(btn) { const item = btn.closest('.disc-item'); copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.'); }
+    function toggleModel(btn) { const m = btn.closest('.disc-item').querySelector('.disc-model'); if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; } else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; } }
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => { localStorage.setItem(key, t.value); if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet'; });
+    });
+</script>
+</body>
+</html>
