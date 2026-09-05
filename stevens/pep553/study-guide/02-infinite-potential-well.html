@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEP553 · Topic 2: The Infinite Potential Well</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-blue: #00d4ff;
+            --accent-purple: #c27dff;
+            --accent-green: #06ffa5;
+            --accent-orange: #ff9500;
+            --accent-red: #ff6b6b;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --border-color: #0f3460;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the PEP553 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Cross-page course nav strip — sits ABOVE the header, links back to index + prev/next topic */
+        .course-nav {
+            background: rgba(10, 10, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(0, 212, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(15, 52, 96, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(15, 52, 96, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .math-raw {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; font-family: 'Monaco', monospace; overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-card.multiple-choice { border-left-color: var(--accent-blue); }
+        .question-card.free-response { border-left-color: var(--accent-purple); }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .choices { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        .choice {
+            padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+        .choice:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        .choice.correct {
+            background: rgba(6, 255, 165, 0.15); border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .rubric {
+            background: rgba(194, 125, 255, 0.1); border: 1px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .rubric-point { margin-bottom: 0.5rem; display: flex; gap: 0.5rem; }
+        .rubric-point span:first-child { color: var(--accent-orange); font-weight: 700; min-width: 80px; }
+
+        .misconception {
+            background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(6, 255, 165, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .physics-extension {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 107, 107, 0.1));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .physics-extension::before {
+            content: "🔬 Engineering / Research Connection: ";
+            color: var(--accent-orange); font-weight: 700;
+        }
+
+        /* Homework-feedback specific box — use for "common mistakes on graded homework" call-outs */
+        .hw-feedback {
+            background: rgba(255, 149, 0, 0.08); border: 1px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem;
+        }
+        .hw-feedback-title { color: var(--accent-orange); font-weight: 700; margin-bottom: 0.5rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(0, 212, 255, 0.2); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(194, 125, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">⚛ PEP553 Study Guide Home</a>
+        <a href="01-wave-function-and-statistics.html">← Prev: Wave Function &amp; Statistics</a>
+        <a href="03-quantum-harmonic-oscillator.html">Next: Quantum Harmonic Oscillator →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">⚛ PEP553 · Topic 2: The Infinite Potential Well</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="tise">Deriving the TISE</button>
+            <button class="nav-link" data-section="stationary">Stationary States</button>
+            <button class="nav-link" data-section="well">Infinite Square Well</button>
+            <button class="nav-link" data-section="normalization">Normalization &amp; Orthogonality</button>
+            <button class="nav-link" data-section="expectations">Expectation Values</button>
+            <button class="nav-link" data-section="advanced">Advanced: Fourier Expansion</button>
+            <button class="nav-link" data-section="conventions">Symmetric vs Asymmetric</button>
+            <button class="nav-link" data-section="practice">Practice Problems</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#tise" class="sidebar-link">Deriving the TISE</a>
+                <a href="#stationary" class="sidebar-link">Stationary States</a>
+                <a href="#well" class="sidebar-link">Infinite Square Well</a>
+                <a href="#normalization" class="sidebar-link">Normalization &amp; Orthogonality</a>
+                <a href="#expectations" class="sidebar-link">Expectation Values</a>
+                <a href="#advanced" class="sidebar-link">Advanced: Fourier Expansion</a>
+                <a href="#conventions" class="sidebar-link">Symmetric vs Asymmetric</a>
+                <a href="#practice" class="sidebar-link">Practice Problems</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview: From the Time-Dependent Equation to Quantized Energy Levels</h2>
+    </div>
+    <p>Topic 1 built the statistical machinery of quantum mechanics: the wave function $\Psi(x,t)$, the Born rule $|\Psi(x,t)|^2$ as a probability density, normalization, and the operator recipe $\langle Q(x,p)\rangle = \int \Psi^* \hat{Q}\,\Psi\,dx$ for computing expectation values. What we never did was actually <em>solve</em> for $\Psi(x,t)$. That's the job of this topic.</p>
+    <p>This page covers <strong>Syllabus Lectures 4-1 through 5-2</strong> (Canvas module: "The Time Independent Schrödinger Equation and the Infinite Potential Well"), corresponding to <strong>Homework #2</strong>. The roadmap:</p>
+    <ul>
+        <li><strong>Separation of variables</strong> turns the time-dependent Schrödinger equation (TDSE) into two ordinary differential equations — one in $t$, one in $x$. The spatial equation is the <strong>time-independent Schrödinger equation (TISE)</strong>.</li>
+        <li>Solutions of the TISE are <strong>stationary states</strong> — states of definite, sharply-defined energy.</li>
+        <li>We solve the TISE explicitly for the simplest possible potential: the <strong>infinite square well</strong> (particle in a box), deriving the eigenfunctions $\varphi_n(x)$ and allowed energies $E_n$ from the boundary conditions — not just stating them.</li>
+        <li>We prove normalization and orthogonality of the $\varphi_n$, then use them to compute $\langle x\rangle$, $\langle p\rangle$, and $\langle H\rangle$ — both for a single stationary state and for a superposition of two.</li>
+        <li>An <strong>advanced example</strong> shows how any initial wave function, confined to a well, can be expanded in the energy eigenbasis using Fourier's trick — the seed of the general superposition principle that Topic 4 (Free Particle &amp; Wave Packets) formalizes as $\Psi(x,t) = \sum_n c_n \psi_n(x) e^{-iE_nt/\hbar}$.</li>
+    </ul>
+    <div class="exam-info">
+        <div class="exam-info-title">📌 Midterm Alert</div>
+        <p>The infinite square well is <strong>core midterm material</strong>. The midterm review handout explicitly asks students to compute expectation values of position, momentum, and energy for a particle in a box — both in a single stationary state and in a superposition of two. Section 6 below ("Expectation Values") works through exactly that calculation with concrete numbers. See <a href="midterm-exam.html">midterm-exam.html</a> for the full review guide.</p>
+    </div>
+</section>
+
+<section class="section" id="tise">
+    <div class="section-header">
+        <span class="section-icon">📐</span>
+        <h2 class="section-title">Deriving the Time-Independent Schrödinger Equation</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Starting Point: The Full Time-Dependent Schrödinger Equation</h3>
+        <p>Everything in non-relativistic quantum mechanics (in one dimension, for a time-independent potential $V(x)$) starts from</p>
+        <div class="math">$$ i\hbar \frac{\partial \Psi}{\partial t} = -\frac{\hbar^2}{2m}\frac{\partial^2 \Psi}{\partial x^2} + V(x)\,\Psi. $$</div>
+        <p>This is a partial differential equation in two variables, $x$ and $t$. The physicist's first line of attack on any PDE is <strong>separation of variables</strong>: look for solutions that are products of a function of $x$ alone and a function of $t$ alone,</p>
+        <div class="math">$$ \Psi(x,t) = \psi(x)\,\varphi(t). $$</div>
+        <p>This looks like a drastic restriction — surely most solutions aren't simple products. But it turns out that the separable solutions we find here can be linearly combined to build <em>every</em> solution to the full time-dependent equation, so nothing is lost.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Substituting and Separating</h3>
+        <p>Because $\Psi$ is a product, the partial derivatives become ordinary derivatives acting on one factor at a time:</p>
+        <div class="math">$$ \frac{\partial \Psi}{\partial t} = \psi\,\frac{d\varphi}{dt}, \qquad \frac{\partial^2 \Psi}{\partial x^2} = \frac{d^2\psi}{dx^2}\,\varphi. $$</div>
+        <p>Substituting into the Schrödinger equation:</p>
+        <div class="math">$$ i\hbar\,\psi\,\frac{d\varphi}{dt} = -\frac{\hbar^2}{2m}\frac{d^2\psi}{dx^2}\,\varphi + V\psi\varphi. $$</div>
+        <p>Divide both sides by $\psi\varphi$ (legitimate everywhere $\Psi \neq 0$):</p>
+        <div class="math">$$ i\hbar\,\frac{1}{\varphi}\frac{d\varphi}{dt} = -\frac{\hbar^2}{2m}\frac{1}{\psi}\frac{d^2\psi}{dx^2} + V(x). $$</div>
+        <p>Now look carefully at what's on each side. The <strong>left</strong> side is a function of $t$ alone. The <strong>right</strong> side is a function of $x$ alone (this step requires $V$ to depend only on $x$, not on $t$ — exactly our assumption). But $x$ and $t$ are <em>independent</em> variables: I can hold $x$ fixed and vary $t$, or vice versa. The only way a function of $t$ alone can equal a function of $x$ alone, for <em>all</em> values of both, is if <strong>both sides equal the same constant</strong>. Call that constant $E$ (the choice of letter will be justified in the next section — it turns out to be the energy).</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Two Ordinary Differential Equations</h3>
+        <p>Setting the left side equal to $E$:</p>
+        <div class="math">$$ i\hbar\,\frac{1}{\varphi}\frac{d\varphi}{dt} = E \quad\Longrightarrow\quad \frac{d\varphi}{dt} = -\frac{iE}{\hbar}\varphi. $$</div>
+        <p>This first-order equation integrates immediately (separate variables, integrate, exponentiate). Absorbing the integration constant into $\psi$ (since only the product $\psi\varphi$ matters), the normalized solution is</p>
+        <div class="math">$$ \varphi(t) = e^{-iEt/\hbar}. $$</div>
+        <p>Setting the right side equal to $E$ and rearranging gives the spatial equation:</p>
+        <div class="math">$$ -\frac{\hbar^2}{2m}\frac{1}{\psi}\frac{d^2\psi}{dx^2} + V(x) = E \quad\Longrightarrow\quad \boxed{-\frac{\hbar^2}{2m}\frac{d^2\psi}{dx^2} + V(x)\psi = E\psi.} $$</div>
+        <p>This boxed equation is the <strong>time-independent Schrödinger equation (TISE)</strong>. A single second-order PDE has become a first-order ODE in $t$ (already solved, above) and a second-order ODE in $x$ that we still have to solve — separately, for every potential $V(x)$ we care about. The rest of this course is largely a tour of specific choices of $V(x)$: the infinite well (this page), the harmonic oscillator (Topic 3), the finite well and barriers (Topic 5), and the hydrogen atom (Topic 8).</p>
+    </div>
+</section>
+
+<section class="section" id="stationary">
+    <div class="section-header">
+        <span class="section-icon">⏱️</span>
+        <h2 class="section-title">Stationary States</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Why "Stationary"? Probabilities Don't Move</h3>
+        <p>A separable solution has the form</p>
+        <div class="math">$$ \Psi(x,t) = \psi(x)\,e^{-iEt/\hbar}. $$</div>
+        <p>Although $\Psi$ itself obviously depends on $t$, the probability density does not:</p>
+        <div class="math">$$ |\Psi(x,t)|^2 = \Psi^*\Psi = \psi^* e^{+iEt/\hbar}\,\psi\, e^{-iEt/\hbar} = |\psi(x)|^2. $$</div>
+        <p>The two exponentials — the "wiggle factor" — cancel exactly, because $E$ is real (see Practice Problem territory: this requires proving $E$ can't have an imaginary part, which follows from demanding $\int|\Psi|^2dx$ stay finite and equal to 1 for all $t$). The same cancellation happens inside <em>any</em> expectation-value integral, since the operator recipe $\langle Q(x,p)\rangle = \int \Psi^*[Q(x,-i\hbar\,d/dx)]\Psi\,dx$ always pairs a $\Psi^*$ with a $\Psi$. So <strong>every expectation value computed in a stationary state is constant in time</strong>. In particular $\langle x \rangle$ is constant, and hence (recall $\langle p \rangle = m\,d\langle x\rangle/dt$ from Topic 1) $\langle p \rangle = 0$ identically. Nothing observable ever changes — hence "stationary."</p>
+    </div>
+    <div class="anchor">
+        <div class="anchor-title">⚓ Memory Anchor: Nothing Ever Happens in a Stationary State</div>
+        <p>If a problem gives you a <em>single</em> $\psi_n(x)e^{-iE_nt/\hbar}$ and asks how $\langle x \rangle$ or $\langle p \rangle$ changes in time, the answer is always "it doesn't" — full stop, no calculation needed. Motion only appears once you combine <em>at least two</em> stationary states with <em>different</em> energies (Section 6 below works this out explicitly).</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Definite Energy: the Hamiltonian Eigenvalue Equation</h3>
+        <p>In classical mechanics the total energy (kinetic + potential) is called the Hamiltonian, $H(x,p) = p^2/2m + V(x)$. Applying the canonical substitution $p \to -i\hbar\,d/dx$ gives the Hamiltonian <em>operator</em>,</p>
+        <div class="math">$$ \hat{H} = -\frac{\hbar^2}{2m}\frac{d^2}{dx^2} + V(x), $$</div>
+        <p>and the TISE can be rewritten compactly as an <strong>eigenvalue equation</strong>:</p>
+        <div class="math">$$ \hat{H}\psi = E\psi. $$</div>
+        <p>Because $\hat H \psi = E\psi$, we get $\langle H \rangle = \int \psi^* \hat H \psi\,dx = E\int|\psi|^2dx = E$, and likewise $\hat H^2 \psi = E^2\psi$ so $\langle H^2\rangle = E^2$. The variance of the energy is therefore</p>
+        <div class="math">$$ \sigma_H^2 = \langle H^2\rangle - \langle H \rangle^2 = E^2 - E^2 = 0. $$</div>
+        <p>Zero variance means <em>every single measurement</em> of the energy of a particle in a stationary state returns exactly $E$ — not "on average," but with 100% certainty. This is why $E$ deserved to be called the energy from the moment it appeared as the separation constant.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">A Preview: Linear Combinations Produce Motion</h3>
+        <p>The TISE is a second-order ODE, so for a given potential it typically yields an infinite family of solutions $\{\psi_n(x)\}$, each with its own allowed energy $\{E_n\}$ — this is exactly what happens for the infinite well below. Because the full TDSE is <em>linear</em>, any combination $\Psi(x,t) = \sum_n c_n \psi_n(x)e^{-iE_nt/\hbar}$ is also a solution, and it turns out <em>every</em> solution can be written this way for the right choice of constants $c_n$. Such a combination is generally <strong>not</strong> stationary: the different energies mean the wiggle factors no longer cancel in $|\Psi|^2$, and probabilities genuinely shift with time. Topic 4 develops this superposition principle in full generality; Section 6 below gives you a concrete, fully-worked two-state example for the infinite well right now, because it's exam-relevant material.</p>
+    </div>
+</section>
+
+<section class="section" id="well">
+    <div class="section-header">
+        <span class="section-icon">📦</span>
+        <h2 class="section-title">The Infinite Square Well: Full Derivation</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Setting Up the Potential</h3>
+        <p>The infinite square well (a.k.a. "particle in a box") is the simplest non-trivial potential in quantum mechanics. Using the <strong>asymmetric convention</strong> (well spans $0$ to $a$ — this is the convention used throughout this page, the homework, and the midterm review sheet; see the Section 8 misconception box for the alternative convention):</p>
+        <div class="math">$$ V(x) = \begin{cases} 0, & 0 \le x \le a \\ \infty, & \text{otherwise.} \end{cases} $$</div>
+        <p>Physically: the particle is completely free inside the well, but an infinite force confines it — it can never be found at $x<0$ or $x>a$. Outside the well, $\psi(x) = 0$ identically (the particle simply cannot access that region, no matter how the wave function behaves inside).</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Solving Inside the Well</h3>
+        <p>Where $V=0$, the TISE reduces to</p>
+        <div class="math">$$ -\frac{\hbar^2}{2m}\frac{d^2\psi}{dx^2} = E\psi \quad\Longrightarrow\quad \frac{d^2\psi}{dx^2} = -k^2\psi, \qquad k \equiv \frac{\sqrt{2mE}}{\hbar}. $$</div>
+        <p>(One can show — see Practice Problem 2.2-style arguments — that $E \ge 0$ is required for any normalizable solution, so $k$ is real and this rewriting is legitimate.) This is exactly the classical simple-harmonic-oscillator equation, whose general solution is</p>
+        <div class="math">$$ \psi(x) = A\sin(kx) + B\cos(kx), $$</div>
+        <p>with $A$ and $B$ arbitrary constants to be pinned down by boundary conditions.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Applying Boundary Conditions: Quantization Emerges</h3>
+        <p>Ordinarily both $\psi$ and $d\psi/dx$ must be continuous across a boundary. But where the potential itself jumps to infinity, only continuity of $\psi$ survives as a legitimate condition (the general justification, and the exception's origin, belongs to the boundary-condition analysis in Topic 5 — Finite Well &amp; Barriers). Since $\psi = 0$ just outside the well on both sides, continuity requires</p>
+        <div class="math">$$ \psi(0) = \psi(a) = 0. $$</div>
+        <p><strong>Left boundary:</strong> $\psi(0) = A\sin 0 + B\cos 0 = B$, so continuity forces $B = 0$. The solution simplifies to</p>
+        <div class="math">$$ \psi(x) = A\sin(kx). $$</div>
+        <p><strong>Right boundary:</strong> $\psi(a) = A\sin(ka) = 0$. Either $A=0$ (the trivial, non-normalizable $\psi \equiv 0$ — rejected), or</p>
+        <div class="math">$$ \sin(ka) = 0 \quad\Longrightarrow\quad ka = 0, \pm\pi, \pm2\pi, \pm3\pi, \ldots $$</div>
+        <p>$k=0$ is rejected (again gives $\psi\equiv0$), and negative values of $k$ give nothing new since $\sin(-\theta)=-\sin\theta$ just flips the sign of $A$, which we can absorb. So the <em>distinct</em> allowed wavenumbers are</p>
+        <div class="math">$$ k_n = \frac{n\pi}{a}, \qquad n = 1,2,3,\ldots $$</div>
+        <p>This is the heart of quantum mechanics right here: the boundary condition at $x=a$ didn't fix the amplitude $A$ — it fixed which values of $k$, and hence which energies, are even allowed. <strong>Quantization is a consequence of confinement</strong>, not an extra assumption bolted on.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">The Allowed Energies</h3>
+        <p>Since $k = \sqrt{2mE}/\hbar$, solving for $E$ at each allowed $k_n$ gives the quantized energy spectrum:</p>
+        <div class="math">$$ E_n = \frac{\hbar^2 k_n^2}{2m} = \frac{n^2\pi^2\hbar^2}{2ma^2}, \qquad n=1,2,3,\ldots $$</div>
+        <p>In radical contrast to a classical particle bouncing in a box (which can have <em>any</em> non-negative energy), a quantum particle confined to this well can only have one of these special discrete values. The $n=1$ state is the <strong>ground state</strong> (lowest energy, $E_1=\pi^2\hbar^2/2ma^2 > 0$ — note the particle can never be at rest, another purely quantum feature); $n=2,3,\ldots$ are <strong>excited states</strong>, with $E_n \propto n^2$.</p>
+    </div>
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: "$\psi$ and $d\psi/dx$ must both be continuous, always."</div>
+        <div class="misconception-explanation">That rule holds for <em>finite</em> potentials (Topic 5's finite well and barriers). But where $V \to \infty$ — as at the two walls here — only $\psi$ itself needs to be continuous; $d\psi/dx$ is allowed to (and does) jump discontinuously at $x=0$ and $x=a$ for the infinite well. If you try to also impose continuity of the derivative here, you'll incorrectly conclude $A=0$ and lose every solution.</div>
+    </div>
+</section>
+
+<section class="section" id="normalization">
+    <div class="section-header">
+        <span class="section-icon">🔢</span>
+        <h2 class="section-title">Normalization and Orthogonality</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Fixing the Amplitude: Normalization</h3>
+        <p>The boundary conditions fixed $k_n$ but left $A$ undetermined — that's what normalization is for. Requiring $\int_0^a |\psi_n(x)|^2\,dx = 1$:</p>
+        <div class="math">$$ \int_0^a |A|^2 \sin^2(k_n x)\,dx = |A|^2\cdot\frac{a}{2} = 1 \quad\Longrightarrow\quad |A|^2 = \frac{2}{a}. $$</div>
+        <p>(The integral $\int_0^a \sin^2(k_nx)\,dx = a/2$ follows from $\sin^2\theta = \tfrac12(1-\cos2\theta)$ and the fact that $\cos(2k_nx)$ completes a whole number of cycles over $[0,a]$, so its integral vanishes.) Normalization only fixes the <em>magnitude</em> of $A$; the phase is physically irrelevant, so we conventionally pick the positive real root $A=\sqrt{2/a}$. The complete, normalized energy eigenfunctions are</p>
+        <div class="math">$$ \boxed{\varphi_n(x) = \sqrt{\frac{2}{a}}\,\sin\!\left(\frac{n\pi x}{a}\right), \qquad n=1,2,3,\ldots} $$</div>
+        <p>These look exactly like the standing-wave modes of a vibrating string of length $a$ pinned at both ends — $\varphi_1$ has no interior nodes, $\varphi_2$ has one, $\varphi_3$ has two, and in general $\varphi_n$ has $n-1$ interior nodes. They alternate even/odd about the well's midpoint $x=a/2$: $\varphi_1$ is even (about $a/2$), $\varphi_2$ is odd, $\varphi_3$ is even, and so on.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Orthogonality</h3>
+        <p>A second essential property: distinct eigenfunctions are orthogonal, $\int_0^a \varphi_m(x)\varphi_n(x)\,dx = 0$ for $m \ne n$. The key step uses the product-to-sum identity $\sin A \sin B = \tfrac12[\cos(A-B)-\cos(A+B)]$:</p>
+        <div class="math">$$ \int_0^a \varphi_m\varphi_n\,dx = \frac{1}{a}\int_0^a\left[\cos\!\left(\frac{(m-n)\pi x}{a}\right) - \cos\!\left(\frac{(m+n)\pi x}{a}\right)\right]dx. $$</div>
+        <p>Each cosine here completes a whole number of cycles over $[0,a]$ whenever its argument's coefficient is a nonzero multiple of $\pi/a$ — which holds for both terms as long as $m \ne n$ — so both integrals vanish. Combining orthogonality with normalization in one statement, using the Kronecker delta $\delta_{mn}$ (1 if $m=n$, else 0):</p>
+        <div class="math">$$ \int_0^a \varphi_m(x)\varphi_n(x)\,dx = \delta_{mn}. $$</div>
+        <p>We say the $\{\varphi_n\}$ are <strong>orthonormal</strong>. (Note the argument breaks down exactly at $m=n$, where both cosine terms become $\cos(0)$ or a repeated-angle term rather than a whole number of cycles — that's precisely the case normalization, not orthogonality, has to handle.) This orthogonality is not a quirk of the infinite well specifically — the general proof that <em>any two eigenfunctions of a Hermitian operator with different eigenvalues are automatically orthogonal</em> is Topic 6's job (Formal Theory &amp; Matrix Methods); here we simply establish and use the concrete result.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Completeness: Any Function Can Be Built From These</h3>
+        <p>The $\{\varphi_n\}$ have one more remarkable property: they are <strong>complete</strong>, meaning any (reasonably well-behaved) function $f(x)$ on $[0,a]$ can be written as a linear combination of them:</p>
+        <div class="math">$$ f(x) = \sum_{n=1}^{\infty} c_n\varphi_n(x) = \sqrt{\frac{2}{a}}\sum_{n=1}^{\infty} c_n \sin\!\left(\frac{n\pi x}{a}\right). $$</div>
+        <p>This is nothing but the <strong>Fourier sine series</strong> for $f(x)$ (completeness of these particular functions is guaranteed by Dirichlet's theorem from Fourier analysis). Orthonormality lets us extract each coefficient individually via <strong>Fourier's trick</strong>: multiply both sides by $\varphi_m(x)$ and integrate over $[0,a]$. Every term in the sum vanishes except $n=m$ (courtesy of the Kronecker delta), leaving</p>
+        <div class="math">$$ c_n = \int_0^a \varphi_n(x)\,f(x)\,dx. $$</div>
+        <p>This is the tool Section 7's advanced example uses to expand an arbitrary confined initial wave function in the energy eigenbasis.</p>
+    </div>
+</section>
+
+<section class="section" id="expectations">
+    <div class="section-header">
+        <span class="section-icon">📊</span>
+        <h2 class="section-title">Worked Example: Expectation Values $\langle x\rangle$, $\langle p\rangle$, $\langle H\rangle$</h2>
+    </div>
+    <div class="exam-info">
+        <div class="exam-info-title">📌 This Exact Calculation Is on the Midterm Review Sheet</div>
+        <p>"Expectation values of position, momentum, and energy for a particle in a box" is explicit on the midterm review handout — cross-check your work below against <a href="midterm-exam.html">midterm-exam.html</a>.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Single Stationary State $\varphi_n(x)$</h3>
+        <p><strong>Position.</strong> Since $\varphi_n^2(x)$ is symmetric about the midpoint $x=a/2$ (you can check $\sin^2\!\big(\tfrac{n\pi}{a}(a-x)\big) = \sin^2\!\big(\tfrac{n\pi x}{a}\big)$ using $\sin(n\pi - \theta) = \pm\sin\theta$ and squaring), the average position is exactly the midpoint, for <em>every</em> $n$:</p>
+        <div class="math">$$ \langle x \rangle = \int_0^a x\cdot\frac{2}{a}\sin^2\!\left(\frac{n\pi x}{a}\right)dx = \frac{a}{2}. $$</div>
+        <p>Carrying out the same integral with an extra factor of $x$ (via $\sin^2\theta = \tfrac12(1-\cos2\theta)$ and integrating $x^2\cos(2k_nx)$ by parts twice) gives the standard result</p>
+        <div class="math">$$ \langle x^2 \rangle = a^2\left(\frac{1}{3} - \frac{1}{2n^2\pi^2}\right) \quad\Longrightarrow\quad \sigma_x^2 = \langle x^2\rangle - \langle x\rangle^2 = a^2\left(\frac{1}{12} - \frac{1}{2n^2\pi^2}\right). $$</div>
+        <p><strong>Momentum.</strong> Because $\varphi_n(x)$ is real, $\langle p \rangle$ vanishes identically for <em>any</em> stationary state — this is worth deriving in general, once and for all:</p>
+        <div class="math">$$ \langle p \rangle = -i\hbar\int_0^a \varphi_n\,\frac{d\varphi_n}{dx}\,dx = -\frac{i\hbar}{2}\Big[\varphi_n^2(x)\Big]_0^a = 0, $$</div>
+        <p>since $\varphi_n(0)=\varphi_n(a)=0$ kills the boundary term. (This is consistent with Section 3's general theorem: $\langle p \rangle = m\,d\langle x\rangle/dt = 0$ because $\langle x \rangle = a/2$ is constant in a stationary state.)</p>
+        <p><strong>Energy.</strong> $\langle H \rangle = E_n$ and $\sigma_H = 0$ exactly, as proven in Section 3. For the kinetic-energy piece specifically, since $V=0$ inside the well, $\langle H \rangle = \langle T \rangle = \langle p^2\rangle/2m$, so $\langle p^2 \rangle = 2mE_n = n^2\pi^2\hbar^2/a^2$. (You can also get this directly: $-\hbar^2\int_0^a \varphi_n\varphi_n''\,dx = \hbar^2 k_n^2\int_0^a\varphi_n^2\,dx = \hbar^2k_n^2$, matching $2mE_n$ exactly.) Since $\langle p \rangle = 0$, this is also $\sigma_p^2$.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Superposition of Two Eigenstates: Motion Appears</h3>
+        <p>Now let the particle start in an equal-weight combination of the ground state and first excited state, $\Psi(x,0) = A[\varphi_1(x) + \varphi_2(x)]$. Orthonormality makes normalization trivial: $\int|\Psi(x,0)|^2dx = A^2(1+1) = 1$, so $A = 1/\sqrt2$, i.e. $c_1 = c_2 = 1/\sqrt2$.</p>
+        <p>Tacking on each stationary state's own wiggle factor,</p>
+        <div class="math">$$ \Psi(x,t) = \frac{1}{\sqrt2}\varphi_1(x)e^{-iE_1t/\hbar} + \frac{1}{\sqrt2}\varphi_2(x)e^{-iE_2t/\hbar}, $$</div>
+        <p>and the probability density picks up a genuine cross term (this is Griffiths' Example 2.1 pattern):</p>
+        <div class="math">$$ |\Psi(x,t)|^2 = \tfrac12\varphi_1^2(x) + \tfrac12\varphi_2^2(x) + \varphi_1(x)\varphi_2(x)\cos(\omega t), \qquad \omega \equiv \frac{E_2-E_1}{\hbar} = \frac{3\pi^2\hbar}{2ma^2}. $$</div>
+        <p>Since the exponentials no longer cancel, the density genuinely <em>sloshes back and forth</em> at angular frequency $\omega$ — this is what a "superposition state" physically does that a stationary state cannot. Computing $\langle x \rangle(t) = \int_0^a x\,|\Psi(x,t)|^2\,dx$ requires the cross-term integral $\int_0^a x\,\varphi_1\varphi_2\,dx = -\dfrac{16a}{9\pi^2}$ (a standard integration-by-parts calculation using the product-to-sum identity, same technique as the orthogonality proof above), giving</p>
+        <div class="math">$$ \langle x \rangle(t) = \frac{a}{2} - \frac{16a}{9\pi^2}\cos(\omega t) \approx \frac{a}{2} - 0.180\,a\,\cos(\omega t). $$</div>
+        <p>The average position genuinely oscillates about the midpoint, with amplitude $16a/9\pi^2 \approx 0.180a$ — comfortably less than $a/2$, as it must be (the particle can never wander outside the box). Differentiating (or using $\langle p \rangle = m\,d\langle x\rangle/dt$ directly):</p>
+        <div class="math">$$ \langle p \rangle(t) = \frac{8\hbar}{3a}\sin(\omega t). $$</div>
+        <p>Finally, the energy expectation value is <em>still</em> constant in time — energy conservation survives superposition, even though position and momentum don't:</p>
+        <div class="math">$$ \langle H \rangle = |c_1|^2E_1 + |c_2|^2E_2 = \tfrac12 E_1 + \tfrac12 E_2 = \frac{5\pi^2\hbar^2}{4ma^2}. $$</div>
+        <p>Note $\langle H\rangle$ sits strictly between $E_1$ and $E_2$, and $|c_n|^2$ is literally the probability that a single energy measurement returns $E_n$ — measuring the energy of this particle yields $E_1$ half the time and $E_2$ half the time, never anything else, and never a value in between.</p>
+    </div>
+</section>
+
+<section class="section" id="advanced">
+    <div class="section-header">
+        <span class="section-icon">🧮</span>
+        <h2 class="section-title">Advanced Example: Expanding an Arbitrary Initial Wave Function</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">The General Recipe</h3>
+        <p>Given <em>any</em> normalizable initial wave function $\Psi(x,0)$ confined to the well, completeness guarantees it can be written as $\Psi(x,0) = \sum_n c_n\varphi_n(x)$, and Fourier's trick (Section 5) extracts each coefficient: $c_n = \int_0^a \varphi_n(x)\Psi(x,0)\,dx$. Once you know the $c_n$, the full time evolution is immediate — just append each term's wiggle factor:</p>
+        <div class="math">$$ \Psi(x,t) = \sum_{n=1}^\infty c_n\,\varphi_n(x)\,e^{-iE_nt/\hbar}. $$</div>
+        <p>This is precisely the general superposition formula that Topic 4 develops in full ($\Psi(x,t)=\sum_n c_n\psi_n(x)e^{-iE_nt/\hbar}$) — here we're just seeing its first concrete application.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">A Numerical Case Study: An Electron Confined to 1 nm, in the Symmetric Well</h3>
+        <p>This worked case study (adapted from a course computational demonstration) uses the <strong>symmetric well convention</strong> spanning $-a/2$ to $+a/2$ (see Section 8 for why this differs from the asymmetric convention used above) with $a=1\,\text{nm}$ and an electron mass, giving a ground-state energy of $E_1 = \pi^2\hbar^2/2m_ea^2 \approx 0.038\,\text{eV} = 38\,\text{meV}$ — a realistic atomic-scale confinement energy. Because $V(x)$ is an even function of $x$ in this convention, the eigenfunctions split cleanly into two families indexed by $n=1,2,3,\ldots$:</p>
+        <div class="math">$$ \varphi_{\text{even}}(n,x) = \sqrt{\frac{2}{a}}\cos\!\left(\frac{(2n-1)\pi x}{a}\right), \qquad \varphi_{\text{odd}}(n,x) = \sqrt{\frac{2}{a}}\sin\!\left(\frac{2n\pi x}{a}\right). $$</div>
+        <p>Now take an initial wave function confined to a narrow region near the center — physically, an electron whose position is fairly well localized when the well is "switched on." Two natural choices were examined:</p>
+        <ul>
+            <li>An <strong>even</strong> initial function (a symmetric rectangular pulse centered at $x=0$).</li>
+            <li>An <strong>odd</strong> initial function (an antisymmetric step, positive on one side of the origin and negative on the other, of equal magnitude).</li>
+        </ul>
+        <p>Computing the expansion coefficients numerically via Fourier's trick, $b_{\text{even}}(n) = \int \varphi_{\text{even}}(n,x)\,\Psi_{\text{initial}}(x)\,dx$ and similarly for $b_{\text{odd}}(n)$, produces a clean <strong>selection rule</strong>: for the even initial pulse, every $b_{\text{odd}}(n)$ comes out numerically zero and only the cosine terms contribute; for the odd initial step, every $b_{\text{even}}(n)$ vanishes and only the sine terms contribute. This is not a coincidence of the specific shapes chosen — it's the general theorem that <em>a symmetric potential's eigenfunctions can always be sorted into even and odd, and an initial state's parity under $x \to -x$ determines which subset of eigenfunctions is needed to build it.</em> Truncating the sum at 50 terms already reproduces the original (sharply-edged) initial function quite well, with small residual "ringing" (Gibbs-phenomenon overshoot) right at the discontinuous edges — exactly the behavior you'd expect from truncating any Fourier series of a discontinuous function.</p>
+    </div>
+    <div class="anchor">
+        <div class="anchor-title">⚓ Memory Anchor: Symmetry of $\Psi(x,0)$ Tells You Which Coefficients Survive</div>
+        <p>Before grinding through a Fourier's-trick integral, ask: is the given $\Psi(x,0)$ even, odd, or neither about the center of the well (in a convention where the well <em>is</em> centered at the origin)? If it's even, save yourself the algebra — every odd-eigenfunction coefficient is automatically zero, and vice versa. This is exactly the kind of qualitative check the "most probable energy" and "which coefficients dominate" style of exam question is testing.</p>
+    </div>
+</section>
+
+<section class="section" id="conventions">
+    <div class="section-header">
+        <span class="section-icon">⚖️</span>
+        <h2 class="section-title">Symmetric vs. Asymmetric Well Conventions</h2>
+    </div>
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: "The infinite well is the infinite well — the convention doesn't matter."</div>
+        <div class="misconception-explanation">
+            <p>It matters enormously for which boundary conditions you write down and what your eigenfunctions look like. There are two conventions in circulation, and mixing them up is one of the most common sources of sign and boundary-condition errors on this material:</p>
+            <table>
+                <tr><th>Convention</th><th>Domain</th><th>Boundary Conditions</th><th>Eigenfunctions</th></tr>
+                <tr><td><strong>Asymmetric</strong> (this page, HW2, midterm review)</td><td>$0 \le x \le a$</td><td>$\psi(0)=\psi(a)=0$</td><td>Pure sines: $\varphi_n(x) = \sqrt{2/a}\,\sin(n\pi x/a)$ for all $n$</td></tr>
+                <tr><td><strong>Symmetric</strong> (Section 7's case study; 2025 Final Problem 1)</td><td>$-a/2 \le x \le a/2$</td><td>$\psi(-a/2)=\psi(a/2)=0$</td><td>Splits by parity: cosines for even states, sines for odd states</td></tr>
+            </table>
+            <p>Both conventions describe the <em>same physical system</em> (a particle confined to a region of width $a$) and give the <em>same energy spectrum</em> $E_n = n^2\pi^2\hbar^2/2ma^2$ — but the eigenfunctions look completely different, because they're being measured from a different origin. In the symmetric convention, the general solution $\psi(x) = A\sin(kx)+B\cos(kx)$ must satisfy <em>both</em> boundary conditions simultaneously at $\pm a/2$; because the potential is an even function of $x$ in this convention, the solutions sort themselves into a purely-cosine (even) family and a purely-sine (odd) family, rather than the single sine family you get in the asymmetric convention. Applying the asymmetric convention's boundary condition ($\psi(0)=0$, which kills the cosine term) to the symmetric well is the single most common error here — it silently throws away half of the correct solutions.</p>
+        </div>
+    </div>
+    <p>This page deliberately does <strong>not</strong> work through the symmetric-well boundary-condition derivation in depth — that exact problem (the symmetric infinite well) is <strong>Problem 1 on the 2025 final exam</strong>, already administered and graded, and it's reviewed in full depth on <a href="final-exam.html">final-exam.html</a>. If you want to practice the symmetric case before consulting that page, the key first step is recognizing that Griffiths' general theorem — <em>if $V(x)$ is an even function, the solutions to the TISE can always be chosen even or odd</em> — is what licenses splitting the general solution into the two families above, rather than solving for $A$ and $B$ simultaneously from scratch.</p>
+</section>
+
+<section class="section" id="practice">
+    <div class="section-header">
+        <span class="section-icon">📝</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+    <div class="hw-feedback">
+        <div class="hw-feedback-title">📝 Common Pitfalls &amp; Self-Check (Homework #2)</div>
+        <p><em>No solution PDF was exported for Homework #2, so the notes below are general instructor-style guidance about where students typically lose points on this material — not graded feedback on any specific submission.</em></p>
+        <ul>
+            <li><strong>Sign/convention mixups.</strong> Confusing the asymmetric well's $\psi(0)=\psi(a)=0$ boundary conditions with the symmetric well's $\psi(\pm a/2)=0$ conditions (see Section 8) is the single most common error — check which convention a problem statement is using <em>before</em> writing down $A\sin(kx)+B\cos(kx)$.</li>
+            <li><strong>Forgetting that normalization fixes $|A|$, not $A$.</strong> The phase of $A$ is never determined by physics; picking $A=\sqrt{2/a}$ real and positive is a convention, not a derived result.</li>
+            <li><strong>Confusing $\langle p \rangle = 0$ with "the particle isn't moving."</strong> $\langle p\rangle=0$ in a stationary state reflects zero <em>net</em> average momentum by symmetry — it says nothing about $\langle p^2\rangle$, which is strictly positive ($=2mE_n$) even in the ground state. The particle is never at rest.</li>
+            <li><strong>Skipping the parity check before grinding through a Fourier integral.</strong> If the initial state's symmetry already tells you half the coefficients are zero (Section 7), computing them anyway just wastes exam time.</li>
+            <li><strong>Arithmetic slips in the by-parts integrals</strong> for $\langle x^2\rangle$ or cross-term integrals like $\int x\varphi_1\varphi_2\,dx$ — these are exactly the multi-step by-parts calculations most prone to sign errors under time pressure. Practice them cold.</li>
+        </ul>
+    </div>
+
+    <details>
+        <summary>Problem 1 — Verify orthogonality directly for $n=1$, $m=3$</summary>
+        <div>
+            <p><strong>Problem:</strong> Compute $\int_0^a \varphi_1(x)\varphi_3(x)\,dx$ directly and confirm it equals zero, as the general orthogonality proof (Section 5) guarantees.</p>
+            <p><strong>Solution:</strong> With $\varphi_1 = \sqrt{2/a}\sin(\pi x/a)$ and $\varphi_3 = \sqrt{2/a}\sin(3\pi x/a)$,</p>
+            <div class="math">$$ \int_0^a \varphi_1\varphi_3\,dx = \frac{2}{a}\int_0^a \sin\!\left(\frac{\pi x}{a}\right)\sin\!\left(\frac{3\pi x}{a}\right)dx = \frac{1}{a}\int_0^a\left[\cos\!\left(\frac{2\pi x}{a}\right) - \cos\!\left(\frac{4\pi x}{a}\right)\right]dx. $$</div>
+            <p>Both $\cos(2\pi x/a)$ and $\cos(4\pi x/a)$ complete a whole number of cycles (one and two, respectively) over $[0,a]$, so each integral is zero over the full period. Hence $\int_0^a\varphi_1\varphi_3\,dx = 0$, confirming orthogonality for this pair explicitly.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Problem 2 — Ground state of an electron in a 0.2 nm box</summary>
+        <div>
+            <p><strong>Problem:</strong> An electron is confined to an infinite well of width $a = 0.2\,\text{nm}$ (roughly an atomic diameter). Find $E_1$ in eV, and find $\langle x \rangle$ and $\sigma_x$ for the ground state.</p>
+            <p><strong>Solution:</strong> Using $E_1 = \pi^2\hbar^2/2m_ea^2$ with $\hbar = 6.582\times10^{-16}\,\text{eV·s}$, $m_e = 9.11\times10^{-31}\,\text{kg}$, and converting units carefully (or simply scaling from the Section 7 case study's $a=1\,\text{nm}\Rightarrow E_1=0.038\,\text{eV}$ via $E_1 \propto 1/a^2$):</p>
+            <div class="math">$$ E_1 = 0.038\,\text{eV} \times \left(\frac{1\,\text{nm}}{0.2\,\text{nm}}\right)^2 = 0.038 \times 25\,\text{eV} \approx 0.95\,\text{eV}. $$</div>
+            <p>By symmetry (Section 6), $\langle x \rangle = a/2 = 0.1\,\text{nm}$ regardless of confinement scale. For the standard deviation, using $\sigma_x^2 = a^2(1/12 - 1/2\pi^2)$ (the $n=1$ case of the Section 6 formula):</p>
+            <div class="math">$$ \sigma_x = a\sqrt{\frac{1}{12}-\frac{1}{2\pi^2}} \approx 0.181\,a \approx 0.036\,\text{nm}. $$</div>
+            <p>Tighter confinement ($a$ smaller) drives $E_1$ up quadratically — this scaling is exactly why quantum confinement effects (e.g. in quantum dots) become dramatic at the nanometer scale.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Problem 3 — Superposition normalization and energy probabilities</summary>
+        <div>
+            <p><strong>Problem:</strong> A particle in the infinite well starts in the state $\Psi(x,0) = A\big[3\varphi_1(x) + 4\varphi_2(x)\big]$. Find $A$, the probability of measuring each allowed energy, and $\langle H \rangle$.</p>
+            <p><strong>Solution:</strong> Orthonormality of $\varphi_1,\varphi_2$ makes normalization a one-line calculation: $\int|\Psi(x,0)|^2dx = A^2(3^2+4^2) = 25A^2 = 1$, so $A = 1/5$. The coefficients are $c_1 = 3A = 3/5$ and $c_2 = 4A = 4/5$, so</p>
+            <div class="math">$$ P(E_1) = |c_1|^2 = \frac{9}{25} = 0.36, \qquad P(E_2) = |c_2|^2 = \frac{16}{25} = 0.64. $$</div>
+            <p>(Check: $0.36+0.64=1$, as required.) The expectation value of the energy is</p>
+            <div class="math">$$ \langle H \rangle = 0.36\,E_1 + 0.64\,E_2 = 0.36\left(\frac{\pi^2\hbar^2}{2ma^2}\right) + 0.64\left(\frac{4\pi^2\hbar^2}{2ma^2}\right) = 2.92\,E_1. $$</div>
+            <p>Since $4\varphi_2$ carries more weight than $3\varphi_1$, it makes sense that $\langle H\rangle$ sits closer to $E_2=4E_1$ than to $E_1$.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Problem 4 — Check the uncertainty principle for $n=1$ and $n=2$</summary>
+        <div>
+            <p><strong>Problem:</strong> Using the Section 6 results $\sigma_x^2 = a^2(1/12 - 1/2n^2\pi^2)$ and $\sigma_p = n\pi\hbar/a$, verify that $\sigma_x\sigma_p \ge \hbar/2$ for the $n=1$ and $n=2$ stationary states, and determine which state comes closer to saturating the bound.</p>
+            <p><strong>Solution:</strong> The product is</p>
+            <div class="math">$$ \sigma_x\sigma_p = a\sqrt{\frac{1}{12}-\frac{1}{2n^2\pi^2}}\cdot\frac{n\pi\hbar}{a} = n\pi\hbar\sqrt{\frac{1}{12}-\frac{1}{2n^2\pi^2}}. $$</div>
+            <p>For $n=1$: $\sigma_x\sigma_p = \pi\hbar\sqrt{1/12 - 1/2\pi^2} \approx \pi\hbar(0.1808) \approx 0.568\,\hbar$.</p>
+            <p>For $n=2$: $\sigma_x\sigma_p = 2\pi\hbar\sqrt{1/12 - 1/8\pi^2} \approx 2\pi\hbar(0.2769) \approx 1.740\,\hbar$.</p>
+            <p>Both comfortably satisfy $\sigma_x\sigma_p \ge \hbar/2 = 0.5\,\hbar$. The ground state ($n=1$) comes noticeably closer to the bound than $n=2$ — and in fact, as $n$ grows the product grows without bound (the well's rectangular eigenfunctions are far from the "minimum uncertainty" shape). No stationary state of the infinite well actually saturates the bound exactly; that distinction belongs to the Gaussian ground state of the harmonic oscillator, which you'll meet in Topic 3.</p>
+        </div>
+    </details>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">⬆️</button>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        const scrollTop = document.getElementById('scrollTop');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = window.scrollY;
+            const progress = (scrolled / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const choices = document.querySelectorAll('.choice');
+        choices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                const parent = choice.parentElement;
+                parent.querySelectorAll('.choice').forEach(c => {
+                    if (c.getAttribute('data-correct') === 'true') {
+                        c.classList.add('correct');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

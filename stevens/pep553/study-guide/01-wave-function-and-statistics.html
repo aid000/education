@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEP553 Topic 1: The Wave Function &amp; Statistics</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-blue: #00d4ff;
+            --accent-purple: #c27dff;
+            --accent-green: #06ffa5;
+            --accent-orange: #ff9500;
+            --accent-red: #ff6b6b;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --border-color: #0f3460;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the PEP553 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Cross-page course nav strip — sits ABOVE the header, links back to index + prev/next topic */
+        .course-nav {
+            background: rgba(10, 10, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(0, 212, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(15, 52, 96, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(15, 52, 96, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .math-raw {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; font-family: 'Monaco', monospace; overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-card.multiple-choice { border-left-color: var(--accent-blue); }
+        .question-card.free-response { border-left-color: var(--accent-purple); }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .choices { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        .choice {
+            padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+        .choice:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        .choice.correct {
+            background: rgba(6, 255, 165, 0.15); border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .rubric {
+            background: rgba(194, 125, 255, 0.1); border: 1px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .rubric-point { margin-bottom: 0.5rem; display: flex; gap: 0.5rem; }
+        .rubric-point span:first-child { color: var(--accent-orange); font-weight: 700; min-width: 80px; }
+
+        .misconception {
+            background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(6, 255, 165, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .physics-extension {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 107, 107, 0.1));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .physics-extension::before {
+            content: "🔬 Engineering / Research Connection: ";
+            color: var(--accent-orange); font-weight: 700;
+        }
+
+        /* Homework-feedback specific box — use for "common mistakes on graded homework" call-outs */
+        .hw-feedback {
+            background: rgba(255, 149, 0, 0.08); border: 1px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem;
+        }
+        .hw-feedback-title { color: var(--accent-orange); font-weight: 700; margin-bottom: 0.5rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(0, 212, 255, 0.2); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(194, 125, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">⚛ PEP553 Study Guide Home</a>
+        <a href="index.html">← Course Home</a>
+        <a href="02-infinite-potential-well.html">Next: Infinite Potential Well →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">⚛ PEP553 · Topic 1: The Wave Function &amp; Statistics</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="foundations-review">Foundations Review</button>
+            <button class="nav-link" data-section="schrodinger-equation">The Wave Function</button>
+            <button class="nav-link" data-section="probability">Probability</button>
+            <button class="nav-link" data-section="normalization">Normalization</button>
+            <button class="nav-link" data-section="expectation-values">Expectation Values</button>
+            <button class="nav-link" data-section="uncertainty-principle">Uncertainty Principle</button>
+            <button class="nav-link" data-section="practice-problems">Practice Problems</button>
+            <button class="nav-link" data-section="look-ahead">Pitfalls &amp; Look Ahead</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#foundations-review" class="sidebar-link">Foundations Review</a>
+                <a href="#schrodinger-equation" class="sidebar-link">The Wave Function</a>
+                <a href="#probability" class="sidebar-link">Probability</a>
+                <a href="#normalization" class="sidebar-link">Normalization</a>
+                <a href="#expectation-values" class="sidebar-link">Expectation Values</a>
+                <a href="#uncertainty-principle" class="sidebar-link">Uncertainty Principle</a>
+                <a href="#practice-problems" class="sidebar-link">Practice Problems</a>
+                <a href="#look-ahead" class="sidebar-link">Pitfalls &amp; Look Ahead</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview</h2>
+    </div>
+    <p>This topic covers the opening stretch of PEP553: lectures 1-1 through 3-2 on the syllabus, gathered on
+    Canvas under the module <strong>"Introductory Topics including the wave function."</strong> The reading is
+    Griffiths &amp; Schroeter, 3rd edition, all of Chapter 1 (<em>The Wave Function</em>): sections 1.1&ndash;1.6
+    plus the chapter's Further Problems. This material maps directly onto <strong>Homework&nbsp;#1,
+    "Introduction and the wave function."</strong></p>
+    <div class="exam-info">
+        <div class="exam-info-title">📌 A note on Homework #1</div>
+        <p style="margin-bottom:0">No solution PDF was exported for HW1 in the course archive used to build this
+        guide. The <a href="#look-ahead">Common Pitfalls &amp; Self-Check</a> section below is therefore
+        general, instructor-style pedagogical guidance about where students typically go wrong on
+        wave-function/normalization/expectation-value problems &mdash; it is <strong>not</strong> a transcription
+        of graded feedback on any specific submitted homework.</p>
+    </div>
+    <p>By the end of this page you should be able to: (1) state the statistical interpretation of $|\Psi|^2$
+    and explain why it forces $\Psi$ to be normalized; (2) normalize a given wave function and verify that
+    normalization is preserved for all time; (3) compute $\langle x\rangle$, $\langle x^2\rangle$, and
+    $\langle p\rangle$ from a wave function using the position and momentum operators; and (4) state the
+    Heisenberg uncertainty principle and explain, qualitatively, where it comes from. Everything here is
+    one-dimensional, non-relativistic quantum mechanics &mdash; the simplest possible setting in which to build
+    the machinery you'll reuse for every system in this course, starting with the infinite square well in
+    Topic&nbsp;2.</p>
+</section>
+
+<section class="section" id="foundations-review">
+    <div class="section-header">
+        <span class="section-icon">📜</span>
+        <h2 class="section-title">Foundations Review (PEP242 Recap)</h2>
+    </div>
+    <p>PEP553 assumes you've already met the experimental case for quantum behavior in introductory modern
+    physics (PEP242). This subsection is a brisk refresher, not new material &mdash; if all of it is familiar,
+    skim it and move on to <a href="#schrodinger-equation">The Wave Function</a>.</p>
+
+    <div class="subsection">
+        <h3 class="subsection-title">The photoelectric effect</h3>
+        <p>Shining light on a metal surface ejects electrons, but classical wave theory predicts the wrong
+        dependence on intensity and frequency: it predicts that <em>any</em> frequency of light, given enough
+        time or intensity, should eventually eject electrons, and that the ejected electrons' kinetic energy
+        should grow with the light's intensity. Experimentally, neither is true. There is a sharp threshold
+        frequency below which no electrons are ejected regardless of intensity, and above threshold the maximum
+        kinetic energy of the ejected electrons grows with frequency, not intensity.</p>
+        <p>Einstein (1905) explained this by treating light as a stream of quanta ("photons"), each carrying
+        energy $E = hf$, where $h$ is Planck's constant (introduced by Planck in 1900 to fix the blackbody
+        spectrum). A single photon transfers all its energy to a single electron; part of that energy, the
+        <strong>work function</strong> $\phi$, is spent freeing the electron from the metal, and the rest becomes
+        kinetic energy:</p>
+        <div class="math">$$K_{\max} = hf - \phi$$</div>
+        <p>This is a straight line when you plot $K_{\max}$ against $f$, with slope $h$ &mdash; exactly what
+        Millikan's precision experiments confirmed. The photoelectric effect is the historical anchor for
+        treating electromagnetic energy as quantized.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">De Broglie's matter waves</h3>
+        <p>If light &mdash; understood since Young and Maxwell as a wave &mdash; also behaves like a stream of
+        particle-like quanta, de Broglie (1924) proposed the converse: matter, understood as particles, should
+        also have a wave character. He assigned every particle of momentum $p$ a wavelength</p>
+        <div class="math">$$\lambda = \frac{h}{p}$$</div>
+        <p>For a macroscopic object $\lambda$ is absurdly small and unobservable, but for an electron with a few
+        eV of kinetic energy, $\lambda$ is comparable to atomic spacings &mdash; small enough that a crystal
+        lattice can act as a diffraction grating for it.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Davisson &amp; Germer: matter waves confirmed</h3>
+        <p>Davisson and Germer (1927, <em>Phys. Rev.</em> 30, 705) fired low-energy electrons at a nickel
+        crystal and found a diffraction pattern at exactly the angles de Broglie's formula predicted, using the
+        atomic layers of the crystal as the "slits." This was the direct experimental confirmation that
+        electrons &mdash; unambiguously particles in every other respect (they have charge, mass, and leave
+        localized tracks) &mdash; produce interference and diffraction, the signature phenomena of waves.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Wave&ndash;particle duality</h3>
+        <p>The modern statement of duality is sharper than "sometimes a wave, sometimes a particle": a single
+        electron sent through a double slit, one at a time, still builds up the classic two-slit interference
+        pattern, spot by spot, if you wait for enough of them to arrive. Each individual arrival is a localized,
+        particle-like event (a single spot on the screen); the statistical distribution of many such events is
+        wave-like (an interference pattern). Quantum mechanics does not resolve this by picking one description
+        &mdash; it replaces both with a new object, the <strong>wave function</strong>, whose modulus squared
+        predicts exactly this kind of statistical, blip-by-blip pattern. That is where Griffiths Chapter 1, and
+        this course, begins.</p>
+    </div>
+</section>
+
+<section class="section" id="schrodinger-equation">
+    <div class="section-header">
+        <span class="section-icon">🌊</span>
+        <h2 class="section-title">The Wave Function &amp; the Statistical Interpretation</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">The Schrödinger equation</h3>
+        <p>In classical mechanics, the program is to find a particle's trajectory $x(t)$ by solving Newton's
+        second law, $F = m\,d^2x/dt^2$, given initial position and velocity. Quantum mechanics asks a
+        structurally similar question &mdash; given an initial condition, predict the future &mdash; but the
+        object it solves for is not a trajectory. It is a complex-valued function of space and time, the
+        <strong>wave function</strong> $\Psi(x,t)$, obtained by solving the <strong>Schrödinger equation</strong>:</p>
+        <div class="math">$$i\hbar\frac{\partial \Psi}{\partial t} = -\frac{\hbar^2}{2m}\frac{\partial^2 \Psi}{\partial x^2} + V(x)\,\Psi$$</div>
+        <p>Here $\hbar = h/2\pi = 1.054573\times10^{-34}\ \text{J·s}$, $m$ is the particle's mass, and $V(x)$ is
+        the potential energy function. Given $\Psi(x,0)$, this equation determines $\Psi(x,t)$ for all future
+        time, exactly as Newton's law determines $x(t)$ for all future time given $x(0)$ and $v(0)$. That
+        analogy is useful for orientation, but the object being predicted, and what it means to "know" it, are
+        both completely different from anything in classical mechanics.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Born's statistical interpretation</h3>
+        <p>A particle, by its nature, is localized at a single point at any instant. The wave function, by
+        contrast, is a function spread out over all $x$. How can such an object describe the state of a
+        particle? Born's answer, the <strong>statistical interpretation</strong>, is that $|\Psi(x,t)|^2$ is a
+        <strong>probability density</strong> for position: the probability of finding the particle between $x=a$
+        and $x=b$, if you measure its position at time $t$, is the area under $|\Psi|^2$ over that interval:</p>
+        <div class="math">$$\int_a^b |\Psi(x,t)|^2\,dx \;=\; \text{probability of finding the particle in } [a,b] \text{ at time } t$$</div>
+        <p>Two things follow immediately, and both are worth stating carefully because they are the seed of the
+        first misconception below. First, $\Psi$ itself is generally complex and has no direct probabilistic
+        meaning; it is $|\Psi|^2 = \Psi^*\Psi$, real and non-negative, that carries the probability. Second, this
+        is a genuinely statistical statement: even with complete knowledge of $\Psi$, quantum mechanics cannot
+        predict the outcome of a single position measurement, only the probabilities of the various possible
+        outcomes. If you measure the position and get some value $x_0$, an immediate second measurement will
+        return $x_0$ again &mdash; the act of measurement is understood (in the orthodox, "Copenhagen" reading
+        adopted throughout this course) to <strong>collapse</strong> the wave function to a narrow spike at
+        $x_0$, which then spreads out again under the Schrödinger equation.</p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: "$\Psi$ is the probability"</div>
+        <div class="misconception-explanation">$\Psi(x,t)$ is a complex number in general &mdash; it can be
+        negative or have a nonzero imaginary part, and neither of those is a sensible probability. It is
+        <strong>$|\Psi(x,t)|^2 = \Psi^*(x,t)\Psi(x,t)$</strong>, not $\Psi$ itself, that is the probability
+        <em>density</em>. And "density" matters too: $|\Psi(x,t)|^2$ by itself is not a probability (it can
+        exceed 1, since it has units of 1/length) &mdash; you must integrate it over a range of $x$ to get an
+        actual probability. Watch for both errors: dropping the modulus-squared, and forgetting the $dx$.</div>
+    </div>
+
+    <div class="physics-extension">
+        The Tonomura group's electron-biprism experiments (1989) are the direct descendant of Davisson &amp;
+        Germer: send electrons through a two-path interferometer one at a time, and the individual, particle-like
+        detection events accumulate, blip by blip, into the same fringe pattern predicted by treating the
+        electron's wave function as a classical wave amplitude. Every modern electron microscope and electron
+        diffractometer is built on the same physics &mdash; the instrument's resolution is set by the electron's
+        de Broglie wavelength, not by the wavelength of visible light.
+    </div>
+</section>
+
+<section class="section" id="probability">
+    <div class="section-header">
+        <span class="section-icon">🎲</span>
+        <h2 class="section-title">Probability: Discrete and Continuous</h2>
+    </div>
+    <p>Because the statistical interpretation puts probability at the center of quantum mechanics, it is worth
+    fixing the underlying probability-theory vocabulary carefully, first for a discrete variable and then for
+    the continuous case that $x$ actually is.</p>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Discrete distributions: mean, variance, standard deviation</h3>
+        <p>For a discrete variable $j$ with $N(j)$ the number of occurrences of value $j$ out of a total $N$,
+        the probability of getting $j$ is $P(j) = N(j)/N$, normalized so that $\sum_j P(j) = 1$. The
+        <strong>average</strong> (or <strong>expectation value</strong>) of $j$, and more generally of any
+        function $f(j)$, is</p>
+        <div class="math">$$\langle j\rangle = \sum_j j\,P(j), \qquad \langle f(j)\rangle = \sum_j f(j)\,P(j)$$</div>
+        <p>The spread about the average is measured by the <strong>standard deviation</strong> $\sigma$, the
+        square root of the <strong>variance</strong> $\sigma^2 \equiv \langle (\Delta j)^2\rangle$ where
+        $\Delta j \equiv j - \langle j\rangle$. Expanding the square and using linearity of the average gives a
+        much faster working formula, one you will use constantly:</p>
+        <div class="math">$$\sigma^2 = \langle (\Delta j)^2\rangle = \langle j^2\rangle - 2\langle j\rangle\langle j\rangle + \langle j\rangle^2 = \langle j^2\rangle - \langle j\rangle^2$$</div>
+        <p>so that $\sigma = \sqrt{\langle j^2\rangle - \langle j\rangle^2}$. Since $\sigma^2 \ge 0$, this also
+        proves $\langle j^2\rangle \ge \langle j\rangle^2$ always &mdash; equality only for a distribution with
+        no spread at all. Note also that $\langle j^2\rangle \ne \langle j\rangle^2$ in general: the average of
+        the squares is <em>not</em> the square of the average.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Continuous distributions</h3>
+        <p>For a continuous variable $x$, the probability of getting <em>exactly</em> one real number is zero;
+        the sensible object is a <strong>probability density</strong> $\rho(x)$, defined so that</p>
+        <div class="math">$$\{\text{probability that } x \text{ lies between } x \text{ and } x+dx\} = \rho(x)\,dx$$</div>
+        <p>and the probability of landing in a finite interval is $P_{ab} = \int_a^b \rho(x)\,dx$. The discrete
+        formulas above translate directly:</p>
+        <div class="math">$$\int_{-\infty}^{+\infty}\rho(x)\,dx = 1, \qquad \langle x\rangle = \int_{-\infty}^{+\infty} x\,\rho(x)\,dx, \qquad \langle f(x)\rangle = \int_{-\infty}^{+\infty} f(x)\,\rho(x)\,dx$$</div>
+        <div class="math">$$\sigma^2 = \langle x^2\rangle - \langle x\rangle^2$$</div>
+        <p>A probability <em>density</em> can be arbitrarily large at a point (it can even diverge, as long as
+        it stays integrable), but a probability itself is always between 0 and 1. For quantum mechanics, the
+        density that matters is $\rho(x) = |\Psi(x,t)|^2$, and everything in this subsection carries over
+        directly &mdash; that is the entire content of the next two sections.</p>
+    </div>
+</section>
+
+<section class="section" id="normalization">
+    <div class="section-header">
+        <span class="section-icon">✅</span>
+        <h2 class="section-title">Normalization</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Why $\Psi$ must be normalized</h3>
+        <p>Since $|\Psi(x,t)|^2$ is a probability density for position, and the particle has to be
+        <em>somewhere</em>, integrating it over all space must give exactly 1:</p>
+        <div class="math">$$\int_{-\infty}^{+\infty} |\Psi(x,t)|^2\,dx = 1$$</div>
+        <p>This is called <strong>normalizing</strong> the wave function. It should bother you a little: the
+        Schrödinger equation is linear, so if $\Psi(x,t)$ solves it, so does $A\Psi(x,t)$ for any constant $A$
+        &mdash; the equation itself doesn't fix the overall scale. Normalization is exactly the extra condition
+        that pins down $|A|$ (its phase is never physically observable). If $\int|\Psi|^2 dx$ diverges, or if
+        $\Psi \equiv 0$, no choice of $A$ can fix it; such <strong>non-normalizable</strong> solutions are
+        rejected as unphysical. Physically realizable states correspond to <strong>square-integrable</strong>
+        solutions of the Schrödinger equation.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Normalization is preserved for all time (derivation)</h3>
+        <p>Here is a question that has to be answered before the whole scheme is even consistent: suppose you
+        normalize $\Psi$ at $t=0$. How do you know it <em>stays</em> normalized as $\Psi$ evolves under the
+        Schrödinger equation? You cannot simply renormalize at every instant &mdash; the moment the
+        normalization constant depends on $t$, you no longer have a solution of the (linear, first-order-in-time)
+        Schrödinger equation at all. The resolution is that the Schrödinger equation, on its own, guarantees
+        that a wave function normalized at $t=0$ remains normalized for every later time. Since the entire
+        statistical interpretation collapses without this fact, it is worth deriving, not just asserting.</p>
+        <p>Start from the definition and differentiate under the integral sign (a total derivative on the left,
+        since the integral only depends on $t$; a partial derivative on the right, since the integrand also
+        depends on $x$):</p>
+        <div class="math">$$\frac{d}{dt}\int_{-\infty}^{+\infty}|\Psi|^2\,dx = \int_{-\infty}^{+\infty}\frac{\partial}{\partial t}|\Psi|^2\,dx = \int_{-\infty}^{+\infty}\frac{\partial}{\partial t}(\Psi^*\Psi)\,dx = \int_{-\infty}^{+\infty}\left(\Psi^*\frac{\partial\Psi}{\partial t} + \frac{\partial\Psi^*}{\partial t}\Psi\right)dx$$</div>
+        <p>Now use the Schrödinger equation, $\partial\Psi/\partial t = \frac{i\hbar}{2m}\frac{\partial^2\Psi}{\partial x^2} - \frac{i}{\hbar}V\Psi$,
+        and its complex conjugate, $\partial\Psi^*/\partial t = -\frac{i\hbar}{2m}\frac{\partial^2\Psi^*}{\partial x^2} + \frac{i}{\hbar}V\Psi^*$
+        (valid because $V(x)$ is real). The potential-energy terms are proportional to $\Psi^*\Psi - \Psi^*\Psi = 0$
+        and cancel exactly, leaving only the kinetic term:</p>
+        <div class="math">$$\frac{\partial}{\partial t}|\Psi|^2 = \frac{i\hbar}{2m}\left(\Psi^*\frac{\partial^2\Psi}{\partial x^2} - \frac{\partial^2\Psi^*}{\partial x^2}\Psi\right) = \frac{\partial}{\partial x}\left[\frac{i\hbar}{2m}\left(\Psi^*\frac{\partial \Psi}{\partial x} - \frac{\partial \Psi^*}{\partial x}\Psi\right)\right]$$</div>
+        <p>(the last step is just the product rule for $\partial/\partial x$ run in reverse &mdash; check it by
+        expanding the right side). This is an exact $x$-derivative, so the $x$-integral evaluates at the
+        boundaries only:</p>
+        <div class="math">$$\frac{d}{dt}\int_{-\infty}^{+\infty}|\Psi|^2\,dx = \left.\frac{i\hbar}{2m}\left(\Psi^*\frac{\partial\Psi}{\partial x} - \frac{\partial\Psi^*}{\partial x}\Psi\right)\right|_{-\infty}^{+\infty}$$</div>
+        <p>But a square-integrable $\Psi$ must go to zero as $x\to\pm\infty$ (faster than $1/\sqrt{|x|}$), so the
+        boundary term vanishes and</p>
+        <div class="math">$$\frac{d}{dt}\int_{-\infty}^{+\infty}|\Psi(x,t)|^2\,dx = 0$$</div>
+        <p>The integral is therefore constant in time: if it equals 1 at $t=0$, it equals 1 forever. $\blacksquare$</p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: "Normalization is a fact you check once, at $t=0$, and hope for the best"</div>
+        <div class="misconception-explanation">It's the reverse: normalization is a <strong>theorem</strong>
+        about the Schrödinger equation, not a lucky coincidence you have to re-verify at every later time. You
+        only ever need to normalize $\Psi$ once, at whatever instant you're given the initial condition &mdash;
+        the derivation above guarantees $\int|\Psi|^2\,dx$ never changes afterward, precisely <em>because</em>
+        $\Psi$ evolves under the Schrödinger equation. If you ever compute $\int|\Psi(x,t)|^2 dx$ at some later
+        $t$ and get something other than 1, that's a sign of an algebra error, not a sign that you need to
+        renormalize.</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Worked example: normalizing a triangular wave packet</h3>
+        <p>Take the piecewise-linear ("triangular pulse") wave function at $t=0$:</p>
+        <div class="math">$$\Psi(x,0) = \begin{cases} A(x/a), & 0 \le x \le a \\ A(b-x)/(b-a), & a \le x \le b \\ 0, & \text{otherwise} \end{cases}$$</div>
+        <p>with $0 < a < b$ and $A$ real and positive. This is a "tent" that rises linearly from 0 at $x=0$ to a
+        peak $A$ at $x=a$, then falls linearly back to 0 at $x=b$.</p>
+        <p><strong>Step 1 &mdash; normalize.</strong> Since $\Psi$ is real here, $|\Psi|^2 = \Psi^2$, and</p>
+        <div class="math">$$1 = \int_0^a A^2\frac{x^2}{a^2}\,dx + \int_a^b A^2\frac{(b-x)^2}{(b-a)^2}\,dx$$</div>
+        <p>The first integral is $A^2 a/3$ (standard $\int x^2 dx$ evaluated over $[0,a]$, divided by $a^2$).
+        For the second, substitute $u = b-x$, $du=-dx$, limits $u:(b-a)\to 0$, giving
+        $\int_0^{b-a} A^2 u^2/(b-a)^2\,du = A^2(b-a)/3$. So</p>
+        <div class="math">$$1 = \frac{A^2 a}{3} + \frac{A^2(b-a)}{3} = \frac{A^2 b}{3} \quad\Longrightarrow\quad A = \sqrt{\frac{3}{b}}$$</div>
+        <p>Notice the peak height $A$ depends only on $b$, not on where the peak $a$ sits &mdash; a useful
+        sanity check, since stretching the base of the tent while keeping its area (probability) fixed at 1
+        should lower its height, and $A=\sqrt{3/b}$ does exactly that.</p>
+        <p><strong>Step 2 &mdash; most likely position.</strong> $|\Psi(x,0)|^2$ is maximized where $\Psi(x,0)$
+        itself is maximized (since squaring a non-negative real quantity preserves its ordering), which is right
+        at the peak of the tent, $x=a$.</p>
+        <p><strong>Step 3 &mdash; probability of finding the particle to the left of $a$.</strong></p>
+        <div class="math">$$P(x<a) = \int_0^a A^2\frac{x^2}{a^2}\,dx = \frac{A^2 a}{3} = \frac{a}{b}$$</div>
+        <p>using $A^2=3/b$ from Step 1. Two limiting checks: if $b=a$ (the tent degenerates to a spike exactly at
+        $x=a$, with zero width on the falling side), $P(x<a) \to 1$ &mdash; consistent with essentially all of
+        the (now vanishingly thin) probability sitting at $x=a$ itself, arbitrarily close to but not past it.
+        If $b=2a$ (a symmetric tent centered on $a$), $P(x<a) = a/(2a) = 1/2$ &mdash; exactly what symmetry
+        demands, since a symmetric distribution splits its probability evenly about its center.</p>
+        <p><strong>Step 4 &mdash; $\langle x\rangle$.</strong> Using $\langle x\rangle = \int x\,|\Psi|^2\,dx$ with
+        the same two pieces and the same substitution as Step 1 (details omitted; this is exactly the kind of
+        integral you should practice — see Practice Problem 1 below for a similarly structured calculation)
+        gives $\langle x\rangle = \frac{1}{2}(a+b) - \frac{ab}{2b}$ after simplification, which for the symmetric
+        case $b=2a$ reduces to $\langle x\rangle = a$, again matching the symmetry check.</p>
+    </div>
+</section>
+
+<section class="section" id="expectation-values">
+    <div class="section-header">
+        <span class="section-icon">📐</span>
+        <h2 class="section-title">Expectation Values, Operators, and Momentum</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">$\langle x\rangle$ and $\langle x^2\rangle$</h3>
+        <p>Directly from the statistical interpretation, with $\rho(x,t) = |\Psi(x,t)|^2$:</p>
+        <div class="math">$$\langle x\rangle = \int_{-\infty}^{+\infty} x\,|\Psi(x,t)|^2\,dx, \qquad \langle x^2\rangle = \int_{-\infty}^{+\infty} x^2\,|\Psi(x,t)|^2\,dx$$</div>
+        <p>It is essential to understand what $\langle x\rangle$ does and does not mean. It is <strong>not</strong>
+        the average result of repeated position measurements on <em>one</em> particle &mdash; the first
+        measurement collapses $\Psi$ to a spike, and any immediate repeat measurement just returns the same
+        value. Rather, $\langle x\rangle$ is the average over measurements performed on an <strong>ensemble</strong>
+        of identically-prepared particles, each described by the same $\Psi$: prepare many particles in state
+        $\Psi$, measure the position of each one exactly once, and average the results. That average is
+        $\langle x\rangle$.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Deriving the momentum operator</h3>
+        <p>Position measurements are conceptually straightforward: $|\Psi|^2$ already tells you what you need.
+        Momentum is trickier, because nothing so far has told us how to extract a probability distribution for
+        $p$ directly from $\Psi(x,t)$. Griffiths' route (which this course follows) is to <em>postulate</em>
+        that the expectation value of velocity equals the time derivative of the expectation value of position,
+        $\langle v\rangle = d\langle x\rangle/dt$, and then compute the right-hand side explicitly.</p>
+        <p>Differentiate $\langle x\rangle$ under the integral sign, using the same product-rule trick as the
+        normalization proof above (only now the integrand carries an extra factor of $x$, and after invoking
+        the Schrödinger equation you must integrate by parts to move derivatives off of $x$):</p>
+        <div class="math">$$\frac{d\langle x\rangle}{dt} = \int x\,\frac{\partial}{\partial t}|\Psi|^2\,dx = \frac{i\hbar}{2m}\int x\,\frac{\partial}{\partial x}\left(\Psi^*\frac{\partial\Psi}{\partial x} - \frac{\partial\Psi^*}{\partial x}\Psi\right)dx$$</div>
+        <p>Integrating by parts once (peel the $\partial/\partial x$ off the bracket onto $x$, picking up a
+        minus sign and using $\partial x/\partial x = 1$; the boundary term vanishes because $\Psi\to0$ at
+        $\pm\infty$):</p>
+        <div class="math">$$\frac{d\langle x\rangle}{dt} = -\frac{i\hbar}{2m}\int\left(\Psi^*\frac{\partial\Psi}{\partial x} - \frac{\partial\Psi^*}{\partial x}\Psi\right)dx$$</div>
+        <p>Integrating by parts a second time, on just the second term (peel the derivative off $\Psi^*$ back
+        onto $\Psi$; another vanishing boundary term), the two terms combine into one:</p>
+        <div class="math">$$\frac{d\langle x\rangle}{dt} = -\frac{i\hbar}{m}\int \Psi^*\frac{\partial\Psi}{\partial x}\,dx$$</div>
+        <p>Multiplying by $m$ (customary since physicists work with momentum $p=mv$ rather than velocity)
+        defines the expectation value of momentum:</p>
+        <div class="math">$$\langle p\rangle = m\,\frac{d\langle x\rangle}{dt} = -i\hbar\int_{-\infty}^{+\infty}\Psi^*\,\frac{\partial\Psi}{\partial x}\,dx$$</div>
+        <p>Writing $\langle x\rangle$ and $\langle p\rangle$ side by side makes the pattern obvious:</p>
+        <div class="math">$$\langle x\rangle = \int\Psi^*\,[x]\,\Psi\,dx, \qquad \langle p\rangle = \int\Psi^*\,\left[-i\hbar\frac{\partial}{\partial x}\right]\Psi\,dx$$</div>
+        <p>Position is "represented" by the <strong>operator</strong> $\hat x = x$ (multiply by $x$); momentum is
+        represented by the operator $\hat p = -i\hbar\,\partial/\partial x$ (differentiate, then multiply by
+        $-i\hbar$). Every classical dynamical quantity $Q(x,p)$ &mdash; kinetic energy $T=p^2/2m$, angular
+        momentum, anything built from $x$ and $p$ &mdash; is promoted to an operator by this same replacement,
+        giving the general recipe used throughout this course:</p>
+        <div class="math">$$\langle Q(x,p)\rangle = \int_{-\infty}^{+\infty}\Psi^*\,\Big[Q\big(x,\,-i\hbar\,\partial/\partial x\big)\Big]\,\Psi\,dx$$</div>
+    </div>
+
+    <div class="anchor">
+        <div class="anchor-title">⚓ Memory Anchor: the two basic operators</div>
+        <p style="margin-bottom:0">$\hat x = x$ (position: <em>multiply</em>). $\hat p = \dfrac{\hbar}{i}\dfrac{d}{dx} = -i\hbar\dfrac{d}{dx}$
+        (momentum: <em>differentiate, then multiply by $-i\hbar$</em>). To get $\langle Q\rangle$ for any
+        quantity built from $x$ and $p$, "sandwich" the corresponding operator between $\Psi^*$ and $\Psi$ and
+        integrate: $\langle Q\rangle = \int \Psi^*\,\hat Q\,\Psi\,dx$.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Worked example: $\langle p\rangle$ for a Gaussian wave packet</h3>
+        <p>Consider a normalized Gaussian modulated by a plane-wave phase (this exact form reappears as the
+        prototypical free-particle wave packet in Topic 4):</p>
+        <div class="math">$$\Psi(x) = A\,e^{-x^2/(4\sigma^2)}\,e^{ik_0 x}$$</div>
+        <p><strong>Normalize.</strong> $|\Psi(x)|^2 = A^2 e^{-x^2/(2\sigma^2)}$ (the phase factor $e^{ik_0x}$
+        has modulus 1 and drops out of $|\Psi|^2$). Using the standard Gaussian integral
+        $\int_{-\infty}^{\infty}e^{-x^2/(2\sigma^2)}dx = \sqrt{2\pi\sigma^2}$:</p>
+        <div class="math">$$1 = A^2\sqrt{2\pi\sigma^2} \quad\Longrightarrow\quad A = (2\pi\sigma^2)^{-1/4}$$</div>
+        <p><strong>$\langle x\rangle$ and $\langle x^2\rangle$.</strong> $|\Psi|^2$ is an even, symmetric Gaussian
+        centered at $x=0$, so $\langle x\rangle = 0$ by symmetry (the integrand $x\,|\Psi|^2$ is odd), and the
+        standard second moment of this Gaussian gives $\langle x^2\rangle = \sigma^2$.</p>
+        <p><strong>$\langle p\rangle$.</strong> First differentiate: $\dfrac{d\Psi}{dx} = \left[-\dfrac{x}{2\sigma^2} + ik_0\right]\Psi$,
+        so</p>
+        <div class="math">$$\hat p\,\Psi = -i\hbar\frac{d\Psi}{dx} = -i\hbar\left[-\frac{x}{2\sigma^2}+ik_0\right]\Psi = \left[\frac{i\hbar x}{2\sigma^2} + \hbar k_0\right]\Psi$$</div>
+        <p>Then</p>
+        <div class="math">$$\langle p\rangle = \int \Psi^*\,\hat p\,\Psi\,dx = \int |\Psi|^2\left[\frac{i\hbar x}{2\sigma^2}+\hbar k_0\right]dx = \frac{i\hbar}{2\sigma^2}\underbrace{\int x\,|\Psi|^2\,dx}_{=\,\langle x\rangle\,=\,0} + \hbar k_0\underbrace{\int|\Psi|^2 dx}_{=\,1}$$</div>
+        <div class="math">$$\boxed{\langle p\rangle = \hbar k_0}$$</div>
+        <p>This example is worth studying carefully because it is a compact illustration of exactly the kind of
+        bookkeeping error flagged in the misconception below: the differentiation manufactures an explicitly
+        imaginary term, $i\hbar x/(2\sigma^2)$, inside the integrand, yet the final answer $\hbar k_0$ is
+        perfectly real. The imaginary piece only vanishes because it is odd in $x$ while $|\Psi|^2$ is even
+        &mdash; if you'd made a sign error and gotten an <em>even</em> piece multiplying $i$, you'd have
+        (wrongly) concluded $\langle p\rangle$ has a nonzero imaginary part, which is impossible for a real,
+        physically measurable quantity.</p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: sign and complex-conjugate slips in $\langle p\rangle$</div>
+        <div class="misconception-explanation">Two errors show up constantly in $\langle p\rangle$ calculations.
+        (1) Forgetting to conjugate the <em>left</em> factor: the integrand is $\Psi^*\,\hat p\,\Psi$, not
+        $\Psi\,\hat p\,\Psi$ &mdash; if $\Psi$ has any nontrivial phase (as in the worked example above), using
+        $\Psi$ instead of $\Psi^*$ silently changes the answer. (2) Sign errors in $\hat p = -i\hbar\,d/dx$: it
+        is easy to drop the minus sign, or to differentiate $\Psi^*$ instead of $\Psi$. A fast self-check: since
+        $\langle p\rangle$ is the expectation value of something physically measurable, it must always come out
+        <strong>real</strong>. If your calculation produces a nonzero imaginary part for $\langle p\rangle$ (or
+        for any $\langle Q\rangle$ built from a real dynamical variable $Q$), you have made an algebra error
+        &mdash; go back and check the conjugates and signs before doing anything else.</div>
+    </div>
+
+    <div class="physics-extension">
+        Scanning tunneling and atomic-force microscopy read out exactly this trade-off in practice: the
+        cantilever tip's wave function has to be localized enough to resolve individual atoms (small
+        $\sigma_x$), but the same localization forces a large spread in momentum, which shows up as
+        measurement noise and back-action on the tip. Designing a quantum sensor is, in large part, an exercise
+        in managing where you're willing to pay the $\sigma_x\sigma_p$ price &mdash; the subject of the next
+        section.
+    </div>
+</section>
+
+<section class="section" id="uncertainty-principle">
+    <div class="section-header">
+        <span class="section-icon">🔭</span>
+        <h2 class="section-title">The Heisenberg Uncertainty Principle</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Statement and intuition</h3>
+        <p>Picture shaking one end of a very long rope rhythmically: the resulting wave has a well-defined
+        wavelength (you can point to "about 6 feet between crests") but no well-defined position &mdash; it's
+        spread out over the whole rope. Now give the rope a single sharp jerk instead: you get a narrow, well
+        localized bump, but asking "what is its wavelength?" no longer makes sense &mdash; it isn't even
+        vaguely periodic. There is an unavoidable trade-off between how sharply a wave's <em>position</em> can
+        be pinned down and how sharply its <em>wavelength</em> can be pinned down; a rigorous version of this
+        statement is a theorem of Fourier analysis, but the qualitative content is exactly this everyday
+        picture.</p>
+        <p>The wavelength of $\Psi$ is tied to momentum through the de Broglie relation, $p = h/\lambda$
+        (Foundations Review, above), so a spread in wavelength is a spread in momentum. Position/wavelength
+        trade-off therefore becomes a position/momentum trade-off, quantified by <strong>Heisenberg's uncertainty
+        principle</strong>:</p>
+        <div class="math">$$\sigma_x\,\sigma_p \ge \frac{\hbar}{2}$$</div>
+        <p>where $\sigma_x$ and $\sigma_p$ are the standard deviations defined exactly as in the
+        <a href="#probability">Probability</a> section, computed from the same $\Psi$. This is an inequality,
+        not an equation: there is no lower bound on how large both $\sigma_x$ and $\sigma_p$ can be
+        simultaneously (a "long wiggly line with lots of bumps and potholes and no periodic structure" has both
+        badly spread out), but there <em>is</em> a floor on how small their <em>product</em> can be. Localize
+        $\Psi$ tightly in $x$ (a narrow spike) and $\sigma_p$ is forced to blow up; prepare a state with sharply
+        defined momentum (a long sinusoidal wave) and $\sigma_x$ is forced to blow up.</p>
+        <p>It is important to be precise about what the "spread" $\sigma_x$ (or $\sigma_p$) means here, because
+        it is easy to smuggle in a classical picture. It does <em>not</em> mean that any single position (or
+        momentum) measurement is imprecise or fuzzy &mdash; an individual measurement of either quantity returns
+        a sharp, definite number. $\sigma_x\sigma_p \ge \hbar/2$ is a statement about the <em>ensemble</em>:
+        measure the position of many identically-prepared particles (all described by the same $\Psi$) and you
+        get a spread of results with standard deviation $\sigma_x$; measure the momentum of an equally-large,
+        identically-prepared ensemble and you get a spread $\sigma_p$. The inequality says these two spreads
+        cannot both be made arbitrarily small for the same $\Psi$.</p>
+    </div>
+    <div class="anchor">
+        <div class="anchor-title">⚓ Memory Anchor: where the proof is coming from</div>
+        <p style="margin-bottom:0">The qualitative Fourier argument above is enough for this topic and for
+        testing the inequality numerically on the wave functions in Topic 2 (the infinite square well). The
+        full, general proof &mdash; via the Cauchy&ndash;Schwarz inequality applied to $\hat x$ and $\hat p$ as
+        Hermitian operators, together with their commutator $[\hat x,\hat p] = i\hbar$ &mdash; is deferred to
+        <a href="06-formal-theory-and-matrix-methods.html">Topic 6: Formal Theory &amp; Matrix Methods</a>, once
+        you have the Hilbert-space machinery (Hermitian operators, inner products) to do it properly.</p>
+    </div>
+    <div class="physics-extension">
+        Gravitational-wave interferometers like LIGO operate right up against a quantum-mechanical floor set by
+        exactly this trade-off, the "standard quantum limit": squeezing the light field's phase uncertainty
+        (position-like) to measure a tiny mirror displacement more precisely necessarily increases the amplitude
+        (momentum-like) uncertainty that feeds back onto the mirror as radiation-pressure noise. LIGO's
+        squeezed-light upgrades are, quite literally, an engineering choice about how to divide up
+        $\sigma_x\sigma_p$ between two conjugate quadratures rather than a way of evading the inequality.
+    </div>
+</section>
+
+<section class="section" id="practice-problems">
+    <div class="section-header">
+        <span class="section-icon">✏️</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+
+    <details>
+        <summary>Practice 1 — Normalize a decaying-exponential wave function, then find $\langle x\rangle$, $\langle x^2\rangle$, and $\sigma_x$</summary>
+        <div>
+            <p><strong>Problem:</strong> A particle is described (at some fixed time) by
+            $\Psi(x) = A\,e^{-\lambda|x|}$, with $A$ and $\lambda$ real, positive constants. Find $A$, then
+            $\langle x\rangle$, $\langle x^2\rangle$, and $\sigma_x$.</p>
+            <p><strong>Solution:</strong> Since $|x|$ makes this even, split the normalization integral at 0
+            and double the positive half:</p>
+            <div class="math">$$1 = \int_{-\infty}^{\infty}A^2 e^{-2\lambda|x|}dx = 2A^2\int_0^{\infty}e^{-2\lambda x}dx = 2A^2\cdot\frac{1}{2\lambda} = \frac{A^2}{\lambda}$$</div>
+            <p>so $A = \sqrt{\lambda}$.</p>
+            <p>$\langle x\rangle$: the integrand $x\,|\Psi|^2 = x\,A^2 e^{-2\lambda|x|}$ is <strong>odd</strong>
+            (odd function $x$ times an even function of $x$), and it is integrated over a symmetric interval
+            $(-\infty,\infty)$, so $\langle x\rangle = 0$ with no further calculation needed. (This is the fast,
+            reliable way to spot $\langle x\rangle=0$ — always check for odd/even symmetry before grinding
+            through an integral.)</p>
+            <p>$\langle x^2\rangle$: now the integrand is even, so double the positive half and integrate by
+            parts twice (or look up $\int_0^\infty x^2 e^{-2\lambda x}dx = 2/(2\lambda)^3 = 1/(4\lambda^3)$):</p>
+            <div class="math">$$\langle x^2\rangle = 2A^2\int_0^{\infty}x^2 e^{-2\lambda x}dx = 2\lambda\cdot\frac{1}{4\lambda^3} = \frac{1}{2\lambda^2}$$</div>
+            <p>So $\sigma_x = \sqrt{\langle x^2\rangle - \langle x\rangle^2} = \sqrt{1/(2\lambda^2)} = \dfrac{1}{\lambda\sqrt2}$.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Practice 2 — Why does a real, even wave function always give $\langle p\rangle = 0$?</summary>
+        <div>
+            <p><strong>Problem:</strong> Using the same $\Psi(x) = \sqrt{\lambda}\,e^{-\lambda|x|}$ from Practice
+            1, show that $\langle p\rangle = 0$, and explain in words why this had to be true before you even
+            computed it.</p>
+            <p><strong>Solution:</strong> $\langle p\rangle = -i\hbar\int\Psi^*\,\dfrac{d\Psi}{dx}\,dx$. Because
+            $\Psi$ is real, $\Psi^* = \Psi$, so the integrand is $-i\hbar\,\Psi\,\dfrac{d\Psi}{dx} = -\dfrac{i\hbar}{2}\dfrac{d}{dx}(\Psi^2)$
+            &mdash; an exact derivative. Integrating,</p>
+            <div class="math">$$\langle p\rangle = -\frac{i\hbar}{2}\Big[\Psi(x)^2\Big]_{-\infty}^{+\infty} = 0$$</div>
+            <p>since $\Psi\to0$ at $\pm\infty$. More generally: <strong>any real wave function has
+            $\langle p\rangle = 0$</strong>, because the argument above never used the specific form of $\Psi$,
+            only that it is real and vanishes at infinity. This is a fast diagnostic: if you're asked for
+            $\langle p\rangle$ and notice the given $\Psi$ is purely real, you can write down the answer, 0,
+            immediately &mdash; and if your detailed integration produces anything else, that's a sign to
+            recheck your work, not a sign that the shortcut failed.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Practice 3 — Is it normalizable? (boundary behavior at infinity)</summary>
+        <div>
+            <p><strong>Problem:</strong> Which of the following can be normalized wave functions on
+            $(-\infty,\infty)$, and why? (a) $\Psi_1(x) = A/(1+x^2)$; (b) $\Psi_2(x) = A\,x\,e^{-x^2}$;
+            (c) $\Psi_3(x) = A/(1+|x|)$; (d) $\Psi_4(x) = A\sin(kx)$ for real constant $k\ne0$.</p>
+            <p><strong>Solution:</strong> A wave function is normalizable exactly when $\int|\Psi|^2 dx$
+            converges to a finite value, which requires $|\Psi|^2$ to fall off faster than $1/|x|$ at large
+            $|x|$ (so that $\int^{\infty} |\Psi|^2 dx$ converges — recall $\int^\infty dx/x^p$ converges only for
+            $p>1$).</p>
+            <ul>
+                <li><strong>(a) Yes.</strong> $|\Psi_1|^2 = A^2/(1+x^2)^2 \sim A^2/x^4$ for large $|x|$, which
+                falls off fast enough; $\int_{-\infty}^{\infty}dx/(1+x^2)^2$ is a standard finite integral.</li>
+                <li><strong>(b) Yes.</strong> The Gaussian factor $e^{-2x^2}$ in $|\Psi_2|^2$ beats any power of
+                $x$ to zero, so the integral converges regardless of the extra factor of $x^2$ out front.</li>
+                <li><strong>(c) No.</strong> $|\Psi_3|^2 = A^2/(1+|x|)^2 \sim A^2/x^2$ for large $|x|$, and
+                $\int^{\infty} dx/x^2$ converges &mdash; wait, check carefully: $p=2>1$ here, so this integral
+                <em>does</em> converge, and $\Psi_3$ <em>is</em> normalizable. (This item is deliberately here to
+                test the boundary case: it is easy to eyeball $1/(1+|x|)$ as "the same as" $1/(1+x^2)$ and get
+                the wrong exponent — always identify the actual power-law falloff of $|\Psi|^2$, not of $\Psi$,
+                before judging convergence.)</li>
+                <li><strong>(d) No.</strong> $|\Psi_4|^2 = A^2\sin^2(kx)$ does not decay at all as
+                $x\to\pm\infty$ &mdash; it oscillates between 0 and $A^2$ forever, so $\int_{-\infty}^{\infty}|\Psi_4|^2 dx$
+                diverges for any $A\ne0$. A pure sinusoid (a state of perfectly sharp momentum, per the
+                uncertainty principle) is never normalizable on the whole real line; it can only appear as an
+                idealization, or restricted to a finite box (Topic 2).</li>
+            </ul>
+        </div>
+    </details>
+
+    <details>
+        <summary>Practice 4 — Minimum momentum spread from a given position spread</summary>
+        <div>
+            <p><strong>Problem:</strong> An electron is confined so that a position measurement is known to have
+            standard deviation $\sigma_x = 1.0\times10^{-10}\ \text{m}$ (roughly one Bohr radius). What is the
+            smallest possible standard deviation in a momentum measurement, and how does the corresponding
+            minimum kinetic energy ($\langle p\rangle=0$ so $\langle p^2\rangle = \sigma_p^2$, giving
+            $\langle T\rangle = \sigma_p^2/2m$) compare to typical atomic binding energies (a few eV)?</p>
+            <p><strong>Solution:</strong> From $\sigma_x\sigma_p \ge \hbar/2$, the smallest allowed $\sigma_p$ is</p>
+            <div class="math">$$\sigma_p^{\min} = \frac{\hbar}{2\sigma_x} = \frac{1.055\times10^{-34}\ \text{J·s}}{2(1.0\times10^{-10}\ \text{m})} \approx 5.3\times10^{-25}\ \text{kg·m/s}$$</div>
+            <p>Taking $\langle p\rangle = 0$ for a bound, symmetric state so that $\sigma_p^2 = \langle p^2\rangle$,
+            the associated kinetic energy is</p>
+            <div class="math">$$\langle T\rangle_{\min} = \frac{\sigma_p^2}{2m_e} = \frac{(5.3\times10^{-25})^2}{2(9.11\times10^{-31}\ \text{kg})} \approx 1.5\times10^{-19}\ \text{J} \approx 1\ \text{eV}$$</div>
+            <p>This lands right in the same range as the hydrogen ground-state binding energy (13.6 eV) &mdash;
+            not a coincidence. The uncertainty principle alone, with no dynamics beyond "confine an electron to
+            about an atomic radius," already forces a kinetic energy of order an eV or more. This is exactly
+            why atoms don't collapse: squeezing the electron closer to the nucleus (smaller $\sigma_x$) would
+              only drive $\langle T\rangle_{\min}$ up faster than the Coulomb attraction can compensate. You'll
+            make this qualitative argument precise in Topic 8 (hydrogen atom).</p>
+        </div>
+    </details>
+</section>
+
+<section class="section" id="look-ahead">
+    <div class="section-header">
+        <span class="section-icon">🧭</span>
+        <h2 class="section-title">Common Pitfalls, Self-Check, and Look Ahead</h2>
+    </div>
+
+    <div class="hw-feedback">
+        <div class="hw-feedback-title">📝 Common Pitfalls &amp; Self-Check</div>
+        <p>This is general, instructor-style guidance about where students typically lose points on
+        wave-function/normalization/expectation-value problems &mdash; it is not a record of graded feedback on
+        any specific homework (see the note in <a href="#intro">Overview</a>).</p>
+        <ul style="margin-bottom:0">
+            <li><strong>Normalizing $\Psi$ instead of $|\Psi|^2$.</strong> The normalization integral is
+            $\int|\Psi|^2 dx = \int \Psi^*\Psi\,dx$, not $\int\Psi\,dx$. If $\Psi$ is complex, skipping the
+            complex conjugate is invisible in your algebra until the final numeric answer looks wrong (or worse,
+            looks plausible but is subtly incorrect).</li>
+            <li><strong>Forgetting the piecewise domain when integrating.</strong> Wave functions defined in
+            pieces (like the triangular pulse above) require splitting every integral at each boundary point.
+            A shockingly common error is integrating only one piece over the full domain, or using the wrong
+            piece's formula past its boundary.</li>
+            <li><strong>Sign errors from $\hat p = -i\hbar\,d/dx$.</strong> The minus sign and the factor of $i$
+            both matter. As emphasized in the <a href="#expectation-values">Expectation Values</a> section, any
+            physical expectation value must come out real — use that as a running check on every $\langle p\rangle$
+            or $\langle p^2\rangle$ calculation.</li>
+            <li><strong>Dropping boundary terms carelessly (or keeping them when they shouldn't survive).</strong>
+            Every derivation in this topic (normalization is time-independent; the momentum operator) relies on
+            an integration by parts whose boundary term vanishes <em>because</em> $\Psi\to0$ at $\pm\infty$.
+            State that reasoning explicitly rather than silently dropping boundary terms — and remember it is
+            <em>not</em> automatic for wave functions confined to a finite region with hard walls (Topic 2),
+            where the boundary conditions are different and have to be handled directly.</li>
+            <li><strong>Confusing $\langle x^2\rangle$ with $\langle x\rangle^2$.</strong> These are different
+            numbers in general, and $\langle x^2\rangle \ge \langle x\rangle^2$ always. If you ever compute
+            $\sigma_x^2 = \langle x^2\rangle - \langle x\rangle^2 < 0$, you have made an arithmetic error
+            somewhere upstream — a negative variance is not possible.</li>
+            <li><strong>Treating the uncertainty principle as a statement about measurement disturbance.</strong>
+            $\sigma_x\sigma_p\ge\hbar/2$ is a property of the state $\Psi$ (specifically, of its Fourier
+            transform), not a claim that measuring position clumsily kicks the momentum. Save the "disturbance"
+            language for informal intuition only; the precise statement is about the spread of an ensemble of
+            identically-prepared measurements, as emphasized above.</li>
+        </ul>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Look Ahead</h3>
+        <p>Everything built here &mdash; the statistical interpretation of $|\Psi|^2$, normalization (and its
+        preservation in time), the operator recipe $\langle Q\rangle = \int\Psi^*\hat Q\,\Psi\,dx$, and the
+        uncertainty principle &mdash; is the toolkit every later topic in this course applies to specific
+        physical systems. The very next topic, the <a href="02-infinite-potential-well.html">infinite square
+        well</a>, is the first place you'll use this toolkit on a genuine bound-state problem: you'll solve the
+        time-independent Schrödinger equation subject to boundary conditions, normalize the resulting stationary
+        states using exactly the techniques above, and check that the ground state's $\sigma_x\sigma_p$ is
+        consistent with the inequality derived here. From there, the harmonic oscillator, free-particle wave
+        packets, and eventually the full formal (Hilbert-space) theory in Topic 6 all build directly on the
+        definitions of $\langle x\rangle$, $\langle p\rangle$, and normalization established in this topic.
+        Nothing here gets thrown away later — it gets reused, over and over, on harder potentials.</p>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">⬆️</button>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        const scrollTop = document.getElementById('scrollTop');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = window.scrollY;
+            const progress = (scrolled / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const choices = document.querySelectorAll('.choice');
+        choices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                const parent = choice.parentElement;
+                parent.querySelectorAll('.choice').forEach(c => {
+                    if (c.getAttribute('data-correct') === 'true') {
+                        c.classList.add('correct');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

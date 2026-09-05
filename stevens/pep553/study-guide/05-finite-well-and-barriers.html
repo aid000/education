@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEP553 Topic 5: The Finite Potential Well & Numerical Project</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-blue: #00d4ff;
+            --accent-purple: #c27dff;
+            --accent-green: #06ffa5;
+            --accent-orange: #ff9500;
+            --accent-red: #ff6b6b;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --border-color: #0f3460;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the PEP553 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Cross-page course nav strip — sits ABOVE the header, links back to index + prev/next topic */
+        .course-nav {
+            background: rgba(10, 10, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(0, 212, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(15, 52, 96, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(15, 52, 96, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .math-raw {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; font-family: 'Monaco', monospace; overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-card.multiple-choice { border-left-color: var(--accent-blue); }
+        .question-card.free-response { border-left-color: var(--accent-purple); }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .choices { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        .choice {
+            padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+        .choice:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        .choice.correct {
+            background: rgba(6, 255, 165, 0.15); border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .rubric {
+            background: rgba(194, 125, 255, 0.1); border: 1px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .rubric-point { margin-bottom: 0.5rem; display: flex; gap: 0.5rem; }
+        .rubric-point span:first-child { color: var(--accent-orange); font-weight: 700; min-width: 80px; }
+
+        .misconception {
+            background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(6, 255, 165, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .physics-extension {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 107, 107, 0.1));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .physics-extension::before {
+            content: "🔬 Engineering / Research Connection: ";
+            color: var(--accent-orange); font-weight: 700;
+        }
+
+        /* Homework-feedback specific box — use for "common mistakes on graded homework" call-outs */
+        .hw-feedback {
+            background: rgba(255, 149, 0, 0.08); border: 1px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem;
+        }
+        .hw-feedback-title { color: var(--accent-orange); font-weight: 700; margin-bottom: 0.5rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(0, 212, 255, 0.2); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(194, 125, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">⚛ PEP553 Study Guide Home</a>
+        <a href="midterm-exam.html">← Prev: Midterm Exam Review</a>
+        <a href="06-formal-theory-and-matrix-methods.html">Next: Formal Theory & Matrix Methods →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">⚛ PEP553 · Topic 5: The Finite Potential Well & Numerical Project</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="setup">Setting Up the Well</button>
+            <button class="nav-link" data-section="transcendental">Transcendental Equations</button>
+            <button class="nav-link" data-section="qualitative">Qualitative Behavior</button>
+            <button class="nav-link" data-section="delta-well">Delta-Function Well</button>
+            <button class="nav-link" data-section="numerical-project">Numerical Project</button>
+            <button class="nav-link" data-section="look-ahead">Look Ahead</button>
+            <button class="nav-link" data-section="engineering">Real Devices</button>
+            <button class="nav-link" data-section="practice">Practice Problems</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#setup" class="sidebar-link">Setting Up the Well</a>
+                <a href="#transcendental" class="sidebar-link">Transcendental Equations</a>
+                <a href="#qualitative" class="sidebar-link">Qualitative Behavior</a>
+                <a href="#delta-well" class="sidebar-link">Delta-Function Well</a>
+                <a href="#numerical-project" class="sidebar-link">Numerical Project</a>
+                <a href="#look-ahead" class="sidebar-link">Look Ahead</a>
+                <a href="#engineering" class="sidebar-link">Real Devices</a>
+                <a href="#practice" class="sidebar-link">Practice Problems</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview</h2>
+    </div>
+    <p>This unit covers syllabus lectures 10-1/10-2, "The finite potential well and barrier and realistic quantum well devices," corresponding to the Canvas module <strong>Finite Potential Well</strong>. It maps onto Griffiths &amp; Schroeter §2.5 (the delta-function potential) and §2.6 (the finite square well).</p>
+    <p>Unlike the infinite square well (Topic 2) and the harmonic oscillator (Topic 3), the finite well lets the wavefunction leak into the classically forbidden region outside the walls. That single change — a finite rather than infinite potential jump — turns a clean algebraic eigenvalue problem into a <strong>transcendental equation</strong> that generally cannot be solved in closed form. This is exactly why the graded deliverable for this unit is not a standard homework set but a <strong>Numerical Project</strong> (10% of the course grade): you are asked to locate the bound-state energies numerically (or graphically) and then build and normalize the corresponding wavefunctions, typically in MATLAB, and write up the results.</p>
+    <p>Because no graded solutions were exported for the Numerical Project (unlike Topic 6, where real graded homework feedback exists), the "Common Pitfalls &amp; Self-Check" box on this page is general instructor-style guidance about where students typically go wrong — not a transcription of an actual grader's comments.</p>
+</section>
+
+<section class="section" id="setup">
+    <div class="section-header">
+        <span class="section-icon">🧩</span>
+        <h2 class="section-title">Setting Up the Finite Well</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">The potential and the three regions</h3>
+        <p>The finite square well of depth $V_0>0$ and half-width $a$ is</p>
+        <div class="math">$$V(x) = \begin{cases} 0, & |x| > a \\ -V_0, & |x| \le a \end{cases}$$</div>
+        <p>Like the delta-function well, this potential supports both <strong>bound states</strong> ($E<0$) and <strong>scattering states</strong> ($E>0$). We focus on the bound states, since those are what the Numerical Project asks you to find. The problem splits naturally into three regions:</p>
+        <ul>
+            <li><strong>Region I</strong> ($x < -a$): $V=0$</li>
+            <li><strong>Region II</strong> ($-a \le x \le a$): $V=-V_0$</li>
+            <li><strong>Region III</strong> ($x > a$): $V=0$</li>
+        </ul>
+        <p>In Regions I and III the time-independent Schrödinger equation reads $-\dfrac{\hbar^2}{2m}\psi'' = E\psi$. Since we are looking for bound states, $E<0$; writing $E=-|E|$ and defining</p>
+        <div class="math">$$\kappa \equiv \frac{\sqrt{-2mE}}{\hbar} = \frac{\sqrt{2m|E|}}{\hbar} > 0$$</div>
+        <p>the equation becomes $\psi'' = \kappa^2\psi$, whose normalizable solutions are decaying exponentials — pure growth is discarded because it blows up at infinity:</p>
+        <div class="math">$$\psi_{\rm I}(x) = A\,e^{\kappa x} \quad (x<-a), \qquad \psi_{\rm III}(x) = F\,e^{-\kappa x} \quad (x>a)$$</div>
+        <p>In Region II, $V=-V_0$, so the Schrödinger equation is $-\dfrac{\hbar^2}{2m}\psi'' - V_0\psi = E\psi$, or $\psi'' = -l^2\psi$ with</p>
+        <div class="math">$$l \equiv \frac{\sqrt{2m(E+V_0)}}{\hbar}$$</div>
+        <p>For a true bound state, $-V_0 < E < 0$, so $E+V_0>0$ and $l$ is real: the particle has positive kinetic energy inside the well, and the solution is oscillatory,</p>
+        <div class="math">$$\psi_{\rm II}(x) = C\sin(lx) + D\cos(lx) \quad (-a<x<a).$$</div>
+        <p>Combining the two energy relations gives a useful identity linking the decay rate outside to the oscillation rate inside, for fixed well depth:</p>
+        <div class="math">$$\kappa^2 + l^2 = \frac{2mV_0}{\hbar^2}.$$</div>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Matching conditions at the boundaries</h3>
+        <p>Because $V(x)$ is finite everywhere (it jumps but never diverges), both boundary conditions on $\psi$ apply at $x=\pm a$:</p>
+        <ol>
+            <li>$\psi$ is continuous everywhere;</li>
+            <li>$\psi'$ is continuous everywhere the potential is finite (it can only kink where $V\to\infty$, as at the infinite well's walls or a delta-function spike).</li>
+        </ol>
+        <p>Since $V(x)$ is an <strong>even</strong> function, the stationary states can be chosen purely even or purely odd, which lets you impose the matching conditions at just one boundary (say $x=+a$) and get the other for free from parity. This halves the algebra.</p>
+        <div class="misconception">
+            <div class="misconception-title">Common Misconception</div>
+            <div class="misconception-explanation">Students sometimes think a "finite" jump in $V$ means $\psi'$ can be discontinuous there, by analogy with the delta-function well. It's the opposite: $\psi'$ is <em>continuous</em> at any finite jump in $V$. Only where $V$ itself becomes infinite (an infinite wall, or a true delta spike) does $\psi'$ pick up a kink.</div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="transcendental">
+    <div class="section-header">
+        <span class="section-icon">📐</span>
+        <h2 class="section-title">Transcendental Equations for Bound States</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Even solutions</h3>
+        <p>For the even solutions, write $\psi_{\rm II}(x) = D\cos(lx)$ and $\psi_{\rm III}(x)=Fe^{-\kappa x}$ for $x>a$ (with $\psi(-x)=\psi(x)$ filling in $x<0$). Continuity of $\psi$ and $\psi'$ at $x=a$ gives</p>
+        <div class="math">$$Fe^{-\kappa a} = D\cos(la), \qquad -\kappa F e^{-\kappa a} = -lD\sin(la).$$</div>
+        <p>Dividing the second equation by the first eliminates the normalization constants $D,F$ and leaves a single condition relating $\kappa$ and $l$ — equivalently, the ratio $\psi'/\psi$ (the <strong>logarithmic derivative</strong>) must match at the boundary:</p>
+        <div class="math">$$\kappa = l\tan(la) \qquad \text{(even states)}.$$</div>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Odd solutions</h3>
+        <p>Repeating the same matching with $\psi_{\rm II}(x) = C\sin(lx)$ (odd) gives the companion condition</p>
+        <div class="math">$$\kappa = -l\cot(la) \qquad \text{(odd states)}.$$</div>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Dimensionless form</h3>
+        <p>Both conditions become cleaner in terms of the dimensionless variables</p>
+        <div class="math">$$z \equiv la, \qquad z_0 \equiv \frac{a}{\hbar}\sqrt{2mV_0}.$$</div>
+        <p>Since $\kappa^2+l^2 = 2mV_0/\hbar^2$, we get $\kappa a = \sqrt{z_0^2-z^2}$, and the matching conditions become</p>
+        <div class="math">$$\tan z = \sqrt{(z_0/z)^2-1} \qquad \text{(even states)}$$</div>
+        <div class="math">$$-\cot z = \sqrt{(z_0/z)^2-1} \qquad \text{(odd states)}$$</div>
+        <p>Here $z_0$ packages the well's depth and width into a single number — it is the natural "size" parameter for the well: $z_0^2 = 2mV_0a^2/\hbar^2$, so a deeper or wider well means a larger $z_0$, and only $z_0$ (not $V_0$ or $a$ separately) controls how many bound states exist. Neither transcendental equation can be solved in closed form for $z$; you find the allowed $z$ (and hence $E = \hbar^2z^2/(2ma^2) - V_0$) either graphically, by plotting both sides and reading off intersections, or numerically, by root-finding. This is precisely the task of the Numerical Project (see below).</p>
+    </div>
+</section>
+
+<section class="section" id="qualitative">
+    <div class="section-header">
+        <span class="section-icon">🔎</span>
+        <h2 class="section-title">Qualitative Behavior</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">A finite number of bound states</h3>
+        <p>The graphical picture (Griffiths Figure 2.17) plots $\tan z$ (for even states) against the curve $\sqrt{(z_0/z)^2-1}$, which starts at $z_0$ on the horizontal axis and swings down to zero as $z\to z_0$. Each branch of $\tan z$ between successive vertical asymptotes at $z=\pi/2, 3\pi/2, 5\pi/2,\dots$ can intersect that curve at most once. So the total number of even bound states is set by how many of those asymptotes lie below $z_0$ — a <strong>finite</strong> number, in sharp contrast to the infinite square well, which has infinitely many bound states no matter how you scale it.</p>
+        <ul>
+            <li><strong>There is always at least one even bound state</strong>, no matter how shallow or narrow the well ($z_0\to 0$) — the first branch of $\tan z$ starts right at the origin, so it always crosses the shrinking $\sqrt{(z_0/z)^2-1}$ curve somewhere.</li>
+            <li>An <strong>odd</strong> bound state exists only once $z_0 > \pi/2$; a second even state requires $z_0>\pi$; and so on. Each additional $\pi/2$ of "size" buys one more bound state, alternating odd/even.</li>
+        </ul>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Wavefunction penetration into the forbidden region</h3>
+        <p>Outside the well, $\psi\sim e^{-\kappa|x|}$ decays but never reaches zero — the particle has a nonzero probability of being found in the classically forbidden region where $E<V(x)=0$. The decay length $1/\kappa$ shrinks as $V_0$ grows (larger $\kappa$), so deeper wells confine the particle more tightly, but there is always some leakage for any finite $V_0$. This <strong>evanescent</strong> tail is the direct ancestor of tunneling (§2.5.1) and is the qualitative feature that most sharply distinguishes the finite well from the infinite one, where $\psi$ is forced to vanish exactly at the walls.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Depth and width together, not separately</h3>
+        <p>Because the bound-state count depends only on $z_0 = (a/\hbar)\sqrt{2mV_0}$, a shallow-but-wide well and a deep-but-narrow well can have exactly the same number of bound states and (after rescaling) a qualitatively similar energy ladder. Doubling $a$ has the same effect on $z_0$ as quadrupling $V_0$. When the Numerical Project asks you to explore "what happens as the well gets deeper/wider," it is really asking how the single parameter $z_0$ changes.</p>
+    </div>
+</section>
+
+<section class="section" id="delta-well">
+    <div class="section-header">
+        <span class="section-icon">✳️</span>
+        <h2 class="section-title">The Delta-Function Well: A Limiting Case</h2>
+    </div>
+    <p>Griffiths introduces $V(x) = -\alpha\,\delta(x)$ ($\alpha>0$) just before the finite square well, and it is worth seeing why: it is the finite well's "$a\to 0$, $V_0\to\infty$" limit, taken so that the product (which sets the well's "strength") stays finite. It is delightfully simple to solve and has <strong>no free shape parameters</strong> beyond the single strength $\alpha$.</p>
+    <div class="subsection">
+        <h3 class="subsection-title">Solving it</h3>
+        <p>Away from $x=0$, $V=0$, so the bound-state solutions are again decaying exponentials on each side:</p>
+        <div class="math">$$\psi(x) = \begin{cases} Be^{\kappa x}, & x\le 0 \\ Be^{-\kappa x}, & x\ge 0\end{cases}, \qquad \kappa \equiv \frac{\sqrt{-2mE}}{\hbar}.$$</div>
+        <p>Continuity of $\psi$ at $x=0$ is automatic by symmetry (both pieces equal $B$ there). But $\psi'$ has a kink at $x=0$, because $V$ diverges there: integrating the Schrödinger equation across a vanishing interval around the origin gives the general matching rule</p>
+        <div class="math">$$\Delta\left(\frac{d\psi}{dx}\right) = -\frac{2m\alpha}{\hbar^2}\,\psi(0),$$</div>
+        <p>which for this $\psi$ works out to $\kappa = m\alpha/\hbar^2$, and hence exactly <strong>one</strong> bound-state energy, regardless of how weak or strong $\alpha$ is:</p>
+        <div class="math">$$E = -\frac{m\alpha^2}{2\hbar^2}.$$</div>
+    </div>
+    <p>This single-bound-state result is consistent with the finite-well picture above: a delta well is the $z_0\to 0$ limit of the finite square well (a "weak" potential in the sense that $z_0\to 0$ even though the spike itself is infinitely deep), and we showed above that the finite well always keeps exactly one even bound state as $z_0\to 0$ — never zero, and (in this limit) never more than one. The delta-function well also has scattering states for $E>0$, with reflection and transmission coefficients $R,T$ that depend on energy; those follow the same general playbook (match $\psi,\psi'$ at the boundary) but are not the focus of this unit.</p>
+</section>
+
+<section class="section" id="numerical-project">
+    <div class="section-header">
+        <span class="section-icon">💻</span>
+        <h2 class="section-title">How to Tackle the Numerical Project</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">What the assignment actually asks for</h3>
+        <p>The project handout ("Finite Potential Well," updated to Griffiths §2.6 notation) walks you through the same matrix/determinant derivation of the matching conditions covered above, then pivots to a "Numerical Solutions" section built around the dimensionless variables</p>
+        <div class="math">$$\xi \equiv ka \equiv la, \qquad \eta \equiv \kappa a, \qquad \rho^2 \equiv \xi^2+\eta^2 = \frac{2ma^2|V_0|}{\hbar^2}$$</div>
+        <p>(this $\xi,\eta,\rho$ notation is the same physics as the $z,z_0$ notation above, just relabeled). The two families of allowed states satisfy</p>
+        <div class="math">$$\xi\tan(\xi) = \eta \ \text{(even)}, \qquad \xi\cot(\xi) = -\eta \ \text{(odd)}, \qquad \xi^2+\eta^2=\rho^2.$$</div>
+        <p>The project then asks you to (1) find the numerical values of $(\xi,\eta)$ that simultaneously satisfy one of these transcendental relations and the circle $\xi^2+\eta^2=\rho^2$, for a well of given depth/width (i.e., given $\rho$); (2) re-dimensionalize back to $(k,\kappa,E)$ via $k=\xi/a$, $\kappa=\eta/a$, $E=\hbar^2\kappa^2/2m$; and (3) construct and normalize the resulting piecewise wavefunctions, all in MATLAB (or an equivalent), and report the results.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">A practical numerical recipe</h3>
+        <ol>
+            <li><strong>Fix the well parameters</strong> ($m$, $a$, $V_0$, or equivalently just $\rho$) and decide which parity family you're solving — even ($\xi\tan\xi=\eta$) or odd ($\xi\cot\xi=-\eta$). You need to run both; they are separate root-finding problems.</li>
+            <li><strong>Reduce to one variable.</strong> Substitute $\eta=\sqrt{\rho^2-\xi^2}$ into the parity condition to get a single transcendental equation in $\xi$ alone, e.g. $\tan(\xi) = \sqrt{(\rho/\xi)^2-1}$ for even states, valid only for $0<\xi<\rho$.</li>
+            <li><strong>Find the roots graphically first.</strong> Plot both sides of the equation (in MATLAB, evaluate both functions over a vector of $\xi$ values and plot them together, exactly like Griffiths Figure 2.17) so you can see how many intersections exist and roughly where they sit before asking a solver to converge on them — the same "wag the dog" idea used to hunt for allowed energies in the harmonic oscillator.</li>
+            <li><strong>Use a fine enough grid, and watch the asymptotes.</strong> $\tan(\xi)$ (and $\cot(\xi)$) blows up at $\xi = \pi/2, 3\pi/2,\dots$; a numerical root-finder (e.g. MATLAB's <code>fzero</code>) can silently jump across an entire branch, or converge to the wrong branch, if your search grid or bracketing interval is too coarse. Bracket each root within one branch of the tangent (between consecutive asymptotes/zero-crossings), not across the whole domain.</li>
+            <li><strong>Solve for each bracketed root</strong>, then back out $\eta=\sqrt{\rho^2-\xi^2}$, and re-dimensionalize to get $k$, $\kappa$, and $E$ for that state.</li>
+            <li><strong>Build the piecewise wavefunction</strong> using the matched forms (decaying exponential outside, sine or cosine inside) with the coefficient ratios fixed by the matching conditions (e.g. $A/D$ or $F/D$ from continuity at $x=a$).</li>
+            <li><strong>Normalize numerically.</strong> Evaluate $|\psi(x)|^2$ on a fine grid spanning well beyond the decay length $1/\kappa$ on each side, integrate numerically (e.g. MATLAB's <code>trapz</code>), and rescale $\psi$ by the square root of that integral so $\int|\psi|^2\,dx=1$.</li>
+        </ol>
+    </div>
+    <div class="hw-feedback">
+        <div class="hw-feedback-title">Common Pitfalls &amp; Self-Check</div>
+        <p>No graded solutions were exported for this project, so treat the following as general instructor-style guidance rather than actual grader comments:</p>
+        <ul>
+            <li><strong>Missing the odd-parity solutions entirely.</strong> It is easy to solve only $\xi\tan\xi=\eta$ and report those roots as "the" bound states, forgetting that $\xi\cot\xi=-\eta$ is a separate, equally valid family. A well with $\rho>\pi/2$ has at least one odd state you'll miss if you stop after the even case.</li>
+            <li><strong>Too coarse an energy/parameter grid, so a bound state is skipped.</strong> If your search grid step is larger than the spacing between a tangent branch's asymptote and its intersection with $\sqrt{(\rho/\xi)^2-1}$, the root-finder can jump right over a valid crossing — especially for states close to an asymptote.</li>
+            <li><strong>Sign errors in the log-derivative matching condition.</strong> The even condition is $\kappa=+l\tan(la)$ and the odd condition is $\kappa=-l\cot(la)$ — mixing up the sign (or which parity gets which sign) will send your root-finder hunting for solutions that don't exist, or silently return spurious ones.</li>
+            <li><strong>Forgetting numerical normalization.</strong> The matching conditions fix ratios between $A$, $C$/$D$, and $F$, but not the overall scale — you still need to numerically integrate $|\psi|^2$ and rescale before the wavefunction (or any expectation value built from it) means anything.</li>
+        </ul>
+    </div>
+</section>
+
+<section class="section" id="look-ahead">
+    <div class="section-header">
+        <span class="section-icon">👀</span>
+        <h2 class="section-title">Look Ahead: Convergence to the Infinite Well</h2>
+    </div>
+    <div class="anchor">
+        <div class="anchor-title">Preview — Final Exam Problem 3 (2025, already graded)</div>
+        <p>The 2025 final exam (reviewed in full on <a href="final-exam.html">final-exam.html</a>) asks you to show carefully that the finite well's bound-state energies converge to the infinite well's energies as $V_0\to\infty$. We are not working that argument in full here — just setting up the physical intuition so it isn't a surprise when you see it worked through on that page.</p>
+        <p>As $V_0\to\infty$, $z_0=(a/\hbar)\sqrt{2mV_0}\to\infty$ as well, so the intersections in the graphical picture above get pushed toward the asymptotes $z_n = n\pi/2$ themselves — that's where $\tan z$ (or $\cot z$) actually diverges, which is exactly where the two boundary conditions demand $\kappa\to\infty$: an infinitely steep decay, i.e. $\psi\to 0$ right at the wall. In other words, making the walls impenetrable forces the finite-well solutions to become the infinite-well solutions, wall by wall, state by state. This is a completely different (and cleaner) route to the same energies you found in Topic 2 — worth having in your intuition before you're asked to prove it.</p>
+    </div>
+</section>
+
+<section class="section" id="engineering">
+    <div class="section-header">
+        <span class="section-icon">🔬</span>
+        <h2 class="section-title">Real Devices: Semiconductor Quantum Wells</h2>
+    </div>
+    <p>The finite square well is not just a textbook toy — it is the working model for a <strong>semiconductor quantum well</strong>: a thin layer of a narrow-bandgap material (e.g. GaAs) sandwiched between layers of a wider-bandgap material (e.g. AlGaAs), which creates exactly the $-V_0$ dip in the conduction- and valence-band energy that this unit analyzes. The discrete bound-state ladder you compute in the Numerical Project sets the allowed electron (and hole) energies inside the layer, and transitions between those levels are the basis of quantum-well laser diodes and LEDs used throughout modern optoelectronics.</p>
+    <div class="physics-extension">
+        Pushing the idea further, a <strong>quantum cascade laser (QCL)</strong> stacks many such finite wells and barriers in series, engineering the well widths and depths (which, per the analysis above, is really just tuning $z_0$ for each layer) so that an electron cascades down a staircase of subbands, emitting one photon per step — allowing mid-infrared and terahertz emission that is hard to reach with conventional semiconductor lasers. This device-engineering picture is discussed in the <em>Physics Today</em> article on quantum cascade lasers included with the course materials; the underlying physics is precisely the transcendental matching-condition problem worked out in this unit, just repeated across many coupled wells instead of one.
+    </div>
+</section>
+
+<section class="section" id="practice">
+    <div class="section-header">
+        <span class="section-icon">✏️</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 1 — Setting up the matching condition</div>
+        <div class="question-text">For the even-parity solutions of the finite square well, write down the two boundary conditions at $x=a$ and show that dividing one by the other eliminates the constants $D$ and $F$, leaving $\kappa = l\tan(la)$.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>Continuity of $\psi$ at $x=a$: $Fe^{-\kappa a} = D\cos(la)$.</p>
+                <p>Continuity of $\psi'$ at $x=a$: differentiate each piece. $\psi_{\rm III}'(x) = -\kappa F e^{-\kappa x}$, so at $x=a$: $-\kappa F e^{-\kappa a}$. And $\psi_{\rm II}'(x) = -lD\sin(lx)$, so at $x=a$: $-lD\sin(la)$. Setting these equal: $-\kappa F e^{-\kappa a} = -lD\sin(la)$.</p>
+                <p>Dividing the $\psi'$ equation by the $\psi$ equation cancels $F$, $D$, and the common $e^{-\kappa a}$ factor:</p>
+                <div class="math">$$\frac{-\kappa F e^{-\kappa a}}{Fe^{-\kappa a}} = \frac{-lD\sin(la)}{D\cos(la)} \ \Longrightarrow\ -\kappa = -l\tan(la) \ \Longrightarrow\ \kappa = l\tan(la).$$</div>
+                <p>This is exactly the logarithmic-derivative trick: dividing $\psi'/\psi$ on each side is what removes the arbitrary normalization constants and leaves a pure statement about the allowed energies.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 2 — Counting bound states</div>
+        <div class="question-text">A finite well has $z_0 = 4$ (in the dimensionless notation $z_0=(a/\hbar)\sqrt{2mV_0}$). Without solving the transcendental equations numerically, how many even and how many odd bound states does it have?</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>Even states occur near $z_n = n\pi/2$ with $n=1,3,5,\dots$ (odd $n$) staying below $z_0$; more carefully, count how many of the values $\pi/2\approx1.57$, $3\pi/2\approx4.71$, $5\pi/2\approx7.85,\dots$ lie below $z_0=4$: only $\pi/2\approx1.57$ qualifies, since $3\pi/2\approx4.71>4$. So there is exactly <strong>one even bound state</strong>.</p>
+                <p>Odd states appear once $z_0>\pi/2\approx1.57$ for the first one, and a second requires $z_0 > 3\pi/2 \approx 4.71$. Since $\pi/2 < 4 < 3\pi/2$, there is exactly <strong>one odd bound state</strong>.</p>
+                <p>Total: <strong>2 bound states</strong> (one even, one odd) for $z_0=4$. This matches the qualitative rule that each increment of roughly $\pi/2$ in $z_0$ buys one more state, alternating parity.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 3 — Delta well as a limit</div>
+        <div class="question-text">Starting from the finite-well bound-state energy formula in the shallow/weak limit, argue why the delta-function well has <em>exactly</em> one bound state, and explain in words why "shallow, narrow" and "deep, wide" wells with the same $z_0$ behave the same way.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>As the well becomes very shallow and narrow ($V_0\to\infty$, $a\to 0$, with $\alpha \equiv 2aV_0$ held fixed to recover a finite delta-function strength), $z_0=(a/\hbar)\sqrt{2mV_0}\to 0$. From the graphical picture, the first branch of $\tan z$ passes through the origin and always intersects the shrinking curve $\sqrt{(z_0/z)^2-1}$ once, no matter how small $z_0$ gets — so there is always exactly one even bound state in this limit. Because $z_0<\pi/2$ for any sufficiently small well, no odd state or second even state can appear (those require larger $z_0$). Hence exactly one bound state survives, matching the delta-well result $E=-m\alpha^2/(2\hbar^2)$ derived directly in the delta-well section.</p>
+                <p>The reason "shallow-wide" and "deep-narrow" wells with equal $z_0$ behave alike is that $z_0^2 = 2mV_0a^2/\hbar^2$ depends on the single combination $V_0a^2$, not on $V_0$ and $a$ separately — the transcendental equations and hence the entire bound-state count depend only on $z_0$, so any two wells sharing a $z_0$ value produce the same number of bound states (though the actual energies and wavefunction widths will differ once you re-dimensionalize).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 4 — Numerical project sanity check</div>
+        <div class="question-text">In your MATLAB root-finder for the even-parity equation $\tan(\xi) = \sqrt{(\rho/\xi)^2-1}$, you search $\xi$ over the interval $(0,\rho)$ using a single call to a bracketed solver with endpoints $\xi=0.01$ and $\xi=\rho-0.01$, and it returns one root. Is this a reliable way to find <em>all</em> the even bound states? Why or why not?</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>No. A single bracketed root-finder call (like <code>fzero</code> with one starting bracket) is only guaranteed to find <em>a</em> root consistent with a sign change inside that bracket — but $\tan(\xi)$ has multiple branches, separated by vertical asymptotes at $\xi=\pi/2, 3\pi/2,\dots$, each of which can contain its own crossing with $\sqrt{(\rho/\xi)^2-1}$ if that branch lies below $\rho$. Searching the whole interval $(0,\rho)$ in one shot risks the solver locking onto the first sign change it finds (often on the first branch) and never reporting the others, or failing altogether near an asymptote where the function is discontinuous.</p>
+                <p>The reliable approach is to first identify each individual branch of $\tan(\xi)$ that lies below $\xi=\rho$ (i.e., each interval between consecutive asymptotes/zero-crossings that intersects the domain), then bracket and solve <em>separately</em> within each such sub-interval. This is exactly the "use a fine enough grid, and watch the asymptotes" pitfall described in the numerical-project guidance above.</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">⬆️</button>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        const scrollTop = document.getElementById('scrollTop');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = window.scrollY;
+            const progress = (scrolled / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const choices = document.querySelectorAll('.choice');
+        choices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                const parent = choice.parentElement;
+                parent.querySelectorAll('.choice').forEach(c => {
+                    if (c.getAttribute('data-correct') === 'true') {
+                        c.classList.add('correct');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

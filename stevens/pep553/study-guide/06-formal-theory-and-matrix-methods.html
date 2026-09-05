@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEP553 Topic 6: Formal Theory & Matrix Methods</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-blue: #00d4ff;
+            --accent-purple: #c27dff;
+            --accent-green: #06ffa5;
+            --accent-orange: #ff9500;
+            --accent-red: #ff6b6b;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --border-color: #0f3460;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the PEP553 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Cross-page course nav strip — sits ABOVE the header, links back to index + prev/next topic */
+        .course-nav {
+            background: rgba(10, 10, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(0, 212, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(15, 52, 96, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(15, 52, 96, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .math-raw {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; font-family: 'Monaco', monospace; overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-card.multiple-choice { border-left-color: var(--accent-blue); }
+        .question-card.free-response { border-left-color: var(--accent-purple); }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .choices { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        .choice {
+            padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+        .choice:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        .choice.correct {
+            background: rgba(6, 255, 165, 0.15); border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .rubric {
+            background: rgba(194, 125, 255, 0.1); border: 1px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .rubric-point { margin-bottom: 0.5rem; display: flex; gap: 0.5rem; }
+        .rubric-point span:first-child { color: var(--accent-orange); font-weight: 700; min-width: 80px; }
+
+        .misconception {
+            background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(6, 255, 165, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .physics-extension {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 107, 107, 0.1));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .physics-extension::before {
+            content: "🔬 Engineering / Research Connection: ";
+            color: var(--accent-orange); font-weight: 700;
+        }
+
+        /* Homework-feedback specific box — use for "common mistakes on graded homework" call-outs */
+        .hw-feedback {
+            background: rgba(255, 149, 0, 0.08); border: 1px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem;
+        }
+        .hw-feedback-title { color: var(--accent-orange); font-weight: 700; margin-bottom: 0.5rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(0, 212, 255, 0.2); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(194, 125, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">⚛ PEP553 Study Guide Home</a>
+        <a href="05-finite-well-and-barriers.html">← Prev: Finite Well &amp; Numerical Project</a>
+        <a href="07-time-development-and-parity.html">Next: Time Development &amp; Parity →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">⚛ PEP553 · Topic 6: The Formal Theory of Quantum Mechanics &amp; Matrix Methods</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="hilbert-space">Hilbert Space</button>
+            <button class="nav-link" data-section="eigenfunctions">Eigenfunctions</button>
+            <button class="nav-link" data-section="statistical-interpretation">Stat. Interpretation</button>
+            <button class="nav-link" data-section="uncertainty-principle">Uncertainty Principle</button>
+            <button class="nav-link" data-section="dirac-notation">Dirac Notation</button>
+            <button class="nav-link" data-section="matrix-mechanics">Matrix Mechanics</button>
+            <button class="nav-link" data-section="hermitian-transformations">Hermitian &amp; Unitary</button>
+            <button class="nav-link" data-section="hw-feedback">HW Feedback</button>
+            <button class="nav-link" data-section="practice-problems">Practice</button>
+            <button class="nav-link" data-section="connections">Looking Ahead</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#hilbert-space" class="sidebar-link">Hilbert Space &amp; Observables</a>
+                <a href="#eigenfunctions" class="sidebar-link">Eigenfunctions of Ĥermitian Ops</a>
+                <a href="#statistical-interpretation" class="sidebar-link">Generalized Stat. Interpretation</a>
+                <a href="#uncertainty-principle" class="sidebar-link">The Uncertainty Principle</a>
+                <a href="#dirac-notation" class="sidebar-link">Dirac Notation</a>
+                <a href="#matrix-mechanics" class="sidebar-link">Matrix Mechanics</a>
+                <a href="#hermitian-transformations" class="sidebar-link">Hermitian &amp; Unitary Transforms</a>
+                <a href="#hw-feedback" class="sidebar-link">HW Feedback: Real Solutions</a>
+                <a href="#practice-problems" class="sidebar-link">Practice Problems</a>
+                <a href="#connections" class="sidebar-link">Looking Ahead</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview: Why Quantum Mechanics Needs a Formal Theory</h2>
+    </div>
+    <p>Topics 1&ndash;5 built quantum mechanics one solved potential at a time: infinite well, harmonic oscillator, free particle, finite well. Each time you solved the Schrödinger equation for a specific $V(x)$, found eigenfunctions, and computed probabilities. This topic (syllabus lectures 11-1 through 12-2, Canvas module &ldquo;The Formal Theory of Quantum Mechanics,&rdquo; corresponding to <strong>Homework #5</strong>) steps back and asks: what is actually going on, independent of any particular potential? The answer is Griffiths &amp; Schroeter Chapter 3, <em>Formalism</em>, together with the linear-algebra Appendix (A.3&ndash;A.6).</p>
+
+    <div class="anchor">
+        <div class="anchor-title">🔗 Paying Off Topic 1's Promise</div>
+        <p>Back in Topic 1 you were handed the Heisenberg uncertainty principle $\sigma_x\sigma_p\geq \hbar/2$ as a fact to be checked on specific wave functions, with a note that a genuine proof was coming later. <strong>This is that page.</strong> Section 5 below proves the fully general statement $\sigma_A^2\sigma_B^2\geq\left(\frac{1}{2i}\langle[\hat A,\hat B]\rangle\right)^2$ for <em>any</em> two observables $A$ and $B$, and then specializes it to recover $\sigma_x\sigma_p\geq\hbar/2$ as a two-line corollary.</p>
+    </div>
+
+    <p>Three ideas drive everything in this topic, and they are really one idea seen from three angles:</p>
+    <ul>
+        <li><strong>Observables are Hermitian operators.</strong> The reason measured values always come out real is a theorem about a class of linear operators, not a coincidence.</li>
+        <li><strong>States are vectors in an abstract Hilbert space</strong>, and $\Psi(x,t)$ is just one particular way of writing that vector down (in the &ldquo;position basis&rdquo;). Dirac's bra&ndash;ket notation lets you talk about the vector without committing to a basis.</li>
+        <li><strong>Operators, in any given basis, are matrices</strong>, and the linear algebra you may have half-forgotten from a sophomore course &mdash; eigenvalues, diagonalization, unitary transformations &mdash; turns out to <em>be</em> quantum mechanics once you're working in a finite-dimensional (or countable) Hilbert space.</li>
+    </ul>
+
+    <div class="exam-info">
+        <div class="exam-info-title">📋 Where This Fits</div>
+        <p>This material is the mathematical backbone for the rest of the course. The midterm draws on Topics 1&ndash;5 (wave mechanics in specific potentials); the final and Topics 7&ndash;8 draw heavily on <em>this</em> page: Topic 7 (time development, parity, Ehrenfest's theorem) reuses the commutator algebra and the generalized uncertainty principle derived here; Topic 8 (angular momentum, hydrogen atom) reuses the entire apparatus of Hermitian operators, eigenbases, and simultaneous diagonalization of commuting operators. <strong>Homework #5</strong> is drawn directly from Griffiths Appendix problems A.25 and A.28 and Liboff problems 4.4 and 4.5 &mdash; the real graded solutions to all four are reproduced and explained in the <a href="#hw-feedback">HW Feedback section</a> below.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">📖 Roadmap of This Page</h3>
+        <table>
+            <tr><th>Section</th><th>Griffiths Reference</th><th>Core Question</th></tr>
+            <tr><td>Hilbert Space &amp; Observables</td><td>3.1&ndash;3.2</td><td>What mathematical object represents a quantum state, and why must observables be Hermitian?</td></tr>
+            <tr><td>Eigenfunctions</td><td>3.3</td><td>What do the eigenfunctions of a Hermitian operator look like, for discrete vs. continuous spectra?</td></tr>
+            <tr><td>Generalized Statistical Interpretation</td><td>3.4</td><td>How do you get probabilities out of an arbitrary measurement, not just position?</td></tr>
+            <tr><td>The Uncertainty Principle</td><td>3.5</td><td>Why can't two incompatible observables both be sharp? (Full proof.)</td></tr>
+            <tr><td>Dirac Notation</td><td>3.6.1&ndash;3.6.3</td><td>How do kets, bras, and basis changes formalize what we did informally with ladder operators?</td></tr>
+            <tr><td>Matrix Mechanics</td><td>App. A.3&ndash;A.5</td><td>How do operators become matrices, and why do commuting operators share an eigenbasis?</td></tr>
+            <tr><td>Hermitian &amp; Unitary Transformations</td><td>App. A.6</td><td>The three theorems that make Hermitian operators safe to use as observables.</td></tr>
+        </table>
+    </div>
+</section>
+
+<section class="section" id="hilbert-space">
+    <div class="section-header">
+        <span class="section-icon">📐</span>
+        <h2 class="section-title">Hilbert Space, Observables, and Hermitian Operators</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Hilbert Space</h3>
+        <p><strong>Hilbert space</strong> is the set of square-integrable functions on the relevant domain &mdash; for a particle in one dimension, all $f(x)$ with $\int_{-\infty}^{\infty}|f(x)|^2\,dx<\infty$. It is a <em>vector space</em>: you can add two members and multiply by scalars and stay inside the space. It comes equipped with an <strong>inner product</strong>,</p>
+        <div class="math">$$\langle f|g\rangle \equiv \int_{-\infty}^{\infty} f(x)^* g(x)\,dx,$$</div>
+        <p>which is linear in the second argument, antilinear in the first ($\langle cf|g\rangle = c^*\langle f|g\rangle$, $\langle f|cg\rangle=c\langle f|g\rangle$), and satisfies $\langle f|g\rangle=\langle g|f\rangle^*$. Every physically allowed wave function $\Psi(x,t)$ is a vector in this space, with $\langle\Psi|\Psi\rangle=1$ enforcing normalization. The inner product also obeys the <strong>Schwarz inequality</strong>,</p>
+        <div class="math">$$\langle f|f\rangle\langle g|g\rangle \geq |\langle f|g\rangle|^2,$$</div>
+        <p>which is the single most important inequality in this topic &mdash; it is the engine that drives the uncertainty-principle proof in Section 5.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Observables Are Hermitian Operators</h3>
+        <p>A physical observable (position, momentum, energy, angular momentum&hellip;) is represented in quantum mechanics by a <strong>linear operator</strong> $\hat Q$ acting on Hilbert space. Not just any operator will do: because the outcome of a measurement is a real number, and because the average of many measurements, $\langle Q\rangle=\langle \Psi|\hat Q\Psi\rangle$, must also be real for <em>every</em> state $\Psi$, the operator representing an observable must satisfy</p>
+        <div class="math">$$\langle f|\hat Q f\rangle = \langle \hat Q f|f\rangle \quad \text{for all } f,$$</div>
+        <p>or, more generally (and this is the definition you'll use constantly from here on),</p>
+        <div class="math">$$\langle \alpha|\hat Q\beta\rangle = \langle \hat Q\alpha|\beta\rangle \quad \text{for all } \alpha,\beta.$$</div>
+        <p>An operator with this property is called <strong>Hermitian</strong>. In a discrete/matrix representation this becomes $\hat Q^\dagger=\hat Q$, i.e. the matrix equals its own transpose-conjugate. This is Postulate I of quantum mechanics (as enumerated in Liboff): to every observable $A$ corresponds a Hermitian operator $\hat A$, and the possible measured values are the eigenvalues of $\hat A$.</p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: &ldquo;Hermitian&rdquo; just means &ldquo;symmetric&rdquo;</div>
+        <div class="misconception-explanation">A real symmetric matrix ($T_{ij}=T_{ji}$) is Hermitian, but that's a special case. In general Hermitian means <em>transpose AND complex-conjugate</em> equal the original: $T_{ij}=T_{ji}^*$. Diagonal entries of a Hermitian matrix must therefore be real (since $T_{ii}=T_{ii}^*$), but off-diagonal entries can be complex, as long as mirror-image entries are complex conjugates of each other. This is exactly the check performed in Problem A.28 below: $T=\begin{pmatrix}1 & 1-i\\ 1+i & 0\end{pmatrix}$ is Hermitian even though it has complex entries, because $T_{12}=1-i=T_{21}^*$.</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Determinate States</h3>
+        <p>A measurement of observable $A$ on a general state $\Psi$ gives a spread of possible results with standard deviation $\sigma_A$. A state is called <strong>determinate</strong> for $A$ (measurement is guaranteed to return one specific value with zero spread, $\sigma_A=0$) exactly when $\Psi$ is an eigenfunction of $\hat A$: $\hat A\Psi = a\Psi$. This is Postulate II: after a measurement returning value $a$, the system collapses into the corresponding eigenstate $\phi_a$. Stationary states $\psi_n$ of the Hamiltonian are determinate states for energy &mdash; that's why $\langle H\rangle=E_n$ exactly, with zero spread, for a particle prepared in a single stationary state.</p>
+    </div>
+
+    <div class="hw-feedback">
+        <div class="hw-feedback-title">📝 The Four Postulates (Liboff enumeration, useful exam scaffolding)</div>
+        <p><strong>I. Observables &amp; Operators</strong> &mdash; every observable $A$ has a Hermitian operator $\hat A$; measured values are eigenvalues of $\hat A$. <strong>II. Measurement</strong> &mdash; measuring $A$ and getting result $a$ collapses the system into the eigenstate $\phi_a$. <strong>III. The State Function</strong> &mdash; $\Psi(\vec r,t)$ contains all information about the system; $\langle C\rangle = \int\Psi^*\hat C\Psi\,d\vec r$. <strong>IV. Time Development</strong> &mdash; $i\hbar\,\partial\Psi/\partial t=\hat H\Psi$ (the Schrödinger equation). Everything else in Chapter 3 &mdash; the uncertainty principle, Dirac notation, matrix mechanics &mdash; is machinery for making these four postulates precise and computable.</p>
+    </div>
+</section>
+
+<section class="section" id="eigenfunctions">
+    <div class="section-header">
+        <span class="section-icon">🔢</span>
+        <h2 class="section-title">Eigenfunctions of a Hermitian Operator</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Discrete Spectra</h3>
+        <p>Suppose $\hat Q\, f_n(x) = q_n\, f_n(x)$, with $f_n$ normalizable and the $q_n$ forming a discrete list. Two theorems make discrete-spectrum eigenfunctions extremely convenient (full proofs, in the Hermitian-transformation language, appear in <a href="#hermitian-transformations">Section 8</a>):</p>
+        <ol>
+            <li><strong>The eigenvalues are real.</strong></li>
+            <li><strong>Eigenfunctions belonging to different eigenvalues are automatically orthogonal:</strong> $\langle f_m|f_n\rangle=0$ for $m\neq n$.</li>
+        </ol>
+        <p>Combined with normalization, this gives orthonormality, $\langle f_m|f_n\rangle=\delta_{mn}$, and (for a physically sensible observable) the $f_n$ are also <strong>complete</strong>: any function in Hilbert space can be written as a linear combination $\sum_n c_n f_n(x)$. Completeness is what makes the generalized statistical interpretation (Section 4) possible.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Continuous Spectra</h3>
+        <p>Position and momentum are the classic examples of observables whose eigenvalues form a <em>continuum</em>, and whose eigenfunctions are not themselves normalizable. The position operator $\hat x$ has eigenfunction $g_y(x)=\delta(x-y)$ for every real number $y$: $\hat x\, g_y(x) = x\,\delta(x-y) = y\,\delta(x-y)$. The momentum operator $\hat p=-i\hbar\, d/dx$ has eigenfunctions $f_p(x) = \frac{1}{\sqrt{2\pi\hbar}}e^{ipx/\hbar}$ for every real $p$. Neither $\delta(x-y)$ nor $e^{ipx/\hbar}$ is square-integrable, so strictly they are not members of Hilbert space &mdash; but they satisfy a continuum analog of orthonormality, <strong>Dirac orthonormality</strong>:</p>
+        <div class="math">$$\langle g_y|g_{y'}\rangle = \delta(y-y'), \qquad \langle f_p|f_{p'}\rangle = \delta(p-p').$$</div>
+        <table>
+            <tr><th>Property</th><th>Discrete spectrum</th><th>Continuous spectrum</th></tr>
+            <tr><td>Eigenfunctions</td><td>Normalizable, $\in$ Hilbert space</td><td>Not normalizable, outside Hilbert space</td></tr>
+            <tr><td>Orthonormality</td><td>Kronecker delta $\delta_{mn}$</td><td>Dirac delta $\delta(q-q')$</td></tr>
+            <tr><td>Expansion</td><td>$\Psi=\sum_n c_n f_n$</td><td>$\Psi = \int c(q)\, f_q\, dq$</td></tr>
+            <tr><td>Physically realizable state?</td><td>Yes, by itself</td><td>Only as a superposition (wave packet)</td></tr>
+        </table>
+        <p>This is why a free particle is always represented by a wave <em>packet</em> (a superposition over a range of momenta/positions), never by a single momentum or position eigenfunction &mdash; the pure eigenfunctions aren't normalizable, hence aren't physical states, even though they're indispensable as a basis for expanding physical states.</p>
+    </div>
+</section>
+
+<section class="section" id="statistical-interpretation">
+    <div class="section-header">
+        <span class="section-icon">📊</span>
+        <h2 class="section-title">The Generalized Statistical Interpretation</h2>
+    </div>
+    <p>Chapter 1 gave you the statistical interpretation for <em>position</em> only: $|\Psi(x,t)|^2\,dx$ is the probability of finding the particle in $[x,x+dx]$. The generalized version extends this to <em>any</em> observable. Because the eigenfunctions $f_n$ of an observable $\hat Q$ are complete, any state can be expanded</p>
+    <div class="math">$$\Psi(x,t) = \sum_n c_n(t)\, f_n(x), \qquad c_n(t) = \langle f_n|\Psi\rangle = \int f_n(x)^*\Psi(x,t)\,dx \quad \text{(Fourier's trick)}.$$</div>
+    <p>The generalized statistical interpretation says: <strong>a measurement of $Q$ will yield one of the eigenvalues $q_n$, with probability $|c_n|^2$.</strong> Normalization of $\Psi$ guarantees $\sum_n|c_n|^2=1$, and the expectation value comes out as $\langle Q\rangle = \sum_n q_n|c_n|^2$, exactly what you'd expect from a probability distribution over outcomes $q_n$. Applying this machinery to $\hat x$ (whose Dirac-orthonormalized eigenfunction is $g_y(x)=\delta(x-y)$) reproduces the original position statistical interpretation exactly, as a special case; applying it to $\hat p$ produces the momentum-space wave function $\Phi(p,t)=\langle f_p|\Psi\rangle$, the Fourier transform of $\Psi(x,t)$, with $|\Phi(p,t)|^2\,dp$ the probability of measuring momentum in $[p,p+dp]$.</p>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: &ldquo;$|c_n|^2$ is the probability the particle IS in state $f_n$&rdquo;</div>
+        <div class="misconception-explanation">This is subtly wrong and a favorite trap on exams. The particle is in state $\Psi$, period &mdash; not partly in $f_1$ and partly in $f_2$. $|c_n|^2$ is the probability that a <em>measurement of $Q$</em> returns the value $q_n$. It is correct to say $|c_n|^2$ is the probability that a particle <em>currently</em> in state $\Psi$ <em>will be found</em> in state $f_n$ <em>after</em> such a measurement (because measurement collapses the state) &mdash; but that's a claim about the measurement process, not a claim about what $\Psi$ secretly &ldquo;is&rdquo; beforehand.</div>
+    </div>
+</section>
+
+<section class="section" id="uncertainty-principle">
+    <div class="section-header">
+        <span class="section-icon">📏</span>
+        <h2 class="section-title">The Generalized Uncertainty Principle (Full Proof)</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">3.5.1 &mdash; Proof of $\sigma_A^2\sigma_B^2\geq\left(\frac{1}{2i}\langle[\hat A,\hat B]\rangle\right)^2$</h3>
+        <p>For any observable $A$ in state $\Psi$, the variance is $\sigma_A^2 = \langle(\hat A-\langle A\rangle)\Psi\,|\,(\hat A-\langle A\rangle)\Psi\rangle = \langle f|f\rangle$, where we define $f\equiv(\hat A-\langle A\rangle)\Psi$. Likewise, for any other observable $B$, $\sigma_B^2=\langle g|g\rangle$ with $g\equiv(\hat B-\langle B\rangle)\Psi$. The Schwarz inequality from Section 2 immediately gives</p>
+        <div class="math">$$\sigma_A^2\sigma_B^2 = \langle f|f\rangle\langle g|g\rangle \geq |\langle f|g\rangle|^2. \tag{i}$$</div>
+        <p>Now use a fact about complex numbers: for any $z$, $|z|^2 = [\text{Re}(z)]^2+[\text{Im}(z)]^2 \geq [\text{Im}(z)]^2 = \left[\frac{1}{2i}(z-z^*)\right]^2$. Setting $z=\langle f|g\rangle$ (so $z^*=\langle g|f\rangle$) turns (i) into</p>
+        <div class="math">$$\sigma_A^2\sigma_B^2 \geq \left(\frac{1}{2i}\left[\langle f|g\rangle - \langle g|f\rangle\right]\right)^2. \tag{ii}$$</div>
+        <p>Now evaluate $\langle f|g\rangle$ explicitly, using the fact that $(\hat A-\langle A\rangle)$ is Hermitian to move it across the inner product:</p>
+        <div class="math">$$\langle f|g\rangle = \big\langle (\hat A-\langle A\rangle)\Psi \,\big|\, (\hat B-\langle B\rangle)\Psi\big\rangle = \big\langle\Psi\big|(\hat A-\langle A\rangle)(\hat B-\langle B\rangle)\Psi\big\rangle = \langle\hat A\hat B\rangle - \langle A\rangle\langle B\rangle,$$</div>
+        <p>(the cross terms $\langle A\rangle\langle B\hat\rangle$ and $\langle B\rangle\langle A\hat\rangle$ cancel against $\langle A\rangle\langle B\rangle\langle\Psi|\Psi\rangle$ &mdash; work it out termwise, remembering $\langle A\rangle,\langle B\rangle$ are just numbers). Similarly $\langle g|f\rangle=\langle\hat B\hat A\rangle-\langle A\rangle\langle B\rangle$. Subtracting,</p>
+        <div class="math">$$\langle f|g\rangle - \langle g|f\rangle = \langle\hat A\hat B\rangle - \langle \hat B\hat A\rangle = \big\langle[\hat A,\hat B]\big\rangle, \qquad [\hat A,\hat B]\equiv \hat A\hat B-\hat B\hat A.$$</div>
+        <p>Substituting into (ii) gives the boxed result:</p>
+        <div class="math">$$\boxed{\ \sigma_A^2\sigma_B^2 \geq \left(\frac{1}{2i}\big\langle[\hat A,\hat B]\big\rangle\right)^2\ }$$</div>
+        <p>The factor of $i$ is not a mistake: the commutator of two Hermitian operators is itself <em>anti</em>-Hermitian, so $\langle[\hat A,\hat B]\rangle$ is purely imaginary, and dividing by $2i$ makes the whole right-hand side real and non-negative, as a squared quantity must be.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Recovering Heisenberg's $\sigma_x\sigma_p\geq\hbar/2$</h3>
+        <p>Take $\hat A=\hat x$, $\hat B=\hat p=-i\hbar\, d/dx$. Their commutator is the canonical one, $[\hat x,\hat p]=i\hbar$. Plugging straight into the boxed formula:</p>
+        <div class="math">$$\sigma_x^2\sigma_p^2 \geq \left(\frac{1}{2i}\cdot i\hbar\right)^2 = \left(\frac{\hbar}{2}\right)^2 \quad\Longrightarrow\quad \sigma_x\sigma_p \geq \frac{\hbar}{2}.$$</div>
+        <p>This is the payoff promised back in Topic 1: the familiar Heisenberg relation is not a separate axiom, it's the $x$-$p$ special case of one universal theorem about non-commuting Hermitian operators. Any two observables with a nonzero commutator are called <strong>incompatible</strong> &mdash; they cannot share a complete set of eigenfunctions (Griffiths Problem 3.16), so no state can simultaneously be determinate for both. Observables that <em>do</em> commute are <strong>compatible</strong> and admit simultaneous eigenfunctions (a fact this page proves formally in <a href="#matrix-mechanics">Section 7</a>, and which is exactly what makes the hydrogen atom's $\hat H$, $\hat L^2$, $\hat L_z$ triad work in Topic 8).</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">3.5.2 &mdash; The Minimum-Uncertainty Wave Packet</h3>
+        <p>The proof above used two inequalities: the Schwarz inequality (i), and dropping $\text{Re}(z)$ in (ii). Both become <em>equalities</em> under specific conditions, and together those conditions tell you exactly which wave functions saturate the uncertainty bound. Schwarz is saturated when $g=cf$ for some constant $c$; dropping $\text{Re}(z)$ costs nothing when $\text{Re}\langle f|g\rangle=0$, which combined with $g=cf$ forces $c$ to be purely imaginary, $c=ia$ with $a$ real. For the position&ndash;momentum pair this condition, $\left(-i\hbar\frac{d}{dx}-\langle p\rangle\right)\Psi = ia(x-\langle x\rangle)\Psi$, is a first-order ODE whose solution is a <strong>Gaussian</strong>:</p>
+        <div class="math">$$\Psi(x) = A\, e^{-a(x-\langle x\rangle)^2/2\hbar}\, e^{i\langle p\rangle x/\hbar}.$$</div>
+        <p>This is exactly why the two minimum-uncertainty states you've already met &mdash; the harmonic-oscillator ground state (Topic 3) and the Gaussian free-particle wave packet (Topic 4) &mdash; are both Gaussians. It's not a coincidence; it's the unique functional form that saturates $\sigma_x\sigma_p=\hbar/2$.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">3.5.3 &mdash; The Energy&ndash;Time Uncertainty Principle</h3>
+        <p>$\Delta t\Delta E\geq \hbar/2$ is often paired with $\Delta x\Delta p\geq\hbar/2$, but it is a genuinely different kind of statement, because <em>time is not an observable</em> in nonrelativistic quantum mechanics &mdash; there's no Hermitian operator $\hat t$, and you never measure &ldquo;the time&rdquo; of a particle the way you measure its position. To derive the energy&ndash;time relation honestly, start from the rate of change of any expectation value. Differentiating $\langle Q\rangle=\langle\Psi|\hat Q\Psi\rangle$ and using the Schrödinger equation $i\hbar\,\partial\Psi/\partial t=\hat H\Psi$ together with the hermiticity of $\hat H$ gives the <strong>generalized Ehrenfest theorem</strong>:</p>
+        <div class="math">$$\frac{d\langle Q\rangle}{dt} = \frac{i}{\hbar}\big\langle[\hat H,\hat Q]\big\rangle + \left\langle\frac{\partial\hat Q}{\partial t}\right\rangle.$$</div>
+        <p>Now specialize the boxed generalized uncertainty relation to $\hat A=\hat H$, $\hat B=\hat Q$ (with $\hat Q$ having no explicit time-dependence, the ordinary case):</p>
+        <div class="math">$$\sigma_H^2\sigma_Q^2 \geq \left(\frac{1}{2i}\big\langle[\hat H,\hat Q]\big\rangle\right)^2 = \left(\frac{1}{2i}\cdot\frac{\hbar}{i}\frac{d\langle Q\rangle}{dt}\right)^2 = \left(\frac{\hbar}{2}\right)^2\left(\frac{d\langle Q\rangle}{dt}\right)^2 \;\Longrightarrow\; \sigma_H\sigma_Q\geq\frac{\hbar}{2}\left|\frac{d\langle Q\rangle}{dt}\right|.$$</div>
+        <p>Defining $\Delta E\equiv\sigma_H$ and $\Delta t \equiv \sigma_Q\big/\left|\frac{d\langle Q\rangle}{dt}\right|$ &mdash; the time it takes $\langle Q\rangle$ to shift by one standard deviation &mdash; gives $\Delta E\,\Delta t\geq\hbar/2$. Crucially, $\Delta t$'s meaning depends on which observable $Q$ you pick to track the system's evolution: it might be an oscillation period, a transit time, or a decay lifetime, but it is never a spread in measured &ldquo;time values,&rdquo; because there is no such measurement.</p>
+        <p><strong>Immediate corollary:</strong> if $\hat Q$ commutes with $\hat H$ and has no explicit time dependence, $d\langle Q\rangle/dt=0$ &mdash; $Q$ is a <strong>conserved quantity</strong>. This single line is the formal statement of conservation laws in quantum mechanics and is exactly the tool Topic 7 uses for parity conservation.</p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: &ldquo;You can borrow energy $\Delta E$ as long as you pay it back within $\Delta t$&rdquo;</div>
+        <div class="misconception-explanation">This popular phrase is <em>not</em> licensed by the energy&ndash;time uncertainty principle. Nowhere in the derivation above does energy conservation get relaxed &mdash; $\hat H$ is still Hermitian with real, sharply-defined eigenvalues on energy eigenstates. What <em>is</em> true: a state with a short characteristic lifetime $\Delta t$ (e.g., an unstable particle) necessarily has energy spread $\Delta E\gtrsim\hbar/(2\Delta t)$ in repeated measurements of its rest mass &mdash; the $\Delta$ particle (lifetime $\sim10^{-23}\,\text{s}$) has a measured mass spread of about $120\,\text{MeV}/c^2$, consistent with $\Delta E\Delta t\approx\hbar/2$. That's a statement about the width of an ensemble of identical unstable systems, not about violating conservation in any single trial.</div>
+    </div>
+
+    <div class="physics-extension">
+        Every spectral linewidth you'll ever see on an oscilloscope or in an atomic-clock spec sheet is an energy&ndash;time uncertainty measurement in disguise: an excited atomic state with lifetime $\tau$ has a natural linewidth $\Delta E \sim \hbar/2\tau$, which directly sets the frequency stability limit of laser-cooled atomic clocks and the spectral purity of laser cavities. In quantum-dot engineering, a shorter exciton lifetime (faster radiative recombination) is a direct trade against narrower emission linewidth &mdash; a design constraint straight out of this equation.
+    </div>
+</section>
+
+<section class="section" id="dirac-notation">
+    <div class="section-header">
+        <span class="section-icon">🔤</span>
+        <h2 class="section-title">Vectors, Operators, and Dirac Notation</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">3.6.1 &mdash; Bases in Hilbert Space</h3>
+        <p>An ordinary vector $\mathbf A$ in the plane is one geometric object, but you describe it with different <em>components</em> depending on which coordinate axes you choose. The state of a quantum system works the same way: it is a vector $|S(t)\rangle$ living abstractly in Hilbert space, and the wave function you're used to writing, $\Psi(x,t)$, is really just the set of components of $|S(t)\rangle$ with respect to one particular basis &mdash; the <strong>position basis</strong> $\{|x\rangle\}$:</p>
+        <div class="math">$$\Psi(x,t) = \langle x|S(t)\rangle.$$</div>
+        <p>Equally valid: expand $|S(t)\rangle$ in the momentum basis $\{|p\rangle\}$ to get $\Phi(p,t)=\langle p|S(t)\rangle$, or in the energy eigenbasis $\{|n\rangle\}$ to get the coefficients $c_n(t)=\langle n|S(t)\rangle$ from Section 4. All three &mdash; $\Psi$, $\Phi$, and $\{c_n\}$ &mdash; contain <em>exactly the same information</em>, just expressed with respect to three different bases of the same underlying vector.</p>
+        <div class="anchor">
+            <div class="anchor-title">🔗 This Is What Topic 3's $|n\rangle$ Notation Really Meant</div>
+            <p>In the harmonic-oscillator topic, you used $\hat a_+|n\rangle=\sqrt{n+1}|n+1\rangle$ informally, treating $|n\rangle$ as a shorthand label for the $n$-th stationary state $\psi_n(x)$. Now that shorthand is formalized: $|n\rangle$ is literally the abstract Hilbert-space vector, and $\psi_n(x)=\langle x|n\rangle$ is its position-basis representation. The ladder operators $\hat a_\pm$ are basis-independent operators acting directly on the kets $|n\rangle$; you only recover the familiar differential-operator form $\hat a_\pm = \frac{1}{\sqrt{2\hbar m\omega}}(\mp i\hat p+m\omega\hat x)$ when you choose to represent everything in the position basis.</p>
+        </div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">3.6.2 &mdash; Dirac Notation: Bras, Kets, and the Resolution of the Identity</h3>
+        <p>Dirac split the inner product $\langle\alpha|\beta\rangle$ into a <strong>ket</strong> $|\beta\rangle$ (an ordinary vector) and a <strong>bra</strong> $\langle\alpha|$ (a linear functional: something that eats a ket and returns a complex number). In a finite basis, kets are column vectors and bras are their conjugate-transpose row vectors, so $\langle\beta|\alpha\rangle = \mathsf{b}^\dagger\mathsf{a}$ is ordinary matrix multiplication. A particularly useful object built from a bra and a ket is the <strong>projection operator</strong> $\hat P\equiv|\alpha\rangle\langle\alpha|$ (for normalized $|\alpha\rangle$), which picks out the component of any vector lying along $|\alpha\rangle$: $\hat P|\beta\rangle = (\langle\alpha|\beta\rangle)\,|\alpha\rangle$.</p>
+        <p>Summing projections over a complete orthonormal basis $\{|e_n\rangle\}$ gives the single most useful identity in this whole formalism, the <strong>resolution of the identity</strong>:</p>
+        <div class="math">$$\sum_n |e_n\rangle\langle e_n| = \hat 1 \qquad \text{(discrete)}, \qquad\qquad \int |e_z\rangle\langle e_z|\,dz = \hat 1 \qquad \text{(continuous)}.$$</div>
+        <p>Acting this operator on any state $|\alpha\rangle$ just recovers its expansion $\sum_n(\langle e_n|\alpha\rangle)|e_n\rangle = |\alpha\rangle$ &mdash; the identity resolves into a sum over &ldquo;how much of each basis vector is present.&rdquo; Functions of operators (needed for time evolution $e^{-i\hat Ht/\hbar}$ in Topic 7) are defined the same way you'd define them for matrices, via the power series $e^{\hat Q}\equiv \hat 1+\hat Q+\frac{1}{2}\hat Q^2+\cdots$</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">3.6.3 &mdash; Changing Bases in Dirac Notation</h3>
+        <p>Because $\langle p|\hat 1|S(t)\rangle=\langle p|S(t)\rangle$, you can insert a resolution of the identity to translate between representations effortlessly. For example, to get from the position-space wave function to the momentum-space wave function, insert $\hat 1=\int dx\,|x\rangle\langle x|$:</p>
+        <div class="math">$$\Phi(p,t) = \langle p|S(t)\rangle = \left\langle p\left|\left(\int dx\,|x\rangle\langle x|\right)\right|S(t)\right\rangle = \int \langle p|x\rangle\,\langle x|S(t)\rangle\,dx = \int \langle p|x\rangle\,\Psi(x,t)\,dx.$$</div>
+        <p>Since $\langle x|p\rangle = f_p(x) = \frac{1}{\sqrt{2\pi\hbar}}e^{ipx/\hbar}$ is just the momentum eigenfunction in the position basis, $\langle p|x\rangle=\langle x|p\rangle^*=\frac{1}{\sqrt{2\pi\hbar}}e^{-ipx/\hbar}$, and the formula above reproduces exactly the Fourier-transform relation $\Phi(p,t)=\frac{1}{\sqrt{2\pi\hbar}}\int e^{-ipx/\hbar}\Psi(x,t)\,dx$ you already knew &mdash; but now derived from pure basis-change bookkeeping, with no Fourier-analysis machinery required. This is the general technique: <strong>insert a resolution of the identity in the basis you have, and read off the transformation coefficients as inner products between the old and new basis vectors.</strong></p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: A bra is &ldquo;half of&rdquo; a ket</div>
+        <div class="misconception-explanation">A ket $|\alpha\rangle$ is a vector; the corresponding bra $\langle\alpha|$ is not a vector at all &mdash; it's a name for the operation &ldquo;take the inner product of whatever ket comes next, with $\alpha$.&rdquo; The set of all bras forms a separate vector space (the <strong>dual space</strong>). This distinction rarely bites you in practice, but it explains why an expression like $\hat Q|\alpha\rangle$ makes sense (operator acting on a vector, producing another vector) while $\langle\alpha|\hat Q$ is a different object entirely (a new bra, dual to $\hat Q^\dagger|\alpha\rangle$) &mdash; and why an expression like &ldquo;$\hat Q\alpha$&rdquo; without the ket bars is, strictly, nonsense: operators act on vectors, not on the label $\alpha$ itself.</div>
+    </div>
+</section>
+
+<section class="section" id="matrix-mechanics">
+    <div class="section-header">
+        <span class="section-icon">🧮</span>
+        <h2 class="section-title">Matrix Mechanics: Operators as Matrices</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Representing Operators in a Basis</h3>
+        <p>Just as a vector $|\alpha\rangle=\sum_n a_n|e_n\rangle$ is represented, with respect to an orthonormal basis $\{|e_n\rangle\}$, by its column of components $a_n=\langle e_n|\alpha\rangle$, an operator $\hat T$ is represented by its <strong>matrix elements</strong>:</p>
+        <div class="math">$$T_{ij} \equiv \langle e_i|\hat T|e_j\rangle.$$</div>
+        <p>The abstract relation $|\beta\rangle=\hat T|\alpha\rangle$ becomes ordinary matrix multiplication of components, $b_i = \sum_j T_{ij}a_j$, i.e. $\mathsf b=\mathsf{T}\mathsf a$. Composing two operators corresponds to multiplying their matrices in the same order, $\widehat{ST}\leftrightarrow \mathsf{ST}$, with $(\mathsf{ST})_{ik}=\sum_j S_{ij}T_{jk}$ &mdash; the ordinary row-times-column matrix product rule.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Changing Bases: Similarity Transformations</h3>
+        <p>If you switch from basis $\{|e_i\rangle\}$ to a new orthonormal basis $\{|f_i\rangle\}$ via a matrix $\mathsf S$ (with $\mathsf S$ unitary, precisely because both bases are orthonormal), the same operator $\hat T$ is represented in the new basis by</p>
+        <div class="math">$$\mathsf T^f = \mathsf S\,\mathsf T^e\,\mathsf S^{-1}.$$</div>
+        <p>Two matrices related this way are called <strong>similar</strong>. Although the individual matrix elements change completely under a similarity transformation, two numbers built from them are <strong>basis-independent invariants</strong>:</p>
+        <div class="math">$$\det(\mathsf T^f) = \det(\mathsf S)\det(\mathsf T^e)\det(\mathsf S^{-1}) = \det(\mathsf T^e), \qquad \text{Tr}(\mathsf T^f) = \text{Tr}(\mathsf S\,\mathsf T^e\mathsf S^{-1}) = \text{Tr}(\mathsf T^e\mathsf S^{-1}\mathsf S)=\text{Tr}(\mathsf T^e),$$</div>
+        <p>using $\det(\mathsf{AB})=\det(\mathsf A)\det(\mathsf B)$ and the cyclic property $\text{Tr}(\mathsf{T}_1\mathsf{T}_2)=\text{Tr}(\mathsf T_2\mathsf T_1)$. <strong>This invariance of trace and determinant under a change of basis is exactly the sanity check performed in Problem A.28 in the HW Feedback section below</strong> &mdash; if your diagonalized matrix doesn't have the same trace and determinant as the original, you've made an arithmetic error somewhere.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Eigenvalues, Diagonalization, and Normal Matrices</h3>
+        <p>The eigenvalue equation $\mathsf T\mathsf a=\lambda\mathsf a$ (nonzero $\mathsf a$) is equivalent to $(\mathsf T-\lambda\mathsf I)\mathsf a=0$, which has a nontrivial solution only when $\mathsf T-\lambda\mathsf I$ is singular:</p>
+        <div class="math">$$\det(\mathsf T-\lambda\mathsf I) = 0 \quad\text{(the characteristic equation)}.$$</div>
+        <p>For an $n\times n$ matrix this is an $n$-th order polynomial in $\lambda$, so there are exactly $n$ roots (counted with multiplicity) &mdash; the <strong>spectrum</strong>. If the eigenvectors of $\mathsf T$ span the whole space, using them as a basis reduces $\mathsf T$ to <strong>diagonal form</strong> with the eigenvalues strung along the diagonal &mdash; this is <strong>diagonalization</strong>, and it is <em>the</em> central computational technique of this entire topic (and of Homework #5). A sufficient (not necessary) condition guaranteeing diagonalizability is <strong>normality</strong>: $[\mathsf N^\dagger,\mathsf N]=0$. Every Hermitian matrix is normal (since $\mathsf N^\dagger=\mathsf N$ trivially commutes with itself), and so is every unitary matrix &mdash; <strong>both classes are always diagonalizable</strong>, which is precisely why it's safe to build quantum mechanics on them.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Why Commuting Hermitian Operators Share an Eigenbasis</h3>
+        <p>This is the single most important structural fact this page has to offer, and it is <em>exactly</em> what Homework Problem A.25 (below) is built to demonstrate numerically. The claim: two diagonalizable matrices $\mathsf T$ and $\mathsf V$ can be <strong>simultaneously diagonalized</strong> by the same similarity matrix $\mathsf S$ &mdash; i.e., there's a single basis in which both are diagonal &mdash; <strong>if and only if they commute</strong>, $[\mathsf T,\mathsf V]=0$.</p>
+        <p><strong>Commute $\Rightarrow$ share an eigenbasis (the direction that matters for A.25):</strong> Suppose $\mathsf T\mathsf a^{(i)}=\lambda_i\mathsf a^{(i)}$ with $\mathsf T$'s spectrum nondegenerate (all $\lambda_i$ distinct), and $[\mathsf T,\mathsf V]=0$. Then</p>
+        <div class="math">$$\mathsf T\left(\mathsf V\mathsf a^{(i)}\right) = \mathsf V\mathsf T\mathsf a^{(i)} = \lambda_i\left(\mathsf V\mathsf a^{(i)}\right),$$</div>
+        <p>which says the vector $\mathsf V\mathsf a^{(i)}$ is itself an eigenvector of $\mathsf T$ with the <em>same</em> eigenvalue $\lambda_i$. But the spectrum is nondegenerate, so the eigenspace for $\lambda_i$ is one-dimensional &mdash; forcing $\mathsf V\mathsf a^{(i)}$ to be a multiple of $\mathsf a^{(i)}$ itself: $\mathsf V\mathsf a^{(i)}=\nu_i\mathsf a^{(i)}$. In other words, <strong>$\mathsf a^{(i)}$ is automatically an eigenvector of $\mathsf V$ too.</strong> (If $\mathsf T$'s spectrum is degenerate the argument needs one more step &mdash; you can always find <em>some</em> linear combination within the degenerate eigenspace that diagonalizes $\mathsf V$ as well, by solving a smaller eigenvalue problem restricted to that subspace; see Practice Problem 2 below for a worked example of this subtlety.)</p>
+        <p><strong>Share an eigenbasis $\Rightarrow$ commute</strong> is the easy direction: in the shared eigenbasis, both matrices are diagonal, and any two diagonal matrices trivially commute (diagonal $\times$ diagonal just multiplies entrywise); since the commutator vanishes in one basis, it vanishes in every basis (similarity transformations preserve commutation relations).</p>
+        <p>The physical translation: <strong>compatible observables commute, and commuting observables share a complete set of simultaneous eigenstates</strong> &mdash; states that are simultaneously determinate for both. This is why the hydrogen atom (Topic 8) is solved by finding simultaneous eigenfunctions of $\hat H$, $\hat L^2$, and $\hat L_z$ (which pairwise commute): the theorem proved above guarantees such a common eigenbasis must exist before you even start looking for it.</p>
+    </div>
+</section>
+
+<section class="section" id="hermitian-transformations">
+    <div class="section-header">
+        <span class="section-icon">✅</span>
+        <h2 class="section-title">Hermitian &amp; Unitary Transformations: The Three Guarantees</h2>
+    </div>
+    <p>The fundamental, basis-independent definition of the Hermitian conjugate $\hat T^\dagger$ of an operator is: the operator satisfying $\langle\hat T^\dagger\alpha|\beta\rangle=\langle\alpha|\hat T\beta\rangle$ for all vectors $\alpha,\beta$. A <strong>Hermitian transformation</strong> is one with $\hat T^\dagger=\hat T$, i.e. $\langle\alpha|\hat T\beta\rangle=\langle\hat T\alpha|\beta\rangle$. Three theorems about Hermitian operators are the entire reason quantum mechanics can use them to represent observables:</p>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Theorem 1: Eigenvalues of a Hermitian Operator Are Real</h3>
+        <p><strong>Proof.</strong> Let $\hat T|\alpha\rangle=\lambda|\alpha\rangle$ with $|\alpha\rangle\neq 0$. Then $\langle\alpha|\hat T\alpha\rangle=\langle\alpha|\lambda\alpha\rangle=\lambda\langle\alpha|\alpha\rangle$. But hermiticity also gives $\langle\alpha|\hat T\alpha\rangle=\langle\hat T\alpha|\alpha\rangle=\langle\lambda\alpha|\alpha\rangle=\lambda^*\langle\alpha|\alpha\rangle$. Since $\langle\alpha|\alpha\rangle\neq 0$, we get $\lambda=\lambda^*$, i.e. $\lambda$ is real. $\blacksquare$</p>
+        <p>This is why every measured value of a physical observable comes out real: it's forced by the observable being represented by a Hermitian operator, nothing more mysterious than that.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Theorem 2: Eigenvectors With Distinct Eigenvalues Are Orthogonal</h3>
+        <p><strong>Proof.</strong> Let $\hat T|\alpha\rangle=\lambda|\alpha\rangle$, $\hat T|\beta\rangle=\mu|\beta\rangle$, $\lambda\neq\mu$. Then $\langle\alpha|\hat T\beta\rangle=\mu\langle\alpha|\beta\rangle$, while hermiticity gives $\langle\alpha|\hat T\beta\rangle=\langle\hat T\alpha|\beta\rangle=\lambda^*\langle\alpha|\beta\rangle=\lambda\langle\alpha|\beta\rangle$ (using Theorem 1, $\lambda=\lambda^*$). So $\mu\langle\alpha|\beta\rangle=\lambda\langle\alpha|\beta\rangle$, and since $\lambda\neq\mu$, we must have $\langle\alpha|\beta\rangle=0$. $\blacksquare$</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Theorem 3: Eigenvectors of a Hermitian Operator Span the Space</h3>
+        <p>This one is stated rather than proved here (the finite-dimensional proof is a standard linear-algebra result; it is genuinely subtle in infinite dimensions, which is part of why Chapter 3 treats discrete and continuous spectra as separate cases). Equivalently: <strong>every Hermitian matrix is diagonalizable.</strong> This completeness is the technical fact underwriting the generalized statistical interpretation of Section 4 &mdash; without it, the expansion $\Psi=\sum_n c_n f_n$ wouldn't be guaranteed to exist for an arbitrary observable.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Unitary Transformations</h3>
+        <p>A <strong>unitary</strong> operator satisfies $\hat U^\dagger\hat U=\hat 1$, equivalently $\hat U^\dagger=\hat U^{-1}$. Unitary transformations preserve inner products, $\langle\hat U\alpha|\hat U\beta\rangle=\langle\alpha|\hat U^\dagger\hat U\beta\rangle=\langle\alpha|\beta\rangle$ &mdash; they're the quantum analog of rotations: they move vectors around without changing lengths or angles between them. Their eigenvalues have modulus 1 (write $\hat U|\alpha\rangle=\lambda|\alpha\rangle$; preserving $\langle\alpha|\alpha\rangle$ forces $|\lambda|^2=1$), and their eigenvectors belonging to distinct eigenvalues are orthogonal (same style of proof as Theorem 2). Unitary matrices are exactly the matrices $\mathsf S$ that carry one orthonormal basis into another &mdash; which is why the similarity transformations of the previous section, and the diagonalizing matrix $\mathsf S$ you construct in Problem A.28 below, are always unitary.</p>
+    </div>
+
+    <div class="physics-extension">
+        This is not just formalism for its own sake: a quantum computer's gates are, by definition, unitary matrices acting on qubit state vectors, and the entire discipline of quantum error correction and gate design is linear algebra on Hermitian and unitary operators exactly as developed on this page. NMR spectroscopy, similarly, manipulates spin states with sequences of unitary "pulse" operators built from Hermitian spin Hamiltonians.
+    </div>
+</section>
+
+<section class="section" id="hw-feedback">
+    <div class="section-header">
+        <span class="section-icon">📝</span>
+        <h2 class="section-title">Homework Feedback: What a Strong Solution Looks Like (HW #5)</h2>
+    </div>
+    <p>Homework #5 draws directly from four problems &mdash; Griffiths A.25, Griffiths A.28, Liboff 4.4, and Liboff 4.5 &mdash; and these are the <em>only</em> problems in this entire study-guide set with real, graded model solutions available. Below, each solution is reproduced with the reasoning made explicit: not just <em>what</em> the answer is, but <em>why</em> each step is the right move.</p>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Griffiths A.25 &mdash; Commuting Matrices Share an Eigenbasis</h3>
+        <div class="hw-feedback">
+            <div class="hw-feedback-title">📝 Problem Statement</div>
+            <p>Given $\mathsf A=\begin{pmatrix}1&4&1\\4&-2&4\\1&4&1\end{pmatrix}$ and $\mathsf B=\begin{pmatrix}1&-2&-1\\-2&2&-2\\-1&-2&1\end{pmatrix}$: (a) verify both are diagonalizable and that they commute; (b) find the eigenvalues/eigenvectors of $\mathsf A$ and verify its spectrum is nondegenerate; (c) show the eigenvectors of $\mathsf A$ are eigenvectors of $\mathsf B$ too.</p>
+        </div>
+        <p><strong>(a) Diagonalizability and commutation.</strong> Both $\mathsf A$ and $\mathsf B$ are visibly symmetric with real entries, so $\mathsf A^\dagger=\mathsf A$ and $\mathsf B^\dagger=\mathsf B$: they're Hermitian, hence normal ($[\mathsf A^\dagger,\mathsf A]=0$ trivially), hence diagonalizable by Theorem 3 above &mdash; <strong>no extra work is needed to verify diagonalizability once you've spotted hermiticity.</strong> The commutator is computed directly by multiplying out both orderings:</p>
+        <div class="math">$$[\mathsf A,\mathsf B] = \mathsf{AB}-\mathsf{BA} = \begin{pmatrix}-8&4&-8\\4&-20&4\\-8&4&-8\end{pmatrix} - \begin{pmatrix}-8&4&-8\\4&-20&4\\-8&4&-8\end{pmatrix} = 0. \checkmark$$</div>
+        <p><strong>(b) Eigenvalues via the characteristic equation.</strong> Expanding $\det(\mathsf A-\lambda\mathsf I)=0$:</p>
+        <div class="math">$$\begin{vmatrix}1-\lambda & 4 & 1\\ 4 & -2-\lambda & 4\\ 1&4&1-\lambda\end{vmatrix} = -(1-\lambda)^2(2+\lambda)+16+16+(2+\lambda)-16(1-\lambda)-16(1-\lambda) = -\lambda^3+36\lambda = 0,$$</div>
+        <p>giving $\lambda(\lambda-6)(\lambda+6)=0$, so the eigenvalues are $\boxed{0,\ 6,\ -6}$ &mdash; three distinct values for a $3\times 3$ matrix, so the spectrum is <strong>nondegenerate</strong>, confirming part (b)'s requirement without any further argument. Plugging each $\lambda$ back into $\mathsf A\mathsf v=\lambda\mathsf v$ gives three scalar equations per eigenvalue (one is always redundant for a nondegenerate root); solving and normalizing:</p>
+        <div class="math">$$\lambda_1=0:\ \mathsf v_1=\tfrac{1}{\sqrt2}\begin{pmatrix}1\\0\\-1\end{pmatrix}, \qquad \lambda_2=6:\ \mathsf v_2=\tfrac{1}{\sqrt3}\begin{pmatrix}1\\1\\1\end{pmatrix}, \qquad \lambda_3=-6:\ \mathsf v_3=\tfrac{1}{\sqrt6}\begin{pmatrix}1\\-2\\1\end{pmatrix}.$$</div>
+        <p><strong>(c) The eigenvectors of $\mathsf A$ diagonalize $\mathsf B$ too &mdash; and this is not a coincidence.</strong> Direct computation confirms it:</p>
+        <div class="math">$$\mathsf B\mathsf v_1 = 2\mathsf v_1, \qquad \mathsf B\mathsf v_2 = -2\mathsf v_2, \qquad \mathsf B\mathsf v_3 = 4\mathsf v_3.$$</div>
+        <p>Every one of $\mathsf A$'s eigenvectors is simultaneously an eigenvector of $\mathsf B$ (with its own, different, eigenvalues $2,-2,4$). <strong>This is exactly the theorem proved in the Matrix Mechanics section above:</strong> because $\mathsf A$'s spectrum is nondegenerate and $[\mathsf A,\mathsf B]=0$, the argument $\mathsf A(\mathsf B\mathsf v_i)=\mathsf B(\mathsf A\mathsf v_i)=\lambda_i(\mathsf B\mathsf v_i)$ forces $\mathsf B\mathsf v_i$ to lie in $\mathsf A$'s (one-dimensional) $\lambda_i$-eigenspace, i.e. to be a multiple of $\mathsf v_i$. <strong>A student who only checks part (c) numerically without connecting it to the commutator from part (a) has missed the actual point of the problem</strong> &mdash; the numerical coincidence in (c) is guaranteed in advance by the vanishing commutator verified in (a).</p>
+        <div class="rubric">
+            <div class="rubric-point"><span>Full credit:</span> States the general theorem (commuting + nondegenerate $\Rightarrow$ shared eigenbasis) and cites it as the reason (c) works, not just as a lucky check.</div>
+            <div class="rubric-point"><span>Partial credit:</span> Correct arithmetic throughout but treats (c) as an independent verification rather than a consequence of (a).</div>
+            <div class="rubric-point"><span>Common error:</span> Forgetting to normalize eigenvectors, or sign errors in the $3\times3$ determinant expansion (double-check by re-expanding along a different row).</div>
+        </div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Griffiths A.28 &mdash; Diagonalizing a Hermitian Matrix, and the Trace/Det Sanity Check</h3>
+        <div class="hw-feedback">
+            <div class="hw-feedback-title">📝 Problem Statement</div>
+            <p>Given $\mathsf T=\begin{pmatrix}1 & 1-i\\ 1+i & 0\end{pmatrix}$: (a) verify $\mathsf T$ is Hermitian; (b) find its (real) eigenvalues; (c) find and normalize its (orthogonal) eigenvectors; (d) construct the unitary diagonalizing matrix $\mathsf S$ and check explicitly that it diagonalizes $\mathsf T$; (e) check that $\det(\mathsf T)$ and $\text{Tr}(\mathsf T)$ agree before and after diagonalization.</p>
+        </div>
+        <p><strong>(a) Hermiticity.</strong> $\mathsf T^\dagger=\tilde{\mathsf T}^* = \begin{pmatrix}1 & 1-i\\1+i & 0\end{pmatrix} = \mathsf T$. $\checkmark$ &mdash; note $T_{12}=1-i$ and $T_{21}=1+i$ are complex conjugates of each other, exactly the pattern flagged in the Hermitian misconception box in Section 2.</p>
+        <p><strong>(b) Eigenvalues.</strong> $\det(\mathsf T-\lambda\mathsf I)=(1-\lambda)(-\lambda)-(1-i)(1+i) = -(1-\lambda)\lambda-2=\lambda^2-\lambda-2=0$, giving $\lambda=\frac{1\pm3}{2}$: <strong>$\lambda_1=2$, $\lambda_2=-1$</strong> &mdash; both real, as guaranteed by Theorem 1 above.</p>
+        <p><strong>(c) Eigenvectors, normalized and orthogonal.</strong> Solving $\mathsf T\mathsf a=\lambda\mathsf a$ for each root and normalizing ($|\alpha|^2+|\beta|^2=1$):</p>
+        <div class="math">$$\mathsf a^{(1)} = \tfrac{1}{\sqrt3}\begin{pmatrix}1-i\\1\end{pmatrix} \ (\lambda=2), \qquad \mathsf a^{(2)}=\tfrac{1}{\sqrt6}\begin{pmatrix}i-1\\2\end{pmatrix}\ (\lambda=-1).$$</div>
+        <p>Direct check: $\mathsf a^{(1)\dagger}\mathsf a^{(2)} = \frac{1}{3\sqrt2}\big[(1+i)(i-1)+1\cdot2\big] = \frac{1}{3\sqrt2}(i-1-1-i+2)=0$. $\checkmark$ &mdash; confirming Theorem 2 (distinct eigenvalues $\Rightarrow$ orthogonal eigenvectors) numerically.</p>
+        <p><strong>(d) The unitary diagonalizing matrix.</strong> Following Equation A.81, the columns of $\mathsf S^{-1}$ are the eigenvectors $\mathsf a^{(j)}$; here $\mathsf S=\mathsf (S^{-1})^\dagger$ because $\mathsf S$ is unitary, giving</p>
+        <div class="math">$$\mathsf S = \frac{1}{\sqrt3}\begin{pmatrix}1+i & 1\\ -\tfrac{1+i}{\sqrt2} & \sqrt2\end{pmatrix}, \qquad \mathsf S\,\mathsf T\,\mathsf S^{-1} = \begin{pmatrix}2&0\\0&-1\end{pmatrix}. \checkmark$$</div>
+        <p><strong>(e) The invariant check &mdash; teach yourself to do this on every diagonalization problem.</strong> Directly: $\text{Tr}(\mathsf T)=1+0=1$ and $\det(\mathsf T)=0-(1+i)(1-i)=0-2=-2$. From the diagonalized form: $\text{Tr}=2+(-1)=1$ $\checkmark$ and $\det=2\times(-1)=-2$ $\checkmark$. <strong>This is the single fastest error-catching habit you can build for this entire topic</strong>: since similarity transformations preserve trace and determinant (proved in the Matrix Mechanics section above), if your eigenvalues don't multiply to $\det(\mathsf T)$ and add to $\text{Tr}(\mathsf T)$, you have an arithmetic error in the characteristic equation &mdash; full stop, go back and recheck before doing anything else.</p>
+        <div class="rubric">
+            <div class="rubric-point"><span>Full credit:</span> Performs the Tr/det check explicitly as verification, not as an afterthought; keeps track of which eigenvector normalization uses $|\alpha|^2+|\beta|^2=1$ correctly with complex components.</div>
+            <div class="rubric-point"><span>Common error:</span> Building $\mathsf S$ from unnormalized eigenvectors (breaks unitarity) or transposing rows/columns when assembling $\mathsf S$ from Equation A.81.</div>
+        </div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Liboff 4.4 &mdash; Translating Integrals Into Dirac Notation</h3>
+        <div class="hw-feedback">
+            <div class="hw-feedback-title">📝 Problem Statement &amp; Pattern-Matching Rules</div>
+            <p>Rewrite five ordinary integral/functional expressions in bra&ndash;ket notation. The real skill being tested is <em>recognizing which Dirac-notation idiom each integral pattern corresponds to</em>:</p>
+        </div>
+        <table>
+            <tr><th>Integral form</th><th>Dirac notation</th><th>Pattern rule</th></tr>
+            <tr><td>$f(x)=g(x)$</td><td>$|f\rangle=|g\rangle$</td><td>Ordinary function equality $\to$ ket equality (same vector, same name convention).</td></tr>
+            <tr><td>$c=\int g^*(x')h(x')\,dx'$</td><td>$c=\langle g|h\rangle$</td><td>&ldquo;Conjugate of one function times another, integrated&rdquo; $\to$ inner product, textbook definition.</td></tr>
+            <tr><td>$f(x)=\sum_n\phi_n(x)\int\phi_n^*(x')f(x')\,dx'$</td><td>$|f\rangle=\sum_n|\phi_n\rangle\langle\phi_n|f\rangle$</td><td><strong>Resolution of the identity</strong>: recognize $\sum_n|\phi_n\rangle\langle\phi_n|=\hat 1$ hiding inside the sum.</td></tr>
+            <tr><td>$\hat O\equiv\psi(x)\int dx'\,\phi^*(x')[\cdots]$</td><td>$\hat O\equiv|\psi\rangle\langle\phi|$</td><td>&ldquo;A function, times an instruction to integrate against the conjugate of another function&rdquo; $\to$ <strong>outer product</strong> (this builds an operator, not a number).</td></tr>
+            <tr><td>$\dfrac{\partial f(x)}{\partial x}=h(x)\displaystyle\int h^*(x')g(x')\,dx'$</td><td>$\dfrac{\partial|f\rangle}{\partial x}=|h\rangle\langle h|g\rangle$</td><td>Combines the outer-product pattern with an explicit inner product on the right: $|h\rangle\langle h|g\rangle$ is $|h\rangle$ scaled by the number $\langle h|g\rangle$.</td></tr>
+        </table>
+        <p><strong>The key insight to internalize (and the one graders specifically look for):</strong> whenever you see &ldquo;(function A) $\times \int$(conjugate of function B)(something)$\,dx'$,&rdquo; that is the outer product $|A\rangle\langle B|$ acting as an <em>operator</em> &mdash; feed it a ket and it returns function A scaled by the overlap of B with whatever you fed it. Whenever you see &ldquo;$\int$(conjugate of function A)(function B)$\,dx'$&rdquo; standing alone as a number, that's the inner product $\langle A|B\rangle$, a scalar. Confusing these two patterns is the single most common notational error on this problem.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Liboff 4.5 &mdash; Operator or Number? Reading $|\phi\rangle\langle\psi|$ Correctly</h3>
+        <div class="hw-feedback">
+            <div class="hw-feedback-title">📝 Problem Statement</div>
+            <p>Given the outer-product operator $\hat O\equiv|\phi\rangle\langle\psi|$ and an arbitrary state $f$, classify each of the following as an operator, a vector, or a scalar.</p>
+        </div>
+        <p>The entire problem hinges on one rule: <strong>reading left to right, every complete $\langle\,\cdot\,|\,\cdot\,\rangle$ pair collapses into a single complex number, and whatever bra or ket is left over (unpaired) survives as a bra or ket.</strong></p>
+        <div class="math">$$\langle f|\hat O = \langle f|\phi\rangle\langle\psi| = C\langle\psi|, \quad C=\langle f|\phi\rangle \quad\Rightarrow\quad \textbf{a bra (dual vector)}, \text{ scaled by scalar } C.$$</div>
+        <div class="math">$$\hat O|f\rangle = |\phi\rangle\langle\psi|f\rangle = C|\phi\rangle, \quad C=\langle\psi|f\rangle \quad\Rightarrow\quad \textbf{a ket (vector)}, \text{ scaled by scalar } C.$$</div>
+        <div class="math">$$\langle f|\hat O|f\rangle = \langle f|\phi\rangle\langle\psi|f\rangle = DC \quad\Rightarrow\quad \textbf{a scalar}: \text{ the product of two complex numbers, } D=\langle f|\phi\rangle,\ C=\langle\psi|f\rangle.$$</div>
+        <div class="math">$$\langle f|\hat O|\psi\rangle = \langle f|\phi\rangle\langle\psi|\psi\rangle = D \quad\Rightarrow\quad \textbf{a scalar}: \langle\psi|\psi\rangle=1 \text{ (normalized) collapses the second pair to } 1.$$</div>
+        <p><strong>Why this matters beyond bookkeeping:</strong> an outer product $|\phi\rangle\langle\psi|$ sandwiched between a full bra and a full ket, $\langle f|\hat O|g\rangle$, always reduces to a <em>product of two scalars</em> &mdash; never a vector &mdash; because both the incoming and outgoing bra/ket slots get consumed. It is a genuine <em>operator</em> (something you could feed a single ket or dot with a single bra and get a vector/bra back) only when exactly one side is left open, as in cases (a) and (b) above. This exact bookkeeping &mdash; count the open bra/ket slots, everything else is a scalar &mdash; is what makes the projection operator $\hat P=|\alpha\rangle\langle\alpha|$ from Section 6 well-defined as an operator rather than a number.</p>
+        <div class="rubric">
+            <div class="rubric-point"><span>Full credit:</span> Explicitly identifies, for each sub-part, which bra/ket pairs collapse to scalars and which single bra or ket survives.</div>
+            <div class="rubric-point"><span>Common error:</span> Treating $\langle f|\hat O|\psi\rangle$ as if it must reduce further using $\langle f|\phi\rangle$ &mdash; it doesn't, because $\phi$ and $f$ are unrelated arbitrary states; $D=\langle f|\phi\rangle$ is simply left as a general overlap, not simplified to a number like 1.</div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="practice-problems">
+    <div class="section-header">
+        <span class="section-icon">🧩</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 1 &mdash; Diagonalize a Hermitian Matrix (parallel to A.28)</div>
+        <div class="question-text">Let $\mathsf T=\begin{pmatrix}2 & 1+i\\ 1-i & 3\end{pmatrix}$. (a) Verify $\mathsf T$ is Hermitian. (b) Find its eigenvalues. (c) Find and normalize its eigenvectors, and confirm they are orthogonal. (d) Check that $\text{Tr}(\mathsf T)$ and $\det(\mathsf T)$ match the sum and product of your eigenvalues.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p><strong>(a)</strong> $\mathsf T^\dagger=\begin{pmatrix}2 & 1+i\\1-i&3\end{pmatrix}=\mathsf T$. $\checkmark$</p>
+                <p><strong>(b)</strong> $\det(\mathsf T-\lambda\mathsf I)=(2-\lambda)(3-\lambda)-(1+i)(1-i) = \lambda^2-5\lambda+6-2=\lambda^2-5\lambda+4=(\lambda-1)(\lambda-4)=0$, so $\lambda_1=1,\ \lambda_2=4$.</p>
+                <p><strong>(c)</strong> For $\lambda=1$: $(2-1)a+(1+i)b=0\Rightarrow a=-(1+i)b$; normalizing ($|a|^2+|b|^2=2+1=3$ for $b=1$) gives $\mathsf a^{(1)}=\frac{1}{\sqrt3}\begin{pmatrix}-(1+i)\\1\end{pmatrix}$. For $\lambda=4$: $(2-4)a+(1+i)b=0\Rightarrow b=a(1-i)$; normalizing ($1+2=3$ for $a=1$) gives $\mathsf a^{(2)}=\frac{1}{\sqrt3}\begin{pmatrix}1\\1-i\end{pmatrix}$. Orthogonality: $\mathsf a^{(1)\dagger}\mathsf a^{(2)}=\frac{1}{3}\left[-(1-i)(1)+1\cdot(1-i)\right]=0$. $\checkmark$</p>
+                <p><strong>(d)</strong> $\text{Tr}(\mathsf T)=2+3=5=1+4$. $\checkmark$ &nbsp; $\det(\mathsf T)=6-(1+i)(1-i)=6-2=4=1\times4$. $\checkmark$</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 2 &mdash; Non-Commuting Operators Do NOT Share an Eigenbasis</div>
+        <div class="question-text">Consider the two Pauli-type matrices $\hat\sigma_z=\begin{pmatrix}1&0\\0&-1\end{pmatrix}$ and $\hat\sigma_x=\begin{pmatrix}0&1\\1&0\end{pmatrix}$. (a) Compute $[\hat\sigma_z,\hat\sigma_x]$ and show it is nonzero. (b) Find the eigenvectors of $\hat\sigma_z$. (c) Verify directly that these are <em>not</em> eigenvectors of $\hat\sigma_x$. Why doesn't this contradict anything proved in the Matrix Mechanics section?</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p><strong>(a)</strong> $\hat\sigma_z\hat\sigma_x=\begin{pmatrix}0&1\\-1&0\end{pmatrix}$, $\hat\sigma_x\hat\sigma_z=\begin{pmatrix}0&-1\\1&0\end{pmatrix}$, so $[\hat\sigma_z,\hat\sigma_x]=\begin{pmatrix}0&2\\-2&0\end{pmatrix}=2i\begin{pmatrix}0&-i\\i&0\end{pmatrix}=2i\hat\sigma_y\neq0$.</p>
+                <p><strong>(b)</strong> $\hat\sigma_z$'s eigenvectors are simply $\begin{pmatrix}1\\0\end{pmatrix}$ (eigenvalue $+1$) and $\begin{pmatrix}0\\1\end{pmatrix}$ (eigenvalue $-1$), since $\hat\sigma_z$ is already diagonal.</p>
+                <p><strong>(c)</strong> $\hat\sigma_x\begin{pmatrix}1\\0\end{pmatrix}=\begin{pmatrix}0\\1\end{pmatrix}$, which is <em>not</em> a multiple of $\begin{pmatrix}1\\0\end{pmatrix}$ &mdash; not an eigenvector of $\hat\sigma_x$.</p>
+                <p><strong>No contradiction:</strong> the &ldquo;commuting $\Rightarrow$ shared eigenbasis&rdquo; theorem is an <em>if</em>, not an unconditional guarantee &mdash; here $[\hat\sigma_z,\hat\sigma_x]\neq0$, so the theorem's hypothesis simply isn't satisfied, and there is no reason to expect (and every reason not to expect) a shared eigenbasis. This is the algebraic seed of Topic 8: the angular momentum operators satisfy $[\hat L_x,\hat L_y]=i\hbar\hat L_z$ (structurally identical to this problem), which is exactly why no state can be a simultaneous eigenstate of two different components of angular momentum.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 3 &mdash; Dirac-Notation Fluency</div>
+        <div class="question-text">(a) A state $|\psi\rangle=\sum_n c_n|n\rangle$ is expanded in an orthonormal discrete basis $\{|n\rangle\}$. Write $\langle\psi|\hat A|\psi\rangle$ purely in terms of the coefficients $c_n$ and the matrix elements $A_{mn}=\langle m|\hat A|n\rangle$. (b) Using the position-basis resolution of the identity, show that $\int f^*(x)\left[\int\delta(x-x')g(x')\,dx'\right]dx = \langle f|g\rangle$.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p><strong>(a)</strong> Insert two resolutions of the identity (or just expand both bra and ket):
+                $$\langle\psi|\hat A|\psi\rangle = \left(\sum_m c_m^*\langle m|\right)\hat A\left(\sum_n c_n|n\rangle\right) = \sum_{m,n}c_m^*c_n\langle m|\hat A|n\rangle = \sum_{m,n}c_m^*c_n A_{mn}.$$
+                This is the general formula for computing an expectation value directly from an operator's matrix representation, without ever returning to position space &mdash; the matrix-mechanics analogue of $\langle A\rangle=\int\Psi^*\hat A\Psi\,dx$.</p>
+                <p><strong>(b)</strong> The inner bracket is just $g(x)$ (sifting property of the delta function), so the whole expression is $\int f^*(x)g(x)\,dx=\langle f|g\rangle$ by definition. In Dirac language: $\int\delta(x-x')g(x')\,dx' = \langle x|\hat 1|g\rangle=\langle x|g\rangle$ using $\hat 1=\int|x'\rangle\langle x'|\,dx'$, so the whole left side is $\int f^*(x)\langle x|g\rangle\,dx = \langle f|\left(\int|x\rangle\langle x|\,dx\right)|g\rangle=\langle f|\hat 1|g\rangle=\langle f|g\rangle$ &mdash; the resolution of the identity in the position basis, inserted and immediately removed.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 4 &mdash; A Generalized Uncertainty Relation (Preview of Angular Momentum)</div>
+        <div class="question-text">Two Hermitian operators satisfy $[\hat A,\hat B]=i\hbar\hat C$, where $\hat C$ is also Hermitian. In some state, $\langle\hat C\rangle = \hbar/2$. What is the minimum possible value of $\sigma_A\sigma_B$ in that state? (This is exactly the algebraic shape of $[\hat L_x,\hat L_y]=i\hbar\hat L_z$, which you'll meet in Topic 8.)</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>From the boxed generalized uncertainty principle, $\sigma_A^2\sigma_B^2\geq\left(\frac{1}{2i}\langle[\hat A,\hat B]\rangle\right)^2 = \left(\frac{1}{2i}\cdot i\hbar\langle\hat C\rangle\right)^2 = \left(\frac{\hbar}{2}\langle\hat C\rangle\right)^2$. With $\langle\hat C\rangle=\hbar/2$: $\sigma_A^2\sigma_B^2\geq\left(\frac{\hbar}{2}\cdot\frac{\hbar}{2}\right)^2=\frac{\hbar^4}{16}$, so $\sigma_A\sigma_B\geq\frac{\hbar^2}{4}$. Notice the structural point: because $\hat C$ itself has a nonzero expectation value, the uncertainty bound is state-dependent, not a fixed number the way $\sigma_x\sigma_p\geq\hbar/2$ is &mdash; exactly the situation you'll encounter with $\sigma_{L_x}\sigma_{L_y}\geq\frac{\hbar}{2}|\langle\hat L_z\rangle|$ in Topic 8.</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<section class="section" id="connections">
+    <div class="section-header">
+        <span class="section-icon">🔭</span>
+        <h2 class="section-title">Looking Ahead: Why This Machinery Was Worth Building</h2>
+    </div>
+    <p>Everything on this page was built to be reused, not admired in isolation. Two direct forward references:</p>
+    <div class="subsection">
+        <h3 class="subsection-title">Topic 7 &mdash; Time Development &amp; Parity</h3>
+        <p>The generalized Ehrenfest theorem derived in Section 5, $\frac{d\langle Q\rangle}{dt}=\frac{i}{\hbar}\langle[\hat H,\hat Q]\rangle+\langle\partial\hat Q/\partial t\rangle$, is the central tool of Topic 7: it's how you show $\langle x\rangle$ obeys Newton's second law on average (Ehrenfest's theorem proper, the special case $\hat Q=\hat x$), and how you show that any observable commuting with $\hat H$ is conserved. The parity operator $\hat\Pi$ (which Topic 7 introduces) is both Hermitian <em>and</em> unitary, with eigenvalues $\pm1$ &mdash; a direct application of the Hermitian/unitary theorems proved in Section 8.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Topic 8 &mdash; Angular Momentum &amp; the Hydrogen Atom</h3>
+        <p>The angular momentum operators $\hat L_x,\hat L_y,\hat L_z$ are each individually Hermitian (real eigenvalues, as guaranteed by Theorem 1) but satisfy $[\hat L_x,\hat L_y]=i\hbar\hat L_z$ and cyclic permutations &mdash; they do <em>not</em> commute with each other. By the uncertainty principle proved in Section 5 (worked concretely in Practice Problem 4 above), no state can simultaneously be a determinate eigenstate of two different components of angular momentum. This is precisely why Topic 8 builds the hydrogen-atom eigenbasis around the <em>mutually commuting</em> triad $\hat H$, $\hat L^2$, $\hat L_z$ instead &mdash; a direct application of the &ldquo;commuting operators share an eigenbasis&rdquo; theorem from Section 7, which you've now seen proved in the abstract and demonstrated concretely in Griffiths A.25.</p>
+    </div>
+    <div class="anchor">
+        <div class="anchor-title">🔗 The One-Sentence Summary of This Entire Topic</div>
+        <p>Physical observables are Hermitian operators because that's what guarantees real eigenvalues; two observables can be simultaneously sharp exactly when their operators commute, because that's what guarantees a shared eigenbasis; and everything you'll do with angular momentum, time evolution, and spin for the rest of this course is an application of these two facts.</p>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">⬆️</button>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        const scrollTop = document.getElementById('scrollTop');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = window.scrollY;
+            const progress = (scrolled / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const choices = document.querySelectorAll('.choice');
+        choices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                const parent = choice.parentElement;
+                parent.querySelectorAll('.choice').forEach(c => {
+                    if (c.getAttribute('data-correct') === 'true') {
+                        c.classList.add('correct');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

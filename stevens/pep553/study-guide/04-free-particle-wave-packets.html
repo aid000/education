@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEP553 Topic 4: Free Particle, Wave Packets &amp; Superposition</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-blue: #00d4ff;
+            --accent-purple: #c27dff;
+            --accent-green: #06ffa5;
+            --accent-orange: #ff9500;
+            --accent-red: #ff6b6b;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --border-color: #0f3460;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the PEP553 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Cross-page course nav strip — sits ABOVE the header, links back to index + prev/next topic */
+        .course-nav {
+            background: rgba(10, 10, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(0, 212, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(15, 52, 96, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(15, 52, 96, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .math-raw {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; font-family: 'Monaco', monospace; overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-card.multiple-choice { border-left-color: var(--accent-blue); }
+        .question-card.free-response { border-left-color: var(--accent-purple); }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .choices { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        .choice {
+            padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+        .choice:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        .choice.correct {
+            background: rgba(6, 255, 165, 0.15); border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .rubric {
+            background: rgba(194, 125, 255, 0.1); border: 1px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .rubric-point { margin-bottom: 0.5rem; display: flex; gap: 0.5rem; }
+        .rubric-point span:first-child { color: var(--accent-orange); font-weight: 700; min-width: 80px; }
+
+        .misconception {
+            background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(6, 255, 165, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .physics-extension {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 107, 107, 0.1));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .physics-extension::before {
+            content: "🔬 Engineering / Research Connection: ";
+            color: var(--accent-orange); font-weight: 700;
+        }
+
+        /* Homework-feedback specific box — use for "common mistakes on graded homework" call-outs */
+        .hw-feedback {
+            background: rgba(255, 149, 0, 0.08); border: 1px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem;
+        }
+        .hw-feedback-title { color: var(--accent-orange); font-weight: 700; margin-bottom: 0.5rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(0, 212, 255, 0.2); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(194, 125, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">⚛ PEP553 Study Guide Home</a>
+        <a href="03-quantum-harmonic-oscillator.html">← Prev: Quantum Harmonic Oscillator</a>
+        <a href="midterm-exam.html">Next: Midterm Exam Review →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">⚛ PEP553 · Topic 4: The Free Particle, Wave Packets &amp; Superposition</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="plane-waves">Plane-Wave Solutions</button>
+            <button class="nav-link" data-section="fourier-transform">Fourier Transform &amp; Wave Packets</button>
+            <button class="nav-link" data-section="superposition">Superposition Principle</button>
+            <button class="nav-link" data-section="velocities-dispersion">Group/Phase Velocity &amp; Spreading</button>
+            <button class="nav-link" data-section="practice-problems">Practice Problems</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#plane-waves" class="sidebar-link">Plane-Wave Solutions</a>
+                <a href="#fourier-transform" class="sidebar-link">Fourier Transform &amp; Wave Packets</a>
+                <a href="#superposition" class="sidebar-link">Superposition Principle</a>
+                <a href="#velocities-dispersion" class="sidebar-link">Group/Phase Velocity &amp; Spreading</a>
+                <a href="#practice-problems" class="sidebar-link">Practice Problems</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview: Why the "Simplest" Potential Is the Hardest</h2>
+    </div>
+    <p>This page covers <strong>Syllabus lectures 8-1 through 9-2</strong> — "The Free Particle, wave packets, superposition" — corresponding to the Canvas module <strong>"Free Particle Wave Function"</strong> and mapping to <strong>Homework #4</strong>. The syllabus table technically lists the midterm exam before this unit, but Prof. Whittaker's actual midterm review handout explicitly walks through superposition and Fourier decomposition of the free particle — so treat this material as <strong>midterm-relevant</strong> even though it sits right before the review page in this guide's delivery order.</p>
+    <p>You might expect the free particle — $V(x)=0$ everywhere, no walls, no springs — to be the <em>easiest</em> problem in quantum mechanics. It is exactly the opposite. The stationary-state solutions turn out to be physically unrealizable on their own, the "speed" of the quantum wave doesn't match the classical particle speed, and building an actual physical state requires trading a discrete sum (Topics 2–3) for a continuous integral: the Fourier transform. This topic is the payoff for everything you built with the infinite well and the harmonic oscillator — it's where the general machinery of quantum mechanics (eigenstates + superposition) gets stress-tested against a continuous spectrum.</p>
+
+    <div class="exam-info">
+        <div class="exam-info-title">📌 Midterm Relevance</div>
+        <p style="margin-bottom:0;">The professor's actual midterm review handout explicitly covers the <strong>superposition principle</strong> and <strong>Fourier decomposition</strong> of the free-particle wave function (the $\phi(k)\leftrightarrow\Psi(x,0)$ transform pair below). Know how to go from $\Psi(x,0)$ to $\phi(k)$ and back, and know the discrete-sum superposition formula from Topics 2–3 cold — both show up on the review sheet.</p>
+    </div>
+
+    <p>A note on resources: Canvas links a <strong>PhET Wave Packet Simulator</strong> for this module — an interactive applet that lets you build a wave packet out of superposed sinusoids and watch it spread and move in real time. It's worth playing with alongside the derivations below; watching the "ripples" (phase velocity) move at a different speed than the "envelope" (group velocity) makes Section 4 much more intuitive than the algebra alone.</p>
+</section>
+
+<section class="section" id="plane-waves">
+    <div class="section-header">
+        <span class="section-icon">〰️</span>
+        <h2 class="section-title">Free-Particle Plane-Wave Solutions</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Setting Up the Equation</h3>
+        <p>Set $V(x)=0$ in the time-independent Schrödinger equation. The Hamiltonian is pure kinetic energy, $\hat{H}_{free}=\hat{T}=\hat{p}^2/2m$, so:</p>
+        <div class="math">$$\hat{H}_{free}\psi(x) = E\psi(x) \Rightarrow -\frac{\hbar^2}{2m}\frac{d^2\psi(x)}{dx^2} = E\psi(x) \Rightarrow \frac{d^2\psi(x)}{dx^2} = -k^2\psi(x)$$</div>
+        <div class="math">$$k=\frac{\sqrt{2mE}}{\hbar}$$</div>
+        <p>This is <em>formally identical</em> to the differential equation inside the infinite square well (Topic 2) — same equation, same general solution family. The physics diverges entirely once we impose (or fail to impose) boundary conditions.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">General Solution and Time Dependence</h3>
+        <p>Instead of writing the general solution as $\sin(kx)$ and $\cos(kx)$ (useful when boundary conditions force standing waves), it's more natural here to write it in exponential form, because we're about to talk about <em>traveling</em> waves:</p>
+        <div class="math">$$\psi(x) = Ae^{ikx} + Be^{-ikx}$$</div>
+        <p>Unlike the infinite well, there are <strong>no boundary conditions</strong> to quantize $k$ (and hence $E$) — the free particle can carry any positive energy; the spectrum is continuous. Tacking on the standard time dependence $\exp(-iEt/\hbar)$:</p>
+        <div class="math">$$\Psi(x,t) = Ae^{i\left(kx-\frac{\hbar k}{2m}t\right)} + Be^{-i\left(kx+\frac{\hbar k}{2m}t\right)}$$</div>
+        <p>Any function of $x$ and $t$ depending only on the combination $x\mp vt$ describes a wave of unchanging shape traveling at speed $v$ in the $\pm x$ direction. So the first term above travels right, the second travels left — <em>same energy</em>, opposite direction. Since the two terms differ only by the sign in front of $k$, it's cleaner to let $k$ run negative and write a single family:</p>
+        <div class="math">$$\Psi_k(x,t) = Ae^{i\left(kx-\frac{\hbar k^2}{2m}t\right)}, \qquad k \equiv \pm\frac{\sqrt{2mE}}{\hbar}, \quad \begin{cases} k>0 \Rightarrow \text{traveling right} \\ k<0 \Rightarrow \text{traveling left} \end{cases}$$</div>
+        <p>These are propagating waves of wavelength $\lambda = 2\pi/|k|$ carrying, via the de Broglie relation, momentum $p=\hbar k$.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">The Speed Paradox</h3>
+        <p>The speed of the wave $\Psi_k$ (coefficient of $t$ over coefficient of $x$ in the exponent) is:</p>
+        <div class="math">$$v_{\text{quantum}} = \frac{\hbar|k|}{2m} = \sqrt{\frac{E}{2m}}$$</div>
+        <p>But the <em>classical</em> speed of a free particle with energy $E=\tfrac12 mv^2$ is $v_{\text{classical}}=\sqrt{2E/m} = 2v_{\text{quantum}}$. The wave that's supposed to represent the particle appears to travel at <strong>half</strong> the particle's actual speed. This isn't a computational slip — it's a genuine feature of the math, and it gets resolved in Section 4 (phase velocity vs. group velocity is exactly this discrepancy, correctly interpreted).</p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: "$\Psi_k$ is a legitimate quantum state."</div>
+        <div class="misconception-explanation">It isn't. Check normalizability directly: $\int_{-\infty}^{\infty}\Psi_k^*\Psi_k\,dx = |A|^2\int_{-\infty}^{\infty}dx = |A|^2(\infty)$ — the integral diverges. <strong>The plane-wave stationary states of the free particle cannot be normalized.</strong> Physically: a free particle cannot exist in a state of definite energy/momentum, because that would require it to be spread with uniform probability density over all of space, forever — infinite probability. This is precisely why we need wave packets: a normalizable state must be built from a <em>superposition</em> of these non-normalizable plane waves, in exactly the same spirit as building a normalizable well/oscillator state from a sum of individually-normalizable $\psi_n$'s — except here the "sum" becomes a continuous integral (next section).</div>
+    </div>
+</section>
+
+<section class="section" id="fourier-transform">
+    <div class="section-header">
+        <span class="section-icon">∫</span>
+        <h2 class="section-title">The Fourier-Transform Treatment &amp; Building a Wave Packet</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">From Discrete Sum to Continuous Integral</h3>
+        <p>For the infinite well and the harmonic oscillator, the general solution to the time-dependent Schrödinger equation was a discrete sum over the (normalizable) energy eigenstates. For the free particle, $k$ is continuous, so the sum becomes an integral over $k$, weighted by an amplitude function $\phi(k)$ that plays the role $c_n$ played before:</p>
+        <div class="math">$$\Psi(x,t) = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty}\phi(k)e^{i(kx-\omega t)}\,dk, \qquad \omega = \frac{\hbar k^2}{2m}$$</div>
+        <p>This <em>can</em> be normalized for suitable $\phi(k)$, even though each individual $\Psi_k$ cannot — because the packet built by superposing a continuum of plane waves produces interference that localizes the particle. We call this a <strong>wave packet</strong>.</p>
+        <p>Setting $t=0$ gives the defining relation between the initial wave function and its momentum-space amplitude:</p>
+        <div class="math">$$\Psi(x,0) = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty}\phi(k)e^{ikx}\,dk$$</div>
+        <p>This is a classic problem in Fourier analysis. Its solution is <strong>Plancherel's theorem</strong>, i.e. the Fourier transform pair — and this is the exact convention you must use (matches the professor's review sheet notation):</p>
+        <div class="math">$$f(x) = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty} F(k)e^{ikx}\,dk \Leftrightarrow F(k) = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty} f(x)e^{-ikx}\,dx$$</div>
+        <p>Applied to our problem, $\Psi(x,0)\leftrightarrow\phi(k)$ is exactly this transform pair:</p>
+        <div class="math">$$\phi(k) = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty}\Psi(x,0)e^{-ikx}\,dx, \qquad \Psi(x,t) = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty}\phi(k)e^{i(kx-\omega t)}\,dk$$</div>
+        <p>So the recipe for any free-particle problem is: (1) given $\Psi(x,0)$, compute $\phi(k)$ by Fourier transform; (2) tack the known time dependence $e^{-i\omega t}$ onto each $k$-component; (3) integrate to reconstruct $\Psi(x,t)$.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Worked Example: The Top-Hat Wave Packet</h3>
+        <p>Suppose a free particle is initially localized uniformly in $-a<x<a$:</p>
+        <div class="math">$$\Psi(x,0) = \begin{cases} A, & -a<x<a \\ 0, & \text{otherwise} \end{cases}$$</div>
+        <p><strong>Step 1 — Normalize.</strong></p>
+        <div class="math">$$1 = \int_{-\infty}^{\infty}|\Psi(x,0)|^2\,dx = |A|^2\int_{-a}^{a}dx = 2a|A|^2 \;\Rightarrow\; A = \frac{1}{\sqrt{2a}}$$</div>
+        <p><strong>Step 2 — Compute $\phi(k)$.</strong></p>
+        <div class="math">$$\phi(k) = \frac{1}{\sqrt{2\pi}}\cdot\frac{1}{\sqrt{2a}}\int_{-a}^{a}e^{-ikx}\,dx = \frac{1}{2\sqrt{\pi a}}\left.\frac{e^{-ikx}}{-ik}\right|_{-a}^{a} = \frac{1}{k\sqrt{\pi a}}\left(\frac{e^{ika}-e^{-ika}}{2i}\right) = \frac{1}{\sqrt{\pi a}}\frac{\sin(ka)}{k}$$</div>
+        <p><strong>Step 3 — Reconstruct $\Psi(x,t)$.</strong></p>
+        <div class="math">$$\Psi(x,t) = \frac{1}{\pi\sqrt{2a}}\int_{-\infty}^{\infty}\frac{\sin(ka)}{k}\,e^{i\left(kx-\frac{\hbar k^2}{2m}t\right)}dk$$</div>
+        <p>This integral has no closed elementary form (it must be evaluated numerically), but the qualitative picture is exactly what the uncertainty principle predicts: for <em>small</em> $a$, $\Psi(x,0)$ is a narrow spike in position space and $\phi(k)$ is broad in $k$; for <em>large</em> $a$, $\Psi(x,0)$ is spread out and $\phi(k)$ is sharply peaked near $k=0$. Since $k$ is directly tied to momentum ($p=\hbar k$), this is a direct manifestation of $\Delta x\,\Delta p \gtrsim \hbar/2$: position can be well-defined, or momentum can be well-defined, but not both simultaneously. (A Gaussian $\phi(k)$ is the other standard textbook choice — it has the virtue of producing the <em>minimum-uncertainty</em> packet and integrating in closed form, but the top-hat above is the cleaner algebra exercise and is the one worked in the course materials.)</p>
+    </div>
+</section>
+
+<section class="section" id="superposition">
+    <div class="section-header">
+        <span class="section-icon">🧩</span>
+        <h2 class="section-title">Formalizing the Superposition Principle</h2>
+    </div>
+
+    <div class="anchor">
+        <div class="anchor-title">🔗 The Idea That Ties the Whole Course Together</div>
+        <p style="margin-bottom:0;">Every quantum system we've studied — the infinite well (Topic 2), the harmonic oscillator (Topic 3), and now the free particle — is solved the <em>same</em> way: find the energy eigenstates, then note that <strong>any</strong> physically allowed state is a linear combination (superposition) of those eigenstates. What changes from problem to problem is only whether the eigenbasis is discrete (well, oscillator) or continuous (free particle).</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Discrete Case (Bound States)</h3>
+        <p>For a system with a discrete energy spectrum $E_n$ and orthonormal eigenfunctions $\psi_n(x)$ — like the infinite well's $\psi_n(x)=\sqrt{2/a}\sin(n\pi x/a)$ from Topic 2, or the harmonic oscillator's Hermite-polynomial eigenstates from Topic 3 — the general time-dependent solution is:</p>
+        <div class="math">$$\Psi(x,t)=\sum_n c_n \psi_n(x)\exp\left(-\frac{iE_n}{\hbar}t\right), \qquad c_n = \int_{-\infty}^{\infty}\psi_n(x)\Psi(x,0)\,dx$$</div>
+        <p>The coefficients $c_n$ are found once, at $t=0$, by exploiting orthonormality of the $\psi_n$'s — exactly the technique you used in Topic 2 (e.g. decomposing an initial "tent" or "half-well" wave function into $\psi_1,\psi_2,\dots$) and in Topic 3 (decomposing an initial displaced-oscillator state into number eigenstates $\psi_n$). Each $|c_n|^2$ is the probability that an energy measurement yields $E_n$, and $\sum_n|c_n|^2=1$ is required by normalization of $\Psi(x,0)$.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Continuous Case (Scattering States)</h3>
+        <p>The free particle has no discrete spectrum — $k$ (and hence $E=\hbar^2k^2/2m$) runs continuously over all positive values. The superposition sum is replaced by an integral, and the coefficient $c_n$ is replaced by the continuous amplitude $\phi(k)\,dk/\sqrt{2\pi}$:</p>
+        <div class="math">$$\Psi(x,0)=\sum_n c_n\psi_n(x) \quad\xrightarrow{\ n\to k,\ \sum_n\to\int dk\ }\quad \Psi(x,0) = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty}\phi(k)e^{ikx}\,dk$$</div>
+        <p>This is the <em>exact same physical idea</em> as the discrete formula above — a general state is a weighted superposition of energy eigenstates — just with a continuum index. This is why the free particle is worth studying even though "nothing happens" (no potential, no binding): it's the clean, exactly-solvable case that shows you the superposition principle survives the jump from discrete to continuous spectra completely intact. This generalization is exactly what you'll need again in Topic 5 (finite well/barriers, which mix discrete bound states with a continuous scattering spectrum) and Topic 7 (general time development).</p>
+    </div>
+
+    <div class="hw-feedback">
+        <div class="hw-feedback-title">🔑 Key distinction to keep straight</div>
+        <p style="margin-bottom:0;">$c_n$ (discrete) is a dimensionless number; $\phi(k)$ (continuous) has units, because $\phi(k)\,dk$ plays the role that $c_n$ alone did — you're integrating over a continuous variable, so the "coefficient" needs to absorb an inverse-length dimension to keep $\Psi(x,0)$ correctly normalized. Don't try to interpret $\phi(k)$ itself as a probability the way $|c_n|^2$ is; it's $|\phi(k)|^2\,dk$ that carries that meaning (probability of measuring momentum in $[\hbar k, \hbar(k+dk)]$).</p>
+    </div>
+</section>
+
+<section class="section" id="velocities-dispersion">
+    <div class="section-header">
+        <span class="section-icon">🌊</span>
+        <h2 class="section-title">Group Velocity, Phase Velocity &amp; Wave-Packet Spreading</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Resolving the Speed Paradox</h3>
+        <p>Section 2 left an unresolved paradox: the plane-wave "speed" $v_{\text{quantum}}=\hbar|k|/2m$ is half the classical particle speed. The resolution is that a real wave packet is a superposition of sinusoidal ripples modulated by an envelope, and <strong>two different velocities</strong> are in play:</p>
+        <ul>
+            <li>The <strong>phase velocity</strong> $v_{\text{phase}}$ — the speed of the individual ripples inside the packet.</li>
+            <li>The <strong>group velocity</strong> $v_{\text{group}}$ — the speed of the envelope itself, which is what actually corresponds to the moving particle.</li>
+        </ul>
+        <p>Start from the general wave packet and assume $\phi(k)$ is narrowly peaked about some $k_0$ (a "nearly monochromatic" packet — reasonable since a real localized particle has a fairly well-defined average momentum). Taylor-expand the dispersion relation $\omega(k)$ about $k_0$:</p>
+        <div class="math">$$\omega(k) \approx \omega_0 + \omega_0'(k-k_0), \qquad \omega_0' \equiv \left.\frac{d\omega}{dk}\right|_{k_0}$$</div>
+        <p>Substituting $s=k-k_0$ into $\Psi(x,t)=\frac{1}{\sqrt{2\pi}}\int\phi(k)e^{i(kx-\omega t)}dk$ and factoring:</p>
+        <div class="math">$$\Psi(x,t) \approx \frac{1}{\sqrt{2\pi}}e^{i(k_0x-\omega_0 t)}\int_{-\infty}^{\infty}\phi(k_0+s)\,e^{is(x-\omega_0't)}\,ds$$</div>
+        <p>The prefactor is a sinusoidal "ripple" traveling at speed $\omega_0/k_0$. The integral (the "envelope") is a function only of $x-\omega_0't$, so it propagates at speed $\omega_0'$. Hence:</p>
+        <div class="math">$$v_{\text{phase}} = \frac{\omega}{k}, \qquad v_{\text{group}} = \frac{d\omega}{dk}$$</div>
+        <p>(both evaluated at $k=k_0$). For the free particle, $\omega=\hbar k^2/2m$, so $\omega/k = \hbar k/2m$ while $d\omega/dk = \hbar k/m$ — exactly <strong>twice</strong> as large:</p>
+        <div class="math">$$v_{\text{classical}} = v_{\text{group}} = 2v_{\text{phase}}$$</div>
+        <p>The envelope (group velocity) — not the ripples (phase velocity) — is what matches the classical particle speed. The paradox from Section 2 dissolves once you realize the individually non-normalizable $\Psi_k$ was never a physical particle to begin with; only the packet is, and the packet's velocity is the group velocity.</p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Misconception: "The wave speed $\omega/k$ is the particle's speed."</div>
+        <div class="misconception-explanation">This is exactly the trap the speed paradox sets. $\omega/k$ is the <em>phase</em> velocity of the ripples — a mathematical property of one Fourier component, not something you can point a detector at. What corresponds to "where is the particle" is the envelope's motion, i.e. the group velocity $d\omega/dk$. This distinction is worth memorizing verbatim; it is a favorite conceptual question on exams precisely because the two velocities coincide for some kinds of waves (waves on a string) but not others (water waves, and — as derived above — matter waves).</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Wave-Packet Spreading (Dispersion)</h3>
+        <p>The free-particle dispersion relation $\omega(k)=\hbar k^2/2m$ is <em>nonlinear</em> in $k$ (quadratic, not linear). That single fact is the root cause of wave-packet spreading: different $k$-components of the packet have different group velocities $v_{\text{group}}(k) = \hbar k/m$, so components with slightly larger $k$ (higher momentum) outrun components with smaller $k$. The packet, which started compact, inevitably smears out over time — even though $V(x)=0$ and nothing is "pushing" the particle apart. (Compare: light in vacuum has the linear dispersion relation $\omega=ck$, so $v_{\text{phase}}=v_{\text{group}}=c$ for every component — no spreading. Matter waves are never this lucky.)</p>
+        <p>For the standard minimum-uncertainty (Gaussian) wave packet with initial position spread $\Delta x(0)$, this qualitative argument can be made quantitative — the key relation to remember is:</p>
+        <div class="math">$$\Delta x(t) = \Delta x(0)\sqrt{1+\left(\frac{\hbar t}{2m\,[\Delta x(0)]^2}\right)^2}$$</div>
+        <p>Two takeaways worth internalizing rather than memorizing the algebra: (1) the packet <em>always</em> spreads, for any $\Delta x(0)>0$ — there is no free-particle state that stays localized forever; (2) the tighter you localize the particle initially (smaller $\Delta x(0)$), the <em>faster</em> it spreads afterward (the spreading time scale $\sim 2m[\Delta x(0)]^2/\hbar$ shrinks) — another face of the uncertainty principle, since squeezing $\Delta x(0)$ forces $\Delta p$ up, which widens the spread of group velocities present in the packet.</p>
+    </div>
+
+    <div class="physics-extension">Wave-packet dispersion is not a curiosity confined to textbooks — it is a first-order design constraint in electron microscopy, free-electron lasers, and any beamline that needs to keep a pulse of particles tightly bunched over a long flight path. The identical mathematics (nonlinear dispersion relation $\Rightarrow$ pulse spreading) also governs optical-fiber communications, where "chromatic dispersion" spreads laser pulses traveling down a fiber and ultimately limits achievable data rates over long distances — engineers combat it with dispersion-compensating fiber, which is the direct engineering analog of trying to keep $\Delta x(t)$ small in this section.</div>
+</section>
+
+<section class="section" id="practice-problems">
+    <div class="section-header">
+        <span class="section-icon">✏️</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 1 — Non-Normalizability</div>
+        <div class="question-text">Show explicitly that the free-particle stationary state $\Psi_k(x,t) = Ae^{i(kx-\hbar k^2t/2m)}$ cannot be normalized, and explain in one sentence what this implies physically about a free particle with a definite energy.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>$|\Psi_k(x,t)|^2 = A^*A\,e^{-i(\cdots)}e^{i(\cdots)} = |A|^2$, a constant independent of $x$ and $t$. Then:</p>
+                <div class="math">$$\int_{-\infty}^{\infty}|\Psi_k(x,t)|^2\,dx = |A|^2\int_{-\infty}^{\infty}dx = |A|^2(\infty)$$</div>
+                <p>which diverges for any nonzero $A$ — there is no choice of $A$ that makes this integral equal to 1. <strong>Physically:</strong> a free particle can never be found in a state of exactly definite energy (equivalently, exactly definite momentum), because that state would correspond to a uniform, never-decaying probability density spread over all space — an unphysical, unnormalizable state. Real free particles must always be represented by wave packets (superpositions over a range of $k$), never by a single $\Psi_k$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 2 — Fourier Transform Sanity Check</div>
+        <div class="question-text">For the top-hat wave packet of the worked example ($\Psi(x,0)=1/\sqrt{2a}$ on $-a<x<a$, zero outside), evaluate $\phi(k)$ in the limit $k\to 0$ (i.e. find $\phi(0)$), and briefly explain why it makes sense that $\phi(0)$ grows as $\sqrt{a}$.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>From the worked example, $\phi(k) = \dfrac{1}{\sqrt{\pi a}}\dfrac{\sin(ka)}{k}$. This has an apparent $0/0$ at $k=0$; take the limit using $\sin(ka)/k \to a$ as $k\to 0$ (or L'Hôpital):</p>
+                <div class="math">$$\phi(0) = \frac{1}{\sqrt{\pi a}}\cdot a = \sqrt{\frac{a}{\pi}}$$</div>
+                <p>This matches Figure 2.9(b) in Griffiths, where the peak height of $\phi(k)$ is marked $\sqrt{a/\pi}$. It makes sense that $\phi(0)$ grows with $a$: a wider position-space packet (larger $a$) corresponds to a <em>narrower, taller</em> momentum-space peak — the uncertainty-principle tradeoff discussed in the worked example. Widening $\Psi(x,0)$ concentrates $\phi(k)$ more sharply (and therefore more tall) around $k=0$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 3 — Group vs. Phase Velocity from Scratch</div>
+        <div class="question-text">A hypothetical particle has dispersion relation $\omega(k) = \alpha k^3$ for some constant $\alpha$ (not the free-particle case!). Find $v_{\text{phase}}$ and $v_{\text{group}}$ in terms of $k$, and determine the ratio $v_{\text{group}}/v_{\text{phase}}$.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>$v_{\text{phase}} = \omega/k = \alpha k^3/k = \alpha k^2$.</p>
+                <p>$v_{\text{group}} = d\omega/dk = 3\alpha k^2$.</p>
+                <p>Ratio: $v_{\text{group}}/v_{\text{phase}} = 3$. (Contrast with the free particle, where $\omega\propto k^2$ gives a ratio of exactly 2 — the ratio depends entirely on the power of $k$ in the dispersion relation: for $\omega=\alpha k^n$, $v_{\text{group}}/v_{\text{phase}} = n$.)</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 4 — Superposition Across Topics: Infinite Well Tie-In</div>
+        <div class="question-text">A particle in the infinite square well (Topic 2) starts in the even mixture $\Psi(x,0)=A\left[\psi_1(x)+\psi_2(x)\right]$, where $\psi_1,\psi_2$ are the first two (real, orthonormal) stationary states. Using the discrete superposition formula $c_n=\int\psi_n(x)\Psi(x,0)\,dx$ from this page, find $c_1$ and $c_2$ (in terms of $A$), and state what values of energy a measurement could return and with what probabilities.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>Using orthonormality, $\int\psi_n\psi_m\,dx=\delta_{nm}$:</p>
+                <div class="math">$$c_1 = \int\psi_1(x)\,A[\psi_1(x)+\psi_2(x)]\,dx = A\left(\int\psi_1^2\,dx + \int\psi_1\psi_2\,dx\right) = A(1+0) = A$$</div>
+                <div class="math">$$c_2 = \int\psi_2(x)\,A[\psi_1(x)+\psi_2(x)]\,dx = A(0+1) = A$$</div>
+                <p>and $c_n=0$ for $n\geq 3$ (no overlap with the initial state). Normalization ($\sum|c_n|^2=1$) then forces $2A^2=1\Rightarrow A=1/\sqrt2$. A measurement of energy can return <strong>only</strong> $E_1$ or $E_2$ (each with probability $|c_1|^2=|c_2|^2=1/2$) — never any other $E_n$. This is exactly the discrete-case superposition machinery from this page, applied to the Topic-2 eigenbasis: the same formula you'd use for a free-particle $\phi(k)$, just with a sum instead of an integral.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="hw-feedback">
+        <div class="hw-feedback-title">📋 Common Pitfalls &amp; Self-Check (Homework #4)</div>
+        <p><em>No official solution set was exported for HW4 in the materials available for this guide — the notes below are general instructor-style guidance on where students typically lose points on this topic, not claimed grader feedback.</em></p>
+        <ul>
+            <li><strong>Dropping or duplicating the $1/\sqrt{2\pi}$ factor.</strong> The convention used throughout (and on the midterm review sheet) puts $1/\sqrt{2\pi}$ in <em>both</em> the forward and inverse transform. Mixing this convention with one that puts $1/2\pi$ on only one side is the single most common source of a factor-of-$\sqrt{2\pi}$ error on graded work.</li>
+            <li><strong>Confusing $k$ with $p$.</strong> Remember $p=\hbar k$ — an extremely common slip is to carry $k$ through a calculation and then quote a final "momentum" answer that's off by a factor of $\hbar$.</li>
+            <li><strong>Sign errors in the Fourier kernel.</strong> $\phi(k)$ uses $e^{-ikx}$ (forward transform); reconstructing $\Psi(x,0)$ from $\phi(k)$ uses $e^{+ikx}$. Flipping this sign silently gives you the complex conjugate of the correct answer, which often still "looks reasonable" — check your sign convention explicitly before trusting a result.</li>
+            <li><strong>Trying to normalize $\Psi_k$ directly.</strong> If your homework asks about normalization, you should never be integrating $|Ae^{ikx}|^2$ over all space and expecting a finite answer (Problem 1 above) — needing a normalizable state is exactly the cue that you should be building a wave packet (integral over $k$), not evaluating a single plane wave.</li>
+            <li><strong>Reporting phase velocity when group velocity was asked for (or vice versa).</strong> Always state which one you're computing and why — $v_{\text{phase}}=\omega/k$ evaluated pointwise vs. $v_{\text{group}}=d\omega/dk$ evaluated at the packet's central $k_0$ are different calculations with different physical meaning.</li>
+            <li><strong>Forgetting the Taylor-expansion assumption behind group velocity.</strong> $v_{\text{group}}=d\omega/dk$ is only meaningful when $\phi(k)$ is narrowly peaked about some $k_0$. A very broad $\phi(k)$ has no single well-defined "group" velocity — if a problem gives you a wildly spread-out momentum distribution, don't reach for the group-velocity formula without justifying the narrow-peak assumption.</li>
+        </ul>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">⬆️</button>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        const scrollTop = document.getElementById('scrollTop');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = window.scrollY;
+            const progress = (scrolled / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const choices = document.querySelectorAll('.choice');
+        choices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                const parent = choice.parentElement;
+                parent.querySelectorAll('.choice').forEach(c => {
+                    if (c.getAttribute('data-correct') === 'true') {
+                        c.classList.add('correct');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

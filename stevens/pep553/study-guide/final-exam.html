@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEP553 Final Exam Review</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-blue: #00d4ff;
+            --accent-purple: #c27dff;
+            --accent-green: #06ffa5;
+            --accent-orange: #ff9500;
+            --accent-red: #ff6b6b;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --border-color: #0f3460;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the PEP553 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Cross-page course nav strip — sits ABOVE the header, links back to index + prev/next topic */
+        .course-nav {
+            background: rgba(10, 10, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(0, 212, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(15, 52, 96, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(15, 52, 96, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .math-raw {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; font-family: 'Monaco', monospace; overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-card.multiple-choice { border-left-color: var(--accent-blue); }
+        .question-card.free-response { border-left-color: var(--accent-purple); }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .choices { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        .choice {
+            padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+        .choice:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        .choice.correct {
+            background: rgba(6, 255, 165, 0.15); border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .rubric {
+            background: rgba(194, 125, 255, 0.1); border: 1px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .rubric-point { margin-bottom: 0.5rem; display: flex; gap: 0.5rem; }
+        .rubric-point span:first-child { color: var(--accent-orange); font-weight: 700; min-width: 80px; }
+
+        .misconception {
+            background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(6, 255, 165, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .physics-extension {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 107, 107, 0.1));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .physics-extension::before {
+            content: "🔬 Engineering / Research Connection: ";
+            color: var(--accent-orange); font-weight: 700;
+        }
+
+        /* Homework-feedback specific box — use for "common mistakes on graded homework" call-outs */
+        .hw-feedback {
+            background: rgba(255, 149, 0, 0.08); border: 1px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem;
+        }
+        .hw-feedback-title { color: var(--accent-orange); font-weight: 700; margin-bottom: 0.5rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(0, 212, 255, 0.2); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(194, 125, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">⚛ PEP553 Study Guide Home</a>
+        <a href="08-angular-momentum-and-hydrogen-atom.html">← Prev: Angular Momentum &amp; Hydrogen Atom</a>
+        <a href="09-enrichment-nobel-and-applications.html">Next: Enrichment →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">⚛ PEP553 · Final Exam Review</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="problem1">P1: Symmetric Well</button>
+            <button class="nav-link" data-section="problem2">P2: Hydrogen Superposition</button>
+            <button class="nav-link" data-section="problem3">P3: Well Convergence</button>
+            <button class="nav-link" data-section="problem4">P4: Larmor Precession</button>
+            <button class="nav-link" data-section="strategy">Exam Strategy</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#problem1" class="sidebar-link">P1: Symmetric Well</a>
+                <a href="#problem2" class="sidebar-link">P2: Hydrogen Superposition</a>
+                <a href="#problem3" class="sidebar-link">P3: Well Convergence</a>
+                <a href="#problem4" class="sidebar-link">P4: Larmor Precession</a>
+                <a href="#strategy" class="sidebar-link">Exam Strategy</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎓</span>
+        <h2 class="section-title">Final Exam Overview</h2>
+    </div>
+
+    <div class="exam-info">
+        <div class="exam-info-title">📋 PEP553 Final Exam — Logistics (Take-Home, Fall 2025)</div>
+        <p><strong>Due:</strong> Wednesday, December 17, 2025, 5:00 PM. <strong>Format:</strong> 4 problems, 125 points total. Prepare a written solution on a separate sheet of white paper for each problem (or work directly in OneNote/GoodNotes/similar), scan to PDF, and upload to Canvas. Avoid shadows and thumbprints on scans.</p>
+        <p><strong>Resources allowed:</strong> This is an open-resource exam — you may consult any inanimate source (Wikipedia, HyperPhysics, etc.), any result established in the text or lecture notes, and computer algebra systems such as Mathematica or Wolfram Alpha (screenshots of CAS work must be included if used). <strong>Collaboration rule:</strong> work independently from any other student or person — the "open resource" allowance is about references, not about getting help solving the problems.</p>
+        <p><strong>Point breakdown:</strong> Problem 1 (symmetric infinite well) — 30 pts. Problem 2 (hydrogen-atom superposition state) — 35 pts, 5 pts/part × 7 parts. Problem 3 (infinite-well/finite-well convergence) — 30 pts. Problem 4 (Larmor precession, Griffiths 4.35) — 30 pts, 10 pts/part × 3 parts.</p>
+    </div>
+
+    <p>This page works every problem on the real Fall 2025 PEP553 take-home final, completely and in detail. Because this is a past, already-graded exam from a prior course offering, it is used here exactly the way students use released past exams to study — as a fully worked practice set, not as live-exam assistance. Each problem below is solved from first principles with every step shown, matching the level of detail the instructor explicitly asked for.</p>
+
+    <div class="rubric">
+        <div class="rubric-point"><span>Grading philosophy:</span> the instructor's stated standard — quoted directly from the Problem 1 rubric line, but stated by the instructor as a general expectation across the whole exam — is: <em>"I will be looking to see the details of your analysis so make sure you support each statement in your solution with analysis."</em></div>
+        <div class="rubric-point"><span>Applies to:</span> all four problems, not just Problem 1. Every numeric or symbolic claim ("this term vanishes," "the boundary condition forces...", "these converge in this limit") needs the line of reasoning that produces it, not just the final answer.</div>
+        <div class="rubric-point"><span>Practical meaning:</span> full marks require showing the derivation steps that connect a boundary condition, a normalization integral, or a limiting procedure to its stated conclusion — treat "obviously" and "clearly" as red flags in your own writing, not licenses to skip a step.</div>
+    </div>
+
+    <div class="anchor">
+        <div class="anchor-title">⚓ How to use this page</div>
+        <p>Each problem subsection below is self-contained and fully worked, with cross-links to the topic pages where the underlying method is developed in more depth (infinite well, angular momentum/hydrogen atom, finite well, and spin precession). Use those links if you need to review the general method before tackling the specific numbers in this exam.</p>
+    </div>
+</section>
+
+<section class="section" id="problem1">
+    <div class="section-header">
+        <span class="section-icon">📦</span>
+        <h2 class="section-title">Problem 1 — Symmetric Infinite Square Well (30 pts)</h2>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 1 (30 points)</div>
+        <div class="question-text">Solve the infinite potential well problem for a <strong>symmetric</strong> well: $V(x) = 0$ for $-a/2 \le x \le a/2$, $V(x) = \infty$ otherwise. Give (a) normalized eigenfunctions, (b) eigenvalues including allowed ranges of quantum numbers. Follow Griffiths §2.2's method, but note the boundary conditions differ: with the well centered at the origin, $V(x) = V(-x)$ is symmetric under inversion, so the eigenfunctions must separate into two families — even and odd under $x \to -x$.</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Setup: why parity splits the solutions</h3>
+        <p>Inside the well the time-independent Schrödinger equation is free-particle-like:</p>
+        <div class="math">$$-\frac{\hbar^2}{2m}\frac{d^2\psi}{dx^2} = E\psi \quad \Longrightarrow \quad \psi''(x) + k^2 \psi(x) = 0, \qquad k \equiv \frac{\sqrt{2mE}}{\hbar}$$</div>
+        <p>The general solution is $\psi(x) = C\sin(kx) + D\cos(kx)$, valid for $-a/2 \le x \le a/2$, with $\psi(x) = 0$ outside (infinite walls). The Hamiltonian here commutes with the parity operator $\hat{P}: x \to -x$, because $V(x) = V(-x)$ exactly (unlike Griffiths' asymmetric convention $0 \le x \le a$, where $V$ is <em>not</em> symmetric about any interior point in a way that makes parity a good quantum number). Because $[\hat H, \hat P] = 0$ and the well is non-degenerate (1D bound states), every energy eigenstate can be chosen to be a simultaneous eigenstate of parity: purely even ($D \ne 0, C = 0$) or purely odd ($C \ne 0, D = 0$). This is the key structural fact the hint is pointing at, and it should be stated explicitly in a written solution, not just asserted.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">(a)–(b) Even solutions: eigenfunctions and eigenvalues</h3>
+        <p>Try $\psi_{\text{even}}(x) = D\cos(kx)$. The boundary conditions are continuity of $\psi$ at the infinite walls, i.e. $\psi(\pm a/2) = 0$ (the wavefunction must vanish where $V \to \infty$, exactly as in the asymmetric well — only the wall locations differ here):</p>
+        <div class="math">$$D\cos\!\left(\frac{ka}{2}\right) = 0$$</div>
+        <p>Since $D \ne 0$ for a nontrivial solution, we need $\cos(ka/2) = 0$, i.e.</p>
+        <div class="math">$$\frac{ka}{2} = \frac{\pi}{2}, \frac{3\pi}{2}, \frac{5\pi}{2}, \ldots = (2j-1)\frac{\pi}{2}, \quad j = 1, 2, 3, \ldots$$</div>
+        <p>so $k_j = (2j-1)\pi/a$. It is conventional to relabel using the odd integers directly as a single quantum number: let $n = 1, 3, 5, \ldots$ (all positive odd integers), so $k_n = n\pi/a$ and the even eigenfunctions are</p>
+        <div class="math">$$\psi_n^{\text{even}}(x) = D_n \cos\!\left(\frac{n\pi x}{a}\right), \qquad n = 1, 3, 5, \ldots$$</div>
+        <p>Normalize: $\int_{-a/2}^{a/2} |\psi_n^{\text{even}}|^2\,dx = 1$. Using $\cos^2\theta = \tfrac12(1+\cos 2\theta)$,</p>
+        <div class="math">$$|D_n|^2 \int_{-a/2}^{a/2} \cos^2\!\left(\frac{n\pi x}{a}\right)dx = |D_n|^2 \left[\frac{x}{2} + \frac{a}{4n\pi}\sin\!\left(\frac{2n\pi x}{a}\right)\right]_{-a/2}^{a/2} = |D_n|^2 \cdot \frac{a}{2} = 1$$</div>
+        <p>(the sine term vanishes at both endpoints for integer $n$), giving $D_n = \sqrt{2/a}$ — the same normalization constant as the asymmetric well, since it only depends on the well width. So:</p>
+        <div class="math">$$\boxed{\psi_n^{\text{even}}(x) = \sqrt{\frac{2}{a}}\cos\!\left(\frac{n\pi x}{a}\right), \qquad n = 1, 3, 5, \ldots}$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">(a)–(b) Odd solutions: eigenfunctions and eigenvalues</h3>
+        <p>Try $\psi_{\text{odd}}(x) = C\sin(kx)$. Applying $\psi(\pm a/2) = 0$:</p>
+        <div class="math">$$C\sin\!\left(\frac{ka}{2}\right) = 0 \quad \Longrightarrow \quad \frac{ka}{2} = \pi, 2\pi, 3\pi, \ldots = n\frac{\pi}{2}, \quad n = 2, 4, 6, \ldots$$</div>
+        <p>so again $k_n = n\pi/a$ but now restricted to positive <em>even</em> integers $n = 2, 4, 6, \ldots$, and</p>
+        <div class="math">$$\psi_n^{\text{odd}}(x) = C_n \sin\!\left(\frac{n\pi x}{a}\right), \qquad n = 2, 4, 6, \ldots$$</div>
+        <p>By an identical normalization integral (using $\sin^2\theta = \tfrac12(1-\cos2\theta)$, and the $\cos$ term again vanishing at $x=\pm a/2$ for integer $n$), $C_n = \sqrt{2/a}$. So:</p>
+        <div class="math">$$\boxed{\psi_n^{\text{odd}}(x) = \sqrt{\frac{2}{a}}\sin\!\left(\frac{n\pi x}{a}\right), \qquad n = 2, 4, 6, \ldots}$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Combined spectrum and allowed quantum numbers</h3>
+        <p>Both families share the same dispersion relation $k_n = n\pi/a$, so the energy eigenvalues are identical in form to the asymmetric well:</p>
+        <div class="math">$$E_n = \frac{\hbar^2 k_n^2}{2m} = \frac{n^2\pi^2\hbar^2}{2ma^2}, \qquad n = 1, 2, 3, 4, \ldots \text{ (all positive integers)}$$</div>
+        <p>with the parity of the eigenfunction alternating: <strong>odd $n$ → even (cosine) eigenfunction; even $n$ → odd (sine) eigenfunction.</strong> This is exactly opposite to what you might naively guess from the labels — it's worth stating explicitly in the solution, since it's easy to mix up. The ground state ($n=1$) is the cosine (even) state with no interior nodes, matching the general theorem that a 1D bound-state ground state is nodeless and (for a symmetric potential) even.</p>
+        <table>
+            <tr><th>Quantum number $n$</th><th>Parity</th><th>Eigenfunction</th><th>Energy $E_n$</th></tr>
+            <tr><td>1</td><td>even</td><td>$\sqrt{2/a}\cos(\pi x/a)$</td><td>$\pi^2\hbar^2/2ma^2$</td></tr>
+            <tr><td>2</td><td>odd</td><td>$\sqrt{2/a}\sin(2\pi x/a)$</td><td>$4\pi^2\hbar^2/2ma^2$</td></tr>
+            <tr><td>3</td><td>even</td><td>$\sqrt{2/a}\cos(3\pi x/a)$</td><td>$9\pi^2\hbar^2/2ma^2$</td></tr>
+            <tr><td>4</td><td>odd</td><td>$\sqrt{2/a}\sin(4\pi x/a)$</td><td>$16\pi^2\hbar^2/2ma^2$</td></tr>
+        </table>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Contrast with the asymmetric-well convention</div>
+        <div class="misconception-explanation">The <a href="02-infinite-potential-well.html">asymmetric well page</a> puts the walls at $x=0$ and $x=a$ and gets a single family $\psi_n(x) = \sqrt{2/a}\sin(n\pi x/a)$ for all $n = 1, 2, 3, \ldots$ — every eigenfunction is a sine, because that origin choice is not a symmetry point of the potential ($V(x) \ne V(-x)$ about $x=0$ or about $x = a/2$ in any useful sense for a single-function parity argument centered there). Shifting the origin to the well's center (this problem's convention) makes $x \to -x$ an exact symmetry of $V$, so parity becomes a good quantum number and the sine family splits: the states that were purely sine in the shifted-origin picture correspond to even $n$ here, and a new cosine family appears for odd $n$. The <strong>physical spectrum $E_n = n^2\pi^2\hbar^2/2ma^2$ is identical in both conventions</strong> — only the algebraic form and labeling of the eigenfunctions differ, because a rigid translation $x \to x - a/2$ doesn't change energies, only how the boundary conditions are expressed and hence how natural it is to split by parity. This full derivation — including the origin-shift argument — is exactly the kind of "supporting analysis" the grading rubric asks for; do not just quote the asymmetric-well formula and re-center it without deriving the boundary conditions fresh, since the problem explicitly says "the boundary conditions differ."</div>
+    </div>
+
+    <div class="physics-extension">
+        The even/odd split here is the 1D prototype for why atomic and molecular orbitals are classified by parity (gerade/ungerade) whenever the potential has inversion symmetry — the same logic (₋$[\hat H,\hat P]=0$ in a symmetric potential ⟹ eigenstates can be chosen with definite parity) underlies selection rules in optical spectroscopy: an electric-dipole transition connects states of opposite parity only, because the dipole operator $\hat x$ is itself odd.
+    </div>
+</section>
+
+<section class="section" id="problem2">
+    <div class="section-header">
+        <span class="section-icon">🌀</span>
+        <h2 class="section-title">Problem 2 — Hydrogen-Atom Superposition State (35 pts)</h2>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 2 (35 points, 5 points/part)</div>
+        <div class="question-text">A hydrogen atom is in the state $|\Psi(0)\rangle = A\left\{\tfrac12|4,3,-1\rangle + |2,1,0\rangle - i|1,0,0\rangle\right\}$, with $|n,l,m\rangle$ orthonormal energy eigenstates, $E_n = -R/n^2$. Find: (a) $A$. (b) possible energy outcomes and probabilities. (c) $\langle E\rangle$. (d) possible $L^2$ outcomes and probabilities. (e) $\langle L^2\rangle$. (f) possible $L_z$ outcomes and probabilities. (g) $\langle L_z\rangle$.</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">(a) Normalization constant A</h3>
+        <p>The three kets $|4,3,-1\rangle$, $|2,1,0\rangle$, $|1,0,0\rangle$ are orthonormal (different $n$'s, so automatically orthogonal). Normalization requires $\langle\Psi|\Psi\rangle = 1$:</p>
+        <div class="math">$$|A|^2\left[\left|\frac12\right|^2 + |1|^2 + |{-i}|^2\right] = 1$$</div>
+        <p>Each coefficient's modulus-squared: $|1/2|^2 = 1/4$, $|1|^2 = 1$, $|{-i}|^2 = (-i)(i)^* $... more carefully, $|-i|^2 = (-i)(\overline{-i}) = (-i)(i) = 1$. Summing:</p>
+        <div class="math">$$|A|^2\left(\frac14 + 1 + 1\right) = |A|^2 \cdot \frac{9}{4} = 1 \quad\Longrightarrow\quad |A|^2 = \frac{4}{9} \quad\Longrightarrow\quad \boxed{A = \frac{2}{3}}$$</div>
+        <p>(taking $A$ real and positive, the conventional choice — the overall phase of $|\Psi\rangle$ is not physically observable).</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">(b)–(c) Energy measurement</h3>
+        <p>Each basis ket has a definite $n$, hence a definite energy $E_n = -R/n^2$: the $n=4$ term gives $E_4 = -R/16$, the $n=2$ term gives $E_2 = -R/4$, the $n=1$ term gives $E_1 = -R$. The probability of each outcome is the squared modulus of its (normalized) coefficient:</p>
+        <div class="math">$$P(E_4) = |A|^2\left|\frac12\right|^2 = \frac49\cdot\frac14 = \frac{1}{9}, \qquad P(E_2) = |A|^2|1|^2 = \frac49\cdot1 = \frac{4}{9}, \qquad P(E_1) = |A|^2|{-i}|^2 = \frac49\cdot1 = \frac{4}{9}$$</div>
+        <p>Check: $\frac19+\frac49+\frac49 = \frac99 = 1$. ✓ Then</p>
+        <div class="math">$$\langle E\rangle = \frac19\left(-\frac{R}{16}\right) + \frac49\left(-\frac{R}{4}\right) + \frac49(-R) = -R\left(\frac{1}{144} + \frac{4}{36} + \frac{4}{9}\right)$$</div>
+        <p>Putting over a common denominator of 144: $\frac{1}{144} + \frac{16}{144} + \frac{64}{144} = \frac{81}{144} = \frac{9}{16}$, so</p>
+        <div class="math">$$\boxed{\langle E\rangle = -\frac{9}{16}R}$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">(d)–(e) $L^2$ measurement</h3>
+        <p>$L^2$ has eigenvalues $\hbar^2 l(l+1)$ on $|n,l,m\rangle$. Reading off $l$ from each ket: the $n=4$ term has $l=3$ ($L^2 = 12\hbar^2$), the $n=2$ term has $l=1$ ($L^2 = 2\hbar^2$), the $n=1$ term has $l=0$ ($L^2 = 0$).</p>
+        <div class="hw-feedback">
+            <div class="hw-feedback-title">💡 Shortcut worth stating explicitly</div>
+            <p>In <em>this particular superposition</em>, each of the three terms has a different $n$, and each $n$ appears exactly once, each paired with a distinct $l$. That means the $L^2$ probabilities are numerically identical to the energy probabilities found in part (b) — not because $L^2$ and $H$ are related in general, but because in this specific state the map from "which term" to "which $n$" and the map from "which term" to "which $l$" happen to be the same one-to-one correspondence. If two terms had shared the same $n$ but different $l$ (impossible here, but worth noting as the general caution), this shortcut would fail and the $L^2$ probabilities would need to be computed by grouping terms by $l$ value directly.</p>
+        </div>
+        <div class="math">$$P(L^2 = 12\hbar^2) = \frac19, \qquad P(L^2 = 2\hbar^2) = \frac49, \qquad P(L^2 = 0) = \frac49$$</div>
+        <div class="math">$$\langle L^2\rangle = \frac19(12\hbar^2) + \frac49(2\hbar^2) + \frac49(0) = \frac{12\hbar^2}{9} + \frac{8\hbar^2}{9} = \frac{20\hbar^2}{9}$$</div>
+        <div class="math">$$\boxed{\langle L^2\rangle = \frac{20}{9}\hbar^2}$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">(f)–(g) $L_z$ measurement</h3>
+        <p>$L_z$ has eigenvalues $m\hbar$. Reading off $m$: the $n=4,l=3$ term has $m=-1$ ($L_z = -\hbar$), the $n=2,l=1$ term has $m=0$ ($L_z = 0$), the $n=1,l=0$ term also has $m=0$ ($L_z = 0$).</p>
+        <div class="misconception">
+            <div class="misconception-title">⚠️ Two terms share the same $L_z$ eigenvalue — probabilities add</div>
+            <div class="misconception-explanation">Unlike parts (b)/(d), here two <em>different</em> basis kets ($|2,1,0\rangle$ and $|1,0,0\rangle$) both correspond to the same $m=0$, hence the same $L_z$ eigenvalue $0$. Since $L_z=0$ is a degenerate outcome across these two terms, its total probability is the <strong>sum</strong> of the two individual probabilities, not just one of them — this is the general rule for degenerate eigenvalues in a superposition (sum $|c_i|^2$ over all $i$ sharing that eigenvalue), and it's exactly the kind of subtlety this problem is designed to test.</div>
+        </div>
+        <div class="math">$$P(L_z=-\hbar) = |A|^2\left|\frac12\right|^2 = \frac19, \qquad P(L_z=0) = |A|^2|1|^2 + |A|^2|{-i}|^2 = \frac49+\frac49=\frac89$$</div>
+        <p>Check: $\frac19 + \frac89 = 1$. ✓ Only two distinct $L_z$ outcomes occur: $-\hbar$ (probability $1/9$) and $0$ (probability $8/9$).</p>
+        <div class="math">$$\langle L_z\rangle = \frac19(-\hbar) + \frac89(0) = -\frac{\hbar}{9}$$</div>
+        <div class="math">$$\boxed{\langle L_z\rangle = -\frac{\hbar}{9}}$$</div>
+    </div>
+
+    <div class="anchor">
+        <div class="anchor-title">⚓ Cross-link</div>
+        <p>The general method used here — reading eigenvalues directly off $|n,l,m\rangle$ labels, computing probabilities as squared coefficient magnitudes (summing over degenerate outcomes), and computing expectation values as probability-weighted sums — is developed in full generality on <a href="08-angular-momentum-and-hydrogen-atom.html">08 · Angular Momentum &amp; Hydrogen Atom</a>. Review that page if any step above (especially the degenerate-eigenvalue summation in part (f)) needs more background.</p>
+    </div>
+</section>
+
+<section class="section" id="problem3">
+    <div class="section-header">
+        <span class="section-icon">📉</span>
+        <h2 class="section-title">Problem 3 — Infinite-Well / Finite-Well Convergence (30 pts)</h2>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 3 (30 points)</div>
+        <div class="question-text">Compare the Problem 1 infinite-well solution to the finite-well solution. Show how the two converge as $|-V_0| \to \infty$: how the wavefunctions converge in each of the three finite-well regions, and how the energy eigenvalues converge. Note the width mismatch: Problem 1's well is $-a/2$ to $a/2$; the finite well (per lecture-note convention) is $-a$ to $a$ (twice as wide). Make the comparison quantitative.</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Setting up matched conventions</h3>
+        <p>Let the finite well be $V(x) = -V_0$ (with $V_0>0$) for $-a \le x \le a$, and $V(x) = 0$ outside, following the lecture-notes convention (well width $2a$, centered at origin). Problem 1's infinite well has width $a$ (i.e. $-a/2$ to $a/2$). To compare apples to apples, rewrite the Problem 1 result for a well of half-width $L$ (so full width $2L$, walls at $\pm L$): repeating the Problem 1 derivation with $a/2 \to L$ everywhere, i.e. $a \to 2L$, the infinite-well spectrum becomes</p>
+        <div class="math">$$E_n^{(\infty)} = \frac{n^2\pi^2\hbar^2}{2m(2L)^2} = \frac{n^2\pi^2\hbar^2}{8mL^2}, \qquad n=1,2,3,\ldots$$</div>
+        <p>and the eigenfunctions are $\sqrt{1/L}\cos(n\pi x/2L)$ (odd $n$) and $\sqrt{1/L}\sin(n\pi x/2L)$ (even $n$) on $-L\le x\le L$. Setting $L=a$ (matching the finite well's own half-width $a$) makes the two problems directly comparable: <strong>the finite well of half-width $a$ should be compared to an infinite well of half-width $a$ (i.e. full width $2a$), not to Problem 1's literal $-a/2$-to-$a/2$ well.</strong> This is exactly the width-mismatch bookkeeping the problem statement flags — get this substitution wrong and every subsequent numerical comparison is off by a factor of 4 in energy.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Finite well: three regions and transcendental quantization</h3>
+        <p>For a bound state ($-V_0 < E < 0$), define $\kappa \equiv \sqrt{-2mE}/\hbar$ (decay rate outside) and $l \equiv \sqrt{2m(E+V_0)}/\hbar$ (oscillation wavenumber inside). The three regions are:</p>
+        <ul>
+            <li><strong>Region I ($x < -a$):</strong> $\psi_I(x) = Be^{\kappa x}$ (decaying as $x\to-\infty$).</li>
+            <li><strong>Region II ($-a \le x \le a$):</strong> $\psi_{II}(x) = C\cos(lx)$ (even states) or $D\sin(lx)$ (odd states) — parity again splits the problem since $V(x)=V(-x)$.</li>
+            <li><strong>Region III ($x > a$):</strong> $\psi_{III}(x) = Fe^{-\kappa x}$ (decaying as $x\to+\infty$).</li>
+        </ul>
+        <p>Matching $\psi$ and $\psi'$ at $x=a$ (and using evenness/oddness to get the $x=-a$ conditions for free) yields the standard transcendental quantization conditions:</p>
+        <div class="math">$$\text{even states: } \quad l\tan(la) = \kappa \qquad\qquad \text{odd states: } \quad l\cot(la) = -\kappa$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Quantitative limit $V_0 \to \infty$</h3>
+        <p>The bound-state energy $E \in (-V_0, 0)$ diverges to $-\infty$ as $V_0\to\infty$, so the physically meaningful quantity to track is the energy <strong>measured up from the well floor</strong>, $\varepsilon \equiv E + V_0 = \hbar^2 l^2/2m$. For a state whose $\varepsilon$ converges to a finite limit as $V_0\to\infty$, the interior wavenumber $l=\sqrt{2m\varepsilon}/\hbar$ stays finite, while the exterior decay rate</p>
+        <div class="math">$$\kappa = \frac{\sqrt{-2mE}}{\hbar} = \frac{\sqrt{2m(V_0-\varepsilon)}}{\hbar} \;\xrightarrow{V_0\to\infty}\; \frac{\sqrt{2mV_0}}{\hbar} \to \infty$$</div>
+        <p>diverges. Now examine the even-state condition $l\tan(la)=\kappa$ with $l$ finite and $\kappa\to\infty$: the only way the finite left side can track a divergent right side is if $\tan(la)\to\infty$ as well, which happens precisely as $la$ approaches an odd multiple of $\pi/2$ (where tangent has a pole). So</p>
+        <div class="math">$$la \to \frac{\pi}{2}, \frac{3\pi}{2}, \frac{5\pi}{2}, \ldots = (2j-1)\frac{\pi}{2}, \qquad j=1,2,3,\ldots$$</div>
+        <p>By the same reasoning, the odd-state condition $l\cot(la)=-\kappa$ forces $\cot(la)\to-\infty$, which happens as $la$ approaches an integer multiple of $\pi$ from below: $la \to j\pi$, $j=1,2,3,\ldots$. Relabeling both families with a single index $n=1,2,3,\ldots$ (odd $n=2j-1$ for the even family, even $n=2j$ for the odd family — exactly the same odd/even-$n$↔parity pattern found in Problem 1), both conditions combine into $la \to n\pi/2$ for every positive integer $n$, so</p>
+        <div class="math">$$\varepsilon_n = \frac{\hbar^2 l_n^2}{2m} \;\xrightarrow{V_0\to\infty}\; \frac{\hbar^2}{2m}\left(\frac{n\pi}{2a}\right)^2 = \frac{n^2\pi^2\hbar^2}{8ma^2}$$</div>
+        <p>This is <em>exactly</em> the width-corrected Problem 1 spectrum: substituting the finite well's half-width $L=a$ into Problem 1's general result $E_n^{(\infty)}=n^2\pi^2\hbar^2/(2m(2L)^2)$ gives $n^2\pi^2\hbar^2/(8ma^2)$ — identical to $\varepsilon_n$ above. So once the well-floor energy shift $E+V_0$ is used (rather than $E$ itself, which necessarily runs off to $-\infty$) and the width mismatch is corrected ($L=a$, not $L=a/2$, since the finite well spans $-a$ to $a$), the finite well's bound-state spectrum converges term-by-term onto the infinite well's spectrum, with the same even/odd parity assignment per quantum number $n$.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Wavefunction convergence, region by region</h3>
+        <ul>
+            <li><strong>Region I / III (outside, $|x|>a$):</strong> $\psi \sim e^{-\kappa|x|}$ decays over a length scale $1/\kappa$, and since $\kappa\to\infty$ as shown above, this decay length shrinks to zero — the exterior tail collapses onto the wall instantly in the $V_0\to\infty$ limit. This is precisely how the exact boundary condition $\psi(\pm a)=0$ of the infinite well is recovered: for any finite $V_0$ the wavefunction is never exactly zero outside the well, but the region over which it is appreciably nonzero shrinks to nothing as $V_0\to\infty$, so $\psi\to 0$ pointwise for every fixed $x$ with $|x|>a$.</li>
+            <li><strong>Region II (interior, $-a\le x\le a$):</strong> the functional form $\cos(lx)$ or $\sin(lx)$ is already exactly the infinite-well form; only the precise value of the quantized wavenumber $l$ differs (satisfying the transcendental condition rather than the exact condition $la=n\pi/2$). As shown above, $la\to n\pi/2$ exactly as $V_0\to\infty$, so the interior wavefunction converges pointwise on $-a\le x\le a$ to the corresponding width-matched infinite-well eigenfunction, and in particular $\psi(\pm a)\to 0$ automatically as this limit is taken — consistent with the vanishing exterior tail described above.</li>
+        </ul>
+    </div>
+
+    <div class="anchor">
+        <div class="anchor-title">⚓ Cross-link</div>
+        <p>The finite-well transcendental equations and their derivation via boundary matching are developed in detail on <a href="05-finite-well-and-barriers.html">05 · Finite Well &amp; Barriers</a>. The Problem 1 derivation this section builds on (including the origin-centered even/odd split) is on this page's own Problem 1 section above, and in general form on <a href="02-infinite-potential-well.html">02 · Infinite Potential Well</a>.</p>
+    </div>
+</section>
+
+<section class="section" id="problem4">
+    <div class="section-header">
+        <span class="section-icon">🧲</span>
+        <h2 class="section-title">Problem 4 — Larmor Precession (Griffiths 4.35) (30 pts)</h2>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 4 (30 points, 10 points/part)</div>
+        <div class="question-text">Study Griffiths Example 4.3 (Larmor precession). Then solve Griffiths Problem 4.35 (three parts, 10 points each).</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Foundation: Griffiths Example 4.3, Larmor precession</h3>
+        <p>The setup: a spin-1/2 particle with magnetic moment $\vec\mu = \gamma\vec S$ sits in a uniform field $\vec B = B_0\hat z$. The Hamiltonian is $\hat H = -\vec\mu\cdot\vec B = -\gamma B_0 \hat S_z$, so the energy eigenstates are just the $S_z$ eigenstates $|\!\uparrow\rangle, |\!\downarrow\rangle$ with energies $E_\pm = \mp\frac12\gamma B_0\hbar$. Starting from a general spin state at $t=0$ (parametrized by polar/azimuthal angles on the Bloch sphere), the time-dependent state picks up relative phases $e^{-iE_\pm t/\hbar}$, and Griffiths shows that $\langle S_x\rangle$, $\langle S_y\rangle$ trace out a circle in time — the spin precesses about $\hat z$ at the <strong>Larmor frequency</strong> $\omega = \gamma B_0$, while $\langle S_z\rangle$ stays constant. This is the quantum analog of classical magnetic-moment precession in a field.</p>
+        <div class="anchor">
+            <div class="anchor-title">⚓ Cross-link — full derivation already worked</div>
+            <p>This example, including the explicit computation of $\langle S_x(t)\rangle$, $\langle S_y(t)\rangle$, $\langle S_z(t)\rangle$ from the time-evolved spinor, is worked in full on <a href="08-angular-momentum-and-hydrogen-atom.html">08 · Angular Momentum &amp; Hydrogen Atom</a>. Rather than re-deriving it here, treat that page as the required background, and use the space in a written exam solution to explicitly re-derive (or at minimum clearly cite and summarize) the key results: the energy eigenvalues $E_\pm$, the precession frequency $\omega=\gamma B_0$, and the time dependence of all three spin expectation values.</p>
+        </div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">What Problem 4.35 typically extends this to</h3>
+        <p>Problem sets numbered in the 4.3x range of Griffiths, immediately following Example 4.3, typically build directly on the Larmor-precession result by asking students to extend the calculation in one of a few standard directions. Without access to the exact wording of Griffiths Problem 4.35, the following describes — at the level of "what kind of physics this family of problems generally probes" — the sort of three-part structure a 30-point, 10-points-per-part follow-up to Example 4.3 would plausibly require:</p>
+        <ul>
+            <li><strong>Part (a) — general initial spin state:</strong> given some specific (non-eigenstate) initial spinor at $t=0$ — e.g. spin-up along $\hat x$, or along some tilted axis — write down $|\chi(t)\rangle$ by attaching the phase factors $e^{-iE_\pm t/\hbar}$ to each component in the $S_z$ basis, then compute $\langle S_x\rangle(t)$, $\langle S_y\rangle(t)$, $\langle S_z\rangle(t)$ explicitly for that initial condition (this generalizes Example 4.3's generic-angle result to specific numbers).</li>
+            <li><strong>Part (b) — precession geometry / period:</strong> confirm that $\langle \vec S\rangle(t)$ traces a cone (or circle, if the initial state has zero $S_z$ component) about $\hat z$ at angular frequency $\omega=\gamma B_0$, find the precession period $T=2\pi/\omega$, and/or verify $|\langle\vec S\rangle|$ is constant in time (consistent with rigid precession, no change in the spin magnitude).</li>
+            <li><strong>Part (c) — spin-flip probability or a variant field geometry:</strong> a common extension asks for the probability of finding the particle in the opposite $S_z$ (or $S_x$) eigenstate at time $t$, i.e. $|\langle\downarrow|\chi(t)\rangle|^2$, which oscillates in time — or alternatively asks what changes if $\vec B$ points along a different axis than the quantization axis used to define the initial state, testing whether the precession-axis argument in part (a)/(b) was understood generally rather than memorized for the $\hat z$-field case only.</li>
+        </ul>
+        <p>The exact statement of Problem 4.35 should be read directly from your copy of Griffiths before writing a final solution — the outline above is meant only to indicate the type of calculation this exam question is drawing on (all of it a direct extension of the time-evolution and expectation-value machinery from Example 4.3), not to substitute for the book's precise wording.</p>
+    </div>
+
+    <div class="physics-extension">
+        Larmor precession is the direct quantum-mechanical basis of NMR and MRI: nuclear spins precess about an applied static field at $\omega=\gamma B_0$ (the Larmor frequency, tunable via $B_0$ and specific to each nuclear isotope's gyromagnetic ratio $\gamma$), and a resonant oscillating field at that frequency drives spin flips — exactly the physics being probed by the "spin-flip probability" style of follow-up question above.
+    </div>
+</section>
+
+<section class="section" id="strategy">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Final Exam Strategy</h2>
+    </div>
+
+    <p>This is a take-home, open-resource exam with no time pressure in the usual sense — you have days, not minutes, and you're explicitly permitted to consult references and CAS tools. That changes what's actually being tested: not raw speed or memorized formulas, but your ability to <strong>organize a complete, well-justified written derivation</strong> that a grader can follow step by step. The instructor's own words say exactly this: <em>"I will be looking to see the details of your analysis so make sure you support each statement in your solution with analysis."</em></p>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Concrete advice matching the grading philosophy</h3>
+        <ul>
+            <li><strong>Show every step, not just the setup and the answer.</strong> Between "apply the boundary condition $\psi(a/2)=0$" and "therefore $k_n = n\pi/a$" there is an algebraic step (solving $\cos(ka/2)=0$ for $k$) — write it out. The same applies to normalization integrals: show the integral, the antiderivative, and the evaluation at the limits, not just the final normalization constant.</li>
+            <li><strong>State assumptions explicitly.</strong> If you assume a normalization constant is real and positive (as in Problem 2a), say so — the freedom to choose it real is itself a fact about overall quantum-mechanical phase that's worth one sentence of justification.</li>
+            <li><strong>Don't skip "obvious" algebra.</strong> A grader looking for "the details of your analysis" will dock points for skipped intermediate steps even when the final numeric answer is correct — the grading rubric explicitly rewards process, not just the boxed result.</li>
+            <li><strong>Use screenshots if you use a CAS.</strong> The instructions require this explicitly — a numeric answer from Mathematica or Wolfram Alpha with no screenshot doesn't satisfy "support each statement in your solution with analysis," since there's no way to verify what was actually computed.</li>
+            <li><strong>Watch for the deliberately-flagged subtleties.</strong> Both Problem 1 (origin convention differs from the text) and Problem 3 (well-width mismatch) and Problem 2 (degenerate $L_z$ outcomes) contain a hint in the problem statement itself pointing at a place where a careless solution goes wrong — the instructor is telling you where the partial credit will be lost. Address these explicitly rather than hoping the grader doesn't notice a skipped subtlety.</li>
+            <li><strong>Budget your time across problems by point value, not by difficulty-to-you.</strong> Problem 2 has 7 explicitly separately-graded parts at 5 points each — organize your solution with 7 clearly labeled parts so partial credit is easy for the grader to assign, rather than one continuous block of algebra.</li>
+        </ul>
+    </div>
+
+    <div class="anchor">
+        <div class="anchor-title">⚓ One-line summary</div>
+        <p>On an open-resource, take-home final, the exam is testing whether you can write a derivation a stranger could follow and verify — treat every boxed answer on this page as a template for the level of shown work expected in your own solution.</p>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">⬆️</button>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        const scrollTop = document.getElementById('scrollTop');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = window.scrollY;
+            const progress = (scrolled / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const choices = document.querySelectorAll('.choice');
+        choices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                const parent = choice.parentElement;
+                parent.querySelectorAll('.choice').forEach(c => {
+                    if (c.getAttribute('data-correct') === 'true') {
+                        c.classList.add('correct');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

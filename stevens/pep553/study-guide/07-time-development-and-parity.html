@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEP553 Topic 7: Time Development, Conservation Theorems &amp; Parity</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-blue: #00d4ff;
+            --accent-purple: #c27dff;
+            --accent-green: #06ffa5;
+            --accent-orange: #ff9500;
+            --accent-red: #ff6b6b;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --border-color: #0f3460;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the PEP553 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Cross-page course nav strip — sits ABOVE the header, links back to index + prev/next topic */
+        .course-nav {
+            background: rgba(10, 10, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(0, 212, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(15, 52, 96, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(15, 52, 96, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .math-raw {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; font-family: 'Monaco', monospace; overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-card.multiple-choice { border-left-color: var(--accent-blue); }
+        .question-card.free-response { border-left-color: var(--accent-purple); }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .choices { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        .choice {
+            padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+        .choice:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        .choice.correct {
+            background: rgba(6, 255, 165, 0.15); border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .rubric {
+            background: rgba(194, 125, 255, 0.1); border: 1px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .rubric-point { margin-bottom: 0.5rem; display: flex; gap: 0.5rem; }
+        .rubric-point span:first-child { color: var(--accent-orange); font-weight: 700; min-width: 80px; }
+
+        .misconception {
+            background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(6, 255, 165, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .physics-extension {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 107, 107, 0.1));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .physics-extension::before {
+            content: "🔬 Engineering / Research Connection: ";
+            color: var(--accent-orange); font-weight: 700;
+        }
+
+        /* Homework-feedback specific box — use for "common mistakes on graded homework" call-outs */
+        .hw-feedback {
+            background: rgba(255, 149, 0, 0.08); border: 1px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem;
+        }
+        .hw-feedback-title { color: var(--accent-orange); font-weight: 700; margin-bottom: 0.5rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(0, 212, 255, 0.2); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(194, 125, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">⚛ PEP553 Study Guide Home</a>
+        <a href="06-formal-theory-and-matrix-methods.html">← Prev: Formal Theory &amp; Matrix Methods</a>
+        <a href="08-angular-momentum-and-hydrogen-atom.html">Next: Angular Momentum &amp; Hydrogen Atom →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">⚛ PEP553 · Topic 7: Time Development, Conservation Theorems &amp; Parity</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="ehrenfest">Ehrenfest's Theorem</button>
+            <button class="nav-link" data-section="parity">Parity Operator</button>
+            <button class="nav-link" data-section="noether">Noether's Theorem</button>
+            <button class="nav-link" data-section="heisenberg">Heisenberg Picture</button>
+            <button class="nav-link" data-section="practice">Practice Problems</button>
+            <button class="nav-link" data-section="reading">Assigned Reading</button>
+            <button class="nav-link" data-section="hw-feedback">Common Pitfalls</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#ehrenfest" class="sidebar-link">Ehrenfest's Theorem</a>
+                <a href="#parity" class="sidebar-link">Parity Operator</a>
+                <a href="#noether" class="sidebar-link">Noether's Theorem</a>
+                <a href="#heisenberg" class="sidebar-link">Heisenberg Picture</a>
+                <a href="#practice" class="sidebar-link">Practice Problems</a>
+                <a href="#reading" class="sidebar-link">Assigned Reading</a>
+                <a href="#hw-feedback" class="sidebar-link">Common Pitfalls</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview: Why This Topic Gets Its Own Chapter</h2>
+    </div>
+    <p>
+        The syllabus folds this material into "the formal theory of quantum mechanics and matrix methods," but Canvas
+        gives it a dedicated module: <strong>Time Development, Conservation Theorems and Parity</strong>. It maps to
+        <strong>Homework #6</strong> and to lectures 11-1 through 12-2 (second half). In Griffiths &amp; Schroeter, 3rd
+        edition, this is all of <strong>Chapter 6, "Symmetries &amp; Conservation Laws."</strong>
+    </p>
+    <div class="anchor">
+        <div class="anchor-title">⚓ Heads up: this chapter is new</div>
+        <p style="margin-bottom:0;">
+            Chapter 6 was <strong>added in the 3rd edition</strong> specifically to give quantum conservation laws a
+            rigorous symmetry-based treatment. If you go looking online for old worked solutions, solution manuals,
+            Chegg/Course&nbsp;Hero posts, or study guides keyed to the 2nd edition (or earlier), <strong>this
+            material simply will not be there</strong> — the 2nd edition jumps straight from identical particles to
+            solids. Cross-check problem numbers against your own 3rd-edition copy, and treat this study guide and
+            lecture as your primary sources for this topic.
+        </p>
+    </div>
+    <p>
+        The big idea threading through the whole chapter: in classical mechanics you learned that momentum, energy,
+        and angular momentum are conserved because of symmetries of the system (translational, temporal, and
+        rotational symmetry, respectively) — that's Noether's theorem. The same statement holds in quantum
+        mechanics, but "symmetry" and "conserved" both need to be defined operator-theoretically. This page builds
+        that machinery in four stages:
+    </p>
+    <ul>
+        <li><strong>Ehrenfest's theorem</strong> — the general engine that tells you when any expectation value is
+            time-independent, and reduces to Newton's second law for $\langle x\rangle$ and $\langle p\rangle$.</li>
+        <li><strong>The parity operator</strong> — a concrete, discrete symmetry (spatial inversion) that you've
+            already met informally in the symmetric infinite well, now made rigorous with eigenvalues and selection
+            rules.</li>
+        <li><strong>Noether's theorem</strong> — the general pattern (symmetry generator commutes with $H$ ⇒
+            quantity is conserved) applied to translations (momentum) and time-translations (energy).</li>
+        <li><strong>The Heisenberg picture</strong> — a brief look at the "other" way to encode time development,
+            where operators evolve and states sit still, just to contrast with the Schrödinger-picture approach used
+            everywhere else in this course.</li>
+    </ul>
+</section>
+
+<section class="section" id="ehrenfest">
+    <div class="section-header">
+        <span class="section-icon">⚖️</span>
+        <h2 class="section-title">Ehrenfest's Theorem: Quantum Newton's Second Law</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">The general formula</h3>
+        <p>
+            From the course's fundamental-equations reference sheet, the time dependence of any expectation value is
+            governed by:
+        </p>
+        <div class="math">$$\frac{d\langle Q\rangle}{dt}=\frac{i}{\hbar}\langle[H,Q]\rangle+\left\langle\frac{\partial Q}{\partial t}\right\rangle$$</div>
+        <p>
+            Let's derive this from scratch, starting only from the time-dependent Schrödinger equation
+            $i\hbar\,\partial\Psi/\partial t = H\Psi$, because the derivation is short and it is exactly the pattern
+            you'll reuse for parity conservation and for Noether's theorem below.
+        </p>
+        <p>By definition, $\langle Q\rangle(t) = \langle\Psi(t)|\hat Q|\Psi(t)\rangle$. Differentiate using the product rule:</p>
+        <div class="math">$$\frac{d\langle Q\rangle}{dt} = \left\langle\frac{\partial\Psi}{\partial t}\Big|\hat Q\Big|\Psi\right\rangle + \left\langle\Psi\Big|\frac{\partial\hat Q}{\partial t}\Big|\Psi\right\rangle + \left\langle\Psi\Big|\hat Q\Big|\frac{\partial\Psi}{\partial t}\right\rangle$$</div>
+        <p>
+            The middle term is just $\langle\partial Q/\partial t\rangle$ — it's the piece we want to keep. For the
+            other two, use the Schrödinger equation, $\partial\Psi/\partial t = \frac{1}{i\hbar}H\Psi$, and its
+            conjugate, $\langle\partial\Psi/\partial t| = -\frac{1}{i\hbar}\langle\Psi|H$ (valid because $H$ is
+            Hermitian, so $\langle H\Psi| = \langle\Psi|H$):
+        </p>
+        <div class="math">$$\left\langle\frac{\partial\Psi}{\partial t}\Big|\hat Q\Big|\Psi\right\rangle = -\frac{1}{i\hbar}\langle\Psi|H\hat Q|\Psi\rangle,\qquad \left\langle\Psi\Big|\hat Q\Big|\frac{\partial\Psi}{\partial t}\right\rangle = \frac{1}{i\hbar}\langle\Psi|\hat Q H|\Psi\rangle$$</div>
+        <p>Adding these two:</p>
+        <div class="math">$$\frac{1}{i\hbar}\langle\Psi|\hat QH - H\hat Q|\Psi\rangle = \frac{1}{i\hbar}\langle[\hat Q,H]\rangle = \frac{i}{\hbar}\langle[H,\hat Q]\rangle$$</div>
+        <p>
+            (using $1/(i\hbar) = -i/\hbar$ and $[\hat Q,H] = -[H,\hat Q]$). Putting the three pieces back together
+            reproduces the boxed formula above. This derivation is completely general — it works for <em>any</em>
+            operator $\hat Q$, which is exactly why it's the single engine driving everything else in this chapter:
+            plug in $\hat Q = \hat x$, $\hat p$, $\hat\Pi$ (parity), or the generator of any other symmetry, and you
+            get a conservation statement for free whenever that operator commutes with $H$.
+        </p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Specializing to $\hat x$: recovering $d\langle x\rangle/dt = \langle p\rangle/m$</h3>
+        <p>Take $\hat Q = \hat x$, which has no explicit time dependence, so $\langle\partial x/\partial t\rangle = 0$. We need $[H,\hat x]$ for $H = \hat p^2/2m + V(\hat x)$. Since $V(\hat x)$ commutes with $\hat x$, only the kinetic term contributes:</p>
+        <div class="math">$$[H,\hat x] = \frac{1}{2m}[\hat p^2,\hat x]$$</div>
+        <p>Use the canonical commutator $[\hat x,\hat p]=i\hbar$ and the identity $[\hat p^2,\hat x] = \hat p[\hat p,\hat x]+[\hat p,\hat x]\hat p = -2i\hbar\hat p$ (since $[\hat p,\hat x]=-i\hbar$):</p>
+        <div class="math">$$[H,\hat x] = \frac{1}{2m}(-2i\hbar\hat p) = -\frac{i\hbar}{m}\hat p$$</div>
+        <p>Plugging into the general Ehrenfest formula:</p>
+        <div class="math">$$\frac{d\langle x\rangle}{dt} = \frac{i}{\hbar}\left\langle-\frac{i\hbar}{m}\hat p\right\rangle = \frac{\langle p\rangle}{m}$$</div>
+        <p>This is exactly the classical relation $p = m\,dx/dt$, now holding for <em>expectation values</em> rather than definite trajectories.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Specializing to $\hat p$: recovering $d\langle p\rangle/dt = -\langle\partial V/\partial x\rangle$</h3>
+        <p>Now take $\hat Q = \hat p$. Here the kinetic term commutes trivially with $\hat p$ (it's built from $\hat p$ alone), so only $V(\hat x)$ contributes: $[H,\hat p] = [V(\hat x),\hat p]$. Using the standard operator identity $[\hat p, f(\hat x)] = -i\hbar\, f'(\hat x)$ (which follows directly from $[\hat x,\hat p]=i\hbar$ applied term-by-term to a Taylor series for $f$), we get $[V,\hat p] = -[\hat p,V] = i\hbar\,V'(\hat x)$. Then:</p>
+        <div class="math">$$\frac{d\langle p\rangle}{dt} = \frac{i}{\hbar}\langle[H,\hat p]\rangle = \frac{i}{\hbar}\big(i\hbar\langle V'(\hat x)\rangle\big) = -\left\langle\frac{\partial V}{\partial x}\right\rangle$$</div>
+        <p>
+            This is <strong>quantum Newton's second law</strong>: the rate of change of average momentum equals the
+            average force. Combined with the result above, $d\langle x\rangle/dt=\langle p\rangle/m$, the pair of
+            equations reproduces Newton's second law for expectation values — Ehrenfest's theorem is the precise
+            statement of Bohr's correspondence principle for a moving wave packet.
+        </p>
+    </div>
+
+    <div class="physics-extension">
+        The commutator-algebra techniques used here — turning $[\hat p^2,\hat x]$ or $[V(\hat x),\hat p]$ into
+        something computable by repeatedly applying $[\hat x,\hat p]=i\hbar$ — are exactly the ones used for the
+        raising/lowering (ladder) operators in Topic&nbsp;3 and the matrix-mechanics formalism of Topic&nbsp;6; see
+        <code>PositionMomentumAnnhilationCommutators.pdf</code> in the course files for a worked reference sheet of
+        these identities if the algebra above feels unfamiliar. In semiconductor device physics, this same
+        theorem underlies <strong>semiclassical transport theory</strong>: the "effective mass" equations of motion
+        used to model electrons and holes drifting through a transistor channel under an electric field are a direct
+        engineering application of $d\langle p\rangle/dt = -\langle\partial V/\partial x\rangle$, with $V$ replaced
+        by the band-structure potential energy.
+    </div>
+</section>
+
+<section class="section" id="parity">
+    <div class="section-header">
+        <span class="section-icon">🪞</span>
+        <h2 class="section-title">The Parity Operator</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Definition and eigenvalues</h3>
+        <p>The <strong>parity operator</strong> $\hat\Pi$ implements a spatial inversion. In one dimension:</p>
+        <div class="math">$$\hat\Pi\,\psi(x) = \psi(-x)$$</div>
+        <p>and in three dimensions, $\hat\Pi\,\psi(\mathbf{r}) = \psi(-\mathbf{r})$. Two structural facts follow immediately from the definition:</p>
+        <ul>
+            <li><strong>$\hat\Pi$ is its own inverse</strong>: applying the inversion twice returns the original function, $\hat\Pi^2 = 1$.</li>
+            <li><strong>$\hat\Pi$ is Hermitian</strong> (a short integration-by-substitution argument, left as Griffiths Problem&nbsp;6.8), and combined with $\hat\Pi^2=1$ this makes $\hat\Pi$ unitary as well: $\hat\Pi^{-1}=\hat\Pi=\hat\Pi^\dagger$.</li>
+        </ul>
+        <p><strong>Deriving the eigenvalues.</strong> Suppose $\hat\Pi\,\psi = \lambda\,\psi$ for some eigenfunction $\psi$. Apply $\hat\Pi$ again:</p>
+        <div class="math">$$\hat\Pi^2\psi = \hat\Pi(\lambda\psi) = \lambda(\hat\Pi\psi) = \lambda^2\psi$$</div>
+        <p>But $\hat\Pi^2 = 1$, so $\hat\Pi^2\psi = \psi$. Comparing, $\lambda^2\psi = \psi$, and since $\psi\neq 0$ this forces $\lambda^2=1$, i.e.</p>
+        <div class="math">$$\lambda = \pm 1$$</div>
+        <p><strong>Deriving even/odd eigenfunctions.</strong> Writing out the eigenvalue equation explicitly, $\psi(-x) = \lambda\psi(x)$. For $\lambda=+1$ this reads $\psi(-x)=\psi(x)$ — an <strong>even</strong> function. For $\lambda=-1$ it reads $\psi(-x)=-\psi(x)$ — an <strong>odd</strong> function. So the eigenvalue $\pm1$ of $\hat\Pi$ literally <em>is</em> the even/odd character of the wave function; there is no additional assumption needed.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Parity conservation</h3>
+        <p>A system has <strong>inversion symmetry</strong> if the Hamiltonian is unchanged by a parity transformation, $\hat\Pi^\dagger\hat H\hat\Pi=\hat H$, which (using unitarity of $\hat\Pi$) is equivalent to</p>
+        <div class="math">$$[\hat H,\hat\Pi]=0$$</div>
+        <p>For a particle of mass $m$ in a 1-D potential, this condition reduces to $V(x)=V(-x)$: the potential must be an even function of position. Two consequences follow immediately:</p>
+        <ol>
+            <li>Because $\hat H$ and $\hat\Pi$ commute, they share a complete set of simultaneous eigenstates — every bound-state stationary state of a symmetric 1-D potential can be chosen purely even or purely odd (or, in the degenerate case, some linear combination arranged to be one or the other).</li>
+            <li>By Ehrenfest's theorem with $\hat Q=\hat\Pi$ (which has no explicit time dependence), $d\langle\Pi\rangle/dt = \frac{i}{\hbar}\langle[H,\Pi]\rangle = 0$. <strong>Parity is conserved.</strong> And it's conserved in the strong sense discussed in Section&nbsp;6.3 of the text: because $\hat H$ and $\hat\Pi$ commute, not just the expectation value $\langle\Pi\rangle$ but the full probability of measuring $\Pi=+1$ versus $\Pi=-1$ is frozen in time. If your wave function starts out purely even, it stays purely even forever, for any symmetric potential.</li>
+        </ol>
+    </div>
+
+    <div class="anchor">
+        <div class="anchor-title">⚓ Anchor back to Topic 2: the symmetric infinite well</div>
+        <p style="margin-bottom:0;">
+            This is precisely the phenomenon flagged in the misconception box of
+            <a href="02-infinite-potential-well.html">Topic 2 — The Infinite Potential Well</a> concerning the
+            <strong>symmetric</strong> infinite well (walls at $x=\pm a/2$ rather than at $0$ and $L$): the
+            eigenfunctions there alternate between even and odd as $n$ increases, and students often treat this as
+            an accident of the specific well shape. It isn't an accident — it's parity conservation in its simplest
+            possible setting. The symmetric well's potential satisfies $V(-x)=V(x)$ exactly, so $[\hat H,\hat\Pi]=0$,
+            so every one of its non-degenerate 1-D bound states is forced to be a parity eigenstate — purely even or
+            purely odd — by the general argument above. The "shifted" infinite well (walls at $0$ and $L$) that you
+            first meet in Topic 2 does <em>not</em> have this symmetry about the origin, which is exactly why its
+            eigenfunctions ($\sin(n\pi x/L)$) don't sort into even/odd pairs the way the centered well's do.
+        </p>
+    </div>
+
+    <details>
+        <summary>🔧 Worked Example: a discrete two-level "toy parity" (adapted from the professor's Example 3.8 notes)</summary>
+        <div>
+            <p>
+                It's worth seeing the even/odd mechanism in the simplest possible setting: a two-dimensional Hilbert
+                space, using the same two-level system worked out in Topic&nbsp;6 (Griffiths Example 3.8 in the
+                guided lecture notes). Let $|1\rangle=\binom{1}{0}$ and $|2\rangle=\binom{0}{1}$ be an orthonormal
+                basis, and take the Hamiltonian
+            </p>
+            <div class="math">$$H = \begin{pmatrix}h & g\\ g & h\end{pmatrix}$$</div>
+            <p>
+                Notice $H$ is symmetric under <em>exchanging the two basis labels</em> $1\leftrightarrow2$: the
+                diagonal entries are both $h$ and the off-diagonal entries are both $g$. Define an <strong>exchange
+                operator</strong> $\hat P$ that swaps the two basis kets, $\hat P|1\rangle=|2\rangle$ and
+                $\hat P|2\rangle=|1\rangle$ — the discrete, two-state analog of spatial inversion. In matrix form,
+                $\hat P=\begin{pmatrix}0&1\\1&0\end{pmatrix}$.
+            </p>
+            <p>
+                Just like $\hat\Pi$, this operator satisfies $\hat P^2=1$ (swapping twice returns the original state),
+                so its eigenvalues are $\pm1$ by the identical argument given above. And because $H$'s diagonal
+                entries are equal and its off-diagonal entries are equal, direct matrix multiplication confirms
+                $[\hat H,\hat P]=0$ — the two-level analog of inversion symmetry. Solving the eigenvalue problem
+                (as in Topic&nbsp;6) gives energies $E_\pm = h\pm g$ with eigenvectors
+            </p>
+            <div class="math">$$|s_\pm\rangle = \frac{1}{\sqrt2}\begin{pmatrix}1\\ \pm1\end{pmatrix}$$</div>
+            <p>
+                Check directly: $\hat P|s_+\rangle = \frac{1}{\sqrt2}\binom{1}{1} = |s_+\rangle$ (eigenvalue $+1$,
+                the "even," symmetric combination), while $\hat P|s_-\rangle = \frac{1}{\sqrt2}\binom{1}{-1} =
+                -|s_-\rangle$ (eigenvalue $-1$, the "odd," antisymmetric combination). So the energy eigenstates of
+                a basis-exchange-symmetric Hamiltonian are <em>forced</em> to be symmetric or antisymmetric
+                combinations — exactly the even/odd split that $\hat\Pi$ enforces on the continuous infinite well,
+                now visible in a $2\times2$ matrix you can check by hand. This is the same mechanism that produces
+                bonding/antibonding molecular orbitals from two symmetric atomic sites, and symmetric/antisymmetric
+                normal modes from two identical coupled oscillators.
+            </p>
+        </div>
+    </details>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Parity selection rules</h3>
+        <p>
+            Selection rules tell you when a matrix element $\langle b|\hat Q|a\rangle$ is forced to vanish by
+            symmetry alone, with no integral required. The key operator identity is how a given operator transforms
+            under parity: $\hat\Pi^\dagger\hat Q\hat\Pi = \hat Q(-\hat{\mathbf r},-\hat{\mathbf p})$. Position and
+            momentum are both <strong>odd under parity</strong>,
+        </p>
+        <div class="math">$$\hat\Pi^\dagger\hat x\hat\Pi = -\hat x,\qquad \hat\Pi^\dagger\hat p\hat\Pi=-\hat p$$</div>
+        <p>
+            (this follows directly from the definitions: $\hat\Pi^\dagger\hat x\hat\Pi\,f(x) = \hat\Pi\,\big[x\,f(-x)\big]\big|_{x\to -x}$, tracked carefully through the substitution, gives $-x\,f(x)$). Now sandwich the position operator between two parity eigenstates $\psi_a$ (parity $\alpha=\pm1$) and $\psi_b$ (parity $\beta=\pm1$), and insert $\hat\Pi^\dagger\hat\Pi=1$ next to $\hat x$:
+        </p>
+        <div class="math">$$\langle b|\hat x|a\rangle = \langle b|\hat\Pi^\dagger(\hat\Pi\hat x\hat\Pi^\dagger)\hat\Pi|a\rangle = \langle b|\hat\Pi^\dagger(-\hat x)\hat\Pi|a\rangle = -\beta\alpha\,\langle b|\hat x|a\rangle$$</div>
+        <p>using $\hat\Pi|a\rangle=\alpha|a\rangle$ and $\langle b|\hat\Pi^\dagger = (\hat\Pi|b\rangle)^\dagger = (\beta|b\rangle)^\dagger=\beta\langle b|$ (parity eigenvalues are real). This says $\langle b|\hat x|a\rangle = -\alpha\beta\,\langle b|\hat x|a\rangle$, so:</p>
+        <div class="math">$$\langle b|\hat x|a\rangle\big(1+\alpha\beta\big) = 0$$</div>
+        <p>
+            If $a$ and $b$ have the <strong>same parity</strong> ($\alpha\beta=+1$, i.e. $\langle\text{even}|\hat x|\text{even}\rangle$ or $\langle\text{odd}|\hat x|\text{odd}\rangle$), the factor $(1+\alpha\beta)=2\neq0$, forcing the matrix element to <strong>vanish</strong>. If $a$ and $b$ have <strong>opposite parity</strong> ($\alpha\beta=-1$), the factor vanishes identically and the matrix element is unconstrained by symmetry (generically nonzero). This is exactly the general form of <strong>Laporte's rule</strong> derived in the text for the hydrogenic electric-dipole operator $\hat{\mathbf p}_e=q\hat{\mathbf r}$: matrix elements between states of the same parity vanish, $\langle n'\ell'm'|\hat{\mathbf p}_e|n\ell m\rangle=0$ whenever $\ell+\ell'$ is even.
+        </p>
+        <p>
+            Physically: $\hat x$ is odd under parity, so it can only connect states of <em>opposite</em> parity
+            without the integral automatically canceling against itself. Any operator that is <em>even</em> under
+            parity (such as $\hat L$, orbital angular momentum) has exactly the reverse selection rule — its matrix
+            elements vanish between states of <em>opposite</em> parity and survive only between states of the
+            <em>same</em> parity (Griffiths Problem 6.11).
+        </p>
+    </div>
+</section>
+
+<section class="section" id="noether">
+    <div class="section-header">
+        <span class="section-icon">🔄</span>
+        <h2 class="section-title">Noether's Theorem: Symmetry ⇒ Conservation</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">The statement, in words and as an operator criterion</h3>
+        <p>
+            <strong>Noether's theorem</strong>, in its classical-mechanics form, says that every continuous symmetry
+            of a physical system corresponds to a conserved quantity. The quantum-mechanical version of the theorem
+            is a precise operator statement, and Ehrenfest's theorem is the machine that proves it:
+        </p>
+        <div class="anchor">
+            <div class="anchor-title">⚓ The general pattern</div>
+            <p style="margin-bottom:0;">
+                Let a continuous symmetry transformation be generated by a Hermitian operator $\hat Q$ (with no
+                explicit time dependence), so that the unitary transformation operator is $\hat U(\alpha) =
+                \exp[-i\alpha\hat Q/\hbar]$ for a continuous parameter $\alpha$. If this transformation is a symmetry
+                of the system — i.e. it leaves the Hamiltonian unchanged, $\hat U^\dagger\hat H\hat U=\hat H$ — then
+                (by the same unitarity argument used in Section 6.2.2 of the text) this is equivalent to
+                $[\hat H,\hat Q]=0$. By Ehrenfest's theorem, $d\langle Q\rangle/dt = \frac{i}{\hbar}\langle[H,Q]\rangle
+                = 0$. <strong>$Q$ is conserved.</strong>
+            </p>
+        </div>
+        <p>This single pattern — symmetry $\Rightarrow$ generator commutes with $H$ $\Rightarrow$ Ehrenfest's theorem $\Rightarrow$ generator is conserved — is exactly what produces every classical conservation law you already know:</p>
+        <table>
+            <tr><th>Symmetry of $H$</th><th>Generator of the symmetry</th><th>Conserved quantity</th></tr>
+            <tr><td>Translation in space, $\hat T(a)=\exp[-ia\hat p/\hbar]$</td><td>Momentum $\hat p$</td><td>Momentum</td></tr>
+            <tr><td>Translation in time, $\hat U(t)=\exp[-it\hat H/\hbar]$</td><td>The Hamiltonian $\hat H$ itself</td><td>Energy</td></tr>
+            <tr><td>Rotation about an axis (preview, Topic 8)</td><td>Angular momentum $\hat L_z$</td><td>Angular momentum</td></tr>
+            <tr><td>Spatial inversion (discrete, not continuous)</td><td>Parity $\hat\Pi$</td><td>Parity quantum number</td></tr>
+        </table>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Translational symmetry ⇒ momentum conservation</h3>
+        <p>
+            The translation operator is $\hat T(a)=\exp[-ia\hat p/\hbar]$ — momentum is literally defined as "the
+            generator of translations." A system has continuous translational symmetry if $V(x+a)=V(x)$ for
+            <em>every</em> $a$, i.e. the potential is constant (a free particle). Using the infinitesimal form
+            $\hat T(\delta)\approx 1-i\delta\hat p/\hbar$, translational symmetry means $[\hat H,\hat T(\delta)]=0$
+            for infinitesimal $\delta$, which (expanding) forces $[\hat H,\hat p]=0$. Then Ehrenfest's theorem gives
+        </p>
+        <div class="math">$$\frac{d\langle p\rangle}{dt} = \frac{i}{\hbar}\langle[H,p]\rangle = 0$$</div>
+        <p>
+            — momentum conservation, derived as a special case of the same Noether pattern (and consistent with the
+            $-\langle\partial V/\partial x\rangle$ result above: a constant potential has zero force). The same
+            argument, applied to a system of interacting particles whose potential depends only on the
+            <em>difference</em> $x_1-x_2$, shows that the <em>total</em> momentum $\hat P=\hat p_1+\hat p_2$ is
+            conserved even though the potential is certainly not translationally symmetric for either particle
+            individually (Griffiths Problem 6.7) — this is the quantum statement of Newton's third law.
+        </p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Time-translation symmetry ⇒ energy conservation</h3>
+        <p>
+            Symmetrically, the Hamiltonian itself is the generator of translations <em>in time</em>: for a
+            time-independent $H$, the time-evolution operator that propagates a wave function forward by time $t$ is
+        </p>
+        <div class="math">$$\hat U(t) = \exp\left[-\frac{it}{\hbar}\hat H\right]$$</div>
+        <p>
+            A system has <strong>time-translation invariance</strong> if the physics doesn't care <em>when</em> you
+            start the clock — the experiment proceeds identically whether you run it today or next Tuesday. Requiring
+            this for the infinitesimal evolution operator $\hat U(t_0+\delta,t_0)\approx 1-\frac{i}{\hbar}\hat H(t_0)\delta$
+            forces $\hat H(t_1)=\hat H(t_2)$ for every pair of times, i.e. $\partial\hat H/\partial t = 0$: time-translation
+            invariance is precisely the statement that the Hamiltonian has no explicit time dependence. Then the
+            generalized Ehrenfest theorem, applied to $Q=H$ itself, gives
+        </p>
+        <div class="math">$$\frac{d\langle H\rangle}{dt} = \frac{i}{\hbar}\langle[H,H]\rangle + \left\langle\frac{\partial H}{\partial t}\right\rangle = 0 + 0 = 0$$</div>
+        <p>
+            since $[H,H]=0$ trivially for any operator. <strong>Energy conservation is a consequence of
+            time-translation invariance.</strong> Notice the elegant symmetry with the momentum case: there,
+            translation symmetry in $x$ made $\hat p$ (the generator of $x$-translations) commute with $H$; here,
+            translation symmetry in $t$ makes $\hat H$ (the generator of $t$-translations) trivially commute with
+            itself. Between this result, momentum conservation above, and angular momentum conservation (previewed
+            in Topic 8), quantum mechanics recovers <em>all three</em> classical conservation laws, each tied to a
+            specific continuous symmetry of the Hamiltonian — plus, as you saw above, a genuinely new one (parity
+            conservation) tied to a <em>discrete</em> symmetry with no classical-mechanics analog of quite the same
+            flavor.
+        </p>
+    </div>
+</section>
+
+<section class="section" id="heisenberg">
+    <div class="section-header">
+        <span class="section-icon">🕰️</span>
+        <h2 class="section-title">A Glimpse of the Heisenberg Picture</h2>
+    </div>
+    <p>
+        Everywhere else in this course we've worked in the <strong>Schrödinger picture</strong>: wave functions
+        evolve in time according to the Schrödinger equation, while operators like $\hat x$ and $\hat p$ carry no
+        time dependence of their own. But the time-evolution operator $\hat U(t)=\exp[-it\hat H/\hbar]$ derived above
+        suggests a second, entirely equivalent bookkeeping scheme. Define the <strong>Heisenberg-picture</strong>
+        version of any operator by transforming it with $\hat U$, exactly the way parity or translation transformed
+        operators earlier in this chapter:
+    </p>
+    <div class="math">$$\hat Q_H(t) = \hat U^\dagger(t)\,\hat Q\,\hat U(t)$$</div>
+    <p>
+        In this picture, the roles flip: the <strong>wave function is frozen</strong> at its initial value,
+        $\Psi_H(x)=\Psi(x,0)$, and all of the time dependence is carried by the <em>operators</em>. Differentiating
+        Equation above with respect to time produces the <strong>Heisenberg equation of motion</strong>,
+    </p>
+    <div class="math">$$i\hbar\frac{d}{dt}\hat Q_H(t) = \big[\hat Q_H(t),\hat H\big]$$</div>
+    <p>
+        which looks like a mirror image of Ehrenfest's theorem (indeed, taking the expectation value of both sides
+        reproduces it exactly, confirming the two pictures are physically equivalent: $\langle\hat Q\rangle$ computed
+        either way must agree). Working this out for a free particle or harmonic oscillator gives
+        $\hat x_H(t) = \hat x_H(0) + \hat p_H(0)\,t/m$ (free particle) or $\hat x_H(t) = \hat x_H(0)\cos\omega t +
+        \hat p_H(0)\sin(\omega t)/(m\omega)$ (harmonic oscillator) — <strong>the Heisenberg-picture operators
+        literally obey the classical equations of motion.</strong> This is the cleanest possible illustration of why
+        Ehrenfest's theorem looks so much like Newton's second law: in the Heisenberg picture, it practically
+        <em>is</em> Newton's second law, just promoted to an operator equation.
+    </p>
+    <p>
+        The two pictures are bookkeeping choices, not different physics — a common analogy is an ordinary clock (hands
+        move, numbers fixed — the Schrödinger picture) versus a clock with the hands fixed and the numbers rotating
+        backward underneath them (the Heisenberg picture). Either way, the clock reads the same time; either picture
+        gives the same $\langle Q\rangle$ at every instant. We won't need the Heisenberg picture again in this
+        course, but recognizing the name and the core idea — operators evolve, not states — will help if you
+        encounter it later (e.g. in the interaction picture used for time-dependent perturbation theory).
+    </p>
+</section>
+
+<section class="section" id="practice">
+    <div class="section-header">
+        <span class="section-icon">✏️</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 1 — Verify Ehrenfest's theorem for the harmonic oscillator</div>
+        <div class="question-text">
+            A particle of mass $m$ moves in the potential $V(x)=\tfrac12 m\omega^2x^2$. Use the two specialized
+            Ehrenfest results derived above to show that $\langle x\rangle(t)$ obeys the classical equation of
+            motion for a mass on a spring, $\ddot{\langle x\rangle} = -\omega^2\langle x\rangle$.
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>From the general position result, $d\langle x\rangle/dt = \langle p\rangle/m$. From the general momentum result, $d\langle p\rangle/dt = -\langle\partial V/\partial x\rangle = -\langle m\omega^2 x\rangle = -m\omega^2\langle x\rangle$.</p>
+                <p>Differentiate the first equation once more with respect to time and substitute the second:</p>
+                <div class="math">$$\frac{d^2\langle x\rangle}{dt^2} = \frac{1}{m}\frac{d\langle p\rangle}{dt} = \frac{1}{m}\big(-m\omega^2\langle x\rangle\big) = -\omega^2\langle x\rangle$$</div>
+                <p>This is exactly the classical simple-harmonic-oscillator equation, now holding for the expectation value $\langle x\rangle(t)$ regardless of what quantum state the particle is in — a clean illustration of Ehrenfest's theorem (and consistent with the exact Heisenberg-picture result $\hat x_H(t)=\hat x_H(0)\cos\omega t + \hat p_H(0)\sin(\omega t)/(m\omega)$ quoted in the Heisenberg-picture section).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 2 — A symmetry argument for zero dipole moment</div>
+        <div class="question-text">
+            Without doing any integral, explain why any energy eigenstate of a symmetric potential $V(x)=V(-x)$ must
+            have $\langle x\rangle = 0$. Then explain why the hydrogen-atom ground state has $\langle\mathbf
+            p_e\rangle=0$ for its electric dipole moment, again with no calculation (Griffiths Problem 6.13(a)).
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>
+                    Since $V(x)=V(-x)$, the Hamiltonian commutes with parity, so every non-degenerate bound
+                    eigenstate $\psi_n$ can be chosen to have definite parity $\alpha=\pm1$: $\hat\Pi\psi_n =
+                    \alpha\psi_n$. The expectation value $\langle x\rangle = \langle n|\hat x|n\rangle$ is exactly the
+                    "same-state" case of the selection-rule argument derived above, with $a=b=n$ and
+                    $\alpha=\beta$, so $\alpha\beta=\alpha^2=+1$ automatically (any number squared is $+1$ here, since
+                    $\alpha=\pm1$). The vanishing condition $(1+\alpha\beta)\langle n|\hat x|n\rangle=0$ then forces
+                    $\langle n|\hat x|n\rangle=0$ <em>regardless of which parity $\psi_n$ has</em> — same parity
+                    against itself always kills a matrix element of the odd operator $\hat x$.
+                </p>
+                <p>
+                    The hydrogen ground state $\psi_{100}$ is a central-potential eigenstate with $\ell=0$, so by
+                    the $(-1)^\ell$ result (Griffiths Problem 6.1(c)) it has definite parity $+1$ (even) — and,
+                    being the ground state, it is automatically non-degenerate, so the argument above applies
+                    directly: $\langle\mathbf p_e\rangle = q\langle\mathbf r\rangle = 0$, with no radial integral
+                    needed.
+                </p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 3 — When does parity <em>not</em> apply?</div>
+        <div class="question-text">
+            Consider the ordinary (asymmetric) infinite square well from Topic 2, with walls at $x=0$ and $x=L$, so
+            $V(x)=0$ for $0&lt;x&lt;L$ and $V(x)=\infty$ otherwise. Is $[\hat H,\hat\Pi]=0$ for this potential? Are
+            its eigenfunctions $\psi_n(x)=\sqrt{2/L}\sin(n\pi x/L)$ eigenstates of parity? Contrast with the
+            symmetric well centered at the origin.
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>
+                    Check the symmetry condition directly: is $V(-x)=V(x)$? Take a point just inside the well, say
+                    $x=L/4$ (where $V=0$); then $-x=-L/4$ is outside $[0,L]$, where $V=\infty$. So $V(-x)\neq V(x)$
+                    — <strong>this potential is not symmetric about the origin</strong>, and $[\hat H,\hat\Pi]\neq0$.
+                    Parity is simply not a good quantum number for this system: $\hat H$ and $\hat\Pi$ do not share
+                    simultaneous eigenstates, so there is no reason to expect $\psi_n(x)=\sqrt{2/L}\sin(n\pi x/L)$ to
+                    be even or odd about $x=0$ — and indeed it is not; $\psi_n(-x)$ isn't even defined inside the
+                    physical domain of the problem in any useful sense, since the well itself isn't symmetric under
+                    $x\to-x$.
+                </p>
+                <p>
+                    Compare this with the <em>symmetric</em> well (walls at $\pm a/2$) referenced in the anchor box
+                    above: there, $V(-x)=V(x)$ holds exactly, $[\hat H,\hat\Pi]=0$, and the eigenfunctions genuinely
+                    do alternate even/odd. The lesson: before invoking any parity argument (selection rule, "this
+                    matrix element must vanish," etc.) you must first verify that the specific potential in the
+                    problem is symmetric about the point you're taking inversion around. Symmetric-looking wells are
+                    not automatically symmetric about the origin — it depends entirely on where you've put your
+                    coordinate origin.
+                </p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 4 — Two-particle momentum conservation as a Noether statement</div>
+        <div class="question-text">
+            Two particles of mass $m_1,m_2$ interact via a potential that depends only on their separation, $V(|x_1-x_2|)$,
+            so $\hat H = \frac{\hat p_1^2}{2m_1}+\frac{\hat p_2^2}{2m_2}+V(|\hat x_1-\hat x_2|)$. Using the general
+            Noether pattern from this page, explain why the total momentum $\hat P=\hat p_1+\hat p_2$ is conserved,
+            even though the individual momenta $\hat p_1,\hat p_2$ are not.
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>
+                    The two-particle translation operator that shifts <em>both</em> coordinates by $a$ is $\hat
+                    T(a)=\exp[-ia\hat P/\hbar]$ with $\hat P=\hat p_1+\hat p_2$ — this is the generator of the
+                    "translate everything together" symmetry. Acting on a wave function, $\hat T(a)\psi(x_1,x_2) =
+                    \psi(x_1-a,x_2-a)$. Under this simultaneous shift, the separation $x_1-x_2$ is <strong>unchanged</strong>
+                    ($ (x_1-a)-(x_2-a) = x_1-x_2$), so $V(|x_1-x_2|)$ is invariant — the Hamiltonian commutes with
+                    $\hat T(a)$ for every $a$, i.e. the system has continuous translational symmetry under this
+                    simultaneous shift. By the Noether pattern (symmetry ⇒ generator commutes with $H$ ⇒ Ehrenfest's
+                    theorem ⇒ generator conserved), $[\hat H,\hat P]=0$ and hence $d\langle P\rangle/dt=0$: total
+                    momentum is conserved.
+                </p>
+                <p>
+                    By contrast, shifting only $x_1$ (holding $x_2$ fixed) changes the separation $x_1-x_2$ and
+                    therefore changes $V(|x_1-x_2|)$ whenever $V$ is not constant — that transformation is generated
+                    by $\hat p_1$ alone, is <em>not</em> a symmetry of $H$, so $[\hat H,\hat p_1]\neq0$ in general and
+                    $\hat p_1$ individually is not conserved. Physically, this is the quantum-mechanical statement of
+                    Newton's third law: the particles can trade momentum back and forth through their mutual
+                    interaction, but the total is protected because the interaction itself only ever depends on their
+                    relative position.
+                </p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<section class="section" id="reading">
+    <div class="section-header">
+        <span class="section-icon">📚</span>
+        <h2 class="section-title">Instructor-Assigned Reading</h2>
+    </div>
+    <p>The Canvas module for this topic links out to the following supplementary references. These are plain-text citations reproduced from the course module — follow them from Canvas or search for the titles directly rather than trusting any URL reproduced elsewhere:</p>
+    <ul>
+        <li><strong>Wikipedia: "Noether's theorem"</strong> — general background on the classical field-theory statement of the symmetry–conservation-law correspondence; useful context for the QM-specific operator version derived on this page.</li>
+        <li><strong>Wikipedia: "Parity (physics)"</strong> — background on parity as a discrete symmetry, including its role in particle physics (parity violation in the weak interaction) beyond the single-particle, non-relativistic scope of this course.</li>
+        <li>
+            <strong>"Wronskian Test for Linear Independence"</strong> — a standard mathematical tool (not a Wikipedia
+            link specifically, per the Canvas module) for showing that two solutions of the <em>same</em> ordinary
+            differential equation are genuinely linearly independent, rather than secretly proportional to one
+            another. This is directly relevant background for this chapter's discussion of energy-level degeneracy:
+            whenever two distinct-looking eigenfunctions turn out to share the same eigenvalue — the $e^{\pm ikx}$
+            traveling-wave solutions for the free particle in Topic&nbsp;4, or the even/odd eigenfunction pairs of a
+            symmetric well discussed above — the Wronskian test is the rigorous way to confirm they really are two
+            independent solutions of the time-independent Schrödinger equation, and not the same solution in
+            disguise.
+        </li>
+    </ul>
+</section>
+
+<section class="section" id="hw-feedback">
+    <div class="section-header">
+        <span class="section-icon">🔍</span>
+        <h2 class="section-title">Common Pitfalls &amp; Self-Check</h2>
+    </div>
+    <div class="hw-feedback">
+        <div class="hw-feedback-title">⚠️ A note on this section</div>
+        <p style="margin-bottom:0;">
+            No solution PDF was exported for Homework&nbsp;6 (the assignment mapped to this topic). The
+            self-check items below are general instructor-style guidance on where students typically go wrong with
+            this material — they are <em>not</em> grader comments transcribed from an actual graded set, and none of
+            the specific numbers below should be read as referring to a real submitted homework.
+        </p>
+    </div>
+    <ul>
+        <li>
+            <strong>Dropping the explicit-time-dependence term.</strong> The full Ehrenfest formula has <em>two</em>
+            pieces, $d\langle Q\rangle/dt = \frac{i}{\hbar}\langle[H,Q]\rangle + \langle\partial Q/\partial
+            t\rangle$. For $\hat x$, $\hat p$, and $\hat\Pi$ the second term is always zero (none of these operators
+            has explicit time dependence), which is why it silently disappears in most of this page's derivations
+            — but it does not disappear in general, and dropping it reflexively for <em>every</em> operator is a
+            common shortcut that fails the moment you meet a genuinely time-dependent operator or Hamiltonian.
+        </li>
+        <li>
+            <strong>Sign errors in $[H,\hat x]$ versus $[H,\hat p]$.</strong> Remember which piece of $H$
+            contributes to which commutator: the kinetic term $\hat p^2/2m$ is what survives in $[H,\hat x]$ (it
+            doesn't commute with $\hat x$), while the potential term $V(\hat x)$ is what survives in $[H,\hat p]$ (it
+            doesn't commute with $\hat p$) — the pieces that trivially commute with the operator in question drop
+            out, and it's easy to keep the wrong piece by muscle memory.
+        </li>
+        <li>
+            <strong>Assuming every potential has parity eigenstates.</strong> Parity conservation requires
+            $V(-x)=V(x)$ <em>about your chosen origin</em> — see Practice Problem 3 above. A well that "looks
+            symmetric" but is shifted away from the origin does not automatically give even/odd eigenfunctions.
+            Always check the symmetry condition explicitly before invoking any parity-based selection rule.
+        </li>
+        <li>
+            <strong>Confusing "parity is conserved" with "the wave function must be symmetric."</strong> Parity
+            conservation means that <em>if</em> a state starts as a pure parity eigenstate, it stays one. It says
+            nothing about a generic superposition of even and odd states — such a superposition is <em>not</em> an
+            eigenstate of $\hat\Pi$ at all, and asking "is it even or odd?" is simply the wrong question for it.
+        </li>
+        <li>
+            <strong>Treating the Heisenberg picture as "different physics."</strong> The Schrödinger and Heisenberg
+            pictures are equivalent bookkeeping conventions — every measurable expectation value must come out
+            identical either way. If a calculation done in one picture disagrees with the same calculation in the
+            other, the error is in the algebra, not in quantum mechanics.
+        </li>
+        <li>
+            <strong>Reusing 2nd-edition solution manuals.</strong> As flagged in the Overview above, Chapter 6
+            ("Symmetries &amp; Conservation Laws") is new to the 3rd edition. Old solution sets, problem-numbering
+            schemes, and online solution manuals keyed to earlier Griffiths editions will not line up with this
+            material at all — verify against your own 3rd-edition textbook.
+        </li>
+    </ul>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">⬆️</button>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        const scrollTop = document.getElementById('scrollTop');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = window.scrollY;
+            const progress = (scrolled / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const choices = document.querySelectorAll('.choice');
+        choices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                const parent = choice.parentElement;
+                parent.querySelectorAll('.choice').forEach(c => {
+                    if (c.getAttribute('data-correct') === 'true') {
+                        c.classList.add('correct');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

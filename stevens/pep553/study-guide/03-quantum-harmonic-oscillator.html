@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEP553 Topic 3: Quantum Harmonic Oscillator</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-blue: #00d4ff;
+            --accent-purple: #c27dff;
+            --accent-green: #06ffa5;
+            --accent-orange: #ff9500;
+            --accent-red: #ff6b6b;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a8a8b8;
+            --border-color: #0f3460;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the PEP553 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        .course-nav {
+            background: rgba(10, 10, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(0, 212, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(15, 52, 96, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(15, 52, 96, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .math-raw {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; font-family: 'Monaco', monospace; overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-card.multiple-choice { border-left-color: var(--accent-blue); }
+        .question-card.free-response { border-left-color: var(--accent-purple); }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .choices { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        .choice {
+            padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+        .choice:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--accent-blue); }
+        .choice.correct {
+            background: rgba(6, 255, 165, 0.15); border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .rubric {
+            background: rgba(194, 125, 255, 0.1); border: 1px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .rubric-point { margin-bottom: 0.5rem; display: flex; gap: 0.5rem; }
+        .rubric-point span:first-child { color: var(--accent-orange); font-weight: 700; min-width: 80px; }
+
+        .misconception {
+            background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(6, 255, 165, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .physics-extension {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 107, 107, 0.1));
+            border-left: 4px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .physics-extension::before {
+            content: "🔬 Engineering / Research Connection: ";
+            color: var(--accent-orange); font-weight: 700;
+        }
+
+        /* Homework-feedback specific box — use for "common mistakes on graded homework" call-outs */
+        .hw-feedback {
+            background: rgba(255, 149, 0, 0.08); border: 1px solid var(--accent-orange);
+            padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem;
+        }
+        .hw-feedback-title { color: var(--accent-orange); font-weight: 700; margin-bottom: 0.5rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(0, 212, 255, 0.2); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(194, 125, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">⚛ PEP553 Study Guide Home</a>
+        <a href="02-infinite-potential-well.html">← Prev: Infinite Potential Well</a>
+        <a href="04-free-particle-wave-packets.html">Next: Free Particle & Superposition →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">⚛ PEP553 · Topic 3: The Quantum Harmonic Oscillator</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="hamiltonian-setup">Setting Up</button>
+            <button class="nav-link" data-section="ladder-operators">Ladder Operators</button>
+            <button class="nav-link" data-section="number-operator">Number Operator</button>
+            <button class="nav-link" data-section="dirac-notation">Dirac Notation</button>
+            <button class="nav-link" data-section="worked-example">Worked Example</button>
+            <button class="nav-link" data-section="analytic-method">Analytic Method</button>
+            <button class="nav-link" data-section="practice-problems">Practice</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#hamiltonian-setup" class="sidebar-link">Setting Up</a>
+                <a href="#ladder-operators" class="sidebar-link">Ladder Operators</a>
+                <a href="#number-operator" class="sidebar-link">Number Operator</a>
+                <a href="#dirac-notation" class="sidebar-link">Dirac Notation</a>
+                <a href="#worked-example" class="sidebar-link">Worked Example</a>
+                <a href="#analytic-method" class="sidebar-link">Analytic Method</a>
+                <a href="#practice-problems" class="sidebar-link">Practice</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview</h2>
+    </div>
+    <p>This page covers <strong>Syllabus Lectures 6-1 through 7-2</strong> — the Canvas module "Quantum Harmonic Oscillator." It maps directly onto <strong>Homework #3</strong>, and the <strong>Midterm Exam immediately follows this unit</strong>, so this material is squarely on-deck for exam prep.</p>
+    <p>The quantum harmonic oscillator (QHO) is the second exactly-solvable potential in the course, after the infinite square well (Topic 2). It matters far beyond its own problem set: almost <em>any</em> smooth potential looks parabolic near a local minimum, so the QHO is the generic model for small oscillations of any bound system — a diatomic molecule vibrating, an atom in a crystal lattice, a mode of the electromagnetic field. Griffiths &amp; Schroeter (3rd ed., §2.3) present <strong>two independent routes</strong> to the same energy spectrum:</p>
+    <ul>
+        <li><strong>The algebraic (ladder-operator) method</strong> — Section 2.3.1, pp. 40–48. This is the method our instructor explicitly emphasizes, and it is the primary subject of this page.</li>
+        <li><strong>The analytic (power-series / Hermite polynomial) method</strong> — Section 2.3.2, pp. 48–55. We summarize this for comparison and completeness, without re-deriving it line by line.</li>
+    </ul>
+    <p>Along the way we introduce a first, practical layer of <strong>Dirac (bra-ket) notation</strong> — just enough to write ladder-operator relations cleanly. The full axiomatic treatment of Hilbert space, operators, and representations is deferred to Topic 6 (Formal Theory and Matrix Methods); here we only need the notation as a bookkeeping tool.</p>
+
+    <div class="exam-info">
+        <div class="exam-info-title">📝 Midterm Emphasis</div>
+        <p style="margin-bottom:0;">Per the actual PEP553 midterm review handout, <strong>ladder-operator algebra — commutators, the raising/lowering action on $\phi_n$, and the resulting energy eigenvalues — is the single most heavily emphasized midterm skill drawn from this unit.</strong> If you only have time to master one derivation before the exam, make it the one in the <a href="#ladder-operators" style="color:var(--accent-blue);">Ladder Operators</a> and <a href="#number-operator" style="color:var(--accent-blue);">Number Operator</a> sections below — know it well enough to reproduce it cold, not just recognize it.</p>
+    </div>
+</section>
+
+<section class="section" id="hamiltonian-setup">
+    <div class="section-header">
+        <span class="section-icon">⚙️</span>
+        <h2 class="section-title">Setting Up the Problem</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Why the harmonic oscillator is universal</h3>
+        <p>Expand any smooth potential $V(x)$ in a Taylor series about a local minimum $x_0$ (where $V'(x_0)=0$):</p>
+        <div class="math">$$V(x) \approx V(x_0) + \frac{1}{2}V''(x_0)(x-x_0)^2$$</div>
+        <p>Dropping the constant $V(x_0)$ (an overall energy shift) and identifying an effective spring constant $k \equiv V''(x_0) \geq 0$, this is exactly Hooke's-law potential energy. That is why the QHO shows up everywhere a system sits near a stable equilibrium and oscillates with small amplitude.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">The Hamiltonian</h3>
+        <p>Following the instructor's notation (matched throughout this study guide), the Hamiltonian operator for a mass $m$ on a spring of constant $k$, with classical angular frequency $\omega = \sqrt{k/m}$, is:</p>
+        <div class="math">$$\hat{H} = \frac{\hat{p}^2}{2m} + \frac{1}{2}k\hat{x}^2 = \frac{1}{2m}\left[\hat{p}^2 + (m\omega\hat{x})^2\right]$$</div>
+        <p>The time-independent Schrödinger equation is $\hat{H}\phi = E\phi$, or explicitly,</p>
+        <div class="math">$$-\frac{\hbar^2}{2m}\frac{d^2\phi}{dx^2} + \frac{1}{2}m\omega^2 x^2 \phi = E\phi$$</div>
+        <p>We could attack this directly as a differential equation (that's the analytic method, summarized later). But Griffiths' key observation is that the bracketed combination $\hat{p}^2 + (m\omega\hat{x})^2$ has the algebraic form $u^2+v^2$, which factors over the complex numbers as $(iu+v)(-iu+v)$ — <em>if</em> $u$ and $v$ were ordinary numbers. Because $\hat{x}$ and $\hat{p}$ are operators that do not commute, the factorization isn't exact, but it is close enough to be enormously useful. That near-factorization is the entire idea behind the ladder-operator method.</p>
+    </div>
+</section>
+
+<section class="section" id="ladder-operators">
+    <div class="section-header">
+        <span class="section-icon">🪜</span>
+        <h2 class="section-title">Ladder Operators &amp; the Commutator</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Definition</h3>
+        <p>Define two new operators as linear combinations of $\hat{x}$ and $\hat{p}$:</p>
+        <div class="math">$$\hat{a} \equiv \sqrt{\frac{m\omega}{2\hbar}}\left(\hat{x} + \frac{i\hat{p}}{m\omega}\right), \qquad \hat{a}^{\dagger} \equiv \sqrt{\frac{m\omega}{2\hbar}}\left(\hat{x} - \frac{i\hat{p}}{m\omega}\right)$$</div>
+        <p>The prefactor $\sqrt{m\omega/2\hbar}$ is chosen purely to make later formulas come out clean (it has no independent physical content). Inverting these relations for later use:</p>
+        <div class="math">$$\hat{x} = \sqrt{\frac{\hbar}{2m\omega}}\left(\hat{a}+\hat{a}^{\dagger}\right), \qquad \hat{p} = i\sqrt{\frac{\hbar m\omega}{2}}\left(\hat{a}^{\dagger}-\hat{a}\right)$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Deriving $[\hat{a},\hat{a}^{\dagger}]=1$ from $[\hat{x},\hat{p}]=i\hbar$</h3>
+        <p>First, the canonical commutation relation itself. Acting on a test function $f(x)$ with $\hat{p}=-i\hbar\, d/dx$:</p>
+        <div class="math">$$[\hat{x},\hat{p}]f(x) = x\left(-i\hbar\frac{d}{dx}\right)f - \left(-i\hbar\frac{d}{dx}\right)(xf) = -i\hbar\left(x f' - f - xf'\right) = i\hbar f(x)$$</div>
+        <p>so, dropping the test function, $[\hat{x},\hat{p}] = i\hbar$. This is the seed from which everything else in this section grows.</p>
+        <p>Now compute $\hat{a}\hat{a}^{\dagger}$ by direct multiplication, keeping careful track of operator order:</p>
+        <div class="math">$$\hat{a}\hat{a}^{\dagger} = \frac{m\omega}{2\hbar}\left(\hat{x}+\frac{i\hat{p}}{m\omega}\right)\left(\hat{x}-\frac{i\hat{p}}{m\omega}\right) = \frac{1}{2\hbar m\omega}\left[\hat{p}^2 + (m\omega\hat{x})^2 - im\omega(\hat{x}\hat{p}-\hat{p}\hat{x})\right]$$</div>
+        <p>The cross term is exactly the commutator $[\hat{x},\hat{p}] = i\hbar$, so:</p>
+        <div class="math">$$\hat{a}\hat{a}^{\dagger} = \frac{1}{2\hbar m\omega}\left[\hat{p}^2+(m\omega\hat{x})^2\right] - \frac{i}{2\hbar}(i\hbar) = \frac{1}{\hbar\omega}\hat{H} + \frac{1}{2}$$</div>
+        <p>Repeating the multiplication in the opposite order (â† first) instead produces the <em>same</em> quadratic terms but the <em>opposite-sign</em> cross term, since swapping the order of the product reverses the sign of $\hat{x}\hat{p}-\hat{p}\hat{x}$:</p>
+        <div class="math">$$\hat{a}^{\dagger}\hat{a} = \frac{1}{\hbar\omega}\hat{H} - \frac{1}{2}$$</div>
+        <p>Subtracting these two boxed results cancels the $\hat H$ term entirely and gives the fundamental ladder-operator commutation relation:</p>
+        <div class="math">$$[\hat{a},\hat{a}^{\dagger}] = \hat{a}\hat{a}^{\dagger} - \hat{a}^{\dagger}\hat{a} = 1$$</div>
+        <p>This single number — <strong>1</strong>, with no operators or constants left over — is the algebraic engine of the entire method. Everything about the spectrum of the harmonic oscillator follows from this one relation plus the requirement that physical states be normalizable.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">The Hamiltonian in terms of $\hat a$, $\hat a^{\dagger}$</h3>
+        <p>Solving the two boxed relations above for $\hat H$ gives two equivalent expressions:</p>
+        <div class="math">$$\hat{H} = \hbar\omega\left(\hat{a}\hat{a}^{\dagger} - \frac{1}{2}\right) = \hbar\omega\left(\hat{a}^{\dagger}\hat{a} + \frac{1}{2}\right)$$</div>
+        <p>The second form — built on $\hat{a}^{\dagger}\hat{a}$ — is the one we build on next, because $\hat{a}^{\dagger}\hat{a}$ turns out to have a beautifully simple eigenvalue spectrum: the non-negative integers.</p>
+    </div>
+</section>
+
+<section class="section" id="number-operator">
+    <div class="section-header">
+        <span class="section-icon">🔢</span>
+        <h2 class="section-title">The Number Operator &amp; Energy Quantization</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Definition and non-negativity</h3>
+        <p>Define the <strong>number operator</strong> $\hat{N} \equiv \hat{a}^{\dagger}\hat{a}$, so that $\hat{H} = \hbar\omega\left(\hat{N}+\tfrac12\right)$. Suppose $\phi_n$ is a normalized eigenstate, $\hat{N}\phi_n = n\phi_n$. Then $n$ must be real and non-negative, because:</p>
+        <div class="math">$$n = \langle \phi_n | \hat{N} | \phi_n \rangle = \langle \phi_n | \hat{a}^{\dagger}\hat{a} | \phi_n \rangle = \langle \hat{a}\phi_n | \hat{a}\phi_n \rangle = \big\|\hat{a}\phi_n\big\|^2 \geq 0$$</div>
+        <p>(The middle step moves $\hat a$ from the ket to the bra, which is legal precisely because $\hat a^{\dagger}$ is the operator you get when you do that — that's what "dagger" means.) So every eigenvalue of $\hat N$ is a non-negative real number, and — because $\langle\phi_n|\phi_m\rangle=\delta_{nm}$ for the (Hermitian) $\hat N$'s eigenstates — the states form an orthonormal set indexed by these eigenvalues.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">How $\hat a$ and $\hat a^{\dagger}$ shift the ladder</h3>
+        <p>Use the fundamental commutator $[\hat a,\hat a^{\dagger}]=1$ together with the commutator identities (distributive and associative properties covered in the commutator supplement) to find $[\hat N,\hat a]$ and $[\hat N,\hat a^{\dagger}]$:</p>
+        <div class="math">$$[\hat N,\hat a] = [\hat a^{\dagger}\hat a,\hat a] = \hat a^{\dagger}[\hat a,\hat a] + [\hat a^{\dagger},\hat a]\hat a = 0 + (-1)\hat a = -\hat a$$</div>
+        <div class="math">$$[\hat N,\hat a^{\dagger}] = [\hat a^{\dagger}\hat a,\hat a^{\dagger}] = \hat a^{\dagger}[\hat a,\hat a^{\dagger}] + [\hat a^{\dagger},\hat a^{\dagger}]\hat a = \hat a^{\dagger}(1) + 0 = \hat a^{\dagger}$$</div>
+        <p>Now apply these to an eigenstate $\phi_n$ of $\hat N$. From $[\hat N,\hat a] = -\hat a$, i.e. $\hat N\hat a = \hat a\hat N - \hat a = \hat a(\hat N - 1)$:</p>
+        <div class="math">$$\hat N(\hat a\phi_n) = \hat a(\hat N-1)\phi_n = \hat a(n-1)\phi_n = (n-1)(\hat a\phi_n)$$</div>
+        <p>So $\hat a\phi_n$ is itself an eigenstate of $\hat N$, with eigenvalue exactly one less than $n$ — hence $\hat a$ is called the <strong>lowering (annihilation) operator</strong>. The identical argument with $[\hat N,\hat a^{\dagger}]=\hat a^{\dagger}$ gives</p>
+        <div class="math">$$\hat N(\hat a^{\dagger}\phi_n) = (n+1)(\hat a^{\dagger}\phi_n)$$</div>
+        <p>so $\hat a^{\dagger}$ is the <strong>raising (creation) operator</strong>: it produces a new eigenstate one rung higher.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Why $n$ must be a non-negative integer</h3>
+        <p>Here is the crux of the algebraic method. Start from any eigenstate $\phi_n$ with $n\geq 0$ (proven above) and apply $\hat a$ repeatedly: $\hat a\phi_n$, $\hat a^2\phi_n$, $\hat a^3\phi_n,\dots$ Each application lowers the $\hat N$-eigenvalue by exactly 1: $n, n-1, n-2,\dots$. If $n$ were <em>not</em> an integer, this sequence would eventually pass through a negative eigenvalue — but we just showed every eigenvalue of $\hat N$ must satisfy $n\geq 0$. That is a contradiction, <em>unless</em> the lowering sequence terminates cleanly by producing the zero vector exactly when the eigenvalue reaches $0$. The only way the strictly-integer-spaced ladder $n, n-1, n-2,\dots$ can hit the floor $n=0$ exactly (rather than overshooting into forbidden negative values) is if $n$ was a non-negative integer to begin with. Hence:</p>
+        <div class="math">$$n = 0, 1, 2, 3, \dots \qquad \text{and} \qquad \hat a\,\phi_0 = 0$$</div>
+        <p>The state $\phi_0$ — annihilated by the lowering operator — is the <strong>ground state</strong>, the bottom rung of the ladder. Every other stationary state is reached from it by repeated raising.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Energy eigenvalues</h3>
+        <p>Since $\hat H = \hbar\omega(\hat N + \tfrac12)$ and $\hat N\phi_n = n\phi_n$:</p>
+        <div class="math">$$\hat H \phi_n = \hbar\omega\left(n+\frac{1}{2}\right)\phi_n = E_n\,\phi_n \qquad\Longrightarrow\qquad \boxed{E_n = \hbar\omega\left(n+\frac{1}{2}\right)}$$</div>
+        <p>Note the ground-state energy is $E_0 = \tfrac12\hbar\omega \neq 0$ — the famous <strong>zero-point energy</strong>. It is a direct, unavoidable consequence of the Heisenberg uncertainty principle: a particle strictly at rest at $x=0$ ($\Delta x=0, \Delta p=0$) is forbidden.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Normalized ladder action</h3>
+        <p>We know $\hat a\phi_n \propto \phi_{n-1}$ and $\hat a^{\dagger}\phi_n \propto \phi_{n+1}$; we just need the proportionality constants. Using $\langle \hat a\phi_n|\hat a\phi_n\rangle = \langle \phi_n|\hat a^{\dagger}\hat a|\phi_n\rangle = \langle\phi_n|\hat N|\phi_n\rangle = n$, and writing $\hat a\phi_n = c_n\phi_{n-1}$ with $\phi_{n-1}$ normalized, we get $|c_n|^2 = n$. Similarly $\langle \hat a^{\dagger}\phi_n|\hat a^{\dagger}\phi_n\rangle = \langle\phi_n|\hat a\hat a^{\dagger}|\phi_n\rangle = \langle\phi_n|(\hat N+1)|\phi_n\rangle = n+1$. Choosing the conventional (real, positive) phase for both constants gives exactly the instructor's reference formulas:</p>
+        <div class="math">$$\hat N\phi_n = n\phi_n, \qquad \hat a\,\phi_n = \sqrt{n}\,\phi_{n-1}, \qquad \hat a^{\dagger}\,\phi_n = \sqrt{n+1}\,\phi_{n+1}, \qquad \langle\phi_n|\phi_m\rangle = \delta_{nm}$$</div>
+        <p>Applying $\hat a^{\dagger}$ repeatedly to the ground state and tracking the accumulated normalization factors gives every excited state without ever solving a differential equation beyond the ground state itself:</p>
+        <div class="math">$$\phi_n = \frac{1}{\sqrt{n!}}\left(\hat a^{\dagger}\right)^n \phi_0$$</div>
+    </div>
+
+    <div class="anchor">
+        <div class="anchor-title">⚓ Memory Anchor: The Ladder Picture</div>
+        <p style="margin-bottom:0;">Picture a literal ladder of evenly spaced energy rungs, spacing $\hbar\omega$, with the ground state $\phi_0$ (energy $\tfrac12\hbar\omega$) on the bottom rung. <strong>$\hat a^{\dagger}$ climbs up one rung — it adds exactly one quantum of energy $\hbar\omega$ to the system.</strong> <strong>$\hat a$ climbs down one rung — it removes one quantum $\hbar\omega$.</strong> You cannot climb below the bottom rung: applying $\hat a$ to $\phi_0$ doesn't give $\phi_{-1}$, it gives zero (the null vector, not a physical state). This is exactly the "cat climbing a ladder" picture in Griffiths Figure 2.5 — worth sketching from memory before the exam.</p>
+    </div>
+
+    <div class="misconception">
+        <div class="misconception-title">⚠️ Common Misconception</div>
+        <p class="misconception-explanation" style="margin-bottom:0;">Students often assume $\hat a$ and $\hat a^{\dagger}$ are each Hermitian, or try to treat them as observables you could "measure directly." They are <strong>not</strong> Hermitian — $\hat a^{\dagger} \neq \hat a$, by construction (check the sign on the $\hat p$ term in the two definitions). Because they're non-Hermitian, they do not correspond to any physically measurable quantity by themselves, and they don't have a probabilistic-measurement interpretation the way $\hat x$, $\hat p$, or $\hat H$ do. What <em>is</em> Hermitian — and therefore <em>is</em> a legitimate observable — is the combination $\hat N=\hat a^{\dagger}\hat a$ (and, of course, $\hat H$ itself, which is built from $\hat N$). Only $\hat N$'s eigenvalues are things you could in principle measure; $\hat a$ and $\hat a^{\dagger}$ are bookkeeping devices for moving between eigenstates, not measurable quantities in their own right.</p>
+    </div>
+</section>
+
+<section class="section" id="dirac-notation">
+    <div class="section-header">
+        <span class="section-icon">🔤</span>
+        <h2 class="section-title">A Practical First Look at Dirac Notation</h2>
+    </div>
+    <p>You may have noticed the notation above quietly shifted from $\phi_n(x)$ (a function of $x$) to $|\phi_n\rangle$ and $\langle\phi_n|\phi_m\rangle$ (abstract symbols with no explicit $x$-dependence). This is <strong>Dirac notation</strong>, and at this stage in the course you only need a practical, working level of it — the full formal treatment of Hilbert space, operators, and change-of-representation comes later, in <strong>Topic 6: Formal Theory and Matrix Methods</strong>.</p>
+    <div class="subsection">
+        <h3 class="subsection-title">Kets, bras, and the inner product</h3>
+        <p>Just as an ordinary vector $\vec F$ can be written abstractly or resolved into components along a chosen set of axes, a quantum state can be written abstractly as a <strong>ket</strong> $|\phi\rangle$, or resolved into components in a chosen <strong>representation</strong> — most often the coordinate representation, where the ket becomes the wave function $\phi(x)$. Formally:</p>
+        <div class="math">$$|\phi\rangle \;\longleftrightarrow\; \phi(x), \qquad \langle\phi| \;\longleftrightarrow\; \phi^{*}(x)$$</div>
+        <p>The dual object $\langle\phi|$ is called a <strong>bra</strong>; together a bra and a ket combine into a "bra-ket" — the <strong>inner product</strong>:</p>
+        <div class="math">$$\langle \psi | \phi \rangle \equiv \int_{-\infty}^{\infty} \psi^{*}(x)\,\phi(x)\,dx$$</div>
+        <p>This is exactly the overlap integral you already compute for normalization and orthogonality checks — Dirac notation just gives it a representation-free name. The TISE $\hat H\phi_n = E_n\phi_n$ becomes $\hat H|\phi_n\rangle = E_n|\phi_n\rangle$, with no change in content, only in bookkeeping.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Why it's the natural language for ladder operators</h3>
+        <p>The ladder-operator relations from the previous section read most cleanly in this notation, which is exactly why the instructor introduces it here rather than waiting for Topic 6:</p>
+        <div class="math">$$\hat N|\phi_n\rangle = n|\phi_n\rangle, \qquad \hat a|\phi_n\rangle = \sqrt{n}\,|\phi_{n-1}\rangle, \qquad \hat a^{\dagger}|\phi_n\rangle = \sqrt{n+1}\,|\phi_{n+1}\rangle$$</div>
+        <p>There's no coordinate $x$ anywhere in these relations — which makes sense, because the ladder-operator method never had to solve a differential equation to get the spectrum. It's a purely algebraic, representation-free result. You only need to drop back into the coordinate representation ($\phi_n(x)$) when you want to plot a wave function or compute an integral explicitly, as in the worked example below.</p>
+    </div>
+</section>
+
+<section class="section" id="worked-example">
+    <div class="section-header">
+        <span class="section-icon">✏️</span>
+        <h2 class="section-title">Worked Example: Building $\phi_0$ and $\phi_1$ Explicitly</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Step 1 — Solve $\hat a\,\phi_0 = 0$ for the ground state</h3>
+        <p>In the coordinate representation, $\hat p = -i\hbar\,d/dx$, so the condition $\hat a\phi_0=0$ becomes:</p>
+        <div class="math">$$\sqrt{\frac{m\omega}{2\hbar}}\left(x + \frac{i}{m\omega}\left(-i\hbar\frac{d}{dx}\right)\right)\phi_0(x) = 0 \;\;\Longrightarrow\;\; x\,\phi_0 + \frac{\hbar}{m\omega}\frac{d\phi_0}{dx} = 0$$</div>
+        <p>This is a first-order, separable ODE:</p>
+        <div class="math">$$\frac{d\phi_0}{dx} = -\frac{m\omega}{\hbar}\,x\,\phi_0 \;\;\Longrightarrow\;\; \int\frac{d\phi_0}{\phi_0} = -\frac{m\omega}{\hbar}\int x\,dx \;\;\Longrightarrow\;\; \ln\phi_0 = -\frac{m\omega}{2\hbar}x^2 + \text{const.}$$</div>
+        <div class="math">$$\phi_0(x) = A\,e^{-\frac{m\omega}{2\hbar}x^2}$$</div>
+        <p>Normalize using $\int_{-\infty}^{\infty} e^{-m\omega x^2/\hbar}\,dx = \sqrt{\pi\hbar/m\omega}$ (a standard Gaussian integral):</p>
+        <div class="math">$$1 = |A|^2\sqrt{\frac{\pi\hbar}{m\omega}} \;\;\Longrightarrow\;\; A = \left(\frac{m\omega}{\pi\hbar}\right)^{1/4} \;\;\Longrightarrow\;\; \boxed{\phi_0(x) = \left(\frac{m\omega}{\pi\hbar}\right)^{1/4} e^{-\frac{m\omega}{2\hbar}x^2}}$$</div>
+        <p>As a check, plug this directly into $\hat H = \hbar\omega(\hat a^{\dagger}\hat a + \tfrac12)$ and use $\hat a\phi_0=0$: $\hat H\phi_0 = \hbar\omega\cdot\tfrac12\,\phi_0$, confirming $E_0 = \tfrac12\hbar\omega$ without needing to touch the differential equation a second time.</p>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">Step 2 — Generate $\phi_1$ by applying $\hat a^{\dagger}$</h3>
+        <p>By the normalized ladder relation, $\hat a^{\dagger}\phi_0 = \sqrt{0+1}\,\phi_1 = \phi_1$ — no extra normalization needed. Compute directly:</p>
+        <div class="math">$$\hat a^{\dagger}\phi_0 = \sqrt{\frac{m\omega}{2\hbar}}\left(x - \frac{i\hat p}{m\omega}\right)\phi_0 = \sqrt{\frac{m\omega}{2\hbar}}\left(x\,\phi_0 - \frac{\hbar}{m\omega}\frac{d\phi_0}{dx}\right)$$</div>
+        <p>Using the ODE result $d\phi_0/dx = -(m\omega/\hbar)\,x\,\phi_0$ from Step 1, the derivative term becomes $-\frac{\hbar}{m\omega}\cdot\left(-\frac{m\omega}{\hbar}x\phi_0\right) = x\phi_0$, so both terms in the parentheses add:</p>
+        <div class="math">$$\hat a^{\dagger}\phi_0 = \sqrt{\frac{m\omega}{2\hbar}}\,\big(2x\,\phi_0\big) = \sqrt{\frac{2m\omega}{\hbar}}\;x\,\phi_0$$</div>
+        <div class="math">$$\boxed{\phi_1(x) = \left(\frac{m\omega}{\pi\hbar}\right)^{1/4}\sqrt{\frac{2m\omega}{\hbar}}\;x\;e^{-\frac{m\omega}{2\hbar}x^2}}$$</div>
+        <p>Notice $\phi_1$ is odd in $x$ while $\phi_0$ is even — a pattern that continues ($\phi_n$ has parity $(-1)^n$), and one you can use as a fast sanity check on any oscillator wave function you compute.</p>
+    </div>
+</section>
+
+<section class="section" id="analytic-method">
+    <div class="section-header">
+        <span class="section-icon">📐</span>
+        <h2 class="section-title">The Analytic Method (Summary)</h2>
+    </div>
+    <p>Griffiths &amp; Schroeter §2.3.2 solves the same Schrödinger equation directly, as a power series, without ever introducing $\hat a$ or $\hat a^{\dagger}$. It's worth knowing this approach exists and agrees with the algebraic result — but it is <em>not</em> the emphasis of this course, so we summarize only the key waypoints.</p>
+    <div class="subsection">
+        <h3 class="subsection-title">The recipe, in outline</h3>
+        <ul>
+            <li>Introduce the dimensionless variable $\xi \equiv \sqrt{m\omega/\hbar}\,x$ and $K \equiv 2E/\hbar\omega$; the TISE becomes $\dfrac{d^2\psi}{d\xi^2} = (\xi^2 - K)\psi$.</li>
+            <li>Peel off the correct large-$\xi$ asymptotic behavior by writing $\psi(\xi) = h(\xi)\,e^{-\xi^2/2}$, which turns the equation into the <strong>Hermite differential equation</strong>: $h'' - 2\xi h' + (K-1)h = 0$.</li>
+            <li>Solve by power series, $h(\xi) = \sum_j a_j \xi^j$. The recursion relation connects $a_{j+2}$ to $a_j$; left unconstrained, the series produces a function that blows up like $e^{\xi^2}$ at large $\xi$ — not normalizable.</li>
+            <li><strong>The series must terminate</strong> after a finite number of terms to be physically acceptable. Termination at power $\xi^n$ forces $K = 2n+1$ for a non-negative integer $n$ — reproducing exactly the same quantization condition found algebraically.</li>
+        </ul>
+        <p>Since $K \equiv 2E/\hbar\omega$, the condition $K=2n+1$ gives right back:</p>
+        <div class="math">$$E_n = \left(n+\frac{1}{2}\right)\hbar\omega \qquad n = 0,1,2,\dots$$</div>
+        <p>— identical to the algebraic result, obtained by a completely independent method. The terminating polynomials $h_n(\xi)$ are (up to normalization) the <strong>Hermite polynomials</strong> $H_n(\xi)$: $H_0=1$, $H_1=2\xi$, $H_2=4\xi^2-2$, $H_3=8\xi^3-12\xi$, etc. The final normalized stationary states are</p>
+        <div class="math">$$\psi_n(x) = \left(\frac{m\omega}{\pi\hbar}\right)^{1/4}\frac{1}{\sqrt{2^n n!}}\,H_n(\xi)\,e^{-\xi^2/2}$$</div>
+        <p>which reproduce $\phi_0$ and $\phi_1$ from the worked example above term for term ($H_0=1$ and $H_1=2\xi$ respectively), confirming the two methods are two roads to the same destination.</p>
+    </div>
+
+    <div class="physics-extension">
+        Quantized harmonic oscillators are the starting point for describing phonons (quantized lattice vibrations in a crystal, central to thermal and electronic transport in semiconductors), molecular vibrational spectra in infrared spectroscopy, and single modes of the quantized electromagnetic field in quantum optics and superconducting-qubit engineering. In every one of these systems, engineers use exactly the $\hat a, \hat a^{\dagger}, \hat N=\hat a^{\dagger}\hat a$ algebra derived here — "creating" and "annihilating" a phonon, a vibrational quantum, or a photon is literally the ladder operator acting on a number state $|n\rangle$. A modern transmon superconducting qubit, for instance, is engineered specifically to be an <em>anharmonic</em> oscillator — deliberately breaking the perfectly even $\hbar\omega$ level spacing you derived above — precisely so that the $|0\rangle \leftrightarrow |1\rangle$ transition can be addressed without also driving $|1\rangle\leftrightarrow|2\rangle$.
+    </div>
+</section>
+
+<section class="section" id="practice-problems">
+    <div class="section-header">
+        <span class="section-icon">✍️</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+
+    <div class="hw-feedback">
+        <div class="hw-feedback-title">📋 Common Pitfalls &amp; Self-Check (Homework #3)</div>
+        <p>No solution PDF was exported for Homework #3, so the notes below are general instructor-style guidance on where students most often lose points on this material — not claimed grader comments on any specific submission.</p>
+        <ul style="margin-bottom:0;">
+            <li><strong>Sign errors in $\hat a,\hat a^{\dagger}$.</strong> The $+i\hat p$ vs. $-i\hat p$ distinction between $\hat a$ and $\hat a^{\dagger}$ is the single most common source of a wrong-sign commutator. Write out both definitions side by side before multiplying.</li>
+            <li><strong>Forgetting operator order matters.</strong> $\hat a\hat a^{\dagger} \neq \hat a^{\dagger}\hat a$ — they differ by exactly 1. If your two computations of $\hat H$ (via $\hat a\hat a^{\dagger}$ and via $\hat a^{\dagger}\hat a$) don't differ by $\hbar\omega$, you swapped an order somewhere.</li>
+            <li><strong>Skipping the normalization check.</strong> $\hat a^{\dagger}\phi_n = \sqrt{n+1}\,\phi_{n+1}$, not just "$\propto \phi_{n+1}$." Losing the $\sqrt{n+1}$ (or $\sqrt n$) factor is a very common partial-credit deduction.</li>
+            <li><strong>Treating $\hat a$ as Hermitian when computing expectation values.</strong> When you need $\langle x\rangle$ or $\langle x^2\rangle$, substitute $\hat x = \sqrt{\hbar/2m\omega}\,(\hat a+\hat a^{\dagger})$ and use the ladder action term by term — do not assume $\langle\phi_n|\hat a|\phi_n\rangle$ is real or nonzero (it's always exactly zero, since $\hat a\phi_n \propto \phi_{n-1} \perp \phi_n$).</li>
+            <li><strong>Not showing the termination argument.</strong> Full credit for "derive $E_n$" problems requires the non-negative-norm argument for why $n$ must be a non-negative integer — simply asserting $\hat H = \hbar\omega(n+\tfrac12)$ skips the actual physics content the problem is testing.</li>
+        </ul>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 1</div>
+        <div class="question-text">Starting only from $[\hat x,\hat p] = i\hbar$ and the definitions of $\hat a$ and $\hat a^{\dagger}$, derive $[\hat a,\hat a^{\dagger}]=1$. Show every step — do not simply cite the result.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>$$\hat a\hat a^{\dagger} = \frac{m\omega}{2\hbar}\left(\hat x+\frac{i\hat p}{m\omega}\right)\left(\hat x-\frac{i\hat p}{m\omega}\right) = \frac{1}{2\hbar m\omega}\Big[\hat p^2+(m\omega\hat x)^2\Big] - \frac{i}{2\hbar}\big(\hat x\hat p-\hat p\hat x\big)$$</p>
+                <p>$$\hat a^{\dagger}\hat a = \frac{1}{2\hbar m\omega}\Big[\hat p^2+(m\omega\hat x)^2\Big] + \frac{i}{2\hbar}\big(\hat x\hat p-\hat p\hat x\big)$$</p>
+                <p>Subtracting: $\hat a\hat a^{\dagger}-\hat a^{\dagger}\hat a = -\dfrac{i}{\hbar}(\hat x\hat p-\hat p\hat x) = -\dfrac{i}{\hbar}[\hat x,\hat p] = -\dfrac{i}{\hbar}(i\hbar) = 1$. Hence $[\hat a,\hat a^{\dagger}]=1$. $\blacksquare$</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 2</div>
+        <div class="question-text">Using $\hat x = \sqrt{\hbar/2m\omega}\,(\hat a+\hat a^{\dagger})$ and the ladder action on $\phi_n$, show that $\langle\phi_n|\hat x|\phi_n\rangle = 0$ for every $n$, and find $\langle\phi_n|\hat x^2|\phi_n\rangle$.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>$\hat x\phi_n = \sqrt{\hbar/2m\omega}\,(\sqrt n\,\phi_{n-1}+\sqrt{n+1}\,\phi_{n+1})$. Both $\phi_{n-1}$ and $\phi_{n+1}$ are orthogonal to $\phi_n$, so $\langle\phi_n|\hat x|\phi_n\rangle = 0$ for every $n$ (the oscillator has no permanent displacement, as symmetry of $V(x)$ about $x=0$ demands).</p>
+                <p>For $\hat x^2$, expand: $\hat x^2 = \dfrac{\hbar}{2m\omega}\big[\hat a^2 + \hat a\hat a^{\dagger}+\hat a^{\dagger}\hat a+(\hat a^{\dagger})^2\big]$. The $\hat a^2$ and $(\hat a^{\dagger})^2$ terms move $\phi_n$ to $\phi_{n\pm2}$, both orthogonal to $\phi_n$, so they drop out of the expectation value. Only the middle two terms survive:</p>
+                <p>$$\langle\phi_n|\hat x^2|\phi_n\rangle = \frac{\hbar}{2m\omega}\langle\phi_n|(\hat a\hat a^{\dagger}+\hat a^{\dagger}\hat a)|\phi_n\rangle = \frac{\hbar}{2m\omega}\big[(n+1)+n\big] = \frac{\hbar}{m\omega}\left(n+\frac{1}{2}\right)$$</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 3</div>
+        <div class="question-text">Construct $\phi_2(x)$ by applying $\hat a^{\dagger}$ twice to the normalized ground state $\phi_0$ and dividing by the correct normalization factor. Write the result in closed form.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>From $\phi_n = \frac{1}{\sqrt{n!}}(\hat a^{\dagger})^n\phi_0$ with $n=2$: $\phi_2 = \frac{1}{\sqrt2}(\hat a^{\dagger})^2\phi_0 = \frac{1}{\sqrt2}\hat a^{\dagger}\phi_1$.</p>
+                <p>Applying $\hat a^{\dagger} = \sqrt{m\omega/2\hbar}\,(x - (\hbar/m\omega)\,d/dx)$ to the $\phi_1$ found in the worked example and simplifying (the algebra parallels Step 2 of the worked example) gives, after normalization,</p>
+                <p>$$\phi_2(x) = \left(\frac{m\omega}{\pi\hbar}\right)^{1/4}\frac{1}{\sqrt{2}}\left(\frac{2m\omega}{\hbar}x^2 - 1\right)e^{-\frac{m\omega}{2\hbar}x^2}$$</p>
+                <p>which matches the analytic-method prediction $\psi_2 \propto H_2(\xi)\,e^{-\xi^2/2} = (4\xi^2-2)e^{-\xi^2/2}$ up to the overall normalization convention, confirming the two methods agree at $n=2$ as well.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card free-response">
+        <div class="question-number">Problem 4</div>
+        <div class="question-text">A particle in the oscillator potential starts in the superposition $|\psi\rangle = \frac{1}{\sqrt2}\big(|\phi_0\rangle + |\phi_1\rangle\big)$. If you measure the energy, what values can you get, and with what probabilities? Find $\langle\hat H\rangle$.</div>
+        <details>
+            <summary>Show Solution</summary>
+            <div>
+                <p>Since $|\psi\rangle$ is already written as a linear combination of energy eigenstates with coefficients $c_0=c_1=1/\sqrt2$ (and $|c_0|^2+|c_1|^2 = \tfrac12+\tfrac12=1$, correctly normalized), a measurement of energy can only return $E_0=\tfrac12\hbar\omega$ or $E_1=\tfrac32\hbar\omega$, each with probability $|c_n|^2 = \tfrac12$.</p>
+                <p>$$\langle\hat H\rangle = \sum_n |c_n|^2 E_n = \frac12\left(\frac12\hbar\omega\right) + \frac12\left(\frac32\hbar\omega\right) = \hbar\omega$$</p>
+                <p>Note this is a fixed number, independent of time — even though $|\psi(t)\rangle$ itself is not a stationary state and its probability density oscillates in time (at angular frequency $\omega=(E_1-E_0)/\hbar$), $\langle\hat H\rangle$ is conserved, as it must be for any state built from a fixed set of $c_n$'s.</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">⬆️</button>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        const scrollTop = document.getElementById('scrollTop');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = window.scrollY;
+            const progress = (scrolled / docHeight) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const sectionId = link.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const choices = document.querySelectorAll('.choice');
+        choices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                const parent = choice.parentElement;
+                parent.querySelectorAll('.choice').forEach(c => {
+                    if (c.getAttribute('data-correct') === 'true') {
+                        c.classList.add('correct');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
