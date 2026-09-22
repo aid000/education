@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS517 Homework &amp; Solutions</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #14102b;
+            --bg-card: #1e1840;
+            --bg-hover: #2a2158;
+            --accent-blue: #7bdfff;
+            --accent-purple: #b98eff;
+            --accent-green: #5eead4;
+            --accent-orange: #fbbf24;
+            --accent-red: #fb7185;
+            --text-primary: #ece9f7;
+            --text-secondary: #a9a3c7;
+            --border-color: #2a2158;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the CS517 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0c0a1c 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        .course-nav {
+            background: rgba(10, 8, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(123, 223, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(20, 16, 43, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(42, 33, 88, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(42, 33, 88, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(123, 223, 255, 0.08); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .question-text ul, .question-text ol { margin-top: 0.5rem; }
+
+        .qc-connection {
+            background: linear-gradient(135deg, rgba(185, 142, 255, 0.12), rgba(251, 191, 36, 0.08));
+            border-left: 4px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .qc-connection::before {
+            content: "📖 Study tip: ";
+            color: var(--accent-purple); font-weight: 700;
+        }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(123, 223, 255, 0.15), rgba(185, 142, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+        .status-done { color: var(--accent-green); font-weight: 700; }
+        .status-next { color: var(--accent-orange); font-weight: 700; }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">🧮 CS517 Study Guide Home</a>
+        <a href="02-operators-and-mixed-states.html">← Prev: Operators &amp; Mixed States</a>
+        <a href="exam1-review.html">Next: Exam 1 Review →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">🧮 CS517 · Homework &amp; Solutions</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="hw01">HW 01</button>
+            <button class="nav-link" data-section="hw0203">HW 02+03</button>
+            <button class="nav-link" data-section="hw0405">HW 04+05</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#hw01" class="sidebar-link">HW 01</a>
+                <a href="#hw0203" class="sidebar-link">HW 02+03</a>
+                <a href="#hw0405" class="sidebar-link">HW 04+05</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">📝</span>
+        <h2 class="section-title">Overview</h2>
+    </div>
+    <div class="exam-info">
+        <div class="exam-info-title">📋 Why this page exists</div>
+        <p style="margin-bottom:0">Per the instructor: homework is not collected for a grade, but the professor
+        posts <strong>fully worked solutions</strong> alongside every assignment so questions can get answered
+        &ldquo;any time of day or night.&rdquo; Homework is where nearly all of the actual learning in this
+        course happens &mdash; every quiz closely mirrors the most recently assigned homework, so it's
+        essential to work every problem before its quiz, not just skim the solution. This page transcribes all
+        three assignments posted so far, each problem followed by its full solution in a collapsible
+        &ldquo;Show solution&rdquo; box &mdash; try the problem yourself first.</p>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-top:1rem">
+        <tr><th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">Assignment</th>
+            <th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">Covers</th>
+            <th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">Quiz</th>
+            <th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">Status</th></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)"><a href="#hw01" style="color:var(--accent-blue)">HW 01</a></td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Topic 1 &mdash; kets, bras, normalization, overlaps, complex numbers</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Quiz 01+02+03</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)"><span class="status-done">✅ Quiz given Sep 21, 2026</span></td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)"><a href="#hw0203" style="color:var(--accent-blue)">HW 02+03</a></td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Topics 2&ndash;3 &mdash; vectors/matrices, Kronecker products, entanglement &amp; concurrence</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Quiz 01+02+03</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)"><span class="status-done">✅ Quiz given Sep 21, 2026</span></td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)"><a href="#hw0405" style="color:var(--accent-blue)">HW 04+05</a></td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Topics 4&ndash;5 &mdash; classical stats, density operators, trace</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Quiz 04+05</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)"><span class="status-next">📌 Posted Sep 21 &mdash; quiz Mon Sep 28, 2026</span></td></tr>
+    </table>
+    <div class="qc-connection">Since homework isn't graded but quizzes closely mirror it, the highest-leverage use
+    of this page is: solve each problem cold on paper first, <em>then</em> open its solution to check your work —
+    not the other way around. If you got a problem wrong, redo the whole problem rather than just reading the fix.</div>
+</section>
+
+<section class="section" id="hw01">
+    <div class="section-header">
+        <span class="section-icon">1️⃣</span>
+        <h2 class="section-title">Homework #01</h2>
+    </div>
+    <p style="color:var(--text-secondary);font-size:0.9rem">Covers Topic 1 (Pure Quantum States &amp; Superposition). See the <a href="01-quantum-states-and-entanglement.html" style="color:var(--accent-blue)">Topic 01 study guide page</a> for the underlying concepts.</p>
+
+    <div class="question-card">
+        <div class="question-number">Problem 1</div>
+        <div class="question-text">
+            <p>(a) Write a general pure state of a qubit as a ket $|\psi\rangle$ expanded in the computational
+            basis $\{|1\rangle,|2\rangle\}$ with coefficients $c_1$ and $c_2$.</p>
+            <p>(b) Take the Hermitian conjugate of $|\psi\rangle$ from (a) to get its bra in terms of the same
+            coefficients.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|\psi\rangle = c_1|1\rangle+c_2|2\rangle$, where $c_1\equiv\langle1|\psi\rangle$,
+                $c_2\equiv\langle2|\psi\rangle$, and $|c_1|^2+|c_2|^2=1$.</p>
+                <p>(b) Using $|\psi\rangle^\dagger\equiv(|\psi\rangle)^{T*}\equiv\langle\psi|$, and the general
+                rules $|\psi\rangle^\dagger=\langle\psi|$, $c^\dagger=c^*$:</p>
+                <div class="math">$$\langle\psi| = c_1^*\langle1|+c_2^*\langle2|$$</div>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 2</div>
+        <div class="question-text">For a 3-level system (a qutrit) in a pure state, apply the orthonormality
+        condition between the 3 computational basis states $\{|1\rangle,|2\rangle,|3\rangle\}$. Using
+        $\langle j|k\rangle=\delta_{j,k}$, compute all 9 possible overlaps to get each result as a number.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>The computational basis is orthonormal by definition, so it obeys $\langle j|k\rangle=\delta_{j,k}$.
+                All 9 overlaps:</p>
+                <div class="math">$$\langle1|1\rangle=1,\ \langle1|2\rangle=0,\ \langle1|3\rangle=0,\quad \langle2|1\rangle=0,\ \langle2|2\rangle=1,\ \langle2|3\rangle=0,\quad \langle3|1\rangle=0,\ \langle3|2\rangle=0,\ \langle3|3\rangle=1$$</div>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 3</div>
+        <div class="question-text">
+            <p>(a) In a 3-level system, write out a general pure state as a ket with general coefficients $c_k$ in
+            the computational basis $\{|1\rangle,|2\rangle,|3\rangle\}$.</p>
+            <p>(b) Use computational basis bras to extract each coefficient from the state separately, writing
+            each coefficient as an overlap between a bra of the computational basis and the ket of the full
+            state.</p>
+            <p>(c) Write out the 3-level ket's normalization condition in terms of the coefficients (leave them
+            as letter variables — don't substitute in the results of (b)).</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|\psi\rangle=c_1|1\rangle+c_2|2\rangle+c_3|3\rangle$.</p>
+                <p>(b) Applying bra $\langle k|$ to $|\psi\rangle$ and using orthonormality:</p>
+                <div class="math">$$\langle1|\psi\rangle=c_1,\qquad \langle2|\psi\rangle=c_2,\qquad \langle3|\psi\rangle=c_3$$</div>
+                <p>(c) Axiomatically: $|c_1|^2+|c_2|^2+|c_3|^2=1$. Rigorously, starting from $\langle\psi|\psi\rangle=1$,
+                distributing, and using orthonormality to zero every cross term, gives the same result — using
+                $c^*c\equiv|c|^2$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 4</div>
+        <div class="question-text">
+            <p>(a) Show that the following two pure qubit states are orthogonal by computing their overlap (inner
+            product): $|\psi_1\rangle\equiv a|1\rangle+b|2\rangle$, $|\psi_2\rangle\equiv -b^*|1\rangle+a^*|2\rangle$.</p>
+            <p>(b) Find the overlap of $|\psi\rangle\equiv a_1|1\rangle+a_2|2\rangle$ and $|\phi\rangle\equiv
+            b_1|1\rangle+b_2|2\rangle$ in terms of their coefficients.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $\langle\psi_2|\psi_1\rangle = (-b\langle1|+a\langle2|)(a|1\rangle+b|2\rangle) =
+                -ba\langle1|1\rangle - b^2\langle1|2\rangle + a^2\langle2|1\rangle + ab\langle2|2\rangle = -ba+ab = 0$
+                &mdash; so $|\psi_1\rangle$ and $|\psi_2\rangle$ are orthogonal.</p>
+                <p>(b) $\langle\psi|\phi\rangle = (a_1^*\langle1|+a_2^*\langle2|)(b_1|1\rangle+b_2|2\rangle) =
+                a_1^*b_1+a_2^*b_2$. Note there are, in general, <em>two</em> overlaps for any pair of states, and
+                they're complex conjugates of each other: $\langle\phi|\psi\rangle=(\langle\psi|\phi\rangle)^*=a_1b_1^*+a_2b_2^*$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 5</div>
+        <div class="question-text">In the 5-level state $|\psi\rangle\equiv c_1|1\rangle+c_2|2\rangle+c_3|3\rangle+c_4|4\rangle+c_5|5\rangle$,
+        what is the probability that it will collapse to $|3\rangle$ if measured?</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <div class="math">$$p_3 \equiv |c_3|^2$$</div>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 6</div>
+        <div class="question-text">Complex numbers are defined as $z\equiv x+iy$ ($x,y$ real, $i\equiv\sqrt{-1}$)
+        and $z^*\equiv x-iy$ (complex conjugate). The real part is $\operatorname{Re}(z)\equiv x$ and the
+        imaginary part is $\operatorname{Im}(z)\equiv y$ (also real-valued!). Solve for $x$ and $y$ to get
+        formulas for $\operatorname{Re}(z)$ and $\operatorname{Im}(z)$ in terms of only $z$ and $z^*$.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Add $z=x+iy$ and $z^*=x-iy$: $z+z^*=2x \Rightarrow x=\dfrac{z+z^*}{2}$.</p>
+                <p>Subtract: $z-z^*=2iy \Rightarrow y=\dfrac{z-z^*}{2i}$.</p>
+                <div class="math">$$\boxed{\operatorname{Re}(z)=\frac{z+z^*}{2}, \qquad \operatorname{Im}(z)=\frac{z-z^*}{2i}}$$</div>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 7</div>
+        <div class="question-text">
+            <p>(a) Real and imaginary parts of $z$ act like perpendicular vector components, $z=x+iy$, with
+            modulus $|z|\equiv\sqrt{z^*z}$. Plug $z=x+iy$ into this and use $i^2=-1$ to get $|z|$ in terms of $x$
+            and $y$.</p>
+            <p>(b) By $\cos(\phi)\equiv x/|z|$, $\sin(\phi)\equiv y/|z|$, solve for $x$ and $y$ each in terms of
+            $|z|$ and $\phi$.</p>
+            <p>(c) Plug your expressions for $x,y$ from (b) into $z\equiv x+iy$, and use Euler's formula
+            $e^{i\phi}=\cos(\phi)+i\sin(\phi)$ to get $z$ in terms of only $|z|$ and $\phi$ — the &ldquo;polar
+            form&rdquo; of $z$.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|z|=\sqrt{z^*z}=\sqrt{(x-iy)(x+iy)}=\sqrt{x^2+ixy-iyx-i^2y^2}=\sqrt{x^2-(-1)y^2}=\sqrt{x^2+y^2}$.</p>
+                <p>(b) Multiply both sides of each equation by $|z|$: $x=|z|\cos(\phi)$, $y=|z|\sin(\phi)$.</p>
+                <p>(c) $z=x+iy=|z|\cos(\phi)+i|z|\sin(\phi)=|z|\big(\cos(\phi)+i\sin(\phi)\big)$. Using Euler's
+                formula, $\cos(\phi)+i\sin(\phi)=e^{i\phi}$, so:</p>
+                <div class="math">$$\boxed{z=|z|e^{i\phi}}, \qquad |z|=\sqrt{x^2+y^2},\quad \phi=\operatorname{atan2}(y,x)\equiv\arg(z)$$</div>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 8</div>
+        <div class="question-text">
+            <p>For $|\psi\rangle\equiv\cos(\theta)|1\rangle+\sin(\theta)e^{i\phi}|2\rangle$, $\theta\in[0,\frac{\pi}{2}]$,
+            $\phi\in[0,2\pi)$:</p>
+            <p>(a) What is the transition probability from $|\psi\rangle$ to the balanced-superposition state
+            $|{+}\rangle\equiv\frac{1}{\sqrt2}(|1\rangle+|2\rangle)$?</p>
+            <p>(b) What is the quantum interference term in the probability from (a), in terms of $\theta,\phi$?</p>
+            <p>(c) What are the maximum and minimum values of the interference term?</p>
+            <p>(d) What states $|\psi_{\max}\rangle,|\psi_{\min}\rangle$ correspond to the extremes from (c)?</p>
+            <p>(e) What conditions make the interference term 0? What states $|\psi\rangle$ correspond?</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Abbreviate $c_\theta\equiv\cos(\theta)$, $s_\theta\equiv\sin(\theta)$, so
+                $|\psi\rangle=a_1|1\rangle+a_2|2\rangle$ with $a_1=c_\theta$, $a_2=s_\theta e^{i\phi}$.</p>
+                <p>(a) $\langle{+}|\psi\rangle=\frac{1}{\sqrt2}(a_1+a_2)$, so
+                $P_+\equiv|\langle{+}|\psi\rangle|^2=\frac12(a_1^*+a_2^*)(a_1+a_2)=\frac{|a_1|^2}{2}+\frac{|a_2|^2}{2}+\operatorname{Re}(a_1^*a_2)$.
+                Substituting $a_1,a_2$ back in ($c_\theta s_\theta=\frac12\sin(2\theta)$):</p>
+                <div class="math">$$P_+ = \tfrac12+\tfrac12\sin(2\theta)\cos(\phi)$$</div>
+                <p>(b) The interference term is $Q_I \equiv \tfrac12\sin(2\theta)\cos(\phi)$.</p>
+                <p>(c) Since $\sin(\cdot),\cos(\cdot)\in[-1,1]$: $\max(Q_I)=\tfrac12$, $\min(Q_I)=-\tfrac12$.</p>
+                <p>(d) Since $\theta\in[0,\frac\pi2]$, $\sin(2\theta)$ is nonnegative and maxes at
+                $2\theta=\frac\pi2\Rightarrow\theta=\frac\pi4$; $\cos(\phi)$ then controls the sign, maxing at
+                $\phi=0$ and mining at $\phi=\pi$:</p>
+                <div class="math">$$|\psi_{\max}\rangle=\tfrac{1}{\sqrt2}(|1\rangle+|2\rangle) \ (\theta=\tfrac\pi4,\phi=0), \qquad |\psi_{\min}\rangle=\tfrac{1}{\sqrt2}(|1\rangle-|2\rangle) \ (\theta=\tfrac\pi4,\phi=\pi)$$</div>
+                <p>(e) $Q_I=0$ requires $\sin(2\theta)=0$ (i.e. $\theta\in\{0,\frac\pi2\}$) or $\cos(\phi)=0$
+                (i.e. $\phi\in\{\frac\pi2,\frac{3\pi}2\}$). The corresponding states are the computational basis
+                states (up to global phase) and states with relative phase $\pm i$:</p>
+                <div class="math">$$|\psi_0\rangle \in \Big\{\,|1\rangle,\ e^{i\phi}|2\rangle,\ c_\theta|1\rangle+is_\theta|2\rangle,\ c_\theta|1\rangle-is_\theta|2\rangle\,\Big\}$$</div>
+                <p>So the transition probability from $|\psi\rangle$ to $|{+}\rangle$ is purely &ldquo;classical
+                Bayesian&rdquo; (no interference term) exactly when $|\psi\rangle$ is a basis state or has
+                relative phase $\pm i$.</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<section class="section" id="hw0203">
+    <div class="section-header">
+        <span class="section-icon">2️⃣</span>
+        <h2 class="section-title">Homework #02+03</h2>
+    </div>
+    <p style="color:var(--text-secondary);font-size:0.9rem">Covers Topics 2&ndash;3 (Matrix Representations &amp; Entanglement). See the <a href="01-quantum-states-and-entanglement.html" style="color:var(--accent-blue)">Topic 01 study guide page</a>.</p>
+
+    <div class="question-card">
+        <div class="question-number">Problem 1</div>
+        <div class="question-text">
+            <p>(a) Given the general pure state of a qubit $|\psi\rangle=a|1\rangle+b|2\rangle$, write it as a
+            column vector using the Descending-Order Convention (DOC) for the standard basis $\{|1\rangle,|2\rangle\}$.</p>
+            <p>(b) Use the Hermitian conjugate to write the bra of $|\psi\rangle$ from (a) as a row vector.</p>
+            <p>(c) Write out column vectors for both computational basis states separately, and find their bras
+            as row vectors.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|1\rangle\equiv\begin{pmatrix}1\\0\end{pmatrix}$, $|2\rangle\equiv\begin{pmatrix}0\\1\end{pmatrix}$,
+                so $|\psi\rangle=a\begin{pmatrix}1\\0\end{pmatrix}+b\begin{pmatrix}0\\1\end{pmatrix}=\begin{pmatrix}a\\b\end{pmatrix}$.</p>
+                <p>(b) $\langle\psi|\equiv|\psi\rangle^\dagger=\begin{pmatrix}a\\b\end{pmatrix}^{T*}=(a\ \ b)^*=(a^*\ \ b^*)$.</p>
+                <p>(c) $|1\rangle\equiv\begin{pmatrix}1\\0\end{pmatrix}$, $|2\rangle\equiv\begin{pmatrix}0\\1\end{pmatrix}$;
+                bras $\langle1|=(1\ \ 0)$, $\langle2|=(0\ \ 1)$ — the computational basis (and any state with
+                purely real coefficients) is unaffected by complex conjugation. Note also
+                $A^\dagger\equiv A^{T*}\equiv A^{*T}$ (order of $*$ and $T$ doesn't matter).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 2</div>
+        <div class="question-text">For pure states $|\psi\rangle\equiv a_1|1\rangle+a_2|2\rangle$ and
+        $|\phi\rangle\equiv b_1|1\rangle+b_2|2\rangle$, the overlap $\langle\phi|\psi\rangle=b_1^*a_1+b_2^*a_2$
+        can be written as a row-times-column matrix product $\langle\phi|\psi\rangle\equiv(b_1^*\ \
+        b_2^*)\binom{a_1}{a_2}$, giving the general rule $(v_1^*\ \ v_2^*)\binom{w_1}{w_2}\equiv v_1^*w_1+v_2^*w_2$.
+        Using this, find the overlap $\langle\phi|\psi\rangle$ of $|\psi\rangle\equiv\frac{1}{\sqrt5}(|1\rangle+2|2\rangle)$
+        and $|\phi\rangle\equiv\frac{1}{\sqrt{10}}(3|1\rangle-i|2\rangle)$.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>$|\psi\rangle=\frac{1}{\sqrt5}\binom{1}{2}$, $|\phi\rangle=\frac{1}{\sqrt{10}}\binom{3}{-i}$,
+                so $\langle\phi|=\frac{1}{\sqrt{10}}(3\ \ i)$ (starring $-i$ gives $i$).</p>
+                <div class="math">$$\langle\phi|\psi\rangle = \frac{1}{\sqrt{10}}(3\ \ i)\cdot\frac{1}{\sqrt5}\binom12 = \frac{1}{\sqrt{50}}(3\cdot1+i\cdot2) = \frac{1}{5\sqrt2}(3+2i)$$</div>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 3</div>
+        <div class="question-text">
+            <p>(a) Find the total vector from the linear combination $|\Xi\rangle\equiv a|\psi\rangle+b|\phi\rangle$,
+            where $|\psi\rangle\equiv\binom{c_1}{c_2}$, $|\phi\rangle\equiv\binom{d_1}{d_2}$, each normalized.</p>
+            <p>(b) Since $|\psi\rangle,|\phi\rangle$ aren't generally orthogonal, normalize
+            $|\Xi\rangle\equiv\frac{1}{\sqrt{\langle\tilde\Xi|\tilde\Xi\rangle}}|\tilde\Xi\rangle$ — compute
+            $|\Xi\rangle$ as a vector in terms of $a,b,c_1,c_2,d_1,d_2$.</p>
+            <p>(c) Expand the normalization factor, collect the cross terms $a^*b$ and $ab^*$ (which are
+            $\langle\psi|\phi\rangle$ and $\langle\phi|\psi\rangle$), and find the condition on $a,b$ if
+            $|\psi\rangle\perp|\phi\rangle$ and we want this normalization factor to already equal 1.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|\tilde\Xi\rangle=a\binom{c_1}{c_2}+b\binom{d_1}{d_2}=\binom{ac_1+bd_1}{ac_2+bd_2}\equiv\binom{e_1}{e_2}$.</p>
+                <p>(b) $\langle\tilde\Xi|\tilde\Xi\rangle=|e_1|^2+|e_2|^2=|ac_1+bd_1|^2+|ac_2+bd_2|^2$, so</p>
+                <div class="math">$$|\Xi\rangle = \frac{1}{\sqrt{|ac_1+bd_1|^2+|ac_2+bd_2|^2}}\binom{ac_1+bd_1}{ac_2+bd_2}$$</div>
+                <p>(c) Expanding $\langle\tilde\Xi|\tilde\Xi\rangle$ fully and grouping terms:</p>
+                <div class="math">$$\langle\tilde\Xi|\tilde\Xi\rangle = |a|^2\big(|c_1|^2+|c_2|^2\big)+|b|^2\big(|d_1|^2+|d_2|^2\big) + a^*b\big(c_1^*d_1+c_2^*d_2\big)+ab^*\big(c_1d_1^*+c_2d_2^*\big)$$</div>
+                <p>Since $|\psi\rangle,|\phi\rangle$ are each normalized, the first two groups are $|a|^2+|b|^2$;
+                the cross terms are $a^*b\langle\psi|\phi\rangle+ab^*\langle\phi|\psi\rangle=|a|^2+|b|^2+2\operatorname{Re}[a^*b\langle\psi|\phi\rangle]$.
+                If $|\psi\rangle\perp|\phi\rangle$, then $\langle\psi|\phi\rangle=0$, so
+                $\sqrt{\langle\tilde\Xi|\tilde\Xi\rangle}=\sqrt{|a|^2+|b|^2}$. For this to already equal 1 (no
+                normalization needed), $a,b$ must themselves satisfy $|a|^2+|b|^2=1$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 4</div>
+        <div class="question-text">Write out the standard computational basis for a single quantum system with 4
+        levels, using Descending-Order Convention vectors.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <div class="math">$$|1\rangle\equiv\begin{pmatrix}1\\0\\0\\0\end{pmatrix},\ \ |2\rangle\equiv\begin{pmatrix}0\\1\\0\\0\end{pmatrix},\ \ |3\rangle\equiv\begin{pmatrix}0\\0\\1\\0\end{pmatrix},\ \ |4\rangle\equiv\begin{pmatrix}0\\0\\0\\1\end{pmatrix}$$</div>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 5</div>
+        <div class="question-text">Write out the Kronecker product $|\psi\rangle\otimes|\phi\rangle$ of
+        $|\psi\rangle\equiv\binom{\alpha_1}{\alpha_2}$, $|\phi\rangle\equiv\binom{\beta_1}{\beta_2}$ as a single
+        column vector in terms of $\alpha_1,\alpha_2,\beta_1,\beta_2$.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <div class="math">$$|\psi\rangle\otimes|\phi\rangle \equiv \binom{\alpha_1}{\alpha_2}\otimes\binom{\beta_1}{\beta_2} \equiv \binom{\alpha_1\binom{\beta_1}{\beta_2}}{\alpha_2\binom{\beta_1}{\beta_2}} = \begin{pmatrix}\alpha_1\beta_1\\\alpha_1\beta_2\\\alpha_2\beta_1\\\alpha_2\beta_2\end{pmatrix}$$</div>
+                <p>Note: this is <em>not</em> generally the same as $|\phi\rangle\otimes|\psi\rangle$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 6</div>
+        <div class="question-text">
+            <p>(a) Diagram a two-particle system where one mode is a qubit (2 levels) and the other a qutrit (3
+            levels), with each mode's levels shown as horizontal lines and computational basis kets labeled
+            beneath.</p>
+            <p>(b) Write out the ordered bipartite basis using register counting (e.g. $|a\rangle\otimes|b\rangle\equiv|a\rangle|b\rangle\equiv|a,b\rangle\equiv|ab\rangle$).</p>
+            <p>(c) Write out the vector form of each subsystem's computational basis separately, in DOC.</p>
+            <p>(d) Write out the full bipartite basis in vector form using the Kronecker product, in register
+            counting order, and show each state can be labeled by a two-number (vector) index or a single-number
+            (scalar) index counting 1 to 6.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) A &ldquo;$2\times3$&rdquo; system: mode $A$ (qubit) with 2 levels $\{|1^{(A)}\rangle,|2^{(A)}\rangle\}$
+                next to mode $B$ (qutrit) with 3 levels $\{|1^{(B)}\rangle,|2^{(B)}\rangle,|3^{(B)}\rangle\}$.</p>
+                <p>(b) Letting the first mode be $A$ and second be $B$ (so ket position marks which is which):</p>
+                <div class="math">$$\{|1\rangle|1\rangle,\ |1\rangle|2\rangle,\ |1\rangle|3\rangle,\ |2\rangle|1\rangle,\ |2\rangle|2\rangle,\ |2\rangle|3\rangle\} \equiv \{|11\rangle,|12\rangle,|13\rangle,|21\rangle,|22\rangle,|23\rangle\}$$</div>
+                <p>(c) Qubit: $|1\rangle\equiv\binom10$, $|2\rangle\equiv\binom01$. Qutrit:
+                $|1\rangle\equiv\begin{pmatrix}1\\0\\0\end{pmatrix}$, $|2\rangle\equiv\begin{pmatrix}0\\1\\0\end{pmatrix}$,
+                $|3\rangle\equiv\begin{pmatrix}0\\0\\1\end{pmatrix}$.</p>
+                <p>(d) Taking Kronecker products:</p>
+                <div class="math">$$|1\rangle\equiv|1\rangle|1\rangle=\begin{pmatrix}1\\0\\0\\0\\0\\0\end{pmatrix}\!,\ |2\rangle\equiv|1\rangle|2\rangle=\begin{pmatrix}0\\1\\0\\0\\0\\0\end{pmatrix}\!,\ |3\rangle\equiv|1\rangle|3\rangle=\begin{pmatrix}0\\0\\1\\0\\0\\0\end{pmatrix}\!,\ |4\rangle\equiv|2\rangle|1\rangle=\begin{pmatrix}0\\0\\0\\1\\0\\0\end{pmatrix}\!,\ |5\rangle\equiv|2\rangle|2\rangle=\begin{pmatrix}0\\0\\0\\0\\1\\0\end{pmatrix}\!,\ |6\rangle\equiv|2\rangle|3\rangle=\begin{pmatrix}0\\0\\0\\0\\0\\1\end{pmatrix}$$</div>
+                <p>Each state has a two-number vector index (its position within each mode, e.g. $(2,1)$) and a
+                single-number scalar index (its overall position, 1 to 6) — the scalar index follows DOC exactly
+                because register counting with DOC in each mode produces it automatically.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 7</div>
+        <div class="question-text">
+            <p>(a) Expand the separable pure state $|\Xi\rangle\equiv|\psi\rangle\otimes|\phi\rangle$,
+            $|\psi\rangle\equiv a|1\rangle+b|2\rangle$, $|\phi\rangle\equiv c|1\rangle+d|2\rangle$, in both ket form
+            and as a vector.</p>
+            <p>(b) Starting from the final result of (a), show it can be factored back to a Kronecker product of
+            pure states.</p>
+            <p>(c) Try to factor $|\Phi\rangle\equiv\frac{1}{\sqrt2}(|1\rangle\otimes|2\rangle+|2\rangle\otimes|1\rangle)$
+            into a Kronecker product of two pure states. Explain what prevents this.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|\Xi\rangle=(a|1\rangle+b|2\rangle)\otimes(c|1\rangle+d|2\rangle)=ac|1\rangle\otimes|1\rangle+ad|1\rangle\otimes|2\rangle+bc|2\rangle\otimes|1\rangle+bd|2\rangle\otimes|2\rangle
+                = \begin{pmatrix}ac\\ad\\bc\\bd\end{pmatrix}$.</p>
+                <p>(b) From the ket form: $|\Xi\rangle=a|1\rangle\otimes(c|1\rangle+d|2\rangle)+b|2\rangle\otimes(c|1\rangle+d|2\rangle)
+                = (a|1\rangle+b|2\rangle)\otimes(c|1\rangle+d|2\rangle) = |\psi\rangle\otimes|\phi\rangle$.</p>
+                <p>(c) In $|\Phi\rangle$, mode 1 shows a different basis state ($|1\rangle$ or $|2\rangle$) in each
+                term, so no single state can be pulled out of mode 1 — same for mode 2. Therefore $|\Phi\rangle$
+                cannot be written as a single Kronecker product of pure states in each mode. Note:
+                $|1\rangle\otimes|2\rangle$ is separable on its own, as is $|2\rangle\otimes|1\rangle$ — it's the
+                <em>superposition</em> of the two that prevents factorization, which is exactly what makes
+                $|\Phi\rangle$ entangled (it's the Bell state $|\Psi^+\rangle$).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 8</div>
+        <div class="question-text">For each of the following pure states, compute its concurrence to get its
+        entanglement:
+        <ol type="a">
+            <li>$|\psi\rangle = c_1|00\rangle+c_2|01\rangle+c_3|10\rangle+c_4|11\rangle$</li>
+            <li>$|\psi\rangle = as|00\rangle+ha|01\rangle+sg|10\rangle+gh|11\rangle$</li>
+            <li>$|\psi\rangle = \frac12(|00\rangle-|01\rangle+|10\rangle+|11\rangle)$</li>
+            <li>$|\psi\rangle = \frac12(|00\rangle+|01\rangle+|10\rangle+|11\rangle)$</li>
+            <li>$|\psi\rangle = \frac{1}{\sqrt2}(|00\rangle+e^{i\phi}|11\rangle)$</li>
+            <li>$|\psi\rangle = \cos(\theta)|01\rangle-\sin(\theta)|10\rangle$, $\theta\in[0,\frac\pi2]$</li>
+        </ol>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Concurrence for $|\psi\rangle=a|00\rangle+b|01\rangle+c|10\rangle+d|11\rangle$ is
+                $C(|\psi\rangle)\equiv2|ad-bc|$.</p>
+                <p>(a) $C=2|c_1c_4-c_2c_3|$ — generally entangled, but could be separable for particular
+                coefficient values.</p>
+                <p>(b) $C=2|as\cdot gh-ha\cdot sg|=2|aghs-aghs|=0$ &mdash; <strong>separable</strong>.</p>
+                <p>(c) $C=2\left|\tfrac12\cdot\tfrac12-\left(-\tfrac12\right)\tfrac12\right|=2\cdot\tfrac14|1+1|=\tfrac12\cdot2=1$
+                &mdash; <strong>maximally entangled</strong>.</p>
+                <p>(d) $C=2\left|\tfrac12\cdot\tfrac12-\tfrac12\cdot\tfrac12\right|=0$ &mdash; <strong>separable</strong>.</p>
+                <p>(e) $C=2\left|\tfrac{1}{\sqrt2}\cdot\tfrac{e^{i\phi}}{\sqrt2}-0\cdot0\right|=2\cdot\tfrac12|e^{i\phi}|=1$
+                &mdash; <strong>maximally entangled</strong> (for any $\phi$).</p>
+                <p>(f) $C=2|0\cdot0-\cos(\theta)\cdot(-\sin(\theta))|=2|\cos(\theta)\sin(\theta)|=|\sin(2\theta)|=\sin(2\theta)$
+                for $\theta\in[0,\frac\pi2]$ &mdash; <strong>entangled unless $\theta=0$ or $\frac\pi2$</strong>
+                (where it reduces to a single basis state).</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<section class="section" id="hw0405">
+    <div class="section-header">
+        <span class="section-icon">3️⃣</span>
+        <h2 class="section-title">Homework #04+05</h2>
+    </div>
+    <p style="color:var(--text-secondary);font-size:0.9rem">Covers Topics 4&ndash;5 (Classical Statistics &amp; Operators). See the <a href="02-operators-and-mixed-states.html" style="color:var(--accent-blue)">Topic 02 study guide page</a>. <strong>Quiz 04+05 is based on this assignment</strong> — Monday, Sep 28, 2026.</p>
+
+    <div class="question-card">
+        <div class="question-number">Problem 1</div>
+        <div class="question-text">
+            <p>A room's population of 10 people has ages $x_k$: $x_1=5,x_2=24,x_3=18,x_4=7,x_5=35,x_6=42,x_7=89,x_8=5,x_9=13,x_{10}=28$.</p>
+            <p>(a) What is the population mean age?</p>
+            <p>(b) A sample of 5 random people has ages $\{18,5,7,42,13\}$ — what is that sample mean? (A sample
+            mean isn't generally equal to the population mean, though it can be a good estimator for it; that
+            typically requires a sample size of at least 30, so it doesn't apply here.)</p>
+            <p>(c) Make a histogram for the full population using 5 equal-width bins spanning ages 0&ndash;100:
+            define the bin intervals, identify the representative bin value $\tilde x_j$ (midpoint) for each bin,
+            quantize each data point to its bin's representative value, count the bin populations, and draw the
+            histogram.</p>
+            <p>(d) Write the probabilities for each bin in (c); use them to express the average age as a
+            probability-weighted sum of representative bin values, and compare to the population mean (quantization
+            can distort the mean if not enough bins are used).</p>
+            <p>(e) Find the mean of the squared age $x^2$ two ways: directly from the full population, and using
+            the histogram probabilities from (d) to weight a sum of squared representative bin values.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) With $n_P=10$: $\langle x\rangle=\frac{1}{10}(5+24+18+7+35+42+89+5+13+28)=\frac{266}{10}=26.6$
+                years. (It's possible for no individual to actually have the mean age — no one here is
+                &ldquo;normal.&rdquo;)</p>
+                <p>(b) With $n_S=5$: $\bar x=\frac15(18+5+7+42+13)=\frac{85}{5}=17$ years. This happens to be
+                reasonably close to the population mean, but is still not a &ldquo;good&rdquo; estimator with
+                only 5 samples — that generally needs $n_S\gtrsim30$.</p>
+                <p>(c) Bin width $=100/5=20$ years. Bin intervals: $[0,20),[20,40),[40,60),[60,80),[80,100)$, with
+                representative (midpoint) values $\tilde x_1=10,\tilde x_2=30,\tilde x_3=50,\tilde x_4=70,\tilde x_5=90$.
+                Quantized data: $\{10,30,10,10,30,50,90,10,10,30\}$ (for $x_1,\dots,x_{10}$ respectively). Bin
+                populations: $(n_P)_1=5,(n_P)_2=3,(n_P)_3=1,(n_P)_4=0,(n_P)_5=1$ — a bar chart with heights
+                $5,3,1,0,1$ over the five bins.</p>
+                <p>(d) Bin probabilities $p_b=(n_P)_b/n_P$: $p_1=0.5,p_2=0.3,p_3=0.1,p_4=0.0,p_5=0.1$. Weighted
+                average: $\langle x\rangle\approx\sum_bp_b\tilde x_b=0.5(10)+0.3(30)+0.1(50)+0.0(70)+0.1(90)=5+9+5+0+9=28$
+                years — reasonably close to, but not exactly, the true population mean of $26.6$ years; the gap
+                is quantization distortion from using only 5 coarse bins.</p>
+                <p>(e) Direct: $\langle x^2\rangle=\frac{1}{n_P}\sum_kx_k^2=1286.2$ years$^2$. Via histogram:
+                $\langle x^2\rangle\approx\sum_bp_b\tilde x_b^2=1380$ years$^2$. The two don't match exactly for
+                the same reason as (d) — more bins ($n_B=100$ here would give exact agreement for this dataset)
+                shrink the gap. Quantization distortion doesn't apply in a truly discrete system where every
+                outcome gets its own dedicated bin.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 2</div>
+        <div class="question-text">
+            <p>(a) Write the outer products $|j\rangle\langle k|$ of all combinations of the computational basis
+            kets (as vectors) for one qubit.</p>
+            <p>(b) Given the density operator $\rho\equiv\sum_{j,k=1}^{n}\rho_{j,k}|j\rangle\langle k|$, plug in
+            the outer products from (a) to get $\rho$ as a matrix in terms of its elements $\rho_{j,k}$,
+            $j,k\in\{1,2\}$.</p>
+            <p>(c) Given the single-qubit pure state $|\psi\rangle\equiv\cos(\theta)|1\rangle+\sin(\theta)e^{i\phi}|2\rangle$,
+            $\theta\in[0,\frac\pi2]$, $\phi\in[0,2\pi)$, rewrite it as a vector, find its outer product
+            $|\psi\rangle\langle\psi|$, and write out what each matrix element $\rho_{j,k}$ is in terms of
+            $\theta,\phi$.</p>
+            <p>(d) Show the diagonal elements $\rho_{k,k}$ sum to 1 and are each nonnegative, so have a natural
+            interpretation as probabilities.</p>
+            <p>(e) Show that the magnitude of each off-diagonal element $\rho_{j,k\ne j}$ equals the square root
+            of the product of its corresponding diagonal elements $\rho_{j,j}$ and $\rho_{k,k}$ (the geometric
+            mean of the diagonals) — the &ldquo;geometric mean rule&rdquo; for pure states.</p>
+            <p>(f) Using $\rho$ from (c), take its Hermitian conjugate to show it's Hermitian.</p>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|1\rangle\equiv\binom10$, $|2\rangle\equiv\binom01$, bras $\langle1|=(1\ \ 0)$,
+                $\langle2|=(0\ \ 1)$, so:</p>
+                <div class="math">$$|1\rangle\langle1|=\begin{pmatrix}1&0\\0&0\end{pmatrix},\ \ |1\rangle\langle2|=\begin{pmatrix}0&1\\0&0\end{pmatrix},\ \ |2\rangle\langle1|=\begin{pmatrix}0&0\\1&0\end{pmatrix},\ \ |2\rangle\langle2|=\begin{pmatrix}0&0\\0&1\end{pmatrix}$$</div>
+                <p>(b) $\rho=\rho_{1,1}|1\rangle\langle1|+\rho_{1,2}|1\rangle\langle2|+\rho_{2,1}|2\rangle\langle1|+\rho_{2,2}|2\rangle\langle2|
+                = \begin{pmatrix}\rho_{1,1}&\rho_{1,2}\\\rho_{2,1}&\rho_{2,2}\end{pmatrix}$.</p>
+                <p>(c) With $c_\theta\equiv\cos(\theta)$, $s_\theta\equiv\sin(\theta)$: $|\psi\rangle=\binom{c_\theta}{s_\theta e^{i\phi}}$, so</p>
+                <div class="math">$$\rho\equiv|\psi\rangle\langle\psi| = \binom{c_\theta}{s_\theta e^{i\phi}}\big(c_\theta\ \ s_\theta e^{-i\phi}\big) = \begin{pmatrix}c_\theta^2 & \tfrac{s_{2\theta}}{2}e^{-i\phi}\\[4pt] \tfrac{s_{2\theta}}{2}e^{i\phi} & s_\theta^2\end{pmatrix}$$</div>
+                <p>using $s_\theta c_\theta=\tfrac12\sin(2\theta)\equiv\tfrac{s_{2\theta}}2$. So
+                $\rho_{1,1}=c_\theta^2$, $\rho_{1,2}=s_\theta c_\theta e^{-i\phi}$,
+                $\rho_{2,1}=s_\theta c_\theta e^{i\phi}$, $\rho_{2,2}=s_\theta^2$.</p>
+                <p>(d) $\rho_{1,1}+\rho_{2,2}=c_\theta^2+s_\theta^2=1$ by the fundamental trig identity. Since
+                $x^2\ge0$ for real $x$, both $c_\theta^2\ge0$ and $s_\theta^2\ge0$, so $\rho_{j,j}\ge0$ for all
+                $j$ — qualifying $\rho_{j,j}$ as probabilities, since $\sum_j\rho_{j,j}=1$ and $\rho_{j,j}\ge0\ \forall j$.</p>
+                <p>(e) $|\rho_{2,1}|=|s_\theta c_\theta e^{i\phi}|=s_\theta c_\theta$;
+                $|\rho_{1,2}|=s_\theta c_\theta$; and $\sqrt{\rho_{1,1}\rho_{2,2}}=\sqrt{c_\theta^2s_\theta^2}=s_\theta c_\theta$.
+                So $|\rho_{2,1}|=|\rho_{1,2}|=\sqrt{\rho_{1,1}\rho_{2,2}}$ — the geometric mean rule for pure
+                states.</p>
+                <p>(f) $\rho^\dagger=\begin{pmatrix}c_\theta^2 & \frac{s_{2\theta}}2e^{-i\phi}\\ \frac{s_{2\theta}}2e^{i\phi} & s_\theta^2\end{pmatrix}^{T*}
+                =\begin{pmatrix}c_\theta^2 & \frac{s_{2\theta}}2e^{-i\phi}\\ \frac{s_{2\theta}}2e^{i\phi} & s_\theta^2\end{pmatrix}=\rho$
+                — so $\rho^\dagger=\rho$, confirming $\rho$ is Hermitian.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 3</div>
+        <div class="question-text">Write a general operator $A$ in ket-bra form in the computational basis by
+        using $A=IAI$, where each $I$ is expanded using the completeness relation (with a different summation
+        index for each), defining matrix elements $A_{j,k}\equiv\langle j|A|k\rangle$ (but don't write $A$ as a
+        matrix), where $A$ is an $n$-dimensional operator.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Completeness: $I=\sum_{j=1}^n|j\rangle\langle j|$. Plugging into $A=IAI$, using $j$ for the
+                left $I$ and $k$ for the right $I$:</p>
+                <div class="math">$$A = \left(\sum_{j=1}^n|j\rangle\langle j|\right)A\left(\sum_{k=1}^n|k\rangle\langle k|\right) = \sum_{j=1}^n\sum_{k=1}^n|j\rangle\langle j|A|k\rangle\langle k|$$</div>
+                <p>Since $\langle j|A|k\rangle$ is just a number, it can slide past the kets/bras freely. Defining
+                $A_{j,k}\equiv\langle j|A|k\rangle$:</p>
+                <div class="math">$$\boxed{A = \sum_{j=1}^n\sum_{k=1}^nA_{j,k}|j\rangle\langle k|, \qquad A_{j,k}\equiv\langle j|A|k\rangle}$$</div>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 4</div>
+        <div class="question-text">Recalling the trace definition $\operatorname{tr}(A)\equiv\sum_{g=1}^n\langle
+        g|A|g\rangle$, plug in the result of Problem 3 and use orthonormality ($\langle a|b\rangle=\delta_{a,b}$)
+        to express $\operatorname{tr}(A)$ in terms of only matrix elements of $A$.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Substituting $A=\sum_{j,k}A_{j,k}|j\rangle\langle k|$ into the trace definition:</p>
+                <div class="math">$$\operatorname{tr}(A) = \sum_{g=1}^n\langle g|\left(\sum_{j=1}^n\sum_{k=1}^nA_{j,k}|j\rangle\langle k|\right)|g\rangle = \sum_{g=1}^n\sum_{j=1}^n\sum_{k=1}^nA_{j,k}\langle g|j\rangle\langle k|g\rangle = \sum_{g=1}^n\sum_{j=1}^n\sum_{k=1}^nA_{j,k}\delta_{g,j}\delta_{k,g}$$</div>
+                <p>$\delta_{g,j}$ picks out $j=g$ from the $j$-sum, and $\delta_{k,g}$ picks out $k=g$ from the
+                $k$-sum, leaving:</p>
+                <div class="math">$$\boxed{\operatorname{tr}(A) = \sum_{g=1}^nA_{g,g}}$$</div>
+                <p>— the trace is the sum over all diagonal matrix elements of $A$ (equivalently, one could have
+                just used $\langle g|A|g\rangle=A_{g,g}$ directly for an immediate shortcut).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 5</div>
+        <div class="question-text">Using the definition of the trace, show that $\operatorname{tr}(\rho A)$ can
+        be rewritten as $\langle\psi|A|\psi\rangle$ if $\rho\equiv|\psi\rangle\langle\psi|$. (Hint: at some point
+        you'll need to use the completeness relation to simplify something to $I$.)</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Let $B\equiv\rho A$ in $\operatorname{tr}(B)\equiv\sum_{k=1}^n\langle k|B|k\rangle$, then use
+                $\rho=|\psi\rangle\langle\psi|$:</p>
+                <div class="math">$$\operatorname{tr}(\rho A) = \sum_{k=1}^n\langle k|\psi\rangle\langle\psi|A|k\rangle$$</div>
+                <p>Each term is a product of two scalars, so they can be reordered (without flipping the kets and
+                bras themselves) as $\langle\psi|A|k\rangle\langle k|\psi\rangle$, then the sum moved inside to
+                the &ldquo;$k$&rdquo; part:</p>
+                <div class="math">$$\operatorname{tr}(\rho A) = \sum_{k=1}^n\langle\psi|A|k\rangle\langle k|\psi\rangle = \langle\psi|A\left(\sum_{k=1}^n|k\rangle\langle k|\right)|\psi\rangle$$</div>
+                <p>Recognizing the completeness relation $\sum_k|k\rangle\langle k|=I$:</p>
+                <div class="math">$$\operatorname{tr}(\rho A) = \langle\psi|AI|\psi\rangle = \langle\psi|A|\psi\rangle \qquad (\text{using } AI=A)$$</div>
+                <div class="math">$$\boxed{\operatorname{tr}(\rho A) = \langle\psi|A|\psi\rangle}$$</div>
+            </div>
+        </details>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">↑</button>
+
+    <script>
+        const sections = document.querySelectorAll('.section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const scrollTopBtn = document.getElementById('scrollTop');
+
+        function setActive(id) {
+            navLinks.forEach(l => l.classList.toggle('active', l.dataset.section === id));
+            sidebarLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+        }
+
+        function onScroll() {
+            let current = sections[0] ? sections[0].id : '';
+            sections.forEach(sec => {
+                const rect = sec.getBoundingClientRect();
+                if (rect.top <= 160) current = sec.id;
+            });
+            setActive(current);
+
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const pct = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+            progressFill.style.width = pct + '%';
+            progressText.textContent = pct + '%';
+
+            scrollTopBtn.classList.toggle('show', scrollTop > 400);
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const target = document.getElementById(link.dataset.section);
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+        window.addEventListener('scroll', onScroll);
+        onScroll();
+    </script>
+</body>
+</html>

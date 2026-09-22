@@ -5,6 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CS517 Topic [02]: Operators &amp; Mixed States</title>
 
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
     <style>
         :root {
             --bg-dark: #14102b;
@@ -55,21 +94,68 @@
             box-shadow: var(--shadow);
         }
         .header-top {
-            max-width: 1200px; margin: 0 auto; padding: 1.25rem 2rem;
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
         }
         .header-title {
             font-size: 1.8rem; font-weight: 700;
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
-        .header-sub { color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem; }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
 
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
 
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
         .section {
             background: var(--bg-card); border-radius: 12px; padding: 2rem;
             border: 1px solid var(--border-color); box-shadow: var(--shadow);
-            margin-bottom: 2rem; scroll-margin-top: 100px;
+            scroll-margin-top: 150px;
         }
         .section-header {
             display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
@@ -81,17 +167,105 @@
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(42, 33, 88, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(42, 33, 88, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(123, 223, 255, 0.08); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
         p { margin-bottom: 1rem; color: var(--text-primary); }
         strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
         ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
         li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+
+        .misconception {
+            background: rgba(251, 113, 133, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(94, 234, 212, 0.1), rgba(123, 223, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .qc-connection {
+            background: linear-gradient(135deg, rgba(185, 142, 255, 0.12), rgba(251, 191, 36, 0.08));
+            border-left: 4px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .qc-connection::before {
+            content: "⚛ Where this shows up later: ";
+            color: var(--accent-purple); font-weight: 700;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(123, 223, 255, 0.15); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(123, 223, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
 
         .exam-info {
             background: linear-gradient(135deg, rgba(123, 223, 255, 0.15), rgba(185, 142, 255, 0.15));
             border: 2px solid var(--accent-blue); padding: 1.5rem;
             border-radius: 12px; margin: 1rem 0;
         }
-        .exam-info-title { color: var(--accent-blue); font-weight: 700; font-size: 1.15rem; margin-bottom: 0.5rem; }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+        .status-done { color: var(--accent-green); font-weight: 700; }
+        .status-next { color: var(--accent-orange); font-weight: 700; }
 
         .pending-list { display: flex; flex-direction: column; gap: 0.75rem; }
         .pending-item {
@@ -107,14 +281,15 @@
             white-space: nowrap;
         }
 
-        footer {
-            max-width: 1200px; margin: 0 auto; padding: 1rem 2rem 3rem;
-            color: var(--text-secondary); font-size: 0.85rem; text-align: center;
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
         }
-
         @media (max-width: 768px) {
             .container { padding: 1rem; }
-            .section { padding: 1.25rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
             .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
         }
     </style>
@@ -123,64 +298,440 @@
     <div class="course-nav">
         <a href="index.html" class="home-link">🧮 CS517 Study Guide Home</a>
         <a href="01-quantum-states-and-entanglement.html">← Prev: Quantum States &amp; Entanglement</a>
-        <a href="exam1-review.html">Next: Exam 1 Review →</a>
+        <a href="homework.html">Next: Homework →</a>
     </div>
 
     <header>
         <div class="header-top">
             <div class="header-title">🧮 CS517 · Topic [02]: Operators &amp; Mixed States</div>
-            <div class="header-sub">Syllabus module [02] · Weeks 4&ndash;6 · Topics 4&ndash;7 · Exam 1 material</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
         </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="classical-stats">4. Classical Statistics Review</button>
+            <button class="nav-link" data-section="operators">5. Hello, Operator!</button>
+            <button class="nav-link" data-section="bell">5h. Bell&rsquo;s Inequality</button>
+            <button class="nav-link" data-section="coming-next">Coming Next (6&ndash;7)</button>
+            <button class="nav-link" data-section="practice-problems">Practice Problems</button>
+        </nav>
     </header>
 
     <div class="container">
-
-        <section class="section" id="overview">
-            <div class="section-header">
-                <span class="section-icon">🎯</span>
-                <h2 class="section-title">Overview</h2>
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#classical-stats" class="sidebar-link">4. Classical Statistics Review</a>
+                <a href="#operators" class="sidebar-link">5. Hello, Operator!</a>
+                <a href="#bell" class="sidebar-link">5h. Bell&rsquo;s Inequality</a>
+                <a href="#coming-next" class="sidebar-link">Coming Next (6&ndash;7)</a>
+                <a href="#practice-problems" class="sidebar-link">Practice Problems</a>
             </div>
-            <div class="exam-info">
-                <div class="exam-info-title">📋 Where this fits</div>
-                <ul style="margin-bottom:0">
-                    <li><strong>Homework:</strong> HW 04, 05, 06, 07</li>
-                    <li><strong>Quiz:</strong> Quiz 04+05, Quiz 06+07</li>
-                    <li><strong>Exam:</strong> counted on Exam 1 (Ch. 1&ndash;7, Week 7 &mdash; Tue Oct 13)</li>
-                    <li><strong>Reference reading:</strong> Nielsen &amp; Chuang, relevant chapters on measurement postulates and density matrices (not required; course notes are primary)</li>
-                </ul>
-            </div>
-            <p>This page is scaffolded from the official syllabus's Subjects Covered table, module [02] &ldquo;Introduction to Operators and Mixed States.&rdquo; It covers the jump from pure-state superpositions (Topic 1) to the operator formalism &mdash; how measurements are represented, why Bell's inequality rules out local hidden-variable theories, what a unitary operator is and why cloning an unknown quantum state is impossible, and how to describe statistical mixtures of quantum states with density matrices.</p>
-            <p style="color:var(--text-secondary);font-size:0.9rem">This page is scaffolded from the official syllabus's Subjects Covered table. Full derivations, worked examples, and practice problems will be added once the corresponding lecture PDF is posted to Canvas and exported into this course archive &mdash; the same way Lecture [00] (Algebra Review) was built out in full.</p>
+        </aside>
 
-        </section>
+        <main class="main-content">
 
-        <section class="section" id="subtopics">
-            <div class="section-header">
-                <span class="section-icon">📚</span>
-                <h2 class="section-title">Subtopics (from the syllabus)</h2>
-            </div>
-            <div class="pending-list">
-                <div class="pending-item">
-                    <span class="pending-item-title">4. Brief Review of Classical Statistics for Discrete Systems</span>
-                    <span class="pending-tag">Awaiting Lecture Notes</span>
-                </div>
-                <div class="pending-item">
-                    <span class="pending-item-title">5. Hello, Operator!, Bell&rsquo;s Inequality</span>
-                    <span class="pending-tag">Awaiting Lecture Notes</span>
-                </div>
-                <div class="pending-item">
-                    <span class="pending-item-title">6. Unitary Operators, No-Clone Theorem</span>
-                    <span class="pending-tag">Awaiting Lecture Notes</span>
-                </div>
-                <div class="pending-item">
-                    <span class="pending-item-title">7. Quantum Mixed States</span>
-                    <span class="pending-tag">Awaiting Lecture Notes</span>
-                </div>
-            </div>
-        </section>
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview</h2>
+    </div>
+    <div class="exam-info">
+        <div class="exam-info-title">📋 Where this fits</div>
+        <ul style="margin-bottom:0">
+            <li><strong>Homework:</strong> HW 04+05 — <span class="status-done">✅ posted Sep 21, 2026</span> (HW 06+07 posted after next class)</li>
+            <li><strong>Quiz:</strong> Quiz 04+05 — <span class="status-next">📌 in class Mon Sep 28, 2026</span> (based on HW 04+05)</li>
+            <li><strong>Exam:</strong> counted on Exam 1 (Ch. 1&ndash;7, Week 7 &mdash; Tue Oct 13)</li>
+            <li><strong>Source:</strong> Lecture [02] &ldquo;Introduction to Operators and Mixed States,&rdquo; Ch. 4&ndash;5h, Samuel R. Hedemann (delivered Sep 21, 2026)</li>
+        </ul>
+    </div>
+    <p><strong>In plain English:</strong> this lecture covers everything through <strong>Section 5</strong> of
+    syllabus module [02] &mdash; a quick classical-statistics refresher, followed by the idea of an
+    <strong>operator</strong> as something that acts on or represents a quantum state, culminating in the
+    <strong>density operator</strong> $\rho$ (a second way of writing a quantum state, as a matrix instead of a
+    vector) and a full derivation of <strong>Bell's Inequality</strong>. Everything here is fair game for Quiz
+    04+05 next Monday. <strong>Subtopics 6&ndash;7</strong> (unitary operators, the no-clone theorem, and quantum
+    mixed states) are covered in <em>next</em> week's lecture (Sep 28) along with Quiz 04+05 itself — see the
+    <a href="#coming-next">Coming Next</a> section below for what to expect.</p>
+</section>
 
+<section class="section" id="classical-stats">
+    <div class="section-header">
+        <span class="section-icon">📊</span>
+        <h2 class="section-title">4. Brief Review of Classical Statistics for Discrete Systems</h2>
     </div>
 
-    <footer>CS517 / PEP557 Study Guide — self-contained, no build step — open any page directly in a browser.</footer>
+    <div class="subsection">
+        <h3 class="subsection-title">4a&ndash;4b. Population, samples, and random variables</h3>
+        <p>A <strong>population</strong> is the collection of all set members that have some trait, whether
+        measured or not. The total number of members of a discrete population is the population number $n_P$
+        (can be infinite). A <strong>sample</strong> is a subset of the full population, of sample number
+        $n_S\in\{1,\dots,n_P\}$ — a <em>measurement sample</em> is a set of measurements of some trait(s) of
+        various population members. A <strong>variable</strong> is any quantity that can take on a set of
+        different values; it's a <strong>random variable</strong> (RV) if its value can change from one
+        measurement to the next.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">4c. Means (averages)</h3>
+        <p>The <strong>population mean</strong> of random variable $x$ is</p>
+        <div class="math">$$\langle x\rangle \equiv \mu_x \equiv \frac{1}{n_P}\sum_{k=1}^{n_P}x_k$$</div>
+        <p>where $\{x_1,\dots,x_{n_P}\}$ is the set of all actual values in the population, indexed by which
+        individual possesses that value. The <strong>sample mean</strong> is</p>
+        <div class="math">$$\bar x \equiv m_x \equiv \frac{1}{n_S}\sum_{k=1}^{n_S}x_k$$</div>
+        <p>where $\{x_1,\dots,x_{n_S}\}$ is the sample. Under certain conditions $\bar x$ can be a good estimator
+        of $\langle x\rangle$, which is useful when $n_P$ is large (typically requires a sample size of at least
+        $\sim30$ to be a <em>good</em> estimator).</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">4d&ndash;4e. Histogram bins and probability</h3>
+        <p>A <strong>bin</strong> is a range of values assigned a single label; this lets us have finite
+        probability of a value falling in a given bin (a zero-width bin has zero probability). The <strong>bin
+        population</strong> $(n_P)_b$ is the number of population members belonging to bin $b$, out of $n_B$
+        total bins. The <strong>representative bin value</strong> $\tilde x_b$ is the single value every member
+        of bin $b$ is <em>quantized</em> to (e.g. all $3\le x<4$ might get quantized to $\tilde x=3$ or $3.5$, the
+        bin's midpoint).</p>
+        <p>Bin populations must exhaust the whole population, $\sum_{b=1}^{n_B}(n_P)_b=n_P$, so the
+        <strong>probability</strong> that a population member belongs to bin $b$ is $p_b\equiv\frac{(n_P)_b}{n_P}$,
+        and these probabilities automatically sum to 1: $\sum_b p_b = \frac{1}{n_P}\sum_b(n_P)_b = \frac{1}{n_P}n_P=1$.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">4f. Means in terms of probability</h3>
+        <p>After quantizing the population to representative bin values, sub-groups of quantized values add up to
+        the bin count times the representative bin value:</p>
+        <div class="math">$$\langle x\rangle \equiv \mu_x \equiv \frac{1}{n_P}\sum_{k=1}^{n_P}x_k \approx \frac{1}{n_P}\Big[(n_P)_1\tilde x_1+\cdots+(n_P)_{n_B}\tilde x_{n_B}\Big] = \sum_{b=1}^{n_B}\frac{(n_P)_b}{n_P}\tilde x_b = \sum_{b=1}^{n_B}p_b\tilde x_b$$</div>
+        <p>(notice the upper limit of the sum changed from $n_P$ individuals to $n_B$ bins). If the bins are
+        chosen fine enough that quantizing doesn't distort any values ($\tilde x_b=x_b$ exactly), this becomes an
+        exact equality $\langle x\rangle=\sum_b p_b x_b$. The same rule applies to any function $f(x)$ of the RV:
+        $\langle f(x)\rangle=\sum_b p_bf(\tilde x_b)$. This &ldquo;value times probability, summed&rdquo; pattern
+        — $\langle x\rangle=\sum_bp_bx_b$ — is exactly the pattern quantum mechanics reuses for
+        <strong>expectation values</strong> in Section 5g below.</p>
+    </div>
+</section>
+
+<section class="section" id="operators">
+    <div class="section-header">
+        <span class="section-icon">🔧</span>
+        <h2 class="section-title">5. Hello, Operator!</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">5a. Completeness and the Identity Operator</h3>
+        <p>Given an $n$-level pure state in an orthonormal complete basis $\{|b_1\rangle,\dots,|b_n\rangle\}$ as
+        $|\psi\rangle=\sum_{k=1}^n c_k|b_k\rangle$, we can extract the coefficients using orthonormality:</p>
+        <div class="math">$$\langle b_j|\psi\rangle = \sum_{k=1}^n c_k\langle b_j|b_k\rangle = \sum_{k=1}^n c_k\delta_{j,k} = c_j \quad\Rightarrow\quad \boxed{c_k=\langle b_k|\psi\rangle}$$</div>
+        <p>Putting this back into $|\psi\rangle=\sum_k c_k|b_k\rangle$ reveals:</p>
+        <div class="math">$$|\psi\rangle = \sum_{k=1}^n\langle b_k|\psi\rangle|b_k\rangle = \sum_{k=1}^n|b_k\rangle\langle b_k|\,|\psi\rangle = \left(\sum_{k=1}^n|b_k\rangle\langle b_k|\right)|\psi\rangle \equiv I|\psi\rangle = |\psi\rangle$$</div>
+        <p>which gives the <strong>completeness relation</strong>, valid for any orthonormal complete basis:</p>
+        <div class="math">$$\boxed{\sum_{k=1}^n|b_k\rangle\langle b_k| = I}$$</div>
+        <p>where $I$ is the <strong>identity operator</strong>, meaning $I|\psi\rangle=|\psi\rangle$ for any
+        state. The &ldquo;bowties&rdquo; $|b_k\rangle\langle b_k|$ are <strong>outer products</strong> and qualify
+        as <strong>operators</strong> — while overlaps like $\langle b_j|\psi\rangle$ are <strong>inner
+        products</strong> and are always scalars (plain numbers).</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">5b. Representing Operators as Matrices</h3>
+        <p>Recall $\langle\phi|\psi\rangle=c_1^*d_1+c_2^*d_2$ for $|\phi\rangle=c_1|b_1\rangle+c_2|b_2\rangle$,
+        $|\psi\rangle=d_1|b_1\rangle+d_2|b_2\rangle$, and the matrix form $|\psi\rangle\equiv\begin{pmatrix}d_1\\d_2\end{pmatrix}$.
+        Using the &ldquo;index-knitting&rdquo; definition of matrix multiplication — a row vector $1\times2$ times
+        a column vector $2\times1$ — the bra of $|\phi\rangle$ must be a <strong>row</strong> vector:</p>
+        <div class="math">$$\langle b_1|\equiv(1\ \ 0),\quad \langle b_2|\equiv(0\ \ 1) \quad\Rightarrow\quad \langle\phi|\equiv c_1^*\langle b_1|+c_2^*\langle b_2| = (c_1^*\ \ c_2^*)$$</div>
+        <p>This defines the matrix-implementation of the Hermitian conjugate: $|\phi\rangle^\dagger\equiv\langle\phi|=(c_1^*\ \ c_2^*)^T=\big((c_1\ \ c_2)^T\big)^{*T}$,
+        i.e. $\boxed{A^\dagger\equiv A^{*T}=A^{T*}}$, where $T$ is the transpose (row $\leftrightarrow$ column) and
+        $*$ is the elementwise complex conjugate.</p>
+        <p>What about the &ldquo;bowties&rdquo; $|b_j\rangle\langle b_k|$ themselves? Column vectors encode ket
+        basis states <em>vertically</em>; row vectors encode bra basis states <em>horizontally</em> — so their
+        outer product is naturally 2-dimensional, defined as:</p>
+        <div class="math">$$\text{outer product} \equiv |\psi\rangle\langle\phi| \equiv \begin{pmatrix}c_1\\c_2\end{pmatrix}\otimes(d_1^*\ \ d_2^*) \equiv \begin{pmatrix}c_1d_1^* & c_1d_2^*\\ c_2d_1^* & c_2d_2^*\end{pmatrix}$$</div>
+        <p>Using this on the computational basis gives the <strong>elementary basis</strong> of matrices:</p>
+        <div class="math">$$|b_1\rangle\langle b_1|=\begin{pmatrix}1&0\\0&0\end{pmatrix},\ \ |b_1\rangle\langle b_2|=\begin{pmatrix}0&1\\0&0\end{pmatrix},\ \ |b_2\rangle\langle b_1|=\begin{pmatrix}0&0\\1&0\end{pmatrix},\ \ |b_2\rangle\langle b_2|=\begin{pmatrix}0&0\\0&1\end{pmatrix}$$</div>
+        <p>and <em>any</em> operator is a linear combination of these with scalars $A_{j,k}$:</p>
+        <div class="math">$$A \equiv \sum_{j=1}^2\sum_{k=1}^2 A_{j,k}|b_j\rangle\langle b_k| \quad\Rightarrow\quad \boxed{A=\begin{pmatrix}A_{1,1}&A_{1,2}\\A_{2,1}&A_{2,2}\end{pmatrix}}$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">5c&ndash;5d. Motivating the Density (Probability) Operator</h3>
+        <p>Recall $c_k=\langle b_k|\psi\rangle$, and probabilities $p_k=|c_k|^2=c_k^*c_k=(\langle
+        b_k|\psi\rangle)^*\langle b_k|\psi\rangle$. Since $\langle\psi|\equiv|\psi\rangle^\dagger$, one shows
+        $c_k^*=(\langle b_k|\psi\rangle)^*=\langle\psi|b_k\rangle$, so:</p>
+        <div class="math">$$p_k = |c_k|^2 = \langle\psi|b_k\rangle\langle b_k|\psi\rangle = \langle b_k|\psi\rangle\langle\psi|b_k\rangle$$</div>
+        <p>Notice the &ldquo;bowtie&rdquo; quantities $|b_k\rangle\langle b_k|$ and $|\psi\rangle\langle\psi|$
+        both appear here (the first also appeared in the identity operator). Since $|\psi\rangle\langle\psi|$
+        depends only on the <em>state</em>, not the outcome $|b_k\rangle$, we define it as the <strong>probability
+        density operator</strong> of pure state $|\psi\rangle$:</p>
+        <div class="math">$$\boxed{\rho \equiv |\psi\rangle\langle\psi|}$$</div>
+        <p>Inserting the identity $I=\sum_j|b_j\rangle\langle b_j|$ on both sides and defining
+        $\rho_{j,k}\equiv\langle b_j|\rho|b_k\rangle=\langle b_j|\psi\rangle\langle\psi|b_k\rangle=c_jc_k^*$ (just
+        a complex number) gives the representation of $\rho$ in basis $\{|b_k\rangle\}$:</p>
+        <div class="math">$$\rho = \sum_{j=1}^n\sum_{k=1}^n\rho_{j,k}|b_j\rangle\langle b_k|, \qquad p_k=\langle b_k|\psi\rangle\langle\psi|b_k\rangle=\langle b_k|\rho|b_k\rangle=\rho_{k,k}$$</div>
+        <p>so a state's probabilities are just the <strong>diagonal elements</strong> of $\rho$. Using the
+        elementary-basis outer products from 5b, the <strong>density matrix</strong> (the matrix representation
+        of the density operator) for $n=2$ is simply:</p>
+        <div class="math">$$\boxed{\rho = \begin{pmatrix}\rho_{1,1} & \rho_{1,2}\\ \rho_{2,1} & \rho_{2,2}\end{pmatrix}}$$</div>
+        <p>— this is an operator that <em>represents a state</em>, rather than something that <em>happens to</em>
+        a state.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">5e. Basic Anatomy of a Density Matrix</h3>
+        <p><strong>Diagonals</strong> $\rho_{k,k}$ are matrix elements with matching indices, and are
+        <strong>probabilities</strong> for those outcomes. <strong>Off-diagonals</strong> $\rho_{j,k\ne j}$ have
+        different indices and tell us about <em>superposition/coherence</em> between outcomes $j$ and $k$. For
+        pure states, $\rho_{j,k}\equiv\langle b_j|\rho|b_k\rangle=\langle b_j|\psi\rangle\langle\psi|b_k\rangle=c_jc_k^*$
+        — so off-diagonals are generally complex, while diagonals are real and nonnegative:
+        $\rho_{j,j}=c_jc_j^*=|c_j|^2\ge0$.</p>
+        <p>$\rho$ is <strong>Hermitian</strong>, meaning it's invariant under Hermitian conjugation, $\rho^\dagger=\rho$
+        — direct computation on the $2\times2$ case confirms $\rho^\dagger=\begin{pmatrix}\rho_{1,1}&\rho_{1,2}\\\rho_{2,1}&\rho_{2,2}\end{pmatrix}=\rho$,
+        so its elements obey the Hermiticity relation:</p>
+        <div class="math">$$\boxed{\rho_{j,k}^* = \rho_{k,j}}$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">5f. Probabilities in Terms of Operators Only</h3>
+        <p>Starting from $p_k=\langle b_k|\psi\rangle\langle\psi|b_k\rangle=\langle b_k|\rho|b_k\rangle$, insert an
+        identity $I=\sum_j|b_j\rangle\langle b_j|$:</p>
+        <div class="math">$$p_k = \langle b_k|I\rho|b_k\rangle = \sum_{j=1}^n\langle b_j|b_j\rangle\langle b_j|\rho|b_k\rangle = \sum_{j=1}^n\langle b_j|\big(\rho|b_k\rangle\langle b_k|\big)|b_j\rangle$$</div>
+        <p>Defining the <strong>projection operator</strong> $P_k\equiv|b_k\rangle\langle b_k|$ and the
+        <strong>trace</strong> operation $\operatorname{tr}(A)\equiv\sum_j\langle b_j|A|b_j\rangle$ (sum of the
+        diagonal elements $A_{1,1}+\cdots+A_{n,n}$), this simplifies to a remarkably clean form:</p>
+        <div class="math">$$\boxed{p_k = \operatorname{tr}(\rho P_k)}$$</div>
+        <p>which lets us talk about probabilities purely in terms of operators: $\rho$ for the system state, $P_k$
+        for the outcome whose probability we want.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">5g. Mean Values in Terms of Operators</h3>
+        <p>Recall the classical mean $\langle x\rangle=\sum_bp_bx_b$ from Section 4f. Now, recalling
+        $p_k=\operatorname{tr}(\rho P_k)$, what does the more general quantity $\operatorname{tr}(\rho A)$ mean
+        for an arbitrary operator $A$? If $A$ is <em>diagonal</em> in the elementary basis,
+        $A=\sum_jA_{j,j}|b_j\rangle\langle b_j|$, then:</p>
+        <div class="math">$$\operatorname{tr}(\rho A) = \sum_{j=1}^nA_{j,j}\operatorname{tr}(\rho|b_j\rangle\langle b_j|) = \sum_{j=1}^nA_{j,j}\operatorname{tr}(\rho P_j) = \sum_{j=1}^np_jA_{j,j}$$</div>
+        <p>Comparing to the classical mean shows this is exactly a mean value! So for diagonal $A$,
+        $\langle A\rangle=\operatorname{tr}(\rho A)=\sum_jp_jA_{j,j}$, where $A_{j,j}$ are the values associated
+        with each outcome and $p_j=\operatorname{tr}(\rho P_j)$ their probabilities. It turns out this holds even
+        for <em>general, non-diagonal</em> operators $A$:</p>
+        <div class="math">$$\boxed{\langle A\rangle \equiv \langle A\rangle_\rho \equiv \operatorname{tr}(\rho A) = \langle\psi|A|\psi\rangle} \qquad \big(\text{mean/expectation value of observable } A \text{ for state } \rho=|\psi\rangle\langle\psi|\big)$$</div>
+        <p>where $A$ only qualifies as an <strong>observable operator</strong> if it's Hermitian, $A^\dagger=A$
+        (this guarantees mean values are always real, though not necessarily positive unless they're also
+        probabilities). Mean values also depend on the state $\rho$ they're taken with respect to; $\langle
+        A\rangle$ is also called the &ldquo;expectation value of $A$.&rdquo;</p>
+    </div>
+</section>
+
+<section class="section" id="bell">
+    <div class="section-header">
+        <span class="section-icon">🔔</span>
+        <h2 class="section-title">5h. Bell&rsquo;s Inequality</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Derivation of Bell&rsquo;s Inequality</h3>
+        <p>Recall the maximally entangled state $|\Psi^-\rangle=\frac{1}{\sqrt2}\big(|0\rangle\otimes|1\rangle-|1\rangle\otimes|0\rangle\big)$,
+        and imagine two particles starting in this state flying apart, each headed toward a detector measuring
+        its spin component in a direction adjustable at the detector. Bell considered the mean value of the
+        product of spin components for qubits $A$ and $B$:</p>
+        <div class="math">$$\langle\sigma_a\sigma_b\rangle \equiv \langle\Psi^-|\sigma_a\sigma_b|\Psi^-\rangle$$</div>
+        <p>where $\sigma_a\equiv\sigma_a^{(A)}\otimes I^{(B)}=(\boldsymbol\sigma^{(A)}\cdot\mathbf a)\otimes I^{(B)}$
+        is the spin component operator along direction $\mathbf a$ for particle $A$ (similarly $\sigma_b$ for
+        $B$ along $\mathbf b$), built from the Pauli spin operators $\boldsymbol\sigma\equiv(\sigma_x,\sigma_y,\sigma_z)$.
+        Quantum mechanics predicts:</p>
+        <div class="math">$$\langle\sigma_a\sigma_b\rangle = -\mathbf a\cdot\mathbf b = -\cos(\theta_{a,b}); \qquad \theta_{a,b}\equiv\theta_a-\theta_b$$</div>
+        <p>which agrees with experiment. Bell then proposed two <strong>measurement functions</strong>
+        $A(\mathbf a,\lambda)\in\{\pm1\}$ and $B(\mathbf b,\lambda)\in\{\pm1\}$ giving the individual measurement
+        results for particles $A$ and $B$, determined by some hidden variable $\lambda$ with a normalized
+        probability distribution $\rho(\lambda)\ge0$, $\int\rho(\lambda)\,d\lambda=1$. The expectation value of
+        the spin-component product under this hidden-variable model is:</p>
+        <div class="math">$$P(\mathbf a,\mathbf b) \equiv \int\rho(\lambda)A(\mathbf a,\lambda)B(\mathbf b,\lambda)\,d\lambda$$</div>
+        <p>He observed that when $\mathbf a=\mathbf b$ (parallel detectors), $P$ can only equal $-1$, as reality
+        requires, if $B(\mathbf b,\lambda)=-A(\mathbf b,\lambda)$ for every $\lambda$. Substituting this in, and
+        using a second direction $\mathbf c$:</p>
+        <div class="math">$$P(\mathbf a,\mathbf b) = -\int\rho(\lambda)A(\mathbf a,\lambda)A(\mathbf b,\lambda)\,d\lambda, \qquad P(\mathbf a,\mathbf c) = -\int\rho(\lambda)A(\mathbf a,\lambda)A(\mathbf c,\lambda)\,d\lambda$$</div>
+        <p>Taking the difference, inserting $A^2(\mathbf b,\lambda)=1$ in the middle of the second term, factoring,
+        and taking absolute values (using $|\rho(\lambda)|=\rho(\lambda)$, $|A(\mathbf a,\lambda)A(\mathbf
+        b,\lambda)|=1$, and $|1-A(\mathbf b,\lambda)A(\mathbf c,\lambda)|=1-A(\mathbf b,\lambda)A(\mathbf
+        c,\lambda)$ since the product is $\pm1$) eventually yields:</p>
+        <div class="math">$$|P(\mathbf a,\mathbf b)-P(\mathbf a,\mathbf c)| \le \int\rho(\lambda)\,d\lambda - \int\rho(\lambda)A(\mathbf b,\lambda)A(\mathbf c,\lambda)\,d\lambda = 1 - P(\mathbf b,\mathbf c)$$</div>
+        <p>Using $-P(\mathbf b,\mathbf c)=\int\rho(\lambda)A(\mathbf b,\lambda)A(\mathbf c,\lambda)\,d\lambda$ (same
+        substitution with $\mathbf b$ in place of $\mathbf a$) gives <strong>Bell's Inequality</strong>:</p>
+        <div class="math">$$\boxed{|P(\mathbf a,\mathbf b)-P(\mathbf a,\mathbf c)| \le 1+P(\mathbf b,\mathbf c)}$$</div>
+        <p>Bell claimed this inequality must hold for <em>any</em> local hidden-variable theory of this system.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Violations of Bell&rsquo;s Inequality</h3>
+        <p>To see how quantum results can <em>violate</em> this inequality, consider one experiment with $\mathbf
+        a$ perpendicular to $\mathbf b$, and another where detector $B$ is rotated to $\mathbf c$, $45^\circ$
+        between $\mathbf a$ and $\mathbf b$. The quantum result $\langle\sigma_a\sigma_b\rangle=-\mathbf a\cdot\mathbf
+        b=-\cos(\theta_{a,b})$ then predicts:</p>
+        <div class="math">$$P(\mathbf a,\mathbf b)=0, \qquad P(\mathbf a,\mathbf c)\approx-0.707, \qquad P(\mathbf b,\mathbf c)\approx-0.707$$</div>
+        <p>Plugging these into Bell's inequality $|P(\mathbf a,\mathbf b)-P(\mathbf a,\mathbf c)|\le1+P(\mathbf
+        b,\mathbf c)$ yields the <strong>false</strong> statement:</p>
+        <div class="math">$$0.707 \le 0.293$$</div>
+        <p>&mdash; a genuine Bell's inequality violation. Bell concluded such violations are proof that
+        <strong>local hidden-variable theories are incompatible with quantum mechanics</strong>. Since quantum
+        mechanics is experimentally correct about what it predicts (and therefore compatible with physical
+        reality to some extent), and since local hidden-variable theories are incompatible with quantum mechanics
+        (based on the ability of measurements to violate Bell's inequality), one can conclude that <strong>local
+        hidden-variable theories are incompatible with physical reality</strong>. However, there may be more to
+        the story (a nuance the lecture leaves open, rather than declaring fully settled).</p>
+        <div class="qc-connection">This is the rigorous version of the &ldquo;spooky action at a distance&rdquo;
+        thought experiment from Topic 1, Section 3a — Bell's inequality is what turns Einstein's philosophical
+        objection into a number you can actually measure in a lab and compare against quantum predictions.</div>
+    </div>
+</section>
+
+<section class="section" id="coming-next">
+    <div class="section-header">
+        <span class="section-icon">⏭️</span>
+        <h2 class="section-title">Coming Next: Subtopics 6&ndash;7 (Week 5, Mon Sep 28)</h2>
+    </div>
+    <p>The rest of syllabus module [02] — subtopics 6 and 7 — is scheduled for next Monday's lecture, alongside
+    <strong>Quiz 04+05</strong> (which is based on this page's material, HW 04+05) and the posting of HW 06+07.
+    This section will be filled in with full derivations once that lecture PDF is posted and exported here, the
+    same way this page was just built out from the Sep 21 lecture.</p>
+    <div class="pending-list">
+        <div class="pending-item">
+            <span class="pending-item-title">6. Unitary Operators, Reductions, and the No-Clone Theorem</span>
+            <span class="pending-tag">Awaiting Lecture Notes (Sep 28)</span>
+        </div>
+        <div class="pending-item">
+            <span class="pending-item-title">7. Quantum Mixed States (incl. State Reductions, Mixed-State Entanglement)</span>
+            <span class="pending-tag">Awaiting Lecture Notes (Sep 28)</span>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="practice-problems">
+    <div class="section-header">
+        <span class="section-icon">✏️</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+    <p style="color:var(--text-secondary);font-size:0.9rem">These are extra warm-up problems for this topic. The
+    actual assigned homework (HW 04+05) with full worked solutions lives on the
+    <a href="homework.html" style="color:var(--accent-blue)">Homework</a> page.</p>
+
+    <div class="question-card">
+        <div class="question-number">Problem 1 — Density matrix from a ket</div>
+        <div class="question-text">Write the density matrix $\rho=|\psi\rangle\langle\psi|$ for
+        $|\psi\rangle=\frac{1}{\sqrt2}(|0\rangle+|1\rangle)$, and identify its diagonal (probability) and
+        off-diagonal (coherence) elements.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>$|\psi\rangle=\frac{1}{\sqrt2}\begin{pmatrix}1\\1\end{pmatrix}$, so
+                $\rho=\frac12\begin{pmatrix}1\\1\end{pmatrix}(1\ \ 1)=\frac12\begin{pmatrix}1&1\\1&1\end{pmatrix}$.</p>
+                <p>Diagonals: $\rho_{1,1}=\rho_{2,2}=\frac12$ — an equal 50/50 chance of each outcome, matching
+                $|c_0|^2=|c_1|^2=\frac12$. Off-diagonals: $\rho_{1,2}=\rho_{2,1}=\frac12$ — nonzero, confirming
+                this is a coherent superposition, not a classical 50/50 mixture (a classical coin flip would have
+                the same diagonal but zero off-diagonals).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 2 — Trace and probability</div>
+        <div class="question-text">For the $\rho$ found in Problem 1 and $P_0=|0\rangle\langle0|=\begin{pmatrix}1&0\\0&0\end{pmatrix}$,
+        compute $p_0=\operatorname{tr}(\rho P_0)$ and confirm it matches $\rho_{1,1}$.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>$\rho P_0 = \frac12\begin{pmatrix}1&1\\1&1\end{pmatrix}\begin{pmatrix}1&0\\0&0\end{pmatrix}
+                = \frac12\begin{pmatrix}1&0\\1&0\end{pmatrix}$.</p>
+                <p>$\operatorname{tr}(\rho P_0) = \frac12(1+0) = \frac12$ — matches $\rho_{1,1}=\frac12$ exactly,
+                as Section 5f guarantees ($p_k=\operatorname{tr}(\rho P_k)=\rho_{k,k}$).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 3 — Hermiticity check</div>
+        <div class="question-text">Is $M=\begin{pmatrix}2 & 3i\\ -3i & 5\end{pmatrix}$ a valid density-matrix-style
+        Hermitian operator? Check $M^\dagger=M$.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>$M^{*}=\begin{pmatrix}2&-3i\\3i&5\end{pmatrix}$, then transpose:
+                $M^{*T}=\begin{pmatrix}2&3i\\-3i&5\end{pmatrix}=M$. Yes — $M^\dagger=M$, so $M$ is Hermitian
+                (note the off-diagonal pair $M_{1,2}=3i$, $M_{2,1}=-3i$ satisfies $M_{j,k}^*=M_{k,j}$ exactly as
+                Section 5e requires). It could represent a valid observable, though it isn't itself a valid
+                density matrix since its diagonal doesn't sum to 1.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 4 — Bell's inequality arithmetic</div>
+        <div class="question-text">Using the quantum prediction $P(\mathbf a,\mathbf b)=-\cos(\theta_{a,b})$,
+        compute $P(\mathbf a,\mathbf b)$, $P(\mathbf a,\mathbf c)$, and $P(\mathbf b,\mathbf c)$ for
+        $\theta_a=0^\circ,\theta_b=90^\circ,\theta_c=45^\circ$, and check whether Bell's inequality is satisfied
+        or violated.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>$P(\mathbf a,\mathbf b)=-\cos(90^\circ)=0$; $P(\mathbf a,\mathbf c)=-\cos(45^\circ)\approx-0.707$;
+                $P(\mathbf b,\mathbf c)=-\cos(45^\circ)\approx-0.707$ (this is exactly the example worked in the
+                lecture).</p>
+                <p>$|P(\mathbf a,\mathbf b)-P(\mathbf a,\mathbf c)| = |0-(-0.707)| = 0.707$, while
+                $1+P(\mathbf b,\mathbf c) = 1-0.707 = 0.293$. Since $0.707 \not\le 0.293$, Bell's inequality is
+                <strong>violated</strong> — exactly the signature that rules out local hidden-variable theories.</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">↑</button>
+
+    <script>
+        const sections = document.querySelectorAll('.section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const scrollTopBtn = document.getElementById('scrollTop');
+
+        function setActive(id) {
+            navLinks.forEach(l => l.classList.toggle('active', l.dataset.section === id));
+            sidebarLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+        }
+
+        function onScroll() {
+            let current = sections[0] ? sections[0].id : '';
+            sections.forEach(sec => {
+                const rect = sec.getBoundingClientRect();
+                if (rect.top <= 160) current = sec.id;
+            });
+            setActive(current);
+
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const pct = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+            progressFill.style.width = pct + '%';
+            progressText.textContent = pct + '%';
+
+            scrollTopBtn.classList.toggle('show', scrollTop > 400);
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const target = document.getElementById(link.dataset.section);
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+        window.addEventListener('scroll', onScroll);
+        onScroll();
+    </script>
 </body>
 </html>

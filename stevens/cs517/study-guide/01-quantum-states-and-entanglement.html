@@ -5,6 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CS517 Topic [01]: Quantum States &amp; Entanglement</title>
 
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
     <style>
         :root {
             --bg-dark: #14102b;
@@ -55,21 +94,68 @@
             box-shadow: var(--shadow);
         }
         .header-top {
-            max-width: 1200px; margin: 0 auto; padding: 1.25rem 2rem;
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
         }
         .header-title {
             font-size: 1.8rem; font-weight: 700;
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
-        .header-sub { color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem; }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
 
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
 
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
         .section {
             background: var(--bg-card); border-radius: 12px; padding: 2rem;
             border: 1px solid var(--border-color); box-shadow: var(--shadow);
-            margin-bottom: 2rem; scroll-margin-top: 100px;
+            scroll-margin-top: 150px;
         }
         .section-header {
             display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
@@ -81,40 +167,114 @@
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(42, 33, 88, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(42, 33, 88, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(123, 223, 255, 0.08); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
         p { margin-bottom: 1rem; color: var(--text-primary); }
         strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
         ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
         li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+
+        .misconception {
+            background: rgba(251, 113, 133, 0.1); border-left: 4px solid var(--accent-red);
+            padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .misconception-title { color: var(--accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+        .misconception-explanation { color: var(--text-secondary); }
+
+        .anchor {
+            background: linear-gradient(135deg, rgba(94, 234, 212, 0.1), rgba(123, 223, 255, 0.1));
+            border: 2px solid var(--accent-green); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+        }
+        .anchor-title { color: var(--accent-green); font-weight: 700; margin-bottom: 0.5rem; }
+
+        .qc-connection {
+            background: linear-gradient(135deg, rgba(185, 142, 255, 0.12), rgba(251, 191, 36, 0.08));
+            border-left: 4px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .qc-connection::before {
+            content: "⚛ Where this shows up later: ";
+            color: var(--accent-purple); font-weight: 700;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th {
+            background: rgba(123, 223, 255, 0.15); color: var(--accent-blue);
+            padding: 1rem; text-align: left; border-bottom: 2px solid var(--border-color);
+        }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background: rgba(123, 223, 255, 0.05); }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
 
         .exam-info {
             background: linear-gradient(135deg, rgba(123, 223, 255, 0.15), rgba(185, 142, 255, 0.15));
             border: 2px solid var(--accent-blue); padding: 1.5rem;
             border-radius: 12px; margin: 1rem 0;
         }
-        .exam-info-title { color: var(--accent-blue); font-weight: 700; font-size: 1.15rem; margin-bottom: 0.5rem; }
-
-        .pending-list { display: flex; flex-direction: column; gap: 0.75rem; }
-        .pending-item {
-            background: rgba(42, 33, 88, 0.35); border: 1px solid var(--border-color);
-            border-left: 4px solid var(--accent-orange);
-            border-radius: 8px; padding: 1rem 1.25rem;
-            display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
         }
-        .pending-item-title { font-weight: 600; color: var(--text-primary); }
-        .pending-tag {
-            font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.6rem;
-            border-radius: 999px; background: rgba(169, 163, 199, 0.18); color: var(--text-secondary);
-            white-space: nowrap;
-        }
+        .status-done { color: var(--accent-green); font-weight: 700; }
 
-        footer {
-            max-width: 1200px; margin: 0 auto; padding: 1rem 2rem 3rem;
-            color: var(--text-secondary); font-size: 0.85rem; text-align: center;
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
         }
-
         @media (max-width: 768px) {
             .container { padding: 1rem; }
-            .section { padding: 1.25rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
             .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
         }
     </style>
@@ -129,57 +289,516 @@
     <header>
         <div class="header-top">
             <div class="header-title">🧮 CS517 · Topic [01]: Quantum States &amp; Entanglement</div>
-            <div class="header-sub">Syllabus module [01] · Week 3 · Topics 1&ndash;3 · Exam 1 material</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
         </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="pure-states">1. Pure States &amp; Superposition</button>
+            <button class="nav-link" data-section="matrix-representations">2. Matrix Representations</button>
+            <button class="nav-link" data-section="entanglement">3. Entanglement</button>
+            <button class="nav-link" data-section="practice-problems">Practice Problems</button>
+            <button class="nav-link" data-section="look-ahead">Look Ahead</button>
+        </nav>
     </header>
 
     <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#pure-states" class="sidebar-link">1. Pure States &amp; Superposition</a>
+                <a href="#matrix-representations" class="sidebar-link">2. Matrix Representations</a>
+                <a href="#entanglement" class="sidebar-link">3. Entanglement</a>
+                <a href="#practice-problems" class="sidebar-link">Practice Problems</a>
+                <a href="#look-ahead" class="sidebar-link">Look Ahead</a>
+            </div>
+        </aside>
 
-        <section class="section" id="overview">
-            <div class="section-header">
-                <span class="section-icon">🎯</span>
-                <h2 class="section-title">Overview</h2>
-            </div>
-            <div class="exam-info">
-                <div class="exam-info-title">📋 Where this fits</div>
-                <ul style="margin-bottom:0">
-                    <li><strong>Homework:</strong> HW 01, 02, 03</li>
-                    <li><strong>Quiz:</strong> Quiz 01+02+03</li>
-                    <li><strong>Exam:</strong> counted on Exam 1 (Ch. 1&ndash;7, Week 7 &mdash; Tue Oct 13)</li>
-                    <li><strong>Reference reading:</strong> Nielsen &amp; Chuang, relevant early chapters (not required; course notes are primary)</li>
-                </ul>
-            </div>
-            <p>This page is scaffolded from the official syllabus's Subjects Covered table, module [01]
-            "Introduction to Quantum States and Entanglement." Full derivations, worked examples, and
-            practice problems will be added once the corresponding lecture PDF is posted to Canvas and
-            exported into this course archive &mdash; the same way Lecture [00] (Algebra Review) was built out
-            in full. Until then, this page tracks the exact subtopics you're responsible for, straight from
-            the syllabus, so nothing in the navigation is a dead end.</p>
-        </section>
+        <main class="main-content">
 
-        <section class="section" id="subtopics">
-            <div class="section-header">
-                <span class="section-icon">📚</span>
-                <h2 class="section-title">Subtopics (from the syllabus)</h2>
-            </div>
-            <div class="pending-list">
-                <div class="pending-item">
-                    <span class="pending-item-title">1. Pure Quantum States and Superposition</span>
-                    <span class="pending-tag">Awaiting Lecture Notes</span>
-                </div>
-                <div class="pending-item">
-                    <span class="pending-item-title">2. Matrix Representations</span>
-                    <span class="pending-tag">Awaiting Lecture Notes</span>
-                </div>
-                <div class="pending-item">
-                    <span class="pending-item-title">3. Entanglement</span>
-                    <span class="pending-tag">Awaiting Lecture Notes</span>
-                </div>
-            </div>
-        </section>
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <h2 class="section-title">Overview</h2>
+    </div>
+    <div class="exam-info">
+        <div class="exam-info-title">📋 Where this fits</div>
+        <ul style="margin-bottom:0">
+            <li><strong>Homework:</strong> HW 01, HW 02+03</li>
+            <li><strong>Quiz:</strong> Quiz 01+02+03 — <span class="status-done">✅ given in class Sep 21, 2026</span></li>
+            <li><strong>Exam:</strong> counted on Exam 1 (Ch. 1&ndash;7, Week 7 &mdash; Tue Oct 13)</li>
+            <li><strong>Source:</strong> Lecture [01] &ldquo;Introduction to Quantum States and Entanglement,&rdquo; Samuel R. Hedemann</li>
+        </ul>
+    </div>
+    <p><strong>In plain English:</strong> this lecture builds the entire language of quantum mechanics from
+    scratch, using nothing but algebra and vectors. A <em>state</em> is just a complete description of a system
+    (position, spin direction, whatever). Quantum states get written as <em>kets</em> $|\psi\rangle$, and the
+    strange part is that a system can be in a weighted combination of several kets at once &mdash; a
+    <em>superposition</em> &mdash; until it's measured, at which point it randomly collapses to one specific
+    outcome with a probability set by the squared size of that outcome's coefficient. The lecture then shows how
+    to package a state's coefficients into a column vector (a <em>matrix representation</em>), how to combine
+    multiple quantum objects together with the Kronecker product, and finally defines <em>entanglement</em>: a
+    kind of correlation between combined quantum objects that has no classical analogue and can't be undone by
+    separately describing each piece.</p>
+</section>
 
+<section class="section" id="pure-states">
+    <div class="section-header">
+        <span class="section-icon">🌀</span>
+        <h2 class="section-title">1. Pure Quantum States and Superposition</h2>
     </div>
 
-    <footer>CS517 / PEP557 Study Guide — self-contained, no build step — open any page directly in a browser.</footer>
+    <div class="subsection">
+        <h3 class="subsection-title">1a. Quantum States for Curious Cats</h3>
+        <p>A <strong>state</strong> is a list, arrangement, or distribution of matter and energy, determined by
+        an object's <em>degrees of freedom</em> (DOF) &mdash; the ways it can move or store energy. States are
+        global: if you sneeze, the state of the <em>whole universe</em> changes instantaneously (position, energy,
+        temperature, spin direction all count as examples).</p>
+        <p>Quantum states are named and written as <strong>kets</strong>:</p>
+        <div class="math">$$|\psi\rangle \equiv |\text{label for state name}\rangle$$</div>
+        <p>A label can be a symbol, word, abbreviation, equation, or picture &mdash; e.g. $|\uparrow\rangle \equiv
+        |\text{spin axis pointing UP}\rangle$, $|\downarrow\rangle$, or $|x\rangle\equiv|\text{particle with
+        position }x\rangle$. Kets can even be added together to describe a state that is many things
+        <em>simultaneously</em>:</p>
+        <div class="math">$$|{+}\rangle \equiv \tfrac{1}{\sqrt2}\big(|\uparrow\rangle+|\downarrow\rangle\big) \equiv \big(\text{spin axis pointing both UP {\it and} DOWN!}\big)$$</div>
+        <p><strong>Bits vs. qubits:</strong> a classical <em>bit</em> has 2 possible states, e.g. coin outcomes
+        $|H\rangle$ or $|T\rangle$ (heads or tails). A <strong>qubit</strong> is the quantum version &mdash; a
+        state that can be heads <em>and</em> tails at once:</p>
+        <div class="math">$$|\psi\rangle = c_H|H\rangle + c_T|T\rangle \quad (\text{heads {\it and} tails};\ |c_H|^2+|c_T|^2=1)$$</div>
+        <div class="math">$$\boxed{\text{quantum superposition} \equiv \text{existence in different states simultaneously}}$$</div>
+        <p>Superposition is a <em>wave</em> property &mdash; multiple waves can exist in the same place at the
+        same time, the same way multiple ripples overlap on a pond.</p>
+        <p><strong>Schr&ouml;dinger's Cat:</strong> being in two contradictory states at once is weird enough that
+        Einstein and Schr&ouml;dinger pointed out it would mean a cat could be both alive and dead:</p>
+        <div class="math">$$|\psi_{\text{Cat}}\rangle = \tfrac{1}{\sqrt2}\big(|\text{alive}\rangle+|\text{dead}\rangle\big)$$</div>
+        <p>They intended this as a conceptual flaw of quantum mechanics &mdash; and questioning your own theories
+        like that is <strong>good science</strong>, even though they themselves helped discover QM. It turns out
+        this cat-superposition disappears very quickly (so quickly we'd never notice it) because the cat's
+        interactions with its environment effectively <em>measure</em> it, which ruins the superposition.</p>
+
+        <div class="subsection" style="margin-top:1.5rem">
+            <h4 style="color:var(--accent-blue);margin-bottom:0.75rem">Measurement collapses superposition</h4>
+            <p>Given a superposition between outcomes 0 and 1, $|\psi\rangle = c_0|0\rangle+c_1|1\rangle$ with
+            $|c_0|^2+|c_1|^2=1$, what happens if we measure it?</p>
+            <div class="math">$$|\psi\rangle \ \xrightarrow{\ \text{measurement}\ }\ |0\rangle \ \text{or}\ |1\rangle$$</div>
+            <p>We say measurement <strong>collapses</strong> $|\psi\rangle$ onto either $|0\rangle$ or $|1\rangle$,
+            and the coefficients tell us the probability of each outcome:</p>
+            <div class="math">$$p_k = |c_k|^2 \equiv \big(\text{probability of finding the system in state } |k\rangle \text{ if it was in } |\psi\rangle\big) \quad\Rightarrow\quad p_0=|c_0|^2,\ p_1=|c_1|^2$$</div>
+        </div>
+
+        <div class="subsection" style="margin-top:1.5rem">
+            <h4 style="color:var(--accent-blue);margin-bottom:0.75rem"><em>d</em>-Level Quantum States: Qudits</h4>
+            <p>A <em>d</em>-level classical system has $d$ possible outcomes &mdash; e.g. a 6-sided die has $d=6$
+            classical states $|1\rangle,|2\rangle,\dots,|6\rangle$ (one per face). The 6-level <strong>quantum</strong>
+            version can be in full or partial superposition:</p>
+            <div class="math">$$|\psi\rangle = c_1|1\rangle+\cdots+c_6|6\rangle, \quad \textstyle\sum_{k=1}^6|c_k|^2=1 \qquad(\text{full superposition})$$</div>
+            <div class="math">$$|\psi\rangle = c_2|2\rangle+c_3|3\rangle+c_6|6\rangle, \quad |c_2|^2+|c_3|^2+|c_6|^2=1 \qquad(\text{partial superposition})$$</div>
+            <p>Since $|c_k|^2$ are probabilities, what are the coefficients $c_k$ themselves? Naively you might
+            guess $c_k=\sqrt{p_k}$ &mdash; but as the next subsection shows, the full picture requires complex
+            numbers.</p>
+        </div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">1b. What Do Quantum State Coefficients Even Mean?</h3>
+        <p><strong>Normalization from a trig identity:</strong> the fundamental identity $\cos^2(\theta)+\sin^2(\theta)=1$
+        (true for any $\theta$) hints at one way to parameterize coefficients so normalization is automatic:</p>
+        <div class="math">$$c_0=\cos(\theta),\quad c_1=\sin(\theta) \ \Rightarrow\ |c_0|^2+|c_1|^2=\cos^2(\theta)+\sin^2(\theta)=1$$</div>
+        <p>But quantum states have even more freedom than that &mdash; the coefficients can be <strong>complex</strong>.</p>
+
+        <div class="subsection" style="margin-top:1.5rem">
+            <h4 style="color:var(--accent-blue);margin-bottom:0.75rem">Complex numbers refresher</h4>
+            <div class="math">$$z\equiv a+ib \ \ (\text{Cartesian form}),\quad a,b\in\mathbb{R},\quad i\equiv\sqrt{-1}$$</div>
+            <div class="math">$$|z|\equiv\sqrt{a^2+b^2}\ \ (\text{modulus}), \qquad z=re^{i\phi}\ \ (\text{polar form}),\quad r\equiv|z|,\ \cos(\phi)\equiv\tfrac{a}{|z|},\ \sin(\phi)\equiv\tfrac{b}{|z|}$$</div>
+            <p>using Euler's theorem $e^{i\phi}=\cos(\phi)+i\sin(\phi)$. Complex conjugation replaces every $i$
+            with $-i$: $z^*\equiv a-ib$, from which $|z|=\sqrt{z^*z}$, and the real/imaginary parts can be
+            extracted as $\operatorname{Re}[z]=\frac{z+z^*}{2}$, $\operatorname{Im}[z]=\frac{z-z^*}{2i}$.</p>
+        </div>
+
+        <div class="subsection" style="margin-top:1.5rem">
+            <h4 style="color:var(--accent-blue);margin-bottom:0.75rem">Coefficients can be complex!</h4>
+            <p>Each coefficient can carry its own unit-complex phase factor:</p>
+            <div class="math">$$c_0\equiv\cos(\vartheta)e^{i\alpha}, \quad c_1\equiv\sin(\vartheta)e^{i\beta}, \qquad \vartheta\in[0,\tfrac{\pi}{2}],\ \alpha,\beta\in[0,2\pi)$$</div>
+            <p>Since $|e^{i\phi}|=1$ (unit modulus) for any phase $\phi$, this automatically satisfies
+            $|c_0|^2+|c_1|^2=\cos^2(\vartheta)+\sin^2(\vartheta)=1$ for <em>any</em> choice of $\vartheta,\alpha,\beta$
+            &mdash; no separate normalization check needed. Substituting in, the most general pure qubit is</p>
+            <div class="math">$$|\psi\rangle = \cos(\vartheta)e^{i\alpha}|0\rangle + \sin(\vartheta)e^{i\beta}|1\rangle$$</div>
+            <p>It's common to factor out the phase of the first nonzero coefficient &mdash; this overall
+            <strong>global phase factor</strong> $e^{i\alpha}$ is usually discarded since it has no physical
+            effects, leaving only a <strong>relative phase</strong> $\phi\equiv\beta-\alpha$ that <em>does</em>
+            have measurable effects:</p>
+            <div class="math">$$\boxed{|\psi\rangle = \cos\!\big(\tfrac{\theta}{2}\big)|0\rangle + \sin\!\big(\tfrac{\theta}{2}\big)e^{i\phi}|1\rangle} \qquad (\text{most general pure qubit},\ \theta\in[0,\pi],\ \phi\in[0,2\pi))$$</div>
+        </div>
+
+        <div class="subsection" style="margin-top:1.5rem">
+            <h4 style="color:var(--accent-blue);margin-bottom:0.75rem">The Bloch Sphere</h4>
+            <p>The parameters $\theta\in[0,\pi]$, $\phi\in[0,2\pi)$ act like the angles of a point on the
+            surface of a sphere (the <strong>Bloch sphere</strong>), with $|0\rangle$ at the north pole and
+            $|1\rangle$ at the south pole. The magnitude $|c_0|=|\cos(\theta/2)|$ tells us the <em>amount</em> of
+            superposition for a given outcome, while the relative phase angle $\arg(c_1)=\phi$ tells us the phase
+            of the $|1\rangle$ &ldquo;wave&rdquo; relative to $|0\rangle$. Measurement &ldquo;pops&rdquo; the Bloch
+            sphere bubble, collapsing the state to one of its poles &mdash; but the Bloch sphere itself is just a
+            <em>representation</em> of the degrees of freedom in $c_k$. The actual meaning of a coefficient is
+            simply: <strong>the amount of $|k\rangle$ in $|\psi\rangle$</strong>.</p>
+        </div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">1c. Why Do We Even Think Quantum Superposition Exists?</h3>
+        <p>The problem: measurement collapses superposition, so we can't directly &ldquo;see&rdquo; it. The
+        solution is that the wave-nature of quantum states allows <strong>quantum interference</strong>, just as
+        two waves can interfere based on relative phase &mdash; but first we need some tools.</p>
+
+        <div class="subsection" style="margin-top:1.5rem">
+            <h4 style="color:var(--accent-blue);margin-bottom:0.75rem">Overlaps &amp; quantum states as complex vectors</h4>
+            <p>An <strong>overlap</strong> is the amount of one vector in the direction of another. For real
+            vectors, overlap is the familiar dot product: $\mathbf a\cdot\mathbf b\equiv|\mathbf a||\mathbf
+            b|\cos(\theta_{a,b})$, with $\hat{\mathbf x}\cdot\hat{\mathbf x}=1$ and $\hat{\mathbf
+            x}\cdot\hat{\mathbf y}=0$, giving $\mathbf a\cdot\mathbf b=a_xb_x+a_yb_y$. For <strong>complex</strong>
+            vectors, the overlap gets a star on one side, so that a vector's overlap with itself is a sum of
+            squared moduli:</p>
+            <div class="math">$$\mathbf a\cdot\mathbf b \equiv a_x^*b_x+a_y^*b_y \qquad (\text{2D complex overlap}), \qquad \mathbf a\cdot\mathbf a = |a_x|^2+|a_y|^2=|\mathbf a|^2$$</div>
+            <p>So the overlap of two quantum states $|\phi\rangle\equiv a_0|0\rangle+a_1|1\rangle$ and
+            $|\psi\rangle\equiv b_0|0\rangle+b_1|1\rangle$ is defined as:</p>
+            <div class="math">$$\langle\phi|\psi\rangle \equiv a_0^*b_0+a_1^*b_1 \equiv c_{\phi\psi} \equiv \big(\text{a complex number describing the amount of } |\phi\rangle \text{ in } |\psi\rangle\big)$$</div>
+            <p>The <strong>transition probability</strong> is $|\langle\phi|\psi\rangle|^2=|c_{\phi\psi}|^2\in[0,1]$
+            &mdash; the probability of finding the system in state $|\phi\rangle$ given that it was actually in
+            $|\psi\rangle$. For a properly normalized state, $\langle\psi|\psi\rangle=1$.</p>
+        </div>
+
+        <div class="subsection" style="margin-top:1.5rem">
+            <h4 style="color:var(--accent-blue);margin-bottom:0.75rem">Bras, orthogonality, and completeness</h4>
+            <p>Overlap is so important that we define a special operation to star one state's coefficients,
+            called a <strong>bra</strong> &mdash; the <strong>Hermitian conjugate</strong> of a ket:</p>
+            <div class="math">$$\langle\phi| \equiv a_0^*\langle0|+a_1^*\langle1|, \qquad |\phi\rangle^\dagger \equiv \langle\phi| \equiv \big(\text{bra of ket } |\phi\rangle\big)$$</div>
+            <p>Two states are <strong>orthogonal</strong> (perpendicular) iff their overlap is zero:</p>
+            <div class="math">$$\langle\phi|\psi\rangle \equiv 0 \ \iff\ |\phi\rangle\perp|\psi\rangle$$</div>
+            <p>A set of mutually orthogonal, normalized states $\{|\psi_1\rangle,\dots,|\psi_n\rangle\}$ has
+            <strong>orthonormality</strong> $\langle\psi_j|\psi_k\rangle=\delta_{j,k}$, using the Kronecker delta
+            $\delta_{j,k}=1$ if $j=k$, else $0$. E.g. for $|\phi\rangle\equiv|0\rangle$ and $|\psi\rangle\equiv|1\rangle$,
+            $\langle0|1\rangle=0$.</p>
+            <p><strong>Completeness</strong> is the property of a set of states $\{|b_1\rangle,\dots,|b_n\rangle\}$
+            such that <em>every</em> state of the system can be written as a linear combination of them:</p>
+            <div class="math">$$|\psi\rangle = \sum_{k=1}^n c_k|b_k\rangle \qquad \forall\,|\psi\rangle\in H^{[n]}$$</div>
+            <div class="math">$$\boxed{\text{basis} \equiv \big(\text{a set of states that is both complete and orthonormal}\big)}$$</div>
+            <p>Checking overlap and normalization directly from the coefficients confirms this all fits together
+            consistently: expanding $\langle\phi|\psi\rangle$ and $\langle\psi|\psi\rangle$ in the $\{|0\rangle,|1\rangle\}$
+            basis reproduces $a_0^*b_0+a_1^*b_1$ and $|b_0|^2+|b_1|^2=1$ exactly, term by term, using orthonormality
+            to zero out the cross terms.</p>
+        </div>
+
+        <div class="subsection" style="margin-top:1.5rem">
+            <h4 style="color:var(--accent-blue);margin-bottom:0.75rem">How to prove quantum superposition exists (violating Bayes' law)</h4>
+            <p>Given qubit $|\psi\rangle=c_0|0\rangle+c_1|1\rangle$, the probability of finding it in state
+            $|\phi\rangle=c_{\phi|0}|0\rangle+c_{\phi|1}|1\rangle$ is $p_{\phi|\psi}=|\langle\phi|\psi\rangle|^2$.
+            Expanding this out using $|c|^2=c^*c$ gives:</p>
+            <div class="math">$$p_{\phi|\psi} = \underbrace{p_0p_{\phi|0}+p_1p_{\phi|1}}_{\text{classical Bayesian conditional probability}} + \underbrace{2\operatorname{Re}\big[c_0^*c_1c_{\phi|0}c_{\phi|1}^*\big]}_{\text{additional nonclassical term due to superposition}}$$</div>
+            <p>Experiment confirms this effect &mdash; the extra quantum interference term is actually there (this
+            is part of what Young's double-slit experiment shows). Everyday objects only ever seem to obey the
+            purely classical Bayesian part because their constant interactions with the environment destroy
+            superposition perpetually &mdash; but the cat-superposition can, in principle, exist, just too briefly
+            to notice.</p>
+        </div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">1d. Quantization and the Stern-Gerlach Experiment</h3>
+        <p>Why is a measurement outcome always discretely &ldquo;up or down,&rdquo; never continuously sideways?
+        In 1922, Stern and Gerlach sent a beam of silver atoms (each with one unpaired electron, giving it a
+        magnetic dipole moment) through an inhomogeneous magnetic field. Classically they expected a continuous
+        smear of deflection angles, since the atoms' spin orientations should be random and continuous. Instead
+        they observed exactly <strong>two clumps</strong> &mdash; as if the entering dipoles could only ever be
+        up or down. This is direct experimental evidence that spin is a genuinely <em>quantized</em>, two-level
+        system rather than a continuous classical one.</p>
+        <div class="qc-connection">This up/down quantization is exactly the two-outcome qubit $\{|0\rangle,|1\rangle\}$
+        this whole lecture has been building &mdash; the Stern-Gerlach experiment is the physical reason a spin-$\frac12$
+        particle is the canonical real-world qubit.</div>
+    </div>
+</section>
+
+<section class="section" id="matrix-representations">
+    <div class="section-header">
+        <span class="section-icon">🔲</span>
+        <h2 class="section-title">2. Matrix Representations</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">2a. Welcome to the Matrix: Compact Representation of Quantum States</h3>
+        <p>The main idea of matrices as representations: <strong>relative location on the page of a number tells
+        us which basis state that number is the coefficient of.</strong> If we represent the basis
+        $\{|0\rangle,|1\rangle\}$ as $2\times1$ matrices,</p>
+        <div class="math">$$|0\rangle \equiv \begin{pmatrix}1\\0\end{pmatrix}, \qquad |1\rangle \equiv \begin{pmatrix}0\\1\end{pmatrix}$$</div>
+        <p>then $|\psi\rangle=c_0|0\rangle+c_1|1\rangle$ has representation
+        $|\psi\rangle=\begin{pmatrix}c_0\\c_1\end{pmatrix}$. For example,
+        $|\psi\rangle=\sqrt{0.30}|0\rangle+\sqrt{0.70}|1\rangle=\begin{pmatrix}\sqrt{0.30}\\\sqrt{0.70}\end{pmatrix}$
+        &mdash; the relative location on the page told us everything about which coefficient belongs to which
+        ket, with no indices or labels needed. (Note: many people call this a &ldquo;column vector
+        representation,&rdquo; but that's not quite right &mdash; a vector <em>is</em> a vector; a matrix of any
+        dimension is always just one possible <em>representation</em> of it.)</p>
+        <p>The universal convention is the <strong>standard basis</strong> representation, following the
+        <strong>Descending-Order Convention (DOC)</strong>: for an orthonormal complete basis
+        $\{|\psi_1\rangle,|\psi_2\rangle,|\psi_3\rangle\}$ with $n=3$, the standard basis is</p>
+        <div class="math">$$|\psi_1\rangle\equiv\begin{pmatrix}1\\0\\0\end{pmatrix},\quad |\psi_2\rangle\equiv\begin{pmatrix}0\\1\\0\end{pmatrix},\quad |\psi_3\rangle\equiv\begin{pmatrix}0\\0\\1\end{pmatrix}$$</div>
+        <p>&mdash; an <em>ordered</em> basis where the position of the &ldquo;1&rdquo; descends as the ordinal of
+        the basis state increases. Common terminology: &ldquo;computational basis&rdquo; $\equiv$ the standard
+        basis.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">2b. How Multiple Quantum Objects Play Together</h3>
+        <p>Suppose we have two qubits, labeled qubit $A$ and qubit $B$ &mdash; this is called a <strong>bipartite</strong>
+        system. For a classical system of two bits, there are four pairs of different outcomes: $\{|0^{(A)}\rangle,|0^{(B)}\rangle\},
+        \{|0^{(A)}\rangle,|1^{(B)}\rangle\}, \{|1^{(A)}\rangle,|0^{(B)}\rangle\}, \{|1^{(A)}\rangle,|1^{(B)}\rangle\}$
+        (e.g. two magnets: $\uparrow\uparrow,\uparrow\downarrow,\downarrow\uparrow,\downarrow\downarrow$). To get
+        a 4-dimensional standard basis, we use the <strong>Kronecker product</strong> (tensor product):</p>
+        <div class="math">$$|a\rangle\otimes|b\rangle \equiv \begin{pmatrix}a_1\\a_2\end{pmatrix}\otimes\begin{pmatrix}b_1\\b_2\end{pmatrix} \equiv \begin{pmatrix}a_1\begin{pmatrix}b_1\\b_2\end{pmatrix}\\[4pt] a_2\begin{pmatrix}b_1\\b_2\end{pmatrix}\end{pmatrix} = \begin{pmatrix}a_1b_1\\a_1b_2\\a_2b_1\\a_2b_2\end{pmatrix}$$</div>
+        <p>Together, the Kronecker product and the DOC define an <em>ordered</em> standard basis for the joint
+        system in the joint-system Hilbert space $H\equiv H^{(A)}\otimes H^{(B)}$:</p>
+        <div class="math">$$|0^{(A)}\rangle\otimes|0^{(B)}\rangle=\begin{pmatrix}1\\0\\0\\0\end{pmatrix},\ \ |0^{(A)}\rangle\otimes|1^{(B)}\rangle=\begin{pmatrix}0\\1\\0\\0\end{pmatrix},\ \ |1^{(A)}\rangle\otimes|0^{(B)}\rangle=\begin{pmatrix}0\\0\\1\\0\end{pmatrix},\ \ |1^{(A)}\rangle\otimes|1^{(B)}\rangle=\begin{pmatrix}0\\0\\0\\1\end{pmatrix}$$</div>
+        <p>Common abbreviation: $|a^{(A)}\rangle\otimes|b^{(B)}\rangle \equiv |a^{(A)}\rangle|b^{(B)}\rangle \equiv
+        |a\rangle|b\rangle \equiv |a,b\rangle \equiv |ab\rangle$ (the last one is literal writing, not
+        multiplication &mdash; bad notation for larger systems, but common shorthand). So the ordered
+        joint-system computational basis for two bits (or qubits) is $|00\rangle,|01\rangle,|10\rangle,|11\rangle$,
+        following <strong>register counting</strong> (lexicographic order): the rightmost index counts up through
+        its values first, then the index to its immediate left increases by one, and so on.</p>
+        <p><strong>Multipartite Hilbert space:</strong> modes don't have to share the same number of levels. A
+        qubit ($n_1=2$) and a qutrit ($n_2=3$) system has $N=2$ modes and a total of $n=n_1n_2=6$ levels. More
+        generally, an $N$-partite system has $n=n_1n_2\cdots n_N$ total levels (a tripartite $3\times2\times4$
+        system has $n=24$). Infinitely many levels per mode are also possible, and quantum systems can be
+        discrete (countable levels, as above) or continuous (uncountable).</p>
+        <div class="misconception">
+            <div class="misconception-title">⚠️ Misconception: &ldquo;any multi-outcome system is multipartite&rdquo;</div>
+            <div class="misconception-explanation">A multipartite system implies <strong>coincidence outcomes</strong>
+            &mdash; every measurement involves a simultaneous outcome from <em>every</em> mode at once (there's
+            never just one mode having an outcome while the others &ldquo;stay silent&rdquo;). A classical
+            4-sided die (a tetrahedron) has 4 possible outcomes $\{|1\rangle,|2\rangle,|3\rangle,|4\rangle\}$, but
+            only one face is down at a time &mdash; there's never a coincidence of multiple outcomes. So a 4-level
+            system is <em>not</em> automatically multipartite; only a system genuinely built from multiple
+            interacting modes (like two qubits) is.</div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="entanglement">
+    <div class="section-header">
+        <span class="section-icon">🔗</span>
+        <h2 class="section-title">3. Entanglement</h2>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">3a. Separability vs. Entanglement for Pure States</h3>
+        <p>Recall that all possible states of a system of two classical bits are $|\psi_C\rangle=|00\rangle$ OR
+        $|01\rangle$ OR $|10\rangle$ OR $|11\rangle$. But general states of a system of two <em>qubits</em> are
+        <strong>superpositions</strong> of these computational basis states:</p>
+        <div class="math">$$|\psi\rangle = c_{00}|00\rangle+c_{01}|01\rangle+c_{10}|10\rangle+c_{11}|11\rangle, \qquad |c_{00}|^2+|c_{01}|^2+|c_{10}|^2+|c_{11}|^2=1$$</div>
+        <p><strong>Separability</strong> of pure states means the two objects are statistically independent
+        (uncorrelated). Mathematically, this means each qubit has its own pure state &mdash; e.g. for $|\psi\rangle=wy|00\rangle+wz|01\rangle+xy|10\rangle+xz|11\rangle$
+        (with $|w|^2+|x|^2=1$, $|y|^2+|z|^2=1$), factoring the sum shows:</p>
+        <div class="math">$$|\psi\rangle = \big(w|0\rangle+x|1\rangle\big)\otimes\big(y|0\rangle+z|1\rangle\big) \equiv |\psi^{(1)}\rangle\otimes|\psi^{(2)}\rangle$$</div>
+        <p>Notice each qubit has its own distinct pure state, but each outcome is still a <em>coincidence</em>
+        from the set $\{|00\rangle,|01\rangle,|10\rangle,|11\rangle\}$. So for pure states, achieving this product
+        form is <strong>necessary and sufficient</strong> for separability:</p>
+        <div class="math">$$\boxed{\text{entanglement} \equiv \big(\text{if a state is {\it not} separable, it is entangled}\big)} \qquad \Leftrightarrow\qquad |\psi\rangle \ne |\psi^{(1)}\rangle\otimes|\psi^{(2)}\rangle$$</div>
+        <p>The most extreme examples for two qubits are the four <strong>Bell states</strong>, which are
+        <em>maximally entangled</em> (also called EPR states, after Einstein, Podolsky, and Rosen):</p>
+        <div class="math">$$|\Phi^+\rangle=\tfrac{1}{\sqrt2}(|00\rangle+|11\rangle),\quad |\Psi^+\rangle=\tfrac{1}{\sqrt2}(|01\rangle+|10\rangle),\quad |\Phi^-\rangle=\tfrac{1}{\sqrt2}(|00\rangle-|11\rangle),\quad |\Psi^-\rangle=\tfrac{1}{\sqrt2}(|01\rangle-|10\rangle)$$</div>
+        <p>There is no way to factor out any single-mode basis state from these states.</p>
+        <p><strong>Superposition is necessary for entanglement, but not sufficient:</strong> just as importantly
+        as &ldquo;can't factor,&rdquo; entanglement in pure states is really a <em>superposition of nonfactorizable
+        coincidence basis states</em>. If Alice has qubit 1 and Bob has qubit 2 of $|\Phi^+\rangle$, then both
+        qubits are up <em>and</em> both are down &mdash; but if Alice measures hers, the whole state randomly
+        collapses to either $|0^{(1)}\rangle\otimes|0^{(2)}\rangle$ or $|1^{(1)}\rangle\otimes|1^{(2)}\rangle$: if
+        Alice gets $|0^{(1)}\rangle$, Bob is guaranteed $|0^{(2)}\rangle$, and vice versa. This holds no matter how
+        far apart Alice and Bob are, even farther than light could travel between them &mdash; as if each qubit
+        instantaneously &ldquo;knows&rdquo; what the other is doing. This is called <strong>nonlocal
+        correlation</strong>; Einstein called it &ldquo;spooky action at a distance.&rdquo;</p>
+        <p>A simple measure of entanglement for a general 2-qubit pure state $|\psi\rangle=a|00\rangle+b|01\rangle+c|10\rangle+d|11\rangle$
+        is the <strong>concurrence</strong>:</p>
+        <div class="math">$$C(|\psi\rangle) \equiv 2|ad-bc|; \qquad C=0 \iff |\psi\rangle \text{ separable}, \qquad C=1 \iff |\psi\rangle \text{ maximally entangled}$$</div>
+        <p>E.g. $C(|\Phi^+\rangle)=2\left|\tfrac{1}{\sqrt2}\cdot\tfrac{1}{\sqrt2}-0\cdot0\right|=1$ (maximally
+        entangled), while for any separable state of the form $wy|00\rangle+wz|01\rangle+xy|10\rangle+xz|11\rangle$,
+        $C=2|wy\cdot xz-wz\cdot xy|=0$ (separable), exactly as expected.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">3b. More Thoughts on Entanglement and Quantum States</h3>
+        <p>This is just the tip of the entanglement iceberg &mdash; beyond pure states are more complicated
+        <strong>mixed states</strong> (Topic 2), for which entanglement is very difficult to quantify (only
+        solved for $2\times2$ and $2\times3$ systems); concurrence for mixed states needs a lot more math than
+        this lecture covers.</p>
+        <p>Entanglement makes special tasks possible that are <em>impossible</em> classically:</p>
+        <ul>
+            <li><em>Quantum teleportation</em> &mdash; transport a quantum state from one location to another with unshared qubits</li>
+            <li><em>Superdense quantum coding</em> &mdash; send a message requiring multiple qubits to read (basis for encryption)</li>
+            <li><em>Quantum encryption</em> &mdash; send a message that can never be eavesdropped or decoded by interception</li>
+            <li><em>Entanglement distillation</em> &mdash; obtain highly entangled objects from a larger set of lesser entangled ones</li>
+            <li><em>Remote synchronization</em> &mdash; correlated objects allow remote synchronization without communication</li>
+            <li><em>Quantum error correction</em> &mdash; diagnose &amp; fix errors in a quantum computer without hurting the computation</li>
+        </ul>
+        <p>All of the above require ingredients this lecture hasn't introduced yet: <em>physical operations</em>
+        (unitary operators and more general quantum operations), <em>observable operators</em> (the part of QM
+        theory describing measurable quantities), <em>measurement</em> itself (sensitive and complicated), and
+        <em>quantum mixed states</em> (accounting for interaction with the environment) &mdash; exactly the four
+        ingredients Topic 2 builds next.</p>
+        <div class="qc-connection">Think of how you'd get two coins to always land heads up, no matter how far
+        apart they are, without any communication or physical control between them &mdash; entanglement (and
+        nonlocal correlation in general) guarantees exactly this kind of coincidence, with zero communication
+        required. Topic 2 formalizes measurement and shows precisely how Bell's Inequality proves this kind of
+        correlation can't come from any classical &ldquo;hidden variable&rdquo; explanation.</div>
+    </div>
+</section>
+
+<section class="section" id="practice-problems">
+    <div class="section-header">
+        <span class="section-icon">✏️</span>
+        <h2 class="section-title">Practice Problems</h2>
+    </div>
+    <p style="color:var(--text-secondary);font-size:0.9rem">These are extra warm-up problems for this topic. The
+    actual assigned homework (HW 01 and HW 02+03) with full worked solutions lives on the
+    <a href="homework.html" style="color:var(--accent-blue)">Homework</a> page.</p>
+
+    <div class="question-card">
+        <div class="question-number">Problem 1 — Normalization with a relative phase</div>
+        <div class="question-text">A qubit is given by $|\psi\rangle=\frac35|0\rangle+c_1|1\rangle$ with $c_1$
+        real and positive. Find $c_1$, then rewrite $|\psi\rangle$ in the $\theta,\phi$ Bloch-sphere form.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Normalization: $\left(\frac35\right)^2+c_1^2=1 \Rightarrow c_1^2=1-\frac{9}{25}=\frac{16}{25}
+                \Rightarrow c_1=\frac45$.</p>
+                <p>Matching to $\cos(\theta/2)|0\rangle+\sin(\theta/2)e^{i\phi}|1\rangle$: since $c_1$ is real and
+                positive, $\phi=0$, and $\cos(\theta/2)=\frac35,\ \sin(\theta/2)=\frac45 \Rightarrow
+                \theta=2\arccos\!\left(\frac35\right)\approx 106.3^\circ$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 2 — Overlap and orthogonality</div>
+        <div class="question-text">Let $|\phi\rangle=\frac{1}{\sqrt2}(|0\rangle+i|1\rangle)$ and
+        $|\psi\rangle=\frac{1}{\sqrt2}(|0\rangle-i|1\rangle)$. Compute $\langle\phi|\psi\rangle$. Are these two
+        states orthogonal?</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>$\langle\phi|=\frac{1}{\sqrt2}(\langle0|-i\langle1|)$ (star the coefficients:
+                $\left(\frac{i}{\sqrt2}\right)^*=\frac{-i}{\sqrt2}$).</p>
+                <p>$\langle\phi|\psi\rangle=\frac12\big[(1)(1)+(-i)(-i)\big]=\frac12(1+i^2)=\frac12(1-1)=0$.</p>
+                <p>Yes — the overlap is exactly zero, so $|\phi\rangle$ and $|\psi\rangle$ are orthogonal (these
+                are, in fact, the $|+i\rangle$ and $|-i\rangle$ eigenstates you'll meet again with the Pauli-$Y$
+                operator later in the course).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 3 — Kronecker product</div>
+        <div class="question-text">Given $|\psi\rangle=\frac{1}{\sqrt2}\begin{pmatrix}1\\1\end{pmatrix}$ and
+        $|\phi\rangle=\begin{pmatrix}1\\0\end{pmatrix}$, compute $|\psi\rangle\otimes|\phi\rangle$ and write the
+        result in ket notation.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>$|\psi\rangle\otimes|\phi\rangle = \frac{1}{\sqrt2}\begin{pmatrix}1\\1\end{pmatrix}\otimes\begin{pmatrix}1\\0\end{pmatrix}
+                = \frac{1}{\sqrt2}\begin{pmatrix}1\cdot1\\1\cdot0\\1\cdot1\\1\cdot0\end{pmatrix} =
+                \frac{1}{\sqrt2}\begin{pmatrix}1\\0\\1\\0\end{pmatrix} = \frac{1}{\sqrt2}\big(|00\rangle+|10\rangle\big)$.</p>
+                <p>This is manifestly separable by construction (it was built as a Kronecker product to begin
+                with) — its concurrence is $C=2|1\cdot0-0\cdot0|=0$, confirming it.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Problem 4 — Concurrence and entanglement</div>
+        <div class="question-text">Compute the concurrence of $|\psi\rangle=\frac{1}{\sqrt3}|00\rangle+\sqrt{\frac23}|11\rangle$.
+        Is it separable, partially entangled, or maximally entangled?</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Here $a=\frac{1}{\sqrt3}$, $b=c=0$, $d=\sqrt{\frac23}$, so
+                $C=2|ad-bc|=2\left|\frac{1}{\sqrt3}\sqrt{\frac23}-0\right|=2\sqrt{\frac{2}{9}}=\frac{2\sqrt2}{3}\approx0.943$.</p>
+                <p>Since $0<C<1$, this state is <strong>partially entangled</strong> — entangled, but not
+                maximally so (compare to $|\Phi^+\rangle$'s $C=1$, which uses equal $\frac{1}{\sqrt2}$ weights
+                instead of the unequal $\frac{1}{\sqrt3},\sqrt{\frac23}$ weights here).</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<section class="section" id="look-ahead">
+    <div class="section-header">
+        <span class="section-icon">🔭</span>
+        <h2 class="section-title">Look Ahead: From States to Operators</h2>
+    </div>
+    <p>Topic 2 (Operators &amp; Mixed States) picks up exactly where the &ldquo;missing ingredients&rdquo; list at
+    the end of Section 3b left off. It starts with a quick classical-statistics refresher (population vs. sample
+    means, histograms, and probabilities), then defines the <strong>identity operator</strong> and shows how
+    <em>any</em> operator &mdash; not just a state &mdash; can be written as a matrix in a chosen basis. From
+    there it builds the <strong>density operator</strong> $\rho\equiv|\psi\rangle\langle\psi|$, which represents
+    a quantum state as an operator rather than a vector (essential once mixed states, Topics 6&ndash;7, enter the
+    picture), and derives <strong>Bell's Inequality</strong> &mdash; the rigorous version of the &ldquo;spooky
+    action at a distance&rdquo; argument sketched in Section 3a, which quantum mechanics is experimentally shown
+    to violate.</p>
+    <div class="anchor">
+        <div class="anchor-title">⚓ Memory Anchor: what carries forward</div>
+        <p style="margin-bottom:0">Keep everything from this page: kets, bras, overlaps, orthonormality,
+        completeness, the Kronecker product, and the concurrence test for entanglement. The one shift in Topic 2
+        is a change of representation, not a new set of rules — the same state $|\psi\rangle$ you've been writing
+        as a column vector gets rewritten as the outer product $\rho=|\psi\rangle\langle\psi|$, a square matrix
+        whose diagonal entries are exactly the same $p_k=|c_k|^2$ probabilities you already know how to compute.</p>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">↑</button>
+
+    <script>
+        const sections = document.querySelectorAll('.section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const scrollTopBtn = document.getElementById('scrollTop');
+
+        function setActive(id) {
+            navLinks.forEach(l => l.classList.toggle('active', l.dataset.section === id));
+            sidebarLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+        }
+
+        function onScroll() {
+            let current = sections[0] ? sections[0].id : '';
+            sections.forEach(sec => {
+                const rect = sec.getBoundingClientRect();
+                if (rect.top <= 160) current = sec.id;
+            });
+            setActive(current);
+
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const pct = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+            progressFill.style.width = pct + '%';
+            progressText.textContent = pct + '%';
+
+            scrollTopBtn.classList.toggle('show', scrollTop > 400);
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const target = document.getElementById(link.dataset.section);
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+        window.addEventListener('scroll', onScroll);
+        onScroll();
+    </script>
 </body>
 </html>
