@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS517 Notation &amp; Early Quantum Primer</title>
+
+    <!-- MathJax 3 — uses jsdelivr CDN (NOT polyfill.io, which is compromised). Config must be set BEFORE the script loads. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                tags: 'none'
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax initial typesetting complete');
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+    <!-- Fallback CDN if jsdelivr fails -->
+    <script>
+        setTimeout(() => {
+            if (typeof window.MathJax === 'undefined' || !window.MathJax.typeset) {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';
+                fallback.async = true;
+                document.head.appendChild(fallback);
+            }
+        }, 3000);
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #14102b;
+            --bg-card: #1e1840;
+            --bg-hover: #2a2158;
+            --accent-blue: #7bdfff;
+            --accent-purple: #b98eff;
+            --accent-green: #5eead4;
+            --accent-orange: #fbbf24;
+            --accent-red: #fb7185;
+            --text-primary: #ece9f7;
+            --text-secondary: #a9a3c7;
+            --border-color: #2a2158;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        }
+        /* FIXED PALETTE — do not change these hex values. Every page in the CS517 study guide
+           set must use exactly this palette for visual consistency across all files. */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0c0a1c 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        .course-nav {
+            background: rgba(10, 8, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .course-nav a {
+            color: var(--text-secondary); text-decoration: none; padding: 0.3rem 0.6rem;
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .course-nav a:hover { color: var(--accent-blue); background: rgba(123, 223, 255, 0.08); }
+        .course-nav .home-link { color: var(--accent-green); font-weight: 700; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(20, 16, 43, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+        .header-top {
+            max-width: 1400px; margin: 0 auto; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-title {
+            font-size: 1.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .progress-tracker { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .progress-bar {
+            width: 150px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+            width: 0%; transition: width 0.3s ease;
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 1rem;
+            padding: 0 2rem 0.5rem; overflow-x: auto;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem; border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-blue); border-bottom-color: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+            display: grid; grid-template-columns: 250px 1fr; gap: 2rem;
+        }
+        .sidebar {
+            position: sticky; top: 200px; height: fit-content;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+        }
+        .sidebar-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-link {
+            padding: 0.75rem; color: var(--text-secondary); text-decoration: none;
+            border-radius: 8px; transition: all 0.3s ease;
+            font-size: 0.9rem; border-left: 2px solid transparent; padding-left: 1rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--bg-hover); color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .main-content { display: flex; flex-direction: column; gap: 3rem; }
+        .section {
+            background: var(--bg-card); border-radius: 12px; padding: 2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow);
+            scroll-margin-top: 150px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);
+        }
+        .section-icon { font-size: 2.5rem; }
+        .section-title {
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subsection { margin-bottom: 2rem; }
+        .subsection-title {
+            font-size: 1.4rem; font-weight: 600; color: var(--accent-green);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        details {
+            background: rgba(42, 33, 88, 0.3); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        details:hover { background: rgba(42, 33, 88, 0.5); border-color: var(--accent-blue); }
+        details[open] { background: rgba(123, 223, 255, 0.08); border-color: var(--accent-blue); }
+        summary {
+            font-weight: 600; color: var(--accent-blue); outline: none; user-select: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        summary::-webkit-details-marker { color: var(--accent-blue); }
+        details > div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+
+        p { margin-bottom: 1rem; color: var(--text-primary); }
+        strong { color: var(--accent-green); font-weight: 600; }
+        code {
+            background: rgba(0, 0, 0, 0.3); padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace; color: var(--accent-orange); font-size: 0.9rem;
+        }
+        .math {
+            background: rgba(0, 0, 0, 0.3); padding: 1rem;
+            border-left: 3px solid var(--accent-purple); border-radius: 4px;
+            margin: 1rem 0; overflow-x: auto;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        mjx-container { color: var(--text-primary) !important; }
+        mjx-container[display="true"] { margin: 1em 0 !important; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-orange);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+        .question-number {
+            font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.5rem;
+        }
+        .question-text { margin-bottom: 1rem; color: var(--text-primary); }
+        .question-text ul, .question-text ol { margin-top: 0.5rem; }
+
+        .qc-connection {
+            background: linear-gradient(135deg, rgba(185, 142, 255, 0.12), rgba(251, 191, 36, 0.08));
+            border-left: 4px solid var(--accent-purple);
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.95rem;
+        }
+        .qc-connection::before {
+            content: "📖 Study tip: ";
+            color: var(--accent-purple); font-weight: 700;
+        }
+
+        .pitfall-card {
+            background: rgba(0, 0, 0, 0.2); border-left: 4px solid var(--accent-red);
+            padding: 1.25rem 1.5rem; border-radius: 8px; margin-bottom: 1.25rem;
+        }
+        .pitfall-title { font-weight: 700; color: var(--accent-red); margin-bottom: 0.5rem; }
+
+        .scroll-top {
+            position: fixed; bottom: 2rem; right: 2rem;
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; border-radius: 50%; color: var(--bg-dark);
+            font-size: 1.5rem; cursor: pointer; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; box-shadow: var(--shadow); z-index: 500;
+        }
+        .scroll-top.show { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-3px); }
+
+        .exam-info {
+            background: linear-gradient(135deg, rgba(123, 223, 255, 0.15), rgba(185, 142, 255, 0.15));
+            border: 2px solid var(--accent-blue); padding: 1.5rem;
+            border-radius: 12px; margin: 1rem 0;
+        }
+        .exam-info-title {
+            color: var(--accent-blue); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem;
+        }
+        .status-done { color: var(--accent-green); font-weight: 700; }
+        .status-next { color: var(--accent-orange); font-weight: 700; }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .section { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 1rem; padding: 1rem; }
+            .section-title { font-size: 1.5rem; }
+            .course-nav { flex-direction: column; align-items: flex-start; padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="course-nav">
+        <a href="index.html" class="home-link">🧮 CS517 Study Guide Home</a>
+        <a href="homework.html">← Prev: Homework</a>
+        <a href="quiz-04-05-prep.html">Next: Quiz 04+05 Prep →</a>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <div class="header-title">🧮 CS517 · Notation &amp; Early Quantum Primer</div>
+            <div class="progress-tracker">
+                <span>Progress:</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+        <nav class="nav-container">
+            <button class="nav-link active" data-section="intro">Overview</button>
+            <button class="nav-link" data-section="decoder">Notation Decoder</button>
+            <button class="nav-link" data-section="typecheck">Type-Checking</button>
+            <button class="nav-link" data-section="pitfalls">Common Pitfalls</button>
+            <button class="nav-link" data-section="practice">Qubits &amp; Entanglement Practice</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-title">📑 Navigation</div>
+            <div class="sidebar-links">
+                <a href="#intro" class="sidebar-link active">Overview</a>
+                <a href="#decoder" class="sidebar-link">Notation Decoder</a>
+                <a href="#typecheck" class="sidebar-link">Type-Checking</a>
+                <a href="#pitfalls" class="sidebar-link">Common Pitfalls</a>
+                <a href="#practice" class="sidebar-link">Qubits &amp; Entanglement Practice</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+<section class="section" id="intro">
+    <div class="section-header">
+        <span class="section-icon">🗝️</span>
+        <h2 class="section-title">Overview</h2>
+    </div>
+    <div class="exam-info">
+        <div class="exam-info-title">📋 Why this page exists</div>
+        <p style="margin-bottom:0">Bra-ket notation packs a lot of meaning into very few symbols, and it's easy to
+        get lost in a wall of $\langle\,|\,\rangle$'s. This page is a standalone &ldquo;decoder ring&rdquo; for
+        the notation used so far &mdash; it doesn't introduce new physics, it just slows down and re-explains the
+        <em>symbols themselves</em>. For now this page focuses specifically on <strong>qubits and
+        entanglement</strong> (Topic 01) &mdash; kets, bras, overlaps, superposition, and the Kronecker product
+        &mdash; with extra practice problems that don't overlap the ones already in
+        <a href="homework.html#hw01" style="color:var(--accent-blue)">HW 01</a> and
+        <a href="homework.html#hw0203" style="color:var(--accent-blue)">HW 02+03</a>.</p>
+    </div>
+    <div class="qc-connection">Use this page <em>alongside</em>, not instead of, the
+    <a href="01-quantum-states-and-entanglement.html" style="color:var(--accent-blue)">Topic 01 page</a> &mdash;
+    that page has the actual physics derivations; this page is purely about getting fluent at <em>reading</em> the
+    symbols those derivations are written in.</div>
+</section>
+
+<section class="section" id="decoder">
+    <div class="section-header">
+        <span class="section-icon">🔤</span>
+        <h2 class="section-title">Notation Decoder Ring</h2>
+    </div>
+    <p>Every symbol that's shown up so far, in one table. When an equation looks scary, find the symbol here first
+    &mdash; the physics is usually simpler than the notation makes it look.</p>
+    <p style="font-size:0.9rem;color:var(--text-secondary)">Last column, in plain language: most of this notation is
+    just ordinary vector/matrix math from linear algebra wearing a costume. If a symbol still feels new after
+    reading that column, that's the one worth asking about &mdash; the rest is mostly relabeling.</p>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;margin-top:1rem">
+        <tr><th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">Symbol</th>
+            <th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">Name</th>
+            <th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">Read it as&hellip;</th>
+            <th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">What it <em>is</em></th>
+            <th style="background:rgba(123,223,255,0.15);color:var(--accent-blue);padding:0.85rem 1rem;text-align:left;border-bottom:2px solid var(--border-color)">What it's for (engineer's-eye view)</th></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$|\psi\rangle$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">ket</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;the state $\psi$&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">a column vector</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Just a column vector &mdash; a list of numbers, same as any vector from linear algebra. The
+            &ldquo;$|\ \rangle$&rdquo; is just decoration that says &ldquo;this list of numbers is a quantum
+            state,&rdquo; the way you might label a vector $\mathbf v$ vs. $\mathbf F$ to say one's a velocity
+            and one's a force.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$\langle\psi|$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">bra</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;$\psi$, starred and laid on its side&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">a row vector, $\equiv|\psi\rangle^\dagger$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Same list of numbers as the ket, just written as a row instead of a column, with every number's
+            sign flipped on the imaginary part. You make this version whenever you're about to do a dot
+            product.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$\langle\phi|\psi\rangle$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">inner product / overlap</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;how much $\phi$ is in $\psi$&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">a plain (complex) number</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">It's a dot product. That's really it &mdash; the same dot product from your first linear algebra
+            class, with one small extra step (conjugating one side) to handle complex numbers.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$|\phi\rangle\langle\psi|$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">outer product (&ldquo;bowtie&rdquo;)</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;a ket glued to a bra&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">a matrix / operator</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">The opposite of a dot product: instead of squashing two vectors down into one number, this
+            multiplies them out into a whole matrix (column vector times row vector). Same &ldquo;column times
+            row&rdquo; multiplication rule from linear algebra, just usually skipped over in a first course.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$\dagger$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">dagger (Hermitian conjugate)</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;star every entry, then flip rows$\leftrightarrow$columns&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$A^\dagger\equiv A^{T*}\equiv A^{*T}$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Two familiar steps done back to back: transpose the matrix (rows become columns), and conjugate
+            every entry (flip the sign on every imaginary part). If all the numbers happen to be real, dagger
+            is just the plain transpose you already know.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$*$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">complex conjugate</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;flip the sign in front of every $i$&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$z=x+iy \Rightarrow z^*=x-iy$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Just flips the sign on the imaginary part of a number: $3+2i$ becomes $3-2i$. It shows up
+            constantly because multiplying a number by its own conjugate ($z^*z$) always gives a real,
+            non-negative result &mdash; which is exactly what you need to turn a number into a probability.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$T$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">transpose</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;flip rows$\leftrightarrow$columns, no conjugating&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">column $\to$ row (or vice versa)</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">The exact same transpose you already know &mdash; nothing new here.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$\delta_{j,k}$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Kronecker delta</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;1 if the indices match, 0 if they don't&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">a number, either 0 or 1</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">A simple on/off switch. It's mostly used inside a sum, where it deletes every term except the one
+            where the two indices happen to match &mdash; a shortcut for &ldquo;only keep this one term.&rdquo;</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$\sum_{k=1}^n$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">summation</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;add up the thing to the right, once for every $k$ from 1 to $n$&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">an operator on whatever follows</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Plain old sigma notation from math class &mdash; add up a list of numbers. Nothing quantum-specific
+            about it.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$I\equiv\sum_k|k\rangle\langle k|$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">completeness relation / identity</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;a fancy way to write $1$ that you're always allowed to insert&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">an operator, $I|\psi\rangle=|\psi\rangle$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Just a clever way to write the number $1$. Since multiplying anything by $1$ never changes it, you
+            can drop this expression into the middle of an equation for free, then use algebra tricks on it
+            &mdash; that's the entire point of it.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$A_{j,k}\equiv\langle j|A|k\rangle$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">matrix element</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;sandwich $A$ between bra $j$ and ket $k$ to pull out row-$j$, column-$k$ of its matrix&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">a number</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">How you pull one single number out of a matrix &mdash; row $j$, column $k$. Same as looking up cell
+            <code>A[j][k]</code> in a spreadsheet or array.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">$\otimes$</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Kronecker (tensor) product</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;glue two separate systems into one joint system&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">a bigger vector/matrix</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">How you combine two separate systems into one bigger one. The sizes <em>multiply</em> instead of
+            adding: a 2-level system plus a 3-level system needs $2\times3=6$ numbers together, not
+            $2+3=5$. That &ldquo;multiply, not add&rdquo; behavior is the whole reason entanglement can happen
+            at all.</td></tr>
+        <tr><td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">DOC</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Descending-Order Convention</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">&ldquo;list basis state 1's coefficient first, state 2's second, etc.&rdquo;</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">a rule for turning kets into column vectors</td>
+            <td style="padding:0.7rem 1rem;border-bottom:1px solid var(--border-color)">Just a labeling rule &mdash; like agreeing row 1 of a spreadsheet always means &ldquo;state
+            1.&rdquo; It doesn't matter what the rule is, only that everyone uses the same one.</td></tr>
+    </table>
+    </div>
+</section>
+
+<section class="section" id="typecheck">
+    <div class="section-header">
+        <span class="section-icon">🧩</span>
+        <h2 class="section-title">Type-Checking an Expression</h2>
+    </div>
+    <div class="subsection">
+        <h3 class="subsection-title">The single most useful trick: count the open ends</h3>
+        <p>Before trying to simplify anything, ask: <strong>is this a number, a vector, or a matrix?</strong> You
+        can answer that just by counting unmatched bras/kets, without doing any algebra:</p>
+        <ul>
+            <li>A lone ket $|\psi\rangle$ (nothing to its left) $\Rightarrow$ <strong>column vector</strong>.</li>
+            <li>A lone bra $\langle\psi|$ (nothing to its right) $\Rightarrow$ <strong>row vector</strong>.</li>
+            <li>A bra directly touching a ket, $\langle\phi|\psi\rangle$ (both ends &ldquo;closed&rdquo;) $\Rightarrow$ <strong>number</strong>.</li>
+            <li>A ket directly touching a bra, $|\phi\rangle\langle\psi|$ (both ends &ldquo;open&rdquo; &mdash; nothing between them) $\Rightarrow$ <strong>matrix/operator</strong>.</li>
+            <li>An operator sandwiched by a bra on the left and ket on the right, $\langle\phi|A|\psi\rangle$ (both ends closed) $\Rightarrow$ <strong>number</strong>.</li>
+            <li>An operator with only a ket on the right, $A|\psi\rangle$ (one end still open on the left) $\Rightarrow$ <strong>column vector</strong>.</li>
+        </ul>
+        <div class="qc-connection">If you can't tell whether something is a number or a matrix, you will not be
+        able to tell whether you're allowed to move it around freely (numbers commute with everything; matrices
+        generally don't) &mdash; so type-checking first prevents most algebra mistakes before they start.</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Worked walkthrough: extracting a coefficient, $c_k=\langle b_k|\psi\rangle$</h3>
+        <p>This is the exact same move used repeatedly in Topic 01 whenever a coefficient gets &ldquo;pulled
+        out&rdquo; of a state. Start from a state written in a basis $\{|b_1\rangle,\dots,|b_n\rangle\}$:</p>
+        <div class="math">$$|\psi\rangle = \sum_{m=1}^n c_m|b_m\rangle$$</div>
+        <p><strong>Step 1</strong> &mdash; apply the bra $\langle b_k|$ to both sides. This is legal because
+        $\langle b_k|$ is just a row vector &mdash; you can multiply both sides of any vector equation by the same
+        thing.</p>
+        <div class="math">$$\langle b_k|\psi\rangle = \langle b_k|\sum_{m=1}^n c_m|b_m\rangle$$</div>
+        <p><strong>Step 2</strong> &mdash; the sum doesn't care about $\langle b_k|$ (it's a sum over $m$, not
+        $k$), so move $\langle b_k|$ inside the sum, and pull each scalar $c_m$ out front of its overlap (scalars
+        can always be pulled out of a bra-ket sandwich).</p>
+        <div class="math">$$\langle b_k|\psi\rangle = \sum_{m=1}^n c_m\langle b_k|b_m\rangle$$</div>
+        <p><strong>Step 3</strong> &mdash; use orthonormality, $\langle b_k|b_m\rangle=\delta_{k,m}$. Every term
+        in the sum is multiplied by 0 <em>except</em> the one where $m=k$, which is multiplied by 1.</p>
+        <div class="math">$$\langle b_k|\psi\rangle = \sum_{m=1}^n c_m\delta_{k,m} = c_k$$</div>
+        <p><strong>Step 4</strong> &mdash; so the whole sum collapses to a single surviving term, giving the
+        boxed result. Three small, individually obvious steps &mdash; multiply both sides by a bra, distribute,
+        use orthonormality to kill every term but one.</p>
+        <div class="math">$$\boxed{c_k = \langle b_k|\psi\rangle}$$</div>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Worked walkthrough: reading the entanglement factoring test</h3>
+        <p>From <a href="homework.html#hw0203" style="color:var(--accent-blue)">HW 02+03 Problem 7c</a> &mdash;
+        this is the notation students most often gloss over instead of actually parsing. The question: can
+        $|\Phi\rangle\equiv\frac{1}{\sqrt2}\big(|1\rangle\otimes|2\rangle+|2\rangle\otimes|1\rangle\big)$ be written
+        as a single Kronecker product $|\chi\rangle\otimes|\xi\rangle$ of two one-mode states?</p>
+        <p><strong>Step 1</strong> &mdash; recall what a ket <em>position</em> means in $|\Phi\rangle$: the
+        <em>first</em> factor in each term is mode $A$'s state, the <em>second</em> factor is mode $B$'s state.
+        So $|\Phi\rangle$ says &ldquo;mode $A$ is $|1\rangle$ while mode $B$ is $|2\rangle$&rdquo; <em>and</em>
+        &ldquo;mode $A$ is $|2\rangle$ while mode $B$ is $|1\rangle$&rdquo; &mdash; both at once.</p>
+        <p><strong>Step 2</strong> &mdash; try to factor anyway: if $|\Phi\rangle=|\chi\rangle\otimes|\xi\rangle$
+        for some single states $|\chi\rangle,|\xi\rangle$, then mode $A$ would have to be described by the
+        <em>one fixed</em> state $|\chi\rangle$ across the whole expression &mdash; but Step 1 shows mode $A$'s
+        ket switches between $|1\rangle$ and $|2\rangle$ from one term to the next.</p>
+        <div class="math">$$|\Phi\rangle \ne |\chi\rangle\otimes|\xi\rangle \ \ \text{for any single } |\chi\rangle,|\xi\rangle$$</div>
+        <p><strong>Step 3</strong> &mdash; contrast this with a state that <em>does</em> factor, like
+        $|1\rangle\otimes|2\rangle$ alone: there, mode $A$'s ket is $|1\rangle$ in every term (there's only one
+        term), so $|\chi\rangle=|1\rangle$, $|\xi\rangle=|2\rangle$ works fine.</p>
+        <p>The notation itself is the physics here: &ldquo;can't factor into a single $\otimes$&rdquo; <em>is</em>
+        the definition of entanglement &mdash; there's no separate formula to memorize on top of just reading the
+        expression carefully.</p>
+        <div class="qc-connection">This is also exactly what the <strong>concurrence</strong> formula
+        $C(|\psi\rangle)=2|ad-bc|$ for $|\psi\rangle=a|00\rangle+b|01\rangle+c|10\rangle+d|11\rangle$ is checking
+        numerically &mdash; $C=0$ means it happens to factor, $C>0$ means it doesn't (see
+        <a href="homework.html#hw0203" style="color:var(--accent-blue)">HW 02+03 Problem 8</a>).</div>
+    </div>
+</section>
+
+<section class="section" id="pitfalls">
+    <div class="section-header">
+        <span class="section-icon">⚠️</span>
+        <h2 class="section-title">Common Notation Pitfalls</h2>
+    </div>
+
+    <div class="pitfall-card">
+        <div class="pitfall-title">1. A bra is not just &ldquo;the ket sideways&rdquo;</div>
+        <p>Taking the bra also <strong>complex-conjugates</strong> every coefficient. For
+        $|\psi\rangle=c_1|1\rangle+ic_2|2\rangle$, the bra is $\langle\psi|=c_1^*\langle1|-ic_2^*\langle2|$
+        (note the sign flip on the $i$ that was factored out) &mdash; not $c_1\langle1|+ic_2\langle2|$.</p>
+    </div>
+
+    <div class="pitfall-card">
+        <div class="pitfall-title">2. $\langle\phi|\psi\rangle \ne \langle\psi|\phi\rangle$ in general</div>
+        <p>They're complex conjugates of each other: $\langle\psi|\phi\rangle=(\langle\phi|\psi\rangle)^*$. They're
+        only equal when the overlap happens to be real. Always keep track of which bra came from which state.</p>
+    </div>
+
+    <div class="pitfall-card">
+        <div class="pitfall-title">3. $|\phi\rangle\langle\psi|$ (outer product) and $\langle\phi|\psi\rangle$ (inner product) look almost identical but are completely different objects</div>
+        <p>One is a bra written before a ket ($\langle\phi|\psi\rangle$, a <em>number</em>); the other is a ket
+        written before a bra ($|\phi\rangle\langle\psi|$, a <em>matrix</em>). The only difference on the page is
+        which one comes first &mdash; but the difference in meaning is enormous. Use the open-ends counting trick
+        from the <a href="#typecheck" style="color:var(--accent-blue)">Type-Checking</a> section above whenever
+        you're unsure.</p>
+    </div>
+
+    <div class="pitfall-card">
+        <div class="pitfall-title">4. A Kronecker delta inside a sum just picks out one term</div>
+        <p>Seeing $\sum_k(\text{stuff depending on }k)\,\delta_{j,k}$ should immediately simplify in your head to
+        just &ldquo;(stuff depending on $k$), with every $k$ replaced by $j$&rdquo; &mdash; every other term in
+        the sum is multiplied by 0 and vanishes. This is exactly how $c_k=\langle b_k|\psi\rangle$ gets derived in
+        the <a href="#typecheck" style="color:var(--accent-blue)">Type-Checking</a> section above.</p>
+    </div>
+
+    <div class="pitfall-card">
+        <div class="pitfall-title">5. $A_{j,k}$'s index order: first index = bra (row), second = ket (column)</div>
+        <p>$A_{j,k}\equiv\langle j|A|k\rangle$ &mdash; $j$ comes from the bra on the <em>left</em> and picks the
+        <strong>row</strong>; $k$ comes from the ket on the <em>right</em> and picks the <strong>column</strong>.
+        Swapping the order of the subscripts swaps which matrix entry you're talking about (unless the matrix
+        happens to be symmetric).</p>
+    </div>
+
+    <div class="pitfall-card">
+        <div class="pitfall-title">6. $|\psi\rangle\otimes|\phi\rangle \ne |\phi\rangle\otimes|\psi\rangle$ &mdash; the Kronecker product is NOT commutative</div>
+        <p>Order matters. $|\psi\rangle\otimes|\phi\rangle$ means &ldquo;mode $A$ in state $\psi$, mode $B$ in
+        state $\phi$&rdquo;; swapping the factors describes a physically different assignment (unless
+        $|\psi\rangle=|\phi\rangle$). This is also why $|jk\rangle\equiv|j\rangle\otimes|k\rangle$ is not the same
+        state as $|kj\rangle$.</p>
+    </div>
+
+    <div class="pitfall-card">
+        <div class="pitfall-title">7. In a composite ket, position tells you which subsystem &mdash; not just the label</div>
+        <p>In $|\Phi\rangle=\frac1{\sqrt2}(|1\rangle\otimes|2\rangle+|2\rangle\otimes|1\rangle)$, don't just read
+        off &ldquo;1 and 2 show up&rdquo; &mdash; the <em>first</em> slot in every term is always mode $A$, the
+        <em>second</em> is always mode $B$. Losing track of which slot is which is the single most common reason
+        students misjudge whether a two-mode state is separable or entangled.</p>
+    </div>
+</section>
+
+<section class="section" id="practice">
+    <div class="section-header">
+        <span class="section-icon">✅</span>
+        <h2 class="section-title">Qubits &amp; Entanglement Extra Practice</h2>
+    </div>
+    <div class="exam-info">
+        <div class="exam-info-title">📋 Extra practice &mdash; notation for qubits &amp; entanglement</div>
+        <p style="margin-bottom:0">Based on Topic 01 (pure states, superposition, matrix representations,
+        entanglement) and <a href="homework.html#hw01" style="color:var(--accent-blue)">HW 01</a> /
+        <a href="homework.html#hw0203" style="color:var(--accent-blue)">HW 02+03</a>. Do those problems first if
+        you haven't &mdash; the problems below are <em>additional</em> practice covering the same ideas from
+        different angles, not a repeat.</p>
+    </div>
+
+    <div class="subsection">
+        <h3 class="subsection-title">Checklist</h3>
+        <p>Close the laptop and try to write each of these from memory. If any of them don't come immediately,
+        that's exactly what to re-drill:</p>
+        <ul>
+            <li>General pure qubit: $|\psi\rangle=c_1|1\rangle+c_2|2\rangle$, $|c_1|^2+|c_2|^2=1$</li>
+            <li>Extracting a coefficient from a state: $c_k=\langle b_k|\psi\rangle$</li>
+            <li>Orthonormality: $\langle j|k\rangle=\delta_{j,k}$</li>
+            <li>Transition probability: $|\langle\phi|\psi\rangle|^2$</li>
+            <li>Bra of a ket: conjugate every coefficient, then write as a row: $\langle\psi|\equiv|\psi\rangle^\dagger$</li>
+            <li>Kronecker product of two kets, and why it's not commutative</li>
+            <li>Concurrence: $C(|\psi\rangle)=2|ad-bc|$ for $|\psi\rangle=a|00\rangle+b|01\rangle+c|10\rangle+d|11\rangle$; $C=0\Rightarrow$ separable, $C=1\Rightarrow$ maximally entangled</li>
+            <li>The factoring test: can $|\Psi\rangle$ be written as $|\chi\rangle\otimes|\xi\rangle$?</li>
+        </ul>
+        <div class="qc-connection">This checklist is worth more than it looks like on the page. Closing the
+        laptop and forcing yourself to write each line out cold &mdash; instead of just re-reading it &mdash; is
+        called <strong>active recall</strong>, and it's one of the best-tested study techniques there is: the
+        struggle to remember is what actually builds the memory. If a line won't come out of your head, that's
+        not a sign to feel bad &mdash; it's the checklist doing its job by showing you exactly where to spend the
+        next 10 minutes.</div>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Extra Problem 1 &mdash; normalization with a missing coefficient</div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:-0.5rem;margin-bottom:1rem">↩ Covered
+        in <a href="01-quantum-states-and-entanglement.html#pure-states" style="color:var(--accent-blue)">Topic 01,
+        Section 1 (Pure Quantum States &amp; Superposition)</a></p>
+        <div class="question-text">A qutrit is $|\psi\rangle=\frac12|1\rangle+\frac{i}{2}|2\rangle+c_3|3\rangle$,
+        where $c_3$ is real and positive.
+        <ol type="a">
+            <li>Use normalization to solve for $c_3$.</li>
+            <li>What is the probability of measuring the system in state $|2\rangle$?</li>
+        </ol>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|c_1|^2+|c_2|^2+|c_3|^2=1$: $\left|\frac12\right|^2+\left|\frac{i}2\right|^2+c_3^2=1
+                \Rightarrow \frac14+\frac14+c_3^2=1 \Rightarrow c_3^2=\frac12 \Rightarrow c_3=\frac{1}{\sqrt2}$
+                (taking the positive root, as given).</p>
+                <p>(b) $p_2=|c_2|^2=\left|\frac{i}2\right|^2=\frac14$ &mdash; note the factor of $i$ doesn't
+                change the probability, since $|i|=1$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Extra Problem 2 &mdash; overlap of two qutrit states, index by index</div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:-0.5rem;margin-bottom:1rem">↩ Covered
+        in <a href="01-quantum-states-and-entanglement.html#pure-states" style="color:var(--accent-blue)">Topic 01,
+        Section 1c (Overlaps &amp; Quantum States as Complex Vectors)</a></p>
+        <div class="question-text">For $|\phi\rangle=\frac1{\sqrt2}|1\rangle-\frac{i}{2}|2\rangle+\frac12|3\rangle$
+        and $|\psi\rangle=\frac1{\sqrt3}\big(|1\rangle+|2\rangle+i|3\rangle\big)$, compute $\langle\phi|\psi\rangle$
+        and the transition probability $|\langle\phi|\psi\rangle|^2$.</div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>First form the bra: $\langle\phi|=\frac1{\sqrt2}\langle1|+\frac{i}{2}\langle2|+\frac12\langle3|$
+                (note $-\frac{i}2$ conjugates to $+\frac{i}2$). Then, term by term using orthonormality:</p>
+                <div class="math">$$\langle\phi|\psi\rangle = \frac1{\sqrt2}\cdot\frac1{\sqrt3} + \frac{i}{2}\cdot\frac1{\sqrt3} + \frac12\cdot\frac{i}{\sqrt3} = \frac{1}{\sqrt6} + \frac{i}{2\sqrt3} + \frac{i}{2\sqrt3} = \frac{1}{\sqrt6} + \frac{i}{\sqrt3}$$</div>
+                <p>Transition probability: $|\langle\phi|\psi\rangle|^2=\left(\frac1{\sqrt6}\right)^2+\left(\frac1{\sqrt3}\right)^2=\frac16+\frac13=\frac16+\frac26=\frac36=\frac12$.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Extra Problem 3 &mdash; Kronecker product and the separability check, new numbers</div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:-0.5rem;margin-bottom:1rem">↩ Covered
+        in <a href="01-quantum-states-and-entanglement.html#matrix-representations" style="color:var(--accent-blue)">Topic 01,
+        Section 2b (How Multiple Quantum Objects Play Together)</a> and
+        <a href="01-quantum-states-and-entanglement.html#entanglement" style="color:var(--accent-blue)">Section 3a
+        (Separability vs. Entanglement)</a></p>
+        <div class="question-text">Let $|\psi\rangle=\frac1{\sqrt2}(|1\rangle+|2\rangle)$ and $|\phi\rangle=|2\rangle$
+        (single-qubit states).
+        <ol type="a">
+            <li>Write out $|\Xi\rangle\equiv|\psi\rangle\otimes|\phi\rangle$ as a 4-component column vector.</li>
+            <li>Confirm $|\Xi\rangle$ is separable by re-factoring it back into $|\psi\rangle\otimes|\phi\rangle$
+            from the vector alone (i.e. without just citing that you built it that way).</li>
+            <li>Compute its concurrence directly from the vector components to double-check.</li>
+        </ol>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) $|\psi\rangle\otimes|\phi\rangle=\frac1{\sqrt2}(|1\rangle+|2\rangle)\otimes|2\rangle=\frac1{\sqrt2}(|1\rangle\otimes|2\rangle+|2\rangle\otimes|2\rangle)=\frac1{\sqrt2}(|12\rangle+|22\rangle)$,
+                i.e. in the ordered basis $\{|11\rangle,|12\rangle,|21\rangle,|22\rangle\}$:</p>
+                <div class="math">$$|\Xi\rangle = \begin{pmatrix}0\\ \frac1{\sqrt2}\\ 0\\ \frac1{\sqrt2}\end{pmatrix}$$</div>
+                <p>(b) Reading the vector as $a|11\rangle+b|12\rangle+c|21\rangle+d|22\rangle$ with $a=0,b=\frac1{\sqrt2},c=0,d=\frac1{\sqrt2}$:
+                since $a=c=0$, mode $A$'s ket is $|2\rangle$'s partner in both surviving terms... more directly,
+                factor $\frac1{\sqrt2}|12\rangle+\frac1{\sqrt2}|22\rangle=\left(\frac1{\sqrt2}|1\rangle+\frac1{\sqrt2}|2\rangle\right)\otimes|2\rangle$
+                by pulling the common mode-$B$ ket $|2\rangle$ out of both terms &mdash; recovering
+                $|\psi\rangle\otimes|\phi\rangle$ exactly.</p>
+                <p>(c) Concurrence formula uses $a|00\rangle+b|01\rangle+c|10\rangle+d|11\rangle$ labeling
+                (relabel $1\to0,2\to1$ to match): here $a=0,b=\frac1{\sqrt2},c=0,d=\frac1{\sqrt2}$, so
+                $C=2|ad-bc|=2\left|0\cdot\frac1{\sqrt2}-\frac1{\sqrt2}\cdot0\right|=0$ &mdash;
+                <strong>separable</strong>, confirming (b).</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Extra Problem 4 &mdash; concurrence for new states</div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:-0.5rem;margin-bottom:1rem">↩ Covered
+        in <a href="01-quantum-states-and-entanglement.html#entanglement" style="color:var(--accent-blue)">Topic 01,
+        Section 3a (Separability vs. Entanglement for Pure States)</a></p>
+        <div class="question-text">Compute the concurrence of each:
+        <ol type="a">
+            <li>$|\psi\rangle=\frac1{\sqrt2}|00\rangle+\frac1{\sqrt2}|10\rangle$</li>
+            <li>$|\psi\rangle=\frac1{2}|00\rangle+\frac{\sqrt3}{2}|11\rangle$</li>
+            <li>$|\psi\rangle=\frac12|00\rangle+\frac12|01\rangle+\frac12|10\rangle-\frac12|11\rangle$</li>
+        </ol>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>Using $C=2|ad-bc|$ for $|\psi\rangle=a|00\rangle+b|01\rangle+c|10\rangle+d|11\rangle$:</p>
+                <p>(a) $a=\frac1{\sqrt2},b=0,c=\frac1{\sqrt2},d=0$: $C=2\left|\frac1{\sqrt2}\cdot0-0\cdot\frac1{\sqrt2}\right|=0$
+                &mdash; <strong>separable</strong> (matches $|\psi\rangle=\frac1{\sqrt2}(|0\rangle+|1\rangle)\otimes|0\rangle$).</p>
+                <p>(b) $a=\frac12,b=0,c=0,d=\frac{\sqrt3}2$: $C=2\left|\frac12\cdot\frac{\sqrt3}2-0\right|=2\cdot\frac{\sqrt3}4=\frac{\sqrt3}2\approx0.866$
+                &mdash; <strong>partially entangled</strong> (not maximal, since $\frac{\sqrt3}2<1$).</p>
+                <p>(c) $a=b=c=\frac12,d=-\frac12$: $C=2\left|\frac12\left(-\frac12\right)-\frac12\cdot\frac12\right|=2\left|-\frac14-\frac14\right|=2\cdot\frac12=1$
+                &mdash; <strong>maximally entangled</strong>.</p>
+            </div>
+        </details>
+    </div>
+
+    <div class="question-card">
+        <div class="question-number">Extra Problem 5 &mdash; translate the symbols into a sentence</div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:-0.5rem;margin-bottom:1rem">↩ Covered
+        in <a href="01-quantum-states-and-entanglement.html#pure-states" style="color:var(--accent-blue)">Topic 01,
+        Section 1c</a> and <a href="01-quantum-states-and-entanglement.html#entanglement" style="color:var(--accent-blue)">Section 3a</a></p>
+        <div class="question-text">Without doing any computation, write one plain-English sentence describing
+        what each of the following is <em>saying</em> (not how to derive it):
+        <ol type="a">
+            <li>$|\psi\rangle=\sum_k c_k|b_k\rangle$</li>
+            <li>$\langle\phi|\psi\rangle\equiv0 \iff |\phi\rangle\perp|\psi\rangle$</li>
+            <li>$C(|\psi\rangle)=2|ad-bc|$</li>
+        </ol>
+        </div>
+        <details>
+            <summary>Show solution</summary>
+            <div>
+                <p>(a) &ldquo;Any state can be written as a weighted sum of basis states, one term per basis
+                state, weighted by that state's coefficient.&rdquo;</p>
+                <p>(b) &ldquo;Two states have zero overlap exactly when they're perpendicular (orthogonal) &mdash;
+                measuring one gives zero probability of the other.&rdquo;</p>
+                <p>(c) &ldquo;A single number, built from a two-qubit state's four coefficients, that's zero
+                exactly when the state factors into two separate one-qubit states, and grows toward 1 the more
+                inseparably entangled the two qubits are.&rdquo;</p>
+                <p>Being able to say the sentence <em>before</em> touching the algebra is a good sign you actually
+                understand what a problem is asking, rather than pattern-matching to a memorized derivation.</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+        </main>
+    </div>
+
+    <button class="scroll-top" id="scrollTop">↑</button>
+
+    <script>
+        const sections = document.querySelectorAll('.section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const scrollTopBtn = document.getElementById('scrollTop');
+
+        function setActive(id) {
+            navLinks.forEach(l => l.classList.toggle('active', l.dataset.section === id));
+            sidebarLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+        }
+
+        function onScroll() {
+            let current = sections[0] ? sections[0].id : '';
+            sections.forEach(sec => {
+                const rect = sec.getBoundingClientRect();
+                if (rect.top <= 160) current = sec.id;
+            });
+            setActive(current);
+
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const pct = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+            progressFill.style.width = pct + '%';
+            progressText.textContent = pct + '%';
+
+            scrollTopBtn.classList.toggle('show', scrollTop > 400);
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const target = document.getElementById(link.dataset.section);
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+        window.addEventListener('scroll', onScroll);
+        onScroll();
+    </script>
+</body>
+</html>
