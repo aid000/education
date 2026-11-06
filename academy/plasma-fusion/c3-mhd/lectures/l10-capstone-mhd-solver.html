@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C3 · Lecture 10 — Capstone: A 1-D MHD Equilibrium &amp; Wave Solver</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .proj { background: linear-gradient(135deg, #0f2a1f, #123021); border: 1px solid #1f5a3d; border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .proj h3 { color: var(--green); margin-bottom: 8px; }
+        .proj p { font-size: .9rem; color: #c9e8d8; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C3 Magnetohydrodynamics</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10 · Capstone · Project Due</span>
+        <h1>Capstone: A 1-D MHD Equilibrium &amp; Wave Solver</h1>
+        <p class="sub">Everything from ten weeks — force balance, pressure and tension, wave speeds, stability, and the CFL condition — finally converges into one Python project that builds a real pinch equilibrium and watches a wave propagate through it, numbers checked at every step.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Assemble the exact Bennett (Z-)pinch equilibrium and verify its force balance numerically, by finite-difference residual.</li>
+            <li>Apply the Kruskal–Shafranov safety-factor check (Lecture 8) to decide whether an added axial field stabilizes the capstone equilibrium.</li>
+            <li>Build a simple 1-D, CFL-respecting finite-difference solver that evolves a linearized Alfvén wave in time.</li>
+            <li>Measure the numerical wave's propagation speed and confirm it matches the analytic Alfvén speed v_A.</li>
+            <li>Deliver the complete, end-to-end project: equilibrium + stability + wave propagation, in one verified Python script.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>Ten Weeks, One Script</h2>
+        <p>Trace the ingredients back: Lecture 4 gave the force-balance equation and a θ-pinch equilibrium; Lecture 5 split the magnetic force into pressure and tension and defined β; Lectures 6–7 derived the Alfvén and magnetosonic wave speeds from exactly that tension and pressure; Lecture 8 used the same field components to derive a stability criterion; Lecture 9 gave you the numerical tools — finite differences and the CFL condition — to solve any of this on a grid when no closed form exists. The capstone project wires all five pieces into one coherent deliverable with two parts: an <strong>equilibrium solver</strong> (Part A, extending Lecture 4's pure-pressure θ-pinch to the genuinely coupled Z-pinch case) and a <strong>wave-propagation solver</strong> (Part B, numerically evolving the Alfvén wave equation from Lecture 6 under the CFL discipline of Lecture 9).</p>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Part A: The Bennett Pinch, Solved Exactly and Checked Numerically</h2>
+        <p>Lecture 4 flagged that the Z-pinch's force-balance equation, d/dr(p+B<sub>θ</sub>²/2μ₀) = −B<sub>θ</sub>²/(μ₀r), has no simple conserved quantity the way the θ-pinch did — but it does have a famous <strong>exact closed-form solution</strong>, the <strong>Bennett pinch</strong>, which this capstone adopts as its equilibrium profile:</p>
+        <div class="eq">p(r) = p₀ / (1 + (r/a)²)²&nbsp;&nbsp;&nbsp;&nbsp; B_θ(r) = √(2μ₀p₀) · (r/a) / (1 + (r/a)²)<small>p₀ = centerline pressure, a = pinch scale radius. Substituting both into the pinch equation satisfies it identically — verified symbolically for this course.</small></div>
+        <p>This solution also satisfies a clean global relation — the <strong>Bennett relation</strong> — connecting the total pinch current I to the plasma's line-integrated thermal content, for an isothermal Bennett pinch (p = nk_BT with T constant across the profile):</p>
+        <div class="eq">N k_B T = μ₀ I² / (8π)<small>N = line density (particles per unit length along z). A compact, exact statement of how much current a given thermal content needs to pinch itself into equilibrium.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 560 240" role="img" aria-label="The Bennett pinch profile: pressure peaks at the center and falls off smoothly with radius, while the azimuthal field rises from zero at the center to a peak near the pinch radius and then falls off at large radius." >
+                <line x1="70" y1="210" x2="520" y2="210" stroke="#d0a99a" stroke-width="1.5"/>
+                <line x1="70" y1="210" x2="70" y2="30" stroke="#d0a99a" stroke-width="1.5"/>
+                <text x="295" y="230" fill="#d0a99a" font-size="12" text-anchor="middle">radius r</text>
+                <path d="M 90,50 C 160,52 220,90 270,140 C 330,180 420,200 500,205" fill="none" stroke="#fb7185" stroke-width="3"/>
+                <text x="140" y="42" fill="#fda4af" font-size="11" text-anchor="middle">p(r) = p₀/(1+(r/a)²)²</text>
+                <path d="M 90,205 C 150,170 190,100 230,90 C 270,95 340,140 420,170 C 460,182 480,188 500,192" fill="none" stroke="#60a5fa" stroke-width="3"/>
+                <text x="250" y="78" fill="#60a5fa" font-size="11" text-anchor="middle">B_θ(r): rises then falls as 1/r</text>
+                <line x1="230" y1="90" x2="230" y2="210" stroke="#34d399" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="230" y="222" fill="#34d399" font-size="10" text-anchor="middle">r ≈ a</text>
+            </svg>
+            <figcaption>The Bennett pinch: pressure p(r) (red) peaks at the center and decays smoothly, while the azimuthal field B_θ(r) (blue) rises from zero at the axis, peaks near r≈a, then falls off as 1/r at large radius — an exact equilibrium for every radius.</figcaption>
+        </figure>
+        <p>With a chosen minor radius a and an added uniform axial field B<sub>z</sub>, the equilibrium's edge value B<sub>θ</sub>(a) plugs directly into Lecture 8's Kruskal–Shafranov safety factor, q(a) = aB<sub>z</sub>/(RB<sub>θ</sub>(a)) — closing the loop between this lecture's equilibrium and the stability criterion from two lectures ago.</p>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Part B: Numerically Propagating an Alfvén Wave</h2>
+        <p>The second half of the capstone revisits Lecture 6's shear Alfvén wave equations, ∂v<sub>y</sub>/∂t = (B₀/μ₀ρ₀)∂B<sub>y</sub>/∂z and ∂B<sub>y</sub>/∂t = B₀∂v<sub>y</sub>/∂z, but solves them <strong>numerically</strong> rather than analytically: discretize z into a grid, use finite differences for the spatial derivatives (Lecture 9), and march v<sub>y</sub> and B<sub>y</sub> forward in time together, respecting the CFL condition with v_A as the relevant signal speed. Starting from a localized Gaussian pulse in B<sub>y</sub>, the pulse should split into two counter-propagating wave packets, each sliding along z at exactly ±v_A — a direct numerical confirmation of Lecture 6's analytic dispersion relation, obtained with none of that lecture's algebra, purely by marching the discretized equations forward in time.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>This is the numerical equivalent of plucking a guitar string (Lecture 6's analogy made literal in code): release a localized pluck, and watch two wavefronts race away from the pluck point in opposite directions, each moving at the string's wave speed. Measuring how far the simulated wavefront has traveled after a known elapsed time, and dividing, hands you back v_A — with no analytic derivation required, just a grid, a timestep, and patience.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — equilibrium, stability, and wave speed, numbers checked together</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A Bennett pinch has centerline pressure p₀ = 1.0×10⁵ Pa and scale radius a = 0.02 m. An axial field B<sub>z</sub> = 1.5 T is added, with periodicity length analog R = 0.1 m. Separately, a wave-propagation test region has background density ρ₀ = 1×10⁻⁷ kg/m³ and field B<sub>z0</sub> = 0.4 T.</p>
+        <ol>
+            <li><strong>Bennett edge field coefficient:</strong> B₁ = √(2μ₀p₀) = √(2 × 4π×10⁻⁷ × 10⁵) ≈ <strong>0.5013 T</strong>.</li>
+            <li><strong>B_θ at r = a:</strong> B_θ(a) = B₁ × (1)/(1+1) = 0.5013/2 ≈ <strong>0.2507 T</strong>.</li>
+            <li><strong>Safety factor:</strong> q(a) = aB_z/(RB_θ(a)) = (0.02 × 1.5)/(0.1 × 0.2507) = 0.03/0.02507 ≈ <strong>1.197</strong> — above 1, so this configuration is <strong>kink-stable</strong> (with B<sub>z</sub> = 1.0 T instead, q ≈ 0.798 < 1, kink-unstable — a vivid demonstration of how much the field balance matters).</li>
+            <li><strong>Alfvén speed for the wave test:</strong> v_A = B_{z0}/√(μ₀ρ₀) = 0.4/√(4π×10⁻⁷ × 10⁻⁷) ≈ <strong>1.128×10⁶ m/s</strong>.</li>
+            <li><strong>Numerical check:</strong> after 600 timesteps (Δt ≈ 8.88×10⁻⁹ s, total elapsed t ≈ 5.33×10⁻⁶ s), the predicted pulse shift v_A·t ≈ 6.015 m matches the simulation's measured shift of ≈ 5.99 m to within 0.4% — well within the expected numerical dispersion error of this simple finite-difference scheme.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: the complete capstone project in Python/SciPy</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This is the full project deliverable. Everything uses the free Python + NumPy + SciPy stack from Lecture 1 — no new installs needed.</p>
+        <pre><span class="c"># mhd_capstone.py — Capstone (Lecture 10)</span>
+import numpy as np
+
+mu0 = 4*np.pi*1e-7
+
+<span class="c"># ===== PART A: Bennett pinch equilibrium + stability =====</span>
+p0, a = 1.0e5, 0.02                 <span class="c"># Pa, m</span>
+B1 = np.sqrt(2*mu0*p0)              <span class="c"># exact Bennett coefficient</span>
+
+def p_profile(r):   return p0/(1+(r/a)**2)**2
+def Bt_profile(r):  return B1*(r/a)/(1+(r/a)**2)
+
+<span class="c"># numerical force-balance residual check at an interior radius</span>
+r0, dr = 0.015, 1e-7
+lhs = ((p_profile(r0+dr)+Bt_profile(r0+dr)**2/(2*mu0))
+     - (p_profile(r0-dr)+Bt_profile(r0-dr)**2/(2*mu0))) / (2*dr)
+rhs = -Bt_profile(r0)**2/(mu0*r0)
+print(f"[Part A] force-balance residual: lhs={lhs:.4e}  rhs={rhs:.4e}  (should match)")
+
+I_total = 2*np.pi*a*B1/mu0
+print(f"[Part A] total pinch current I = {I_total:.3e} A")
+
+Btheta_a = Bt_profile(a)
+Bz, R = 1.5, 0.1
+q = (a*Bz)/(R*Btheta_a)
+print(f"[Part A] B_theta(a)={Btheta_a:.4f} T, q(a)={q:.3f} -> "
+      f"{'kink-stable' if q>1 else 'KINK-UNSTABLE'}")
+
+<span class="c"># ===== PART B: 1-D Alfven wave propagation =====</span>
+rho0, Bz0 = 1e-7, 0.4
+vA = Bz0/np.sqrt(mu0*rho0)
+print(f"[Part B] v_A = {vA:.4e} m/s")
+
+L, N = 10.0, 400
+x = np.linspace(0, L, N); dx = x[1]-x[0]
+dt = 0.4*dx/vA; nsteps = 600
+
+vy = np.zeros(N)
+By = 0.01*Bz0*np.exp(-(x-2.0)**2/(2*0.3**2))   <span class="c"># initial pulse</span>
+
+def step(vy, By, dt):
+    vy_new = vy + dt*(Bz0/(mu0*rho0))*np.gradient(By, dx)
+    By_new = By + dt*Bz0*np.gradient(vy_new, dx)
+    return vy_new, By_new
+
+peak0 = x[np.argmax(By)]
+for _ in range(nsteps):
+    vy, By = step(vy, By, dt)
+peak1 = x[np.argmax(np.abs(By))]
+
+t_elapsed = nsteps*dt
+print(f"[Part B] predicted shift v_A*t = {vA*t_elapsed:.3f} m, "
+      f"measured shift = {peak1-peak0:.3f} m")
+
+<span class="c"># --- actual output ---</span>
+<span class="c"># [Part A] force-balance residual: lhs=-3.0720e+06  rhs=-3.0720e+06  (should match)</span>
+<span class="c"># [Part A] total pinch current I = 5.013e+04 A</span>
+<span class="c"># [Part A] B_theta(a)=0.2507 T, q(a)=1.197 -> kink-stable</span>
+<span class="c"># [Part B] v_A = 1.1284e+06 m/s</span>
+<span class="c"># [Part B] predicted shift v_A*t = 6.015 m, measured shift = 5.990 m</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);"><strong>Extend it:</strong> swap in the general screw-pinch dispersion relation from Lecture 7 and verify the fast/slow magnetosonic limiting cases numerically as well, or sweep B_z downward in Part A until q(a) crosses 1 and confirm it lands near the value found by hand in Lecture 8.</p>
+    </div>
+
+    <!-- PROJECT -->
+    <div class="proj">
+        <h3>🛠️ Project Due — Week 10</h3>
+        <p>Submit your complete 1-D MHD equilibrium &amp; wave solver: the Bennett-pinch equilibrium with a numerical force-balance check, the Kruskal–Shafranov stability evaluation, and the Alfvén-wave propagation demo with a measured-vs-analytic speed comparison. Include a short report (plots + the printed numeric checks above) summarizing what each of the ten weeks contributed to the final script.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You have just built, from the ground up, the two calculations that sit at the heart of every real magnetic-confinement analysis: an equilibrium that satisfies force balance and survives a stability check, and a wave solver that tells you how the plasma responds when disturbed. Course 4 (Fusion Reactions &amp; Confinement) picks up exactly where this leaves off — using the equilibrium and stability concepts from this course to ask the next question a fusion reactor must answer: given a confined plasma at some density, temperature, and confinement time, does it produce more fusion energy than it costs to sustain? That is the Lawson criterion, and MHD equilibrium and stability are the machinery that decides whether the plasma survives long enough to reach it.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The Bennett pinch profiles p(r) = p₀/(1+(r/a)²)² and B_θ(r) = √(2μ₀p₀)(r/a)/(1+(r/a)²) are significant because…</div>
+            <div class="opt"><b>A.</b> They are rough approximations that only work near the center</div>
+            <div class="opt"><b>B.</b> They satisfy the Z-pinch force-balance equation exactly, for every radius, without approximation</div>
+            <div class="opt"><b>C.</b> They apply only to the θ-pinch, not the Z-pinch</div>
+            <div class="opt"><b>D.</b> They ignore the magnetic field entirely</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Substituting both profiles into d/dr(p+B_θ²/2μ₀) = −B_θ²/(μ₀r) satisfies it identically at every r — an exact, closed-form equilibrium. (A) it is exact everywhere, not just near the center. (C) it is specifically the Z-pinch (B_θ-only) solution. (D) B_θ(r) is central to the whole profile.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In the capstone's safety-factor check, raising B_z from 1.0 T to 1.5 T (same geometry) changed q(a) from about 0.80 to about 1.20. What does this show?</div>
+            <div class="opt"><b>A.</b> q(a) does not depend on B_z</div>
+            <div class="opt"><b>B.</b> A modest change in the stabilizing axial field can move a configuration from kink-unstable to kink-stable</div>
+            <div class="opt"><b>C.</b> The plasma pressure must have changed too</div>
+            <div class="opt"><b>D.</b> Kink stability has nothing to do with B_z</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> q(a) = aB_z/(RB_θ(a)) is directly proportional to B_z, so a 50% increase in B_z was enough to cross the q=1 threshold from unstable to stable in this example. (A, D) directly contradict the formula and the numeric result. (C) the pressure profile (and hence B_θ(a)) was unchanged between the two cases.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The capstone's wave solver starts from a Gaussian pulse in B_y and measures how far it has moved after a known number of timesteps. This is used to…</div>
+            <div class="opt"><b>A.</b> Compute the plasma beta</div>
+            <div class="opt"><b>B.</b> Independently check that the measured propagation speed matches the analytic Alfvén speed v_A = B/√(μ₀ρ)</div>
+            <div class="opt"><b>C.</b> Determine the Kruskal–Shafranov safety factor</div>
+            <div class="opt"><b>D.</b> Measure the resistivity of the plasma</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Dividing the measured pulse shift by the elapsed time gives a numerical estimate of the propagation speed, which the worked example shows matches v_A to within about 0.4%. (A) beta requires pressure and field magnitude, not wave propagation timing. (C) that's a separate, equilibrium-based calculation (Part A). (D) this wave solver is purely ideal (η=0); no resistivity appears.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why does the capstone's wave solver choose its timestep as 0.4×Δx/v_A rather than simply Δx/v_A?</div>
+            <div class="opt"><b>A.</b> To intentionally violate the CFL condition</div>
+            <div class="opt"><b>B.</b> To keep a safety margin below the CFL stability limit (Lecture 9), since real schemes have less margin than the idealized bound suggests</div>
+            <div class="opt"><b>C.</b> Because v_A is irrelevant to the timestep choice</div>
+            <div class="opt"><b>D.</b> Because a larger timestep is always more accurate</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Using a Courant number of 0.4 (below the C=1 hard limit) keeps the explicit scheme comfortably stable, exactly the practice recommended in Lecture 9. (A) the point is to respect, not violate, CFL. (C) v_A is precisely the speed the CFL condition is built around here. (D) larger timesteps reduce accuracy and risk instability, not improve it.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Looking back across the whole course, which single equation from Lecture 4 underlies both the equilibrium solver (Part A) and, indirectly, the wave solver's background state (Part B)?</div>
+            <div class="opt"><b>A.</b> The ideal gas law alone</div>
+            <div class="opt"><b>B.</b> The static force-balance equation, ∇p = J×B</div>
+            <div class="opt"><b>C.</b> The CFL condition</div>
+            <div class="opt"><b>D.</b> Ohm's law</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> ∇p = J×B is the equilibrium Part A solves exactly (as the Bennett profile), and it is also what defines the uniform background state that Part B then perturbs with a wave. (A) the ideal gas law is one piece of the pressure closure, not the organizing equation. (C) CFL governs the numerical timestep, not the physical equilibrium. (D) Ohm's law underlies the induction equation (Lecture 2–3), not the static force balance.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Built and verified the exact <b>Bennett (Z-)pinch equilibrium</b> by numerical force-balance residual check.</li>
+            <li>Applied the <b>Kruskal–Shafranov safety factor</b> to the capstone equilibrium, showing B_z = 1.5 T is kink-stable while 1.0 T is not.</li>
+            <li>Built a simple, CFL-respecting <b>finite-difference Alfvén-wave solver</b> and measured its numerical propagation speed.</li>
+            <li>Confirmed the measured wave speed matches the analytic v_A to within 0.4%.</li>
+            <li>Delivered the full course project: <b>equilibrium + stability + wave propagation</b>, in one reproducible Python script.</li>
+        </ul>
+        <p class="next-up">That's all ten weeks of C3 — Magnetohydrodynamics. Course 4 (Fusion Reactions &amp; Confinement) builds directly on this course's equilibrium and stability foundation to ask whether a confined plasma can actually ignite.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-numerical-methods.html"><div class="dir">← Week 9</div><div class="ttl">Numerical Methods for 1-D MHD</div></a>
+        <a href="../index.html"><div class="dir">Course →</div><div class="ttl">Back to C3 Syllabus</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Magnetohydrodynamics</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

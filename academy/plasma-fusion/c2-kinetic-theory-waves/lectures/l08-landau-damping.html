@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C2 · Lecture 8 — Landau Damping</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .proj { background: linear-gradient(135deg, #0f2a22, #0d3327); border: 1px solid #1f5c45; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .proj h3 { color: var(--green); font-size: 1rem; margin-bottom: 6px; }
+        .proj p { font-size: .9rem; color: #bdf0da; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C2 Kinetic Theory &amp; Waves</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8 · Project Checkpoint</span>
+        <h1>Landau Damping</h1>
+        <p class="sub">A perfectly reversible, collisionless equation somehow makes waves decay. The resolution is one of the most celebrated results in plasma physics — and it's hiding in the pole we set aside back in Lecture 3.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the apparent paradox: a time-reversible Vlasov-Poisson system producing apparently irreversible wave damping.</li>
+            <li>Explain the resonant-particle mechanism physically, including the role of ∂f₀/∂v at the phase velocity.</li>
+            <li>State Landau's prescription for the pole and the resulting asymptotic damping-rate formula.</li>
+            <li>Compute the Landau damping rate for specific kλ_De and interpret the weak- vs. strong-damping regimes.</li>
+            <li>Numerically solve the exact kinetic dispersion relation and compare to the asymptotic formula, including where it breaks down.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>The Paradox</h2>
+        <p>The Vlasov equation (Lecture 2) is exactly time-reversible — run it backward and it's still a valid solution, with no entropy, no friction, no collisions anywhere in it. Yet in 1946, Lev Landau showed that a small electrostatic perturbation in a Maxwellian plasma <em>decays</em> — the electric field amplitude shrinks exponentially in time, just like a damped oscillator with friction. How can a perfectly reversible equation produce something that looks exactly like damping?</p>
+        <p>The resolution is that nothing is actually lost — it's hidden. Recall Lecture 2's free-streaming example: different velocity groups shear phase space into ever-finer filaments (<strong>phase mixing</strong>). The macroscopic, <em>observable</em> field — built from a velocity integral over f — genuinely decays, because the fine-scale structure in f that still "remembers" the original wave becomes too tangled to contribute coherently to that integral. The information isn't destroyed (and famously, waiting long enough and perturbing the plasma a second time can trigger a "Landau echo" that partially reconstructs it) — it's just phase-mixed into a form the macroscopic field can no longer see.</p>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>Resonant Particles: the Physical Mechanism</h2>
+        <p>Recall the resonance denominator from Lecture 3: particles with velocity v=ω/k move at exactly the wave's phase velocity, so they feel something closer to a steady force than an oscillating one, and they exchange energy with the wave far more effectively than the bulk. The direction of that exchange depends on the <em>local slope</em> of f₀ right at the resonance:</p>
+        <div class="eq">∂f₀/∂v &lt; 0 at v=ω/k &nbsp;⟹&nbsp; more slow resonant particles than fast ones &nbsp;⟹&nbsp; net energy flows wave → particles &nbsp;⟹&nbsp; damping<small>A Maxwellian's tail (v&gt;0) always has ∂f₀/∂v&lt;0 — slightly more particles just below the phase velocity (gaining energy, accelerated toward it) than just above (losing energy, decelerated). That tiny imbalance is the entire effect.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Picture surfers paddling near a wave's speed. Surfers moving just slower than the wave catch it and accelerate, stealing energy from the wave. Surfers moving just faster than the wave get pushed back by it, giving energy <em>to</em> the wave. If there are more slow surfers than fast ones nearby — exactly the Maxwellian's negative slope — more energy is stolen than given back, and the wave loses amplitude. Flip that imbalance (more fast surfers than slow, a positive slope) and the wave would <em>grow</em> instead — precisely what happens in Lecture 9.</div>
+    </section>
+
+    <!-- FIGURE -->
+    <figure class="fig">
+        <svg viewBox="0 0 460 230" role="img" aria-label="A Maxwellian distribution with the resonant velocity marked on its negative-slope tail, next to a plot of a wave amplitude decaying exponentially in time" >
+            <text x="230" y="20" fill="#fda4af" font-size="13" text-anchor="middle" font-weight="bold">Resonant slope → damping</text>
+            <!-- left: f0(v) with resonance marked -->
+            <line x1="30" y1="190" x2="220" y2="190" stroke="#d0a99a" stroke-width="1.3"/>
+            <line x1="30" y1="190" x2="30" y2="45" stroke="#d0a99a" stroke-width="1.3"/>
+            <text x="200" y="205" fill="#d0a99a" font-size="10">v →</text>
+            <path d="M35,186 C70,186 85,60 130,55 C175,60 190,150 215,180" fill="none" stroke="#fb7185" stroke-width="2.2"/>
+            <circle cx="175" cy="110" r="4" fill="#34d399"/>
+            <text x="175" y="98" fill="#6ee7b7" font-size="9" text-anchor="middle">v=ω/k</text>
+            <text x="180" y="125" fill="#93c5fd" font-size="9">∂f₀/∂v&lt;0</text>
+            <text x="100" y="30" fill="#d0a99a" font-size="10" text-anchor="middle">f₀(v) — Maxwellian</text>
+            <!-- right: decaying wave -->
+            <line x1="260" y1="115" x2="450" y2="115" stroke="#d0a99a" stroke-width="1" stroke-dasharray="2 3"/>
+            <path d="M260,115 C270,70 280,160 290,115 C300,80 310,150 320,115 C330,95 340,135 350,115 C360,100 370,130 380,115 C390,105 400,125 410,115 C420,108 430,122 440,115" fill="none" stroke="#60a5fa" stroke-width="2"/>
+            <path d="M260,115 C300,60 350,100 440,113" fill="none" stroke="#fbbf24" stroke-width="1.3" stroke-dasharray="4 3"/>
+            <path d="M260,115 C300,170 350,130 440,117" fill="none" stroke="#fbbf24" stroke-width="1.3" stroke-dasharray="4 3"/>
+            <text x="350" y="48" fill="#fcd34d" font-size="9" text-anchor="middle">envelope ∝ exp(γt), γ&lt;0</text>
+            <text x="350" y="205" fill="#93c5fd" font-size="10" text-anchor="middle">E(t) — decaying oscillation</text>
+        </svg>
+        <figcaption>Left: a Maxwellian's negative slope at the resonant velocity v=ω/k drains energy from the wave. Right: the macroscopic consequence — an oscillating electric field with an exponentially decaying envelope, even though the underlying Vlasov dynamics are perfectly reversible.</figcaption>
+    </figure>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>Landau's Prescription &amp; the Damping-Rate Formula</h2>
+        <p>Landau's technical contribution was showing how to handle the pole correctly: treat ω as the limit of a complex frequency approaching the real axis from <em>above</em> (consistent with the problem being posed as an initial-value problem, which is causal), which fixes a specific way to deform the velocity-integration contour around v=ω/k. Carrying this through for a Maxwellian and expanding for weak damping (kλ_De≪1) gives the frequency shift back to the Bohm-Gross relation (Lecture 4) at leading order, <em>plus</em> a small imaginary part:</p>
+        <div class="eq">ω = ω_r + iγ&nbsp;&nbsp;&nbsp; ω_r ≈ ω_pe√(1+3k²λ<sub>De</sub>²) (Bohm-Gross)&nbsp;&nbsp;&nbsp; γ/ω<sub>pe</sub> = −√(π/8)·(kλ<sub>De</sub>)<sup>−3</sup>·exp[ −1/(2(kλ<sub>De</sub>)²) − 3/2 ]<small>γ is the imaginary part of ω in the exp(i(kx−ωt)) convention: γ&lt;0 means the amplitude ∝ exp(γt) decays — damping. The exponential makes γ extraordinarily sensitive to kλ_De: double kλ_De and the exponent's magnitude drops by a factor of 4.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Landau damping is <strong>not</strong> collisional dissipation. No entropy-generating collision appears anywhere in this derivation — the damping is a purely reversible phase-mixing effect at the macroscopic (field) level, even though the underlying six-dimensional Vlasov dynamics never lose information. That's also why it's genuinely surprising, and why it took until 1946 (and considerable mathematical care with the contour) to get right.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — weak vs. strong Landau damping</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Evaluate γ/ω_pe for kλ_De=0.2 (weak-damping regime) and kλ_De=0.5 (approaching the edge of validity).</p>
+        <ol>
+            <li><strong>kλ_De=0.2:</strong> γ/ω_pe = −√(π/8)·(0.2)⁻³·exp[−1/(2·0.04)−1.5] = −0.6267·125·exp(−14) ≈ <strong>−6.51×10⁻⁵</strong>. The wave loses only 0.0065% of its amplitude per radian of oscillation — essentially undampened on any experimentally relevant timescale.</li>
+            <li><strong>kλ_De=0.5:</strong> γ/ω_pe = −√(π/8)·(0.5)⁻³·exp[−1/(2·0.25)−1.5] = −0.6267·8·exp(−3.5) ≈ <strong>−0.1514</strong>. This wave loses about 15% of its amplitude per radian — it damps out within roughly one oscillation period.</li>
+            <li><strong>Lesson:</strong> the exponential in γ means the transition from "essentially undamped" to "gone within a cycle" happens over a surprisingly narrow range of kλ_De — Langmuir waves are either robust or short-lived, with very little gradual middle ground.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: solving the exact kinetic dispersion relation</h3>
+        <p style="font-size:.9rem; color:var(--text2);">The asymptotic formula above is a leading-order expansion. We can check it against the <em>exact</em> kinetic dispersion relation by using the plasma dispersion function Z(ζ) = i√π·w(ζ), where w is the Faddeeva function (available in SciPy), and root-finding for complex ω at fixed k.</p>
+        <pre><span class="c"># landau_exact.py — Lecture 8</span>
+import numpy as np
+from scipy.special import wofz
+from scipy.optimize import fsolve
+
+def Z(zeta):
+    return 1j * np.sqrt(np.pi) * wofz(zeta)
+
+def dispersion(w_ri, klam):      <span class="c"># normalized: w_pe=1, v_th=1, lambda_De=1</span>
+    w = w_ri[0] + 1j*w_ri[1]
+    zeta = w / (klam * np.sqrt(2))
+    val = 1 + (1/klam**2) * (1 + zeta*Z(zeta))
+    return [val.real, val.imag]
+
+print("klam   omega_r/wpe   gamma/wpe (exact)   gamma/wpe (asymptotic formula)")
+for klam in [0.2, 0.3, 0.4, 0.5]:
+    wr_guess = np.sqrt(1 + 3*klam**2)
+    sol = fsolve(dispersion, [wr_guess, -1e-3], args=(klam,))
+    gamma_formula = -np.sqrt(np.pi/8)/klam**3 * np.exp(-1/(2*klam**2) - 1.5)
+    print(f"{klam:.1f}    {sol[0]:.5f}      {sol[1]:.6e}        {gamma_formula:.6e}")
+<span class="c"># Verified output:
+# klam   omega_r/wpe   gamma/wpe (exact)   gamma/wpe (asymptotic formula)
+# 0.2    1.06398      -5.510748e-05        -6.513542e-05
+# 0.3    1.15985      -1.262037e-02        -2.002061e-02
+# 0.4    1.28506      -6.612796e-02        -9.599265e-02
+# 0.5    1.41566      -1.533595e-01        -1.513872e-01</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Agreement is good (same order of magnitude) across this whole range and especially tight at kλ_De=0.5 (within 1.3%) — somewhat better than the formula's "leading order only" label might suggest. At kλ_De=0.1, γ/ω_pe is of order 10⁻²⁰ — far below the ~10⁻⁶ relative precision a general-purpose root-finder like <code>fsolve</code> can resolve, so it isn't shown here. That's not a physics failure, it's a genuine numerical-methods lesson revisited in the Lecture 10 capstone: exponentially small quantities need either extended precision or the analytic asymptotic formula, not brute-force root-finding.</p>
+    </div>
+
+    <!-- PROJECT CHECKPOINT -->
+    <div class="proj">
+        <h3>📌 Project Checkpoint — Week 8</h3>
+        <p>Add a <code>landau_gamma(klam)</code> function (the asymptotic formula) and a <code>landau_exact(klam)</code> function (the fsolve-based solver above) to your capstone toolkit. Reproduce the table above and record, in your project notes, the kλ_De value below which your root-finder starts returning noise instead of a real answer — you'll need that observation for the Week 10 writeup.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Landau damping is really a special case of a much more general statement: the sign of ∂f₀/∂v at the resonant velocity controls whether a wave grows or decays, for <em>any</em> f₀, not just a Maxwellian. Lecture 9 flips that sign on purpose — two counter-streaming beams create a region of positive slope — and the exact same resonance mechanism turns into exponential growth: the two-stream instability.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The "paradox" of Landau damping is that…</div>
+            <div class="opt"><b>A.</b> the Vlasov equation has no solutions</div>
+            <div class="opt"><b>B.</b> a time-reversible, collisionless equation produces an apparently irreversible macroscopic decay</div>
+            <div class="opt"><b>C.</b> collisions are required but were left out</div>
+            <div class="opt"><b>D.</b> the plasma frequency becomes negative</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The Vlasov equation has no friction or entropy production anywhere in it, yet the macroscopic field amplitude genuinely decays — resolved by recognizing the "lost" information is phase-mixed into fine velocity-space structure, not actually destroyed.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> For a Maxwellian, the sign of ∂f₀/∂v at the resonant velocity v=ω/k (for ω/k&gt;0) is…</div>
+            <div class="opt"><b>A.</b> always positive, causing damping</div>
+            <div class="opt"><b>B.</b> always negative, causing damping</div>
+            <div class="opt"><b>C.</b> always zero</div>
+            <div class="opt"><b>D.</b> undefined</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A Maxwellian is single-peaked and monotonically decreasing for v&gt;0, so ∂f₀/∂v&lt;0 there — more slow resonant particles gain energy from the wave than fast ones give back, draining the wave (damping).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In the exp(i(kx−ωt)) convention, a negative imaginary part of ω (γ&lt;0) corresponds to…</div>
+            <div class="opt"><b>A.</b> exponential growth</div>
+            <div class="opt"><b>B.</b> exponential decay (damping) of the wave amplitude</div>
+            <div class="opt"><b>C.</b> no change in amplitude</div>
+            <div class="opt"><b>D.</b> a purely real frequency</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The amplitude factor is exp(−iωt)=exp(−iω_rt)exp(γt); γ&lt;0 makes exp(γt) decay with time — damping. γ&gt;0 would instead describe growth (Lecture 9's two-stream instability).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> From the worked example, going from kλ_De=0.2 to kλ_De=0.5 changed γ/ω_pe from about −6.5×10⁻⁵ to about −0.151. This illustrates that…</div>
+            <div class="opt"><b>A.</b> γ depends linearly on kλ_De</div>
+            <div class="opt"><b>B.</b> the exponential sensitivity of γ means damping strength changes very rapidly over a narrow range of kλ_De</div>
+            <div class="opt"><b>C.</b> damping is independent of k</div>
+            <div class="opt"><b>D.</b> the formula is wrong at kλ_De=0.5</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The exp[−1/(2(kλ_De)²)] factor is extraordinarily sensitive to kλ_De, so the damping rate swings by more than three orders of magnitude over this modest range — essentially undamped to damped-within-a-cycle.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> At kλ_De=0.1, the hands-on root-finder failed to resolve a nonzero γ. This is because…</div>
+            <div class="opt"><b>A.</b> Landau damping doesn't exist at small kλ_De</div>
+            <div class="opt"><b>B.</b> the true γ/ω_pe is of order 10⁻²⁰ — far below the numerical precision a general root-finder can resolve</div>
+            <div class="opt"><b>C.</b> the plasma dispersion function is undefined there</div>
+            <div class="opt"><b>D.</b> fsolve cannot handle complex numbers</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The asymptotic formula predicts an exponentially tiny γ at small kλ_De — real, but far smaller than double-precision root-finding can distinguish from zero. This is a numerical-methods limitation, not evidence that the damping vanishes.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Resolved the <b>paradox</b>: reversible Vlasov dynamics + phase mixing ⟹ apparently irreversible macroscopic field decay.</li>
+            <li>Explained <b>Landau damping</b> physically via resonant particles and the sign of ∂f₀/∂v at v=ω/k.</li>
+            <li>Stated <b>Landau's prescription</b> and the asymptotic damping-rate formula for Langmuir waves.</li>
+            <li>Computed γ/ω_pe for weak (kλ_De=0.2) and strong (kλ_De=0.5) damping, and verified both against an <b>exact numerical solver</b>.</li>
+            <li>Identified a genuine <b>numerical-methods limitation</b> (exponentially small γ at small kλ_De) rather than papering over it.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: flip the sign of the slope on purpose. Two counter-streaming electron beams turn the same resonance mechanism into exponential growth — the two-stream instability.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-magnetized-plasma-waves-rlox.html"><div class="dir">← Week 7</div><div class="ttl">Waves in Magnetized Plasma</div></a>
+        <a href="l09-two-stream-instability.html" class="next"><div class="dir">Week 9 →</div><div class="ttl">The Two-Stream Instability</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Kinetic Theory &amp; Waves</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C3 · Lecture 1 — From Particles to Fluids: The MHD Approximation</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C3 Magnetohydrodynamics</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>From Particles to Fluids: The MHD Approximation</h1>
+        <p class="sub">Ten billion trillion particles, each gyrating on its own field line — and yet a plasma often moves as one obedient conducting fluid. Knowing exactly when that simplification is legal is the whole foundation of this course.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Contrast the kinetic description of a plasma (a distribution function in position-velocity space) with the fluid description (a handful of fields in position space).</li>
+            <li>Explain how adding the electron and ion momentum equations and dropping electron inertia produces a single-fluid model.</li>
+            <li>State the two scale-separation conditions — L ≫ ρ<sub>i</sub> and ω ≪ Ω<sub>ci</sub> — that justify treating a plasma as a magnetohydrodynamic (MHD) fluid.</li>
+            <li>Compute an ion Larmor radius and cyclotron frequency and check scale separation for a real plasma.</li>
+            <li>Name what MHD keeps (macroscopic equilibria, large-scale waves and instabilities) and what it necessarily discards (kinetic, velocity-space effects).</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>Two Ways to Describe the Same Plasma</h2>
+        <p>In Course 1 you met a plasma one particle at a time: each electron and ion obeys the Lorentz force law, gyrates around field lines, and drifts under E×B and grad-B forces. That picture is <strong>exact</strong> but unmanageable — a cubic centimeter of fusion plasma holds on the order of 10<sup>20</sup> particles, and no computer will ever track that many trajectories directly. The kinetic theory you'll meet in Course 2 compresses this into a <strong>distribution function</strong> f(<strong>x</strong>, <strong>v</strong>, t) — still a function of six variables (three position, three velocity) plus time, and still formidable to solve in general.</p>
+        <p>This course takes a different compression. Instead of asking "how many particles are at this position with this velocity," a <strong>fluid</strong> description asks only: at this point in space, what is the local density, the local bulk velocity, and the local pressure? That throws away everything about the <em>shape</em> of the velocity distribution and keeps only its first few moments (density = the zeroth moment, mean velocity = the first, pressure = related to the second). The payoff is enormous: instead of a function of six variables, you are solving for a handful of fields — ρ(<strong>x</strong>,t), <strong>v</strong>(<strong>x</strong>,t), p(<strong>x</strong>,t), <strong>B</strong>(<strong>x</strong>,t) — that obey ordinary fluid-dynamics-like partial differential equations. That theory is <strong>magnetohydrodynamics</strong>, MHD: "magneto" because the fluid carries current and feels Lorentz forces, "hydrodynamics" because everything else looks like the Navier–Stokes equations you'd write for water or air.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Describing a crowd leaving a stadium kinetically means tracking every person's position and velocity. Describing it as a fluid means drawing a few arrows for "the crowd here is moving this fast, this densely, in this direction" — you lose the information about any one person's path, but you gain a model simple enough to actually use for predicting how the crowd as a whole will flow through the exits.</div>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>From Two Fluids to One</h2>
+        <p>A plasma genuinely has (at least) two interpenetrating fluids — electrons and ions — each with its own density, velocity, and pressure, each obeying its own momentum equation with the Lorentz force q(<strong>E</strong> + <strong>v</strong>×<strong>B</strong>) and inter-species friction from collisions. MHD is the further step of combining <em>those two</em> into a <strong>single conducting fluid</strong>. Define the total mass density, the center-of-mass (bulk) velocity, and the net current density:</p>
+        <div class="eq">ρ = n_i m_i + n_e m_e ≈ n_i m_i&nbsp;&nbsp;&nbsp; v = (n_i m_i v_i + n_e m_e v_e)/ρ&nbsp;&nbsp;&nbsp; J = e(Z n_i v_i − n_e v_e)<small>Electrons carry essentially no mass (m_e/m_i ~ 1/1836 for hydrogen), so the bulk flow v is set almost entirely by the ions, while the much faster electrons are what carry most of the current J.</small></div>
+        <p>Adding the electron and ion momentum equations together, the inter-species friction terms cancel (one species' drag on the other is the exact opposite of the reverse), and because the electron mass is negligible the electron inertia term can be dropped. What survives is a single momentum equation for the whole fluid, with the two species' pressures combined into one scalar p = p<sub>e</sub> + p<sub>i</sub>, and the two species' Lorentz forces combined into one net force density <strong>J</strong>×<strong>B</strong> (the electric-field terms cancel in the sum because the plasma is quasineutral). We will write that equation out in full in Lecture 2 — the point here is <em>where it comes from</em>: one fluid is two fluids added together, with the small, fast electron physics absorbed into effective quantities like the current and the resistivity.</p>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>When Is a Fluid Description Legal? Separation of Scales</h2>
+        <p>Replacing every gyrating particle with a smooth fluid element is only valid if the particle's own orbit is <em>small and fast</em> compared to whatever macroscopic phenomenon you're trying to describe. Concretely, MHD requires two scale separations, one in space and one in time:</p>
+        <div class="eq">(1) L ≫ ρ_i = m_i v_th / (eB)&nbsp;&nbsp;&nbsp;&nbsp; (2) ω ≪ Ω_ci = eB / m_i<small>L = the length scale of the phenomenon of interest; ρ_i = ion Larmor (gyro) radius; ω = the frequency of interest; Ω_ci = ion cyclotron frequency.</small></div>
+        <p>Condition (1) says the structures you care about — an equilibrium profile, a wave, an instability — vary over distances much larger than the tight little circle an ion gyrates on. Then a "fluid element" containing many gyro-orbits has a well-defined bulk velocity and pressure, and you can forget that it's secretly made of particles spiraling around field lines. Condition (2) says the same thing in time: if the phenomenon evolves slowly compared to one gyration, each ion completes many orbits before anything macroscopic changes, so the plasma stays locally isotropic in the plane perpendicular to <strong>B</strong> — exactly what lets us use a single scalar pressure p instead of tracking separate parallel and perpendicular pressures.</p>
+        <p>Strongly magnetized plasmas — exactly the fusion-relevant regime this course targets — satisfy both conditions almost effortlessly: the magnetic field is so strong that ρ<sub>i</sub> shrinks to millimeters while the device is meters across, and Ω<sub>ci</sub> is tens of megahertz while the equilibria and instabilities we care about evolve on microsecond-to-millisecond timescales. That is precisely why MHD, despite being a drastic simplification, is the workhorse theory for fusion confinement.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not confuse <em>this</em> approximation (treating the plasma as a fluid at all) with the separate approximation of <em>ideal</em> MHD (treating that fluid as a perfect conductor with zero resistivity) that we meet in Lecture 3. A plasma can satisfy L ≫ ρ<sub>i</sub> and ω ≪ Ω<sub>ci</sub> — making the fluid description valid — while still having enough resistivity that <em>ideal</em> MHD is a poor approximation. The two approximations are independent layers, stacked on top of each other.</div>
+        <figure class="fig">
+            <svg viewBox="0 0 560 240" role="img" aria-label="A large fluid element box containing many small, tight gyro-orbits of individual ions around a field line, illustrating that the gyroradius is much smaller than the macroscopic scale of interest.">
+                <rect x="40" y="30" width="480" height="180" fill="none" stroke="#d0a99a" stroke-width="1.5" stroke-dasharray="6 4"/>
+                <text x="280" y="20" fill="#d0a99a" font-size="12" text-anchor="middle">macroscopic scale L  (e.g. the minor radius of a device)</text>
+                <!-- field line -->
+                <line x1="60" y1="120" x2="500" y2="120" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="2 3"/>
+                <text x="500" y="110" fill="#60a5fa" font-size="11" text-anchor="end">field line B</text>
+                <!-- several small gyro circles along the line -->
+                <g stroke="#fb7185" stroke-width="2" fill="none">
+                    <circle cx="110" cy="120" r="14"/>
+                    <circle cx="190" cy="120" r="14"/>
+                    <circle cx="270" cy="120" r="14"/>
+                    <circle cx="350" cy="120" r="14"/>
+                    <circle cx="430" cy="120" r="14"/>
+                </g>
+                <text x="110" y="150" fill="#fda4af" font-size="10" text-anchor="middle">ρ_i</text>
+                <text x="280" y="200" fill="#d0a99a" font-size="11" text-anchor="middle">each ion gyrates on a tiny circle (radius ρ_i) — invisible at scale L</text>
+            </svg>
+            <figcaption>A fluid element at scale L contains countless ions, each gyrating on its own small circle of radius ρ<sub>i</sub> ≪ L. Replace the whole busy picture with one smooth velocity and pressure for the element — that act of averaging over gyro-orbits is the MHD approximation.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>What You Gain, and What You Give Up</h2>
+        <p>The payoff of the MHD approximation is a theory you can actually compute with: four coupled field equations (continuity, momentum, induction, and a pressure closure — all coming in Lecture 2) replace a six-dimensional kinetic equation. Equilibria become algebra, waves become dispersion relations, and instabilities become eigenvalue problems — all solvable by hand or on a laptop, which is exactly this course's promise.</p>
+        <p>The cost is that MHD is <strong>blind to velocity space</strong>. Anything that depends on the detailed <em>shape</em> of the particle distribution — Landau damping, resonant wave-particle interactions, runaway electrons, anisotropic pressure from a non-Maxwellian population — is invisible to a fluid model that only tracks density, bulk velocity, and a scalar pressure. Those are exactly the phenomena Course 2's kinetic theory is built to capture. MHD and kinetic theory are not competitors; they are complementary descriptions of the same plasma, each accurate in the regime its assumptions hold. MHD wins for the big, slow, macroscopic question this course is built around: will the magnetic field actually hold the plasma together?</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — checking scale separation in a fusion-relevant plasma</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A tokamak-like deuterium plasma has B = 5 T, ion temperature T<sub>i</sub> = 10 keV, and a macroscopic scale L = 0.5 m (roughly the minor radius). Using μ₀ = 4π×10⁻⁷ and the deuteron mass m<sub>i</sub> = 2m<sub>p</sub> = 3.344×10⁻²⁷ kg, check whether the MHD length-scale condition holds.</p>
+        <ol>
+            <li><strong>Thermal speed:</strong> v_th = √(2T<sub>i</sub>/m<sub>i</sub>) with T<sub>i</sub> = 10 keV = 1.602×10⁻¹⁵ J: v_th = √(2 × 1.602×10⁻¹⁵ / 3.344×10⁻²⁷) ≈ <strong>9.79×10⁵ m/s</strong>.</li>
+            <li><strong>Ion cyclotron frequency:</strong> Ω<sub>ci</sub> = eB/m<sub>i</sub> = (1.602×10⁻¹⁹ × 5)/(3.344×10⁻²⁷) ≈ <strong>2.40×10⁸ rad/s</strong> (f<sub>ci</sub> ≈ 38.1 MHz).</li>
+            <li><strong>Ion Larmor radius:</strong> ρ<sub>i</sub> = v_th/Ω<sub>ci</sub> = 9.79×10⁵ / 2.40×10⁸ ≈ <strong>4.09×10⁻³ m</strong> (about 4.1 mm).</li>
+            <li><strong>Scale-separation ratio:</strong> L/ρ<sub>i</sub> = 0.5 / 4.09×10⁻³ ≈ <strong>122</strong> — comfortably ≫ 1, so the spatial condition for treating this plasma as an MHD fluid holds well.</li>
+            <li><strong>Interpretation:</strong> any equilibrium or wave with a wavelength or gradient scale of order centimeters or larger is safely in the MHD regime; only phenomena on the millimeter scale of ρ<sub>i</sub> itself (such as finite-Larmor-radius corrections) would require stepping outside MHD.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: check MHD validity in Python</h3>
+        <p style="font-size:.9rem; color:var(--text2);"><strong>Week 1 setup:</strong> this course uses plain Python + NumPy + SciPy — no specialized plasma package required (PlasmaPy is optional if you want unit-aware formulas, but every formula here is short enough to write directly). Install once:</p>
+        <details class="install" open>
+            <summary>⬇ Install Python + NumPy/SciPy (one-time, Week 1 setup)</summary>
+            <p>With Python 3 installed, create an environment and install the scientific stack:</p>
+            <pre>python3 -m venv mhd-env
+source mhd-env/bin/activate        <span class="c"># macOS / Linux</span>
+mhd-env\Scripts\activate           <span class="c"># Windows (PowerShell)</span>
+pip install numpy scipy matplotlib</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import numpy, scipy; print('ok')"</code>.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">Now reproduce the worked example and check scale separation for any (B, T, L):</p>
+        <pre><span class="c"># mhd_validity.py — Lecture 1</span>
+import numpy as np
+
+e   = 1.602176634e-19   <span class="c"># C</span>
+m_p = 1.67262192369e-27 <span class="c"># kg</span>
+
+def check_mhd_validity(B, T_i_eV, L, m_i=2*m_p):
+    T_J   = T_i_eV * e
+    v_th  = np.sqrt(2*T_J/m_i)
+    Omega_ci = e*B/m_i
+    rho_i = v_th/Omega_ci
+    return v_th, Omega_ci, rho_i, L/rho_i
+
+v_th, Omega_ci, rho_i, ratio = check_mhd_validity(B=5.0, T_i_eV=10e3, L=0.5)
+print(f"v_th      = {v_th:.3e} m/s")
+print(f"Omega_ci  = {Omega_ci:.3e} rad/s  (f_ci = {Omega_ci/(2*np.pi):.3e} Hz)")
+print(f"rho_i     = {rho_i*1e3:.3f} mm")
+print(f"L / rho_i = {ratio:.1f}   (need >> 1 for MHD to apply)")
+
+<span class="c"># --- actual output ---</span>
+<span class="c"># v_th      = 9.787e+05 m/s</span>
+<span class="c"># Omega_ci  = 2.395e+08 rad/s  (f_ci = 3.811e+07 Hz)</span>
+<span class="c"># rho_i     = 4.087 mm</span>
+<span class="c"># L / rho_i = 122.3   (need >> 1 for MHD to apply)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);"><strong>Try this:</strong> drop B to 0.1 T (a lab plasma, not a tokamak) and keep everything else fixed. ρ<sub>i</sub> scales as 1/B, so it grows 50×; re-run and see how much it eats into the scale-separation margin.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Having justified <em>that</em> a fluid description is legal, Lecture 2 writes down the actual MHD equations — continuity, momentum with the J×B force, the induction equation, and a pressure closure — the four-equation system this entire course is built around. Everything from here forward (equilibria in Lecture 4, waves in Lectures 6–7, instabilities in Lecture 8, and the capstone solver in Lecture 10) is just these equations being solved under different assumptions. And when Course 4 asks whether a magnetic bottle can hold a fusion-grade plasma long enough to ignite, the answer starts with exactly the equilibrium and stability theory built on top of the fluid picture introduced here.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> What is the key simplification a fluid (MHD) description makes relative to a kinetic description?</div>
+            <div class="opt"><b>A.</b> It ignores the magnetic field entirely</div>
+            <div class="opt"><b>B.</b> It tracks only a few moments of the particle distribution (density, bulk velocity, pressure) instead of the full distribution function</div>
+            <div class="opt"><b>C.</b> It assumes the plasma has no particles at all</div>
+            <div class="opt"><b>D.</b> It requires more variables than the kinetic description</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> MHD replaces f(x,v,t) with a handful of position-space fields — density, bulk velocity, pressure, and B — discarding the detailed shape of the velocity distribution. (A) MHD is built entirely around the magnetic field. (C) MHD still describes a real particle fluid, just via moments. (D) MHD uses dramatically fewer variables, which is exactly its appeal.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In going from two fluids (electrons + ions) to one MHD fluid, why can electron inertia be dropped from the combined momentum equation?</div>
+            <div class="opt"><b>A.</b> Electrons carry no charge</div>
+            <div class="opt"><b>B.</b> Electrons don't move</div>
+            <div class="opt"><b>C.</b> The electron mass is thousands of times smaller than the ion mass, so its inertial contribution is negligible</div>
+            <div class="opt"><b>D.</b> Electrons are not part of a plasma</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> m_e/m_i ~ 1/1836 for hydrogen (and smaller still relative to heavier ions), so the electron's contribution to the combined momentum (mass × velocity) is negligible even though electrons move fast and carry most of the current. (A) electrons are the carriers of negative charge. (B) electrons move fast — that's why they carry the current. (D) electrons are one of the two fluids being combined.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Which pair of conditions justifies treating a plasma as an MHD fluid?</div>
+            <div class="opt"><b>A.</b> L ≪ ρ_i and ω ≫ Ω_ci</div>
+            <div class="opt"><b>B.</b> L ≫ ρ_i and ω ≪ Ω_ci</div>
+            <div class="opt"><b>C.</b> The plasma must be exactly neutral</div>
+            <div class="opt"><b>D.</b> The magnetic field must be exactly zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The phenomenon of interest must vary over length scales much larger than the ion Larmor radius and evolve much slower than the ion cyclotron frequency, so individual gyro-orbits average out into a smooth fluid. (A) is backwards — it would put you deep in single-particle, not fluid, territory. (C) exact neutrality is neither required nor physical (recall quasineutrality from C1). (D) MHD requires a magnetic field; it is central to the whole theory.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> A tokamak plasma has ρ_i ≈ 4 mm and a minor radius L ≈ 0.5 m. What does L/ρ_i ≈ 122 tell you?</div>
+            <div class="opt"><b>A.</b> The plasma is too small to exist</div>
+            <div class="opt"><b>B.</b> MHD is a poor approximation here</div>
+            <div class="opt"><b>C.</b> The spatial scale-separation condition for MHD is well satisfied</div>
+            <div class="opt"><b>D.</b> The ion cyclotron frequency is zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> L/ρ_i ≫ 1 (here ≈ 122) means macroscopic structures are far larger than a single gyro-orbit, exactly the regime where the fluid approximation is legitimate. (B) is the opposite conclusion. (A, D) are not supported by this ratio at all.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> What does the MHD approximation necessarily give up compared to a full kinetic treatment?</div>
+            <div class="opt"><b>A.</b> The ability to describe any waves at all</div>
+            <div class="opt"><b>B.</b> Velocity-space (kinetic) effects such as Landau damping and resonant wave-particle interactions</div>
+            <div class="opt"><b>C.</b> The magnetic field</div>
+            <div class="opt"><b>D.</b> Conservation of mass</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> By tracking only moments (density, velocity, pressure), MHD cannot see effects that depend on the detailed shape of the velocity distribution — that is Course 2's kinetic territory. (A) MHD describes several important wave types, as Lectures 6–7 show. (C) B is central to MHD. (D) mass conservation (continuity) is one of the four MHD equations.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Contrasted the <b>kinetic</b> description (a distribution function) with the <b>fluid</b> description (a few position-space moments).</li>
+            <li>Saw how adding electron and ion momentum equations, and dropping electron inertia, yields a <b>single conducting fluid</b>.</li>
+            <li>Stated the two <b>scale-separation conditions</b> for MHD: L ≫ ρ_i and ω ≪ Ω_ci.</li>
+            <li>Computed ρ<sub>i</sub> and Ω<sub>ci</sub> for a tokamak-like plasma and verified L/ρ<sub>i</sub> ≈ 122 ≫ 1.</li>
+            <li>Named what MHD keeps (macroscopic equilibria, waves, instabilities) and what it gives up (kinetic, velocity-space effects).</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: write down the actual MHD equations — continuity, momentum with the J×B force, the induction equation, and the pressure closure that together define this entire course.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C3 Syllabus</div></a>
+        <a class="next" href="l02-mhd-equations.html"><div class="dir">Week 2 →</div><div class="ttl">The MHD Equations</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Magnetohydrodynamics</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

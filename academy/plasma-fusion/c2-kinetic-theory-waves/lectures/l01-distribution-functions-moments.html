@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C2 · Lecture 1 — Distribution Functions &amp; Velocity-Space Moments</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C2 Kinetic Theory &amp; Waves</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>Distribution Functions &amp; Velocity-Space Moments</h1>
+        <p class="sub">C1 treated every particle as a point following its own orbit. Here we zoom out to a cloud of particles in <em>velocity</em> space too — and discover that density, flow, and pressure are all just slices of one function.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define the distribution function f(r,v,t) and explain what it counts in six-dimensional phase space.</li>
+            <li>Derive density, mean flow velocity, and pressure as the zeroth, first, and second velocity moments of f.</li>
+            <li>State the Maxwellian distribution and identify it as the equilibrium, maximum-entropy state.</li>
+            <li>Compute moments of a non-Maxwellian distribution by hand and check them against a numerical integration.</li>
+            <li>Explain why a kinetic (f-based) description is sometimes unavoidable, and why fluid variables are never lost — only coarser.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>From Particles to a Distribution Function</h2>
+        <p>In C1, every plasma result came from tracking individual particles: an electron drifting with E×B, a proton gyrating in a mirror field. That works for one particle, or a few. A real plasma has 10¹⁸–10²⁰ particles per cubic meter, each with its own position <strong>and</strong> velocity. Tracking all of them is both impossible and the wrong question — what we actually want is <em>how many particles are moving roughly this fast, roughly here, right now.</em></p>
+        <p>That question is answered by the <strong>distribution function</strong> f(r, v, t). It lives in six-dimensional <strong>phase space</strong> — three position coordinates plus three velocity coordinates — and is defined so that</p>
+        <div class="eq">f(r,v,t) d³r d³v = number of particles in the small box d³r around r, with velocities in the small box d³v around v<small>f is a number density <em>per unit phase-space volume</em> — units of particles · m⁻³ · (m/s)⁻³.</small></div>
+        <p>This is strictly more information than a fluid description carries. A fluid gives you the density n(r,t) and flow velocity u(r,t) at every point — one number and one vector per location. The distribution function gives you the <em>entire speed and direction spread</em> of particles at every location: are they all moving together, or is there a hot tail, or two counter-streaming beams hiding inside the same average velocity? Every wave and instability in this course traces back to structure in f that a fluid description cannot see.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A fluid description is a traffic report that says "40 cars/km, average speed 60&nbsp;mph." The distribution function is the full speed histogram: maybe it's a tight cluster near 60, or maybe it's bimodal — half doing 40 in the slow lane, half doing 80 in the fast lane — with the <em>same</em> average speed either way. Fluid theory cannot tell those two traffic jams apart. Kinetic theory, carrying the whole histogram, always can — and as you'll see in Lectures 8–9, that difference is exactly what produces Landau damping and the two-stream instability.</div>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>Moments: Density, Flow Velocity, Pressure</h2>
+        <p>You never have to abandon the familiar fluid quantities — you recover every one of them by integrating f over all velocities, i.e. by taking its <strong>velocity moments</strong>. Each moment is the previous one weighted by one more power of v.</p>
+        <h3>Zeroth moment — number density</h3>
+        <div class="eq">n(r,t) = ∫ f(r,v,t) d³v<small>Integrate out velocity entirely and you're left with ordinary particles-per-volume.</small></div>
+        <h3>First moment — mean flow velocity</h3>
+        <div class="eq">u(r,t) = (1/n) ∫ v · f(r,v,t) d³v<small>The density-weighted average velocity — what a fluid description calls "the flow."</small></div>
+        <h3>Second moment — pressure</h3>
+        <p>Pressure measures the spread of velocities <em>around</em> the mean flow, not the mean flow itself — so you must subtract u first:</p>
+        <div class="eq">P_ij(r,t) = m ∫ (v_i − u_i)(v_j − u_j) · f(r,v,t) d³v<small>The pressure <em>tensor</em>. For an isotropic (equal in all directions) distribution it reduces to a scalar pressure p = (1/3)·trace(P) = n·k_BT.</small></div>
+        <p>Nothing stops you from continuing: the third moment is heat flux, and so on forever. This is the chain that eventually drowns you if you try to turn kinetic theory into fluid theory exactly (closing it at any finite moment always leaves one equation short — the famous <strong>closure problem</strong>). That's precisely why C3 (MHD) has to <em>assume</em> a closure, while this course works with f directly and sidesteps the problem entirely.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't confuse the ordinary density n(r) with the distribution function f(r,v). n(r) is a 3-D field — one number per point in space. f(r,v) is a 6-D field — one number per point in <em>phase</em> space. Moments are the bridge: they integrate velocity <em>out</em>, converting a 6-D object into the familiar 3-D fluid fields.</div>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>The Maxwellian Distribution</h2>
+        <p>Left alone and in thermal equilibrium (via collisions, however rare), a species settles into the <strong>Maxwellian distribution</strong> — the unique f that maximizes entropy for a given density, flow, and temperature:</p>
+        <div class="eq">f_M(v) = n · (m / 2πk_BT)^(3/2) · exp( −m|v−u|² / 2k_BT )<small>A Gaussian in velocity, centered on the flow velocity u, with width set by the temperature T.</small></div>
+        <p>Plug f_M into the moment integrals of §1.2 and you get back exactly n, u, and p = nk_BT by construction — the Maxwellian is "the distribution that fluid theory is secretly always assuming." Whenever this course writes "the plasma is Maxwellian," it means: no hidden structure, no beams, no suprathermal tail — just a single bell curve in speed. Lectures 8 and 9 are entirely about what breaks (damping, instability) when that assumption fails.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 420 230" role="img" aria-label="A bell-shaped Maxwellian distribution function plotted against velocity, with the area under the curve equal to the density, the centroid equal to the mean flow velocity, and the width set by temperature">
+                <line x1="40" y1="190" x2="390" y2="190" stroke="#d0a99a" stroke-width="1.5"/>
+                <line x1="40" y1="190" x2="40" y2="30" stroke="#d0a99a" stroke-width="1.5"/>
+                <text x="360" y="208" fill="#d0a99a" font-size="11">v →</text>
+                <text x="14" y="40" fill="#d0a99a" font-size="11">f(v)</text>
+                <!-- maxwellian bell -->
+                <path d="M55,186 C110,186 130,60 215,56 C300,60 320,186 375,186" fill="none" stroke="#fb7185" stroke-width="2.5"/>
+                <!-- shaded area under curve = n -->
+                <path d="M55,186 C110,186 130,60 215,56 C300,60 320,186 375,186 L375,186 L55,186 Z" fill="rgba(251,113,133,.12)" stroke="none"/>
+                <!-- mean marker -->
+                <line x1="215" y1="186" x2="215" y2="56" stroke="#34d399" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <text x="215" y="202" fill="#6ee7b7" font-size="10" text-anchor="middle">u (mean)</text>
+                <!-- width marker -->
+                <line x1="150" y1="130" x2="280" y2="130" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="215" y="122" fill="#93c5fd" font-size="10" text-anchor="middle">width ∝ √T</text>
+                <text x="215" y="30" fill="#fda4af" font-size="11" text-anchor="middle">area under curve = n</text>
+            </svg>
+            <figcaption>The zeroth moment (area) gives density n, the first moment (centroid) gives flow velocity u, and the second moment (spread) gives temperature/pressure — three different integrals of the same curve.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — moments of a non-Maxwellian distribution</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 1-D toy distribution has a flat "top-hat" shape: f(v) = C for |v| ≤ v₀ = 1×10⁶ m/s, and f(v) = 0 otherwise, for electrons with density n₀ = 1×10¹⁹ m⁻³. Find C, the mean velocity, the pressure, and the effective temperature.</p>
+        <ol>
+            <li><strong>Normalization:</strong> n₀ = ∫f dv = C·(2v₀) ⟹ C = n₀/(2v₀) = (1×10¹⁹)/(2×10⁶) = <strong>5×10¹² (particles·s/m⁴)</strong>.</li>
+            <li><strong>Mean velocity:</strong> the top-hat is symmetric about v=0, so u = (1/n₀)∫v·f dv = 0 by symmetry — no net flow.</li>
+            <li><strong>Pressure:</strong> p = mₑ∫(v−u)²f dv = mₑ·C·∫<sub>−v₀</sub><sup>v₀</sup>v² dv = mₑ·C·(2v₀³/3) = mₑ·n₀·v₀²/3 = (9.109×10⁻³¹)(1×10¹⁹)(1×10⁶)²/3 ≈ <strong>3.04 Pa</strong>.</li>
+            <li><strong>Effective temperature:</strong> matching p = n₀k_BT_eff gives T_eff = mₑv₀²/3k_B ≈ <strong>1.90 eV</strong> — a well-defined "temperature" even though the distribution isn't Gaussian at all.</li>
+            <li><strong>Lesson:</strong> moments exist and are perfectly well-defined for <em>any</em> f, Maxwellian or not. A fluid description would hand you n₀, u=0, and T_eff≈1.90 eV and call it a day — with zero way to tell this flat-top distribution apart from a true Maxwellian of the same temperature. Only f itself remembers the difference.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: integrate a Maxwellian numerically</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reuse your <strong>Python + PlasmaPy</strong> environment from C1 Lecture 1 (<code>pip install plasmapy matplotlib jupyter</code> if you're starting fresh — see that lecture for the full install). This week we work mostly in plain NumPy: build a Maxwellian on a velocity grid and confirm its moments reproduce n, u, and p by direct numerical integration — the same check you'd run on any f you're handed.</p>
+        <pre><span class="c"># moments_demo.py — Lecture 1</span>
+import numpy as np
+from scipy.integrate import trapezoid
+from scipy import constants as const
+
+n0, Te_eV = 1e19, 10.0                      <span class="c"># m^-3, eV</span>
+v_th = np.sqrt(Te_eV * const.e / const.m_e) <span class="c"># thermal speed sqrt(kT/m)</span>
+
+v = np.linspace(-8*v_th, 8*v_th, 400_001)
+f_M = n0 / (np.sqrt(2*np.pi)*v_th) * np.exp(-v**2 / (2*v_th**2))   <span class="c"># 1-D Maxwellian</span>
+
+n_num = trapezoid(f_M, v)
+u_num = trapezoid(v*f_M, v) / n_num
+p_num = const.m_e * trapezoid((v-u_num)**2 * f_M, v)
+
+print(f"n_num = {n_num:.4e} m^-3   (target {n0:.0e})")
+print(f"u_num = {u_num:.2e} m/s    (target 0)")
+print(f"p_num = {p_num:.4f} Pa     (n0*kT analytic = {n0*Te_eV*const.e:.4f} Pa)")
+<span class="c"># Verified output:
+# n_num = 1.0000e+19 m^-3   (target 1e+19)
+# u_num = 4.51e-11 m/s      (target 0)
+# p_num = 16.0218 Pa        (n0*kT analytic = 16.0218 Pa)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The numerical pressure matches n₀k_BT_e to 6 significant figures — the integral <em>is</em> the physics. Try replacing <code>f_M</code> with the top-hat from the worked example and confirm you recover p ≈ 3.04 Pa and T_eff ≈ 1.90 eV numerically too.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Every lecture from here on asks: how does f(r,v,t) <em>evolve</em>, and what structure can it hide that a fluid can't? Lecture 2 derives the equation that governs f itself — the Vlasov equation — straight from the fact that collisionless particles simply carry their own phase-space value along their trajectories. By Lecture 4 you'll see the Maxwellian's velocity spread show up as a literal pressure term correcting the plasma frequency, and by Lectures 8–9 you'll see that a <em>non</em>-Maxwellian f — even one with the exact same n, u, and T — can make a wave damp or grow without a single collision. The distribution function is the one object patient enough to remember.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The distribution function f(r,v,t) is defined so that f d³r d³v equals…</div>
+            <div class="opt"><b>A.</b> the total number of particles in the plasma</div>
+            <div class="opt"><b>B.</b> the number of particles in a small volume of position-velocity (phase) space</div>
+            <div class="opt"><b>C.</b> the probability that a single particle exists</div>
+            <div class="opt"><b>D.</b> the electric field at position r</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> f is a phase-space number density: f·d³r·d³v counts particles in a small 6-D box around (r,v). (A) ignores the spatial/velocity resolution; (C)/(D) describe unrelated quantities.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Which velocity moment of f gives the fluid flow velocity u(r,t)?</div>
+            <div class="opt"><b>A.</b> The zeroth moment, ∫f d³v</div>
+            <div class="opt"><b>B.</b> The first moment, (1/n)∫v·f d³v</div>
+            <div class="opt"><b>C.</b> The second moment (pressure tensor)</div>
+            <div class="opt"><b>D.</b> None — u cannot be recovered from f</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The density-weighted average of v is exactly the first moment. The zeroth moment (A) gives density n; the second (C) gives pressure; (D) is false — all fluid quantities are moments of f.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Two distributions have identical density, flow velocity, and temperature — one is a true Maxwellian, the other is a symmetric two-humped (bimodal) distribution with the same variance. A fluid description...</div>
+            <div class="opt"><b>A.</b> correctly distinguishes the two cases</div>
+            <div class="opt"><b>B.</b> cannot distinguish them — fluid variables are identical by construction</div>
+            <div class="opt"><b>C.</b> only works for the Maxwellian case</div>
+            <div class="opt"><b>D.</b> reports a different density for each</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> n, u, and p (hence T) are moments — the same three numbers can come from infinitely many different f's. Only the full distribution function carries the extra structure (and, as later lectures show, that structure is exactly what drives Landau damping or instabilities).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the worked-example top-hat distribution (flat, width 2v₀, density n₀), the pressure came out to p = mₑn₀v₀²/3. What produced the factor of 1/3?</div>
+            <div class="opt"><b>A.</b> An arbitrary normalization choice</div>
+            <div class="opt"><b>B.</b> The result of ∫v² dv over the top-hat's support, divided by its width</div>
+            <div class="opt"><b>C.</b> The three spatial dimensions of real space</div>
+            <div class="opt"><b>D.</b> A typo — it should be 1/2</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> ∫₋v₀^v₀ v² dv = 2v₀³/3; dividing by the normalization C = n₀/(2v₀) and multiplying by mₑ leaves exactly mₑn₀v₀²/3. It's a genuine result of doing the integral, not a dimensional coincidence (this is a 1-D toy model).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The Maxwellian distribution is special because it is the…</div>
+            <div class="opt"><b>A.</b> only distribution with a well-defined density</div>
+            <div class="opt"><b>B.</b> maximum-entropy distribution for given n, u, and T</div>
+            <div class="opt"><b>C.</b> only distribution that satisfies the Vlasov equation</div>
+            <div class="opt"><b>D.</b> distribution with zero pressure</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Among all distributions with the same density, flow, and temperature, the Maxwellian uniquely maximizes entropy — it's what collisions relax a plasma toward. (A) any normalizable f has a density; (C) many f's solve Vlasov, including non-Maxwellians (Lectures 8–9 depend on exactly that); (D) a Maxwellian has pressure p=nk_BT>0.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined the <b>distribution function</b> f(r,v,t) as a number density in 6-D phase space.</li>
+            <li>Derived <b>density, flow velocity, and pressure</b> as the zeroth, first, and second velocity <b>moments</b> of f.</li>
+            <li>Stated the <b>Maxwellian distribution</b> as the maximum-entropy equilibrium, and confirmed its moments reproduce n, u, p = nk_BT.</li>
+            <li>Computed moments of a <b>non-Maxwellian</b> (top-hat) distribution by hand, and verified a Maxwellian's moments numerically in Python.</li>
+            <li>Previewed why fluid theory's <b>closure problem</b> disappears once you work with f directly.</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: the equation that governs f itself. We derive the <b>Vlasov equation</b> from the simple fact that collisionless particles carry their own phase-space value along their trajectories.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C2 Syllabus</div></a>
+        <a href="l02-vlasov-equation.html" class="next"><div class="dir">Week 2 →</div><div class="ttl">The Vlasov Equation</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Kinetic Theory &amp; Waves</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

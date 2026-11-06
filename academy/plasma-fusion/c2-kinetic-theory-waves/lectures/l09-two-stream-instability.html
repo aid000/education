@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C2 · Lecture 9 — Kinetic Instabilities: the Two-Stream Instability</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .disc { background: linear-gradient(135deg, #241733, #2b1a3d); border: 1px solid #4a3270; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .disc h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .disc p { font-size: .9rem; color: #ddd3f5; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C2 Kinetic Theory &amp; Waves</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9 · Discussion 3</span>
+        <h1>Kinetic Instabilities: the Two-Stream Instability</h1>
+        <p class="sub">Flip the sign of Lecture 8's slope on purpose, and the exact same resonance that drained energy from a wave now pumps energy into it, without bound — until something nonlinear finally stops it.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the general principle: a positive slope in f₀ at the resonant velocity drives growth instead of damping.</li>
+            <li>Derive the two-cold-beam dispersion relation and reduce it to a quadratic in ω².</li>
+            <li>Identify the instability condition kv₀&lt;ω_pe and derive the maximum growth rate and the k at which it occurs.</li>
+            <li>Compute numerical growth rates and growth times for a representative counter-streaming beam configuration.</li>
+            <li>Connect the two-stream mechanism to the broader class of velocity-space-driven instabilities relevant to fusion plasmas.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>Flipping the Sign</h2>
+        <p>Lecture 8's whole mechanism hinged on one sign: a Maxwellian's negative ∂f₀/∂v at the resonant velocity drains the wave. Nothing in the underlying physics requires that sign to be negative — it's simply what a single-humped, monotonically falling distribution gives you. Build an f₀ with a <em>positive</em> slope somewhere (a dip between two peaks, a beam riding on a bulk population, or — the cleanest case — two separate beams moving in opposite directions) and the identical resonance mechanism now pumps energy <em>into</em> the wave. The wave amplitude grows exponentially instead of decaying: a <strong>kinetic instability</strong>.</p>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>The Two-Cold-Beam Dispersion Relation</h2>
+        <p>The cleanest concrete case: two cold (zero-temperature) electron beams, each with density n₀/2, counter-streaming at ±v₀, with ions as a fixed neutralizing background (total electron density n₀, exactly as in Lectures 4–8). Each beam is a cold fluid, so each contributes a term to the dispersion relation structurally identical to the cold-beam limit of Lecture 3, just centered on ±v₀ instead of 0:</p>
+        <div class="eq">1 = (ω<sub>pe</sub>²/2) · [ 1/(ω−kv₀)² + 1/(ω+kv₀)² ]<small>ω_pe² = n₀e²/ε₀m_e uses the <em>total</em> density n₀ (both beams combined). Each beam individually carries half that density, hence the factor of 1/2 on each resonance term.</small></div>
+        <p>Clearing denominators and writing X≡ω² (in units of ω<sub>pe</sub>², with q≡kv₀/ω<sub>pe</sub>), this reduces to an ordinary quadratic:</p>
+        <div class="eq">X² − (2q²+1)X + (q⁴−q²) = 0&nbsp;&nbsp;&nbsp;&nbsp; X = ω²/ω<sub>pe</sub>², q = kv₀/ω<sub>pe</sub><small>Solvable by the quadratic formula. The discriminant 8q²+1 is always positive, so X is always real — but X can be <em>negative</em>, which makes ω itself purely imaginary (pure growth or pure decay, no oscillation).</small></div>
+        <p>The smaller root is X₋ = [(2q²+1) − √(8q²+1)]/2, and a short check shows X₋&lt;0 exactly when q²&lt;1, i.e.:</p>
+        <div class="eq">Instability condition: &nbsp; kv₀ &lt; ω<sub>pe</sub><small>Whenever the beam speed exceeds the wave's natural phase-matching scale, a band of unstable k exists — the two-stream instability.</small></div>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>The Growth Rate and Its Maximum</h2>
+        <p>Inside the unstable band, γ ≡ √(−X₋)·ω<sub>pe</sub> gives the exponential growth rate (ω=iγ, field ∝ e<sup>γt</sup>). Maximizing γ(q) over q gives a clean, exact result:</p>
+        <div class="eq">γ<sub>max</sub> = ω<sub>pe</sub> / (2√2) ≈ 0.3536·ω<sub>pe</sub>&nbsp;&nbsp;&nbsp;&nbsp; at &nbsp;&nbsp; kv₀ = ω<sub>pe</sub>√(3/8) ≈ 0.6124·ω<sub>pe</sub><small>The fastest-growing mode sits well inside the unstable band 0&lt;kv₀&lt;ω_pe, not at its edge — and grows at over a third of the plasma frequency itself. This is an extremely fast instability by plasma-physics standards.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of two streams of cars merging at an intersection from opposite directions, moving at different average speeds relative to some reference. A perturbation that slightly bunches cars gets reinforced: relative motion between the two streams converts their kinetic energy into bunching — exactly like how relative drift between the two beams here converts directed kinetic energy into a growing electrostatic wave. The "intersection" is velocity space; the "merge" is the resonance at v=ω/k landing between the two beams.</div>
+    </section>
+
+    <!-- FIGURE -->
+    <figure class="fig">
+        <svg viewBox="0 0 440 230" role="img" aria-label="Growth rate gamma versus wavenumber k for the two-stream instability: zero at k=0, rising to a peak, then falling back to zero at k v0 equals omega_pe" >
+            <text x="220" y="20" fill="#fda4af" font-size="13" text-anchor="middle" font-weight="bold">Two-stream growth rate γ(k)</text>
+            <line x1="50" y1="190" x2="400" y2="190" stroke="#d0a99a" stroke-width="1.5"/>
+            <line x1="50" y1="190" x2="50" y2="40" stroke="#d0a99a" stroke-width="1.5"/>
+            <text x="370" y="206" fill="#d0a99a" font-size="11">kv₀/ω_pe →</text>
+            <text x="24" y="48" fill="#d0a99a" font-size="11">γ/ω_pe</text>
+            <!-- growth curve -->
+            <path d="M50,190 C100,150 150,80 220,65 C260,58 300,80 340,140 C360,170 375,185 385,190" fill="none" stroke="#fb7185" stroke-width="2.5"/>
+            <!-- peak marker -->
+            <circle cx="220" cy="65" r="4" fill="#34d399"/>
+            <text x="220" y="52" fill="#6ee7b7" font-size="10" text-anchor="middle">γ_max ≈ 0.354 ω_pe</text>
+            <text x="220" y="205" fill="#93c5fd" font-size="9" text-anchor="middle">kv₀/ω_pe ≈ 0.612</text>
+            <!-- stability boundary at q=1 -->
+            <line x1="385" y1="190" x2="385" y2="55" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <text x="385" y="48" fill="#fcd34d" font-size="9" text-anchor="middle">q=1 (stable beyond)</text>
+        </svg>
+        <figcaption>Growth rate rises from zero at k=0, peaks at kv₀≈0.612ω_pe with γ_max≈0.354ω_pe, then falls back to zero at kv₀=ω_pe — beyond that, both roots of the quadratic are positive (X&gt;0) and the modes are ordinary stable oscillations.</figcaption>
+    </figure>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — growth rate and growth time</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Two counter-streaming electron beams, total density n₀=1×10¹⁹ m⁻³, beam speed v₀=1×10⁶ m/s. Find ω_pe, the fastest-growing k, the maximum growth rate, and the e-folding time.</p>
+        <ol>
+            <li><strong>Plasma frequency:</strong> ω_pe = √(n₀e²/ε₀m_e) ≈ <strong>1.784×10¹¹ rad/s</strong> (same formula as every previous lecture).</li>
+            <li><strong>Fastest-growing wavenumber:</strong> k_max = ω_pe√(3/8)/v₀ ≈ <strong>1.092×10⁵ m⁻¹</strong> (wavelength 2π/k ≈ 57.5 µm).</li>
+            <li><strong>Maximum growth rate:</strong> γ_max = ω_pe/(2√2) ≈ <strong>6.307×10¹⁰ rad/s</strong>.</li>
+            <li><strong>Growth (e-folding) time:</strong> 1/γ_max ≈ <strong>1.585×10⁻¹¹ s</strong> (15.9 picoseconds) — the perturbation amplitude multiplies by e roughly every 16 ps, and by e¹⁰≈22,000 in well under a nanosecond.</li>
+            <li><strong>Takeaway:</strong> this is a violently fast instability. In real beams and counter-streaming plasmas, it saturates nonlinearly (particle trapping in the growing wave, flattening the unstable part of f₀) long before the linear exponential could run away forever — the subject of more advanced treatments beyond this course.</li>
+        </ol>
+    </div>
+
+    <div class="box warn"><span class="lbl">Common mistake</span>The two-stream instability requires a genuinely non-monotonic (multi-humped) f₀ — a single Maxwellian, no matter how hot, never goes unstable this way, because its slope never changes sign (it's always negative for v&gt;0 and always positive for v&lt;0, consistent with pure damping at any resonant velocity). This qualitative fact — stability for single-humped f₀, possible instability for multi-humped f₀ — is the heart of the Penrose stability criterion, a general test (beyond this course's scope to derive) for whether <em>any</em> given f₀ supports an unstable mode.</div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: solving the quadratic and maximizing γ(k)</h3>
+        <pre><span class="c"># two_stream.py — Lecture 9</span>
+import numpy as np
+from scipy.optimize import minimize_scalar
+from scipy import constants as const
+
+n0, v0 = 1e19, 1e6
+w_pe = np.sqrt(n0 * const.e**2 / (const.epsilon_0 * const.m_e))
+
+def gamma_over_wpe(q):               <span class="c"># q = k*v0/w_pe</span>
+    Xminus = ((2*q**2+1) - np.sqrt(8*q**2+1)) / 2
+    return np.sqrt(-Xminus) if Xminus < 0 else 0.0
+
+res = minimize_scalar(lambda q: -gamma_over_wpe(q), bounds=(1e-3, 0.999), method="bounded")
+q_max, g_max = res.x, -res.fun
+k_max = q_max * w_pe / v0
+gamma_max = g_max * w_pe
+
+print(f"w_pe      = {w_pe:.4e} rad/s")
+print(f"q_max     = {q_max:.4f}  (theory: sqrt(3/8) = {np.sqrt(3/8):.4f})")
+print(f"gamma_max/w_pe = {g_max:.4f}  (theory: 1/(2*sqrt(2)) = {1/(2*np.sqrt(2)):.4f})")
+print(f"k_max     = {k_max:.4e} m^-1")
+print(f"gamma_max = {gamma_max:.4e} rad/s   growth time 1/gamma_max = {1/gamma_max:.4e} s")
+<span class="c"># Verified output:
+# w_pe      = 1.7840e+11 rad/s
+# q_max     = 0.6124  (theory: sqrt(3/8) = 0.6124)
+# gamma_max/w_pe = 0.3536  (theory: 1/(2*sqrt(2)) = 0.3536)
+# k_max     = 1.0925e+05 m^-1
+# gamma_max = 6.3073e+10 rad/s   growth time 1/gamma_max = 1.5855e-11 s</span></pre>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="disc">
+        <h3>💬 Discussion 3 (Week 9)</h3>
+        <p>Both Landau damping and the two-stream instability come from the exact same resonance mechanism in the exact same equation — the only difference is the local sign of ∂f₀/∂v at v=ω/k. Given that, is it fair to call Landau damping and the two-stream instability "two different phenomena," or are they better described as two outcomes of one underlying process depending on what shape f₀ happens to have? What practical difference does the labeling make for someone trying to predict whether a given plasma (say, a fusion device with a population of fast fusion-born ions, or a beam injected for heating) will be stable?</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Counter-streaming beams are a clean toy model, but the same physics governs real, consequential instabilities: a fast ion population (from fusion reactions or neutral-beam heating) riding on a thermal bulk can drive similar "bump-on-tail" modes in tokamaks; runaway electron beams in disruption events are a two-stream-adjacent concern; and astrophysical shocks and the solar wind are full of counter-streaming particle populations doing exactly this. Lecture 10's capstone builds one unified Python toolkit that reproduces every dispersion relation from this course — Bohm-Gross, Landau damping, and (as an optional extension) this quadratic — in one place.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The general principle linking Lectures 8 and 9 is that a wave grows or damps depending on…</div>
+            <div class="opt"><b>A.</b> the total density of the plasma</div>
+            <div class="opt"><b>B.</b> the sign of ∂f₀/∂v evaluated at the resonant velocity v=ω/k</div>
+            <div class="opt"><b>C.</b> whether the plasma is magnetized</div>
+            <div class="opt"><b>D.</b> the sign of the charge of the species</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Negative slope at resonance (Maxwellian) damps; positive slope at resonance (two-stream, bump-on-tail) grows. Same mechanism, opposite sign.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The two-cold-beam dispersion relation 1=(ω_pe²/2)[1/(ω−kv₀)²+1/(ω+kv₀)²] reduces to a quadratic in X=ω² because…</div>
+            <div class="opt"><b>A.</b> cold beams always give linear equations</div>
+            <div class="opt"><b>B.</b> clearing the two resonance denominators and simplifying leaves only even powers of ω</div>
+            <div class="opt"><b>C.</b> ω_pe is assumed to be zero</div>
+            <div class="opt"><b>D.</b> only one beam actually contributes</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The symmetric ±v₀ structure makes the cleared-denominator equation depend only on ω² (and k²), so substituting X=ω² gives an ordinary quadratic, solvable exactly.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The instability condition for the symmetric two-beam model is…</div>
+            <div class="opt"><b>A.</b> kv₀ &gt; ω_pe</div>
+            <div class="opt"><b>B.</b> kv₀ &lt; ω_pe</div>
+            <div class="opt"><b>C.</b> k &gt; 0 always</div>
+            <div class="opt"><b>D.</b> v₀ = 0</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The smaller root X₋ of the quadratic is negative (giving a real, growing γ) exactly when q=kv₀/ω_pe&lt;1, i.e. kv₀&lt;ω_pe. Beyond that, both roots are positive and the modes are ordinary stable oscillations.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The maximum growth rate γ_max = ω_pe/(2√2) occurs at…</div>
+            <div class="opt"><b>A.</b> the edge of the unstable band, kv₀=ω_pe</div>
+            <div class="opt"><b>B.</b> k=0</div>
+            <div class="opt"><b>C.</b> kv₀ = ω_pe√(3/8), strictly inside the unstable band</div>
+            <div class="opt"><b>D.</b> there is no maximum; γ increases without bound</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Maximizing γ(q) over the unstable band 0&lt;q&lt;1 gives an interior maximum at q=√(3/8)≈0.612, not at either edge — confirmed both analytically and by numerical optimization in the hands-on code.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why can't a single Maxwellian ever drive a two-stream-type instability?</div>
+            <div class="opt"><b>A.</b> Maxwellians have zero density</div>
+            <div class="opt"><b>B.</b> A single-humped Maxwellian's slope never changes sign, so it can only damp, never grow, at any resonant velocity</div>
+            <div class="opt"><b>C.</b> Maxwellians are always magnetized</div>
+            <div class="opt"><b>D.</b> Instabilities require exactly two species</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> ∂f₀/∂v is negative for v&gt;0 and positive for v&lt;0 for a Maxwellian, but the physically relevant comparison (more particles on the slow side than the fast side of resonance) always favors damping for a single peak — you need a non-monotonic, multi-humped f₀ (like two beams) to get a region that favors growth.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Generalized Landau's mechanism: <b>sign of ∂f₀/∂v</b> at resonance controls growth vs. damping.</li>
+            <li>Derived the <b>two-cold-beam dispersion relation</b> and reduced it to an exactly solvable quadratic.</li>
+            <li>Found the <b>instability condition</b> kv₀&lt;ω_pe and the <b>maximum growth rate</b> γ_max=ω_pe/(2√2) at kv₀=ω_pe√(3/8).</li>
+            <li>Computed a realistic <b>growth time</b> (~16 ps) and confirmed it numerically against the analytic maximum.</li>
+            <li>Connected the toy model to real fusion-relevant <b>velocity-space-driven instabilities</b>.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10, the capstone: build one Python toolkit that solves Bohm-Gross and the full kinetic (Landau-damped) dispersion relation side by side, reconciling the fluid and kinetic pictures you've built all course.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-landau-damping.html"><div class="dir">← Week 8</div><div class="ttl">Landau Damping</div></a>
+        <a href="l10-capstone-dispersion-solver.html" class="next"><div class="dir">Week 10 →</div><div class="ttl">Capstone: Dispersion Solver &amp; Landau Demo</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Kinetic Theory &amp; Waves</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

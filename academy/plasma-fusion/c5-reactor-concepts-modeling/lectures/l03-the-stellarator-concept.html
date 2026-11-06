@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C5 · Lecture 3 — The Stellarator Concept</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .disc { background: linear-gradient(135deg, #241233, #2b1540); border: 1px solid #4a2d66; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .disc h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .disc p { font-size: .9rem; color: #ddd3f0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C5 Reactor Concepts &amp; Modeling</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3 · Discussion 1</span>
+        <h1>The Stellarator Concept</h1>
+        <p class="sub">What if you never drove a plasma current at all? Shape the external coils in three dimensions and let them do everything the tokamak's current does.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain how a stellarator's non-planar, fully 3-D external coils produce both toroidal and poloidal field components without any driven plasma current.</li>
+            <li>Contrast the stellarator's "currentless" operation with the tokamak's current-driven poloidal field from Lecture 2.</li>
+            <li>List the main trade-offs: disruption risk, steady-state capability, engineering/manufacturing complexity, and historical confinement performance.</li>
+            <li>State what "optimized" stellarator design means at a conceptual level (shaping coils to reduce unwanted particle drift losses).</li>
+            <li>Discuss, at the level of this course, when a currentless concept is worth its added engineering complexity.</li>
+        </ul>
+    </div>
+
+    <!-- 3.1 -->
+    <section class="lec">
+        <h2><span class="n">3.1</span>A Different Answer to the Same Question</h2>
+        <p>Lecture 1 left us with a requirement: the field must wind helically, with both a toroidal and a poloidal component, or the plasma drifts out in milliseconds. Lecture 2's tokamak met that requirement by driving a plasma current, which generates the poloidal piece as a byproduct of simple Ampere's law. The <strong>stellarator</strong> asks a different question: can external coils alone — no plasma current required — produce the full helical field directly?</p>
+        <p>The answer is yes, but it costs geometric simplicity. A tokamak's toroidal field coils are simple planar rings; its plasma is (to a good approximation) <strong>axisymmetric</strong> — identical at every toroidal angle. A stellarator's coils are <strong>non-planar</strong>, twisted three-dimensionally around the torus, and the resulting plasma cross-section <strong>varies</strong> as you go around — it is not axisymmetric. The entire rotational transform that the tokamak gets "for free" from its current, the stellarator has to engineer directly into the shape of its coils.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A tokamak is like keeping a hula hoop spinning by continuously pushing it from the side (the driven plasma current does the ongoing work). A stellarator is like building a track so cleverly curved and banked that a ball rolling along it traces the same spiral motion passively, with no ongoing push needed at all. The stellarator's complexity is front-loaded into the track (the coils); the tokamak's complexity is in sustaining the push (the current drive).</div>
+    </section>
+
+    <!-- 3.2 -->
+    <section class="lec">
+        <h2><span class="n">3.2</span>Currentless Operation: What You Gain</h2>
+        <p>Because the confining field comes entirely from external coils, a stellarator plasma carries little to no net toroidal current. This removes, at the source, the entire family of current-driven instabilities that threaten a tokamak — there is no safety-factor-driven kink/tearing boundary to stay above, and critically, there is <strong>no disruption mechanism tied to a sudden loss of plasma current</strong>, because there's no large current to lose. A tokamak disruption can dump megajoules of stored energy onto the first wall in milliseconds; a stellarator has no equivalent failure mode built around current loss.</p>
+        <p>The other major advantage follows directly: since the field doesn't depend on a current that a transformer has to keep re-driving, a stellarator is <strong>inherently suited to steady-state, continuous operation</strong>. A classic inductively-driven tokamak, by contrast, is fundamentally pulsed — the central solenoid's flux can only swing so far before it's exhausted and must be reset (Lecture 4 covers the non-inductive fixes that let a tokamak approach steady state too).</p>
+    </section>
+
+    <!-- 3.3 -->
+    <section class="lec">
+        <h2><span class="n">3.3</span>What You Pay For It</h2>
+        <p>The price is engineering complexity. Non-planar, non-axisymmetric coils are far harder to design, manufacture, and align precisely than a tokamak's simple circular TF coils — small field errors matter more, because there is no plasma current providing a self-correcting restoring effect the way the tokamak's current contributes to its own equilibrium. Historically, this complexity meant stellarators lagged tokamaks in achieved confinement performance for decades.</p>
+        <p>Modern <strong>optimized stellarators</strong> use computer-aided coil design to shape the 3-D field so that unwanted particle drift orbits (a stellarator's non-axisymmetric field can otherwise create extra loss channels beyond the curvature/grad-B drift from Lecture 1) are minimized — closing much of the historical confinement gap with tokamaks. This remains an active area of fusion research: the engineering and manufacturing challenge of building and aligning these complex 3-D coil sets accurately is substantial, even as the physics optimization has matured.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 220" role="img" aria-label="Side-by-side comparison: a tokamak with simple planar toroidal field coils and an axisymmetric plasma cross-section, versus a stellarator with twisted non-planar coils and a plasma cross-section that varies around the torus.">
+                <text x="110" y="24" fill="#fda4af" font-size="12" text-anchor="middle" font-weight="700">Tokamak</text>
+                <ellipse cx="110" cy="115" rx="85" ry="75" fill="none" stroke="#4a2820" stroke-width="2"/>
+                <ellipse cx="110" cy="115" rx="50" ry="44" fill="none" stroke="#fb7185" stroke-width="2"/>
+                <line x1="110" y1="40" x2="110" y2="190" stroke="#4a2820" stroke-width="1.5" stroke-dasharray="3 3"/>
+                <line x1="25" y1="115" x2="195" y2="115" stroke="#4a2820" stroke-width="1.5" stroke-dasharray="3 3"/>
+                <text x="110" y="205" fill="#d0a99a" font-size="10" text-anchor="middle">simple planar TF coils; axisymmetric plasma</text>
+
+                <text x="350" y="24" fill="#fda4af" font-size="12" text-anchor="middle" font-weight="700">Stellarator</text>
+                <path d="M 280 115 Q 300 55 350 55 Q 410 55 420 115 Q 410 180 350 185 Q 295 185 280 115 Z" fill="none" stroke="#4a2820" stroke-width="2"/>
+                <path d="M 300 110 Q 320 75 350 80 Q 395 88 400 115 Q 393 155 350 160 Q 312 158 300 110 Z" fill="none" stroke="#fb7185" stroke-width="2"/>
+                <text x="350" y="205" fill="#d0a99a" font-size="10" text-anchor="middle">twisted non-planar coils; non-axisymmetric plasma</text>
+            </svg>
+            <figcaption>Schematic cross-sections. A tokamak's field and plasma shape are the same all the way around the torus; a stellarator's are deliberately different at every toroidal angle, built entirely into the 3-D coil shapes to supply the rotational transform without any plasma current.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED COMPARISON (no numeric worked example this lecture -- qualitative comparison table instead) -->
+    <div class="worked">
+        <div class="lbl">✦ Quick Comparison — Tokamak vs Stellarator</div>
+        <ol>
+            <li><strong>Poloidal field source:</strong> tokamak — driven plasma current (Ampere's law). Stellarator — external 3-D coil shaping; no net current needed.</li>
+            <li><strong>Symmetry:</strong> tokamak — axisymmetric. Stellarator — non-axisymmetric (varies toroidally by design).</li>
+            <li><strong>Disruptions:</strong> tokamak — real risk tied to sudden current loss. Stellarator — no equivalent current-loss disruption mechanism.</li>
+            <li><strong>Natural operating mode:</strong> tokamak — inductively pulsed (solenoid flux-limited) unless non-inductive current drive is added. Stellarator — inherently steady-state capable.</li>
+            <li><strong>Engineering complexity:</strong> tokamak — simpler coils, current-drive systems needed for long pulses. Stellarator — far more complex 3-D coils, demanding manufacturing/alignment tolerances.</li>
+        </ol>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="disc">
+        <h3>💬 Discussion 1 — Is currentless worth the complexity?</h3>
+        <p>A stellarator trades a simpler coil set and an ongoing current-drive problem (the tokamak's situation) for a one-time, much harder coil-design and manufacturing problem with a currentless, inherently steady-state payoff. If you were choosing a confinement concept for a first-of-its-kind power plant — where reliability and continuous operation matter enormously, but so does getting something built on a reasonable timeline — which trade would you make, and what information would change your answer?</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Both concepts still need to get plasma up to fusion-relevant temperatures and, for the tokamak, need some way to drive current without relying solely on the solenoid. Lecture 4 covers exactly that: ohmic heating's fundamental limit, neutral beam injection, and RF heating — the methods both the tokamak and the stellarator use to heat the plasma (and, for the tokamak, to drive current non-inductively).</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A stellarator produces its poloidal (confining) field component primarily by…</div>
+            <div class="opt"><b>A.</b> driving a large toroidal plasma current, just like a tokamak</div>
+            <div class="opt"><b>B.</b> shaping external, non-planar 3-D coils so the vacuum field itself has the needed twist</div>
+            <div class="opt"><b>C.</b> relying on gravity to twist the field lines</div>
+            <div class="opt"><b>D.</b> using a central solenoid transformer, identical to a tokamak</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The stellarator's defining feature is getting the full helical field directly from coil geometry, with no plasma current required — unlike the tokamak (A, D), which needs a driven current.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why does a stellarator not suffer from current-driven disruptions the way a tokamak can?</div>
+            <div class="opt"><b>A.</b> Stellarators run at much lower temperature</div>
+            <div class="opt"><b>B.</b> Stellarators carry little to no net plasma current, removing the current-loss mechanism that drives tokamak disruptions</div>
+            <div class="opt"><b>C.</b> Stellarators have no magnetic field at all</div>
+            <div class="opt"><b>D.</b> Disruptions are actually equally common in both, just not studied in stellarators</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Tokamak disruptions are fundamentally tied to a sudden loss of the large driven plasma current; since the stellarator's confinement doesn't depend on such a current, that specific failure mode doesn't apply.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Compared to a tokamak, a stellarator's plasma cross-section and field…</div>
+            <div class="opt"><b>A.</b> are identical at every toroidal angle (axisymmetric), same as a tokamak</div>
+            <div class="opt"><b>B.</b> vary around the torus by design — the stellarator is non-axisymmetric</div>
+            <div class="opt"><b>C.</b> cannot be shaped at all</div>
+            <div class="opt"><b>D.</b> only exist at a single toroidal angle</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Non-axisymmetry is the defining geometric trade the stellarator makes in exchange for not needing a plasma current — the tokamak (A) is axisymmetric, the stellarator deliberately is not.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> What is the main engineering price a stellarator pays for currentless operation?</div>
+            <div class="opt"><b>A.</b> It needs a much stronger central solenoid</div>
+            <div class="opt"><b>B.</b> Its non-planar, 3-D coils are far more complex to design, build, and align than a tokamak's simple coils</div>
+            <div class="opt"><b>C.</b> It cannot use magnetic fields at all</div>
+            <div class="opt"><b>D.</b> It requires a larger loss cone than a magnetic mirror</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The coil complexity (and the resulting manufacturing/alignment demands) is the central engineering cost of getting the full helical field from coils alone.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> "Optimized" stellarator design refers to…</div>
+            <div class="opt"><b>A.</b> running the device at the lowest possible magnetic field</div>
+            <div class="opt"><b>B.</b> shaping the 3-D coils specifically to reduce unwanted particle drift losses from the non-axisymmetric field</div>
+            <div class="opt"><b>C.</b> removing all coils except the central solenoid</div>
+            <div class="opt"><b>D.</b> converting the stellarator into a tokamak</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Computer-aided coil optimization targets the extra particle-loss channels that a non-axisymmetric field can otherwise introduce, narrowing the historical confinement gap with tokamaks.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>The stellarator supplies the required poloidal field with <b>non-planar 3-D external coils</b> instead of a driven plasma current.</li>
+            <li>Being essentially <b>currentless</b>, it avoids current-driven kink/tearing instabilities and the disruptions that threaten tokamaks.</li>
+            <li>It is <b>inherently steady-state capable</b>, unlike a classic inductively-driven tokamak, which is fundamentally pulsed.</li>
+            <li>The price is <b>engineering/manufacturing complexity</b> from non-axisymmetric, non-planar coils, and historically a confinement-performance gap that <b>modern optimized designs</b> have narrowed.</li>
+            <li>Compared the tokamak and stellarator trade-offs directly: symmetry, disruption risk, operating mode, and complexity.</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: <b>current drive &amp; heating methods</b> — ohmic heating's fundamental limit, neutral beam injection, and RF heating (ICRH/ECRH), including how a tokamak sustains current non-inductively.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l02-the-tokamak-concept.html"><div class="dir">← Week 2</div><div class="ttl">The Tokamak Concept</div></a>
+        <a class="next" href="l04-current-drive-heating.html"><div class="dir">Week 4 →</div><div class="ttl">Current Drive &amp; Heating Methods</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Reactor Concepts &amp; Modeling</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

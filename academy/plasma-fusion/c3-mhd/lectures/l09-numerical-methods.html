@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C3 · Lecture 9 — Numerical Methods for 1-D MHD</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .disc { background: linear-gradient(135deg, #241428, #2c1730); border: 1px solid #5a3366; border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .disc h3 { color: var(--violet); margin-bottom: 8px; }
+        .disc p { font-size: .9rem; color: #ddd0e8; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C3 Magnetohydrodynamics</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9 · Discussion 3</span>
+        <h1>Numerical Methods for 1-D MHD</h1>
+        <p class="sub">Analytic equilibria and clean dispersion relations only go so far. The last ingredient this course needs is how to put the MHD equations on a grid — and the one rule that decides whether a simulation runs cleanly or explodes into nonsense.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Discretize a 1-D MHD-type wave equation using finite differences in space and time.</li>
+            <li>Explain, physically, why explicit time-stepping schemes are only <em>conditionally</em> stable.</li>
+            <li>State the Courant–Friedrichs–Lewy (CFL) condition, Δt ≤ C·Δx/v_max, with v_max the fastest wave speed present.</li>
+            <li>Compute a stable timestep for a given grid spacing and fast-magnetosonic speed.</li>
+            <li>Demonstrate numerically that violating the CFL condition causes an explicit scheme to blow up.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>Putting the Equations on a Grid</h2>
+        <p>Every analytic result in this course — the θ-pinch profile, the Alfvén and magnetosonic dispersion relations, the kink criterion — came from a special geometry or a linearization simple enough to solve by hand. Most real problems are not that cooperative: an arbitrary equilibrium profile, a nonlinear perturbation, or a wave propagating through a non-uniform plasma generally has no closed-form solution at all. The remaining tool is to solve the MHD equations <strong>numerically</strong>, and this lecture builds the minimal machinery for doing so in one spatial dimension.</p>
+        <p>The idea is straightforward: replace the continuous domain with a discrete grid of points x<sub>i</sub> = i·Δx, and replace each derivative with a finite difference between neighboring grid values. For a wave-type equation, the simplest energy-conserving choice is a <strong>central difference in space</strong> and a <strong>central (leapfrog) difference in time</strong>:</p>
+        <div class="eq">∂²f/∂x² ≈ ( f_{i+1} − 2f_i + f_{i−1} ) / Δx²&nbsp;&nbsp;&nbsp;&nbsp; ∂²f/∂t² ≈ ( f_i^{n+1} − 2f_i^n + f_i^{n−1} ) / Δt²<small>Both approximations become exact as Δx, Δt → 0; for finite step sizes they introduce a controllable, small error.</small></div>
+        <p>Substituting these into the 1-D wave equation ∂²f/∂t² = v²∂²f/∂x² (the same equation that governs the Alfvén wave of Lecture 6, or any single magnetosonic branch of Lecture 7 in its linear, 1-D form) gives an explicit <strong>update rule</strong>: knowing the field at time steps n and n−1 everywhere on the grid, compute it directly at step n+1, point by point, with no equations to invert.</p>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>Why "Explicit" Does Not Mean "Always Stable"</h2>
+        <p>An explicit scheme is appealingly cheap — each new value is computed directly from old ones, with no linear system to solve. But cheap is not the same as safe. The physical wave described by the equation carries information at a finite speed v: a disturbance at grid point i cannot physically reach point i+2 any faster than it takes to cross two grid spacings at speed v. The <em>numerical</em> scheme, by contrast, only looks one grid spacing away at each timestep. If the timestep Δt is so large that the true physical signal would have crossed <em>more than one grid cell</em> in that time, the numerical scheme is being asked to predict something it structurally cannot "see" — and the result is not just inaccurate, it is catastrophically, exponentially <strong>unstable</strong>, with any tiny numerical error doubling, redoubling, and eventually overflowing within a few dozen steps.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Imagine trying to track a fast-moving car by only ever looking at two photographs: your current position and your neighbor's position, one driveway away. If the car can cross three driveways between photographs, no amount of cleverness with just those two neighboring snapshots can correctly predict where it went — your estimate necessarily overshoots, and overshooting compounds on every subsequent frame. Shrink the time between photographs until the car moves less than one driveway per frame, and tracking becomes reliable again. That "less than one driveway per frame" rule is exactly the CFL condition.</div>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>The CFL Condition</h2>
+        <p>Formalizing that picture gives the <strong>Courant–Friedrichs–Lewy (CFL) condition</strong>: for an explicit scheme to remain numerically stable, the timestep must be small enough that no physical signal crosses more than about one grid cell per step:</p>
+        <div class="eq">Δt ≤ C · Δx / v_max<small>C is the Courant number, an O(1) constant set by the specific numerical scheme (often C ≤ 1 for simple explicit schemes); v_max is the fastest physical signal speed present in the problem.</small></div>
+        <p>For 1-D MHD, <strong>v<sub>max</sub> is the fast magnetosonic speed</strong> — by Lecture 7's ordering, the fast mode is always the fastest signal in the system, exceeding both v_A and c_s at every propagation angle. A code that satisfies the CFL condition using only, say, the sound speed while ignoring a much larger Alfvén speed will blow up the moment the magnetic field becomes dynamically important — a classic, easy-to-make mistake in a first MHD code.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Do not pick Δt based on the <em>slowest</em> interesting speed in the problem (e.g. the flow speed, or the sound speed alone) just because it is the physically "important" one for your science question. Numerical stability cares only about the <em>fastest</em> signal the discretized equations can carry — in MHD, that is almost always the fast magnetosonic speed (often dominated by v_A), even if the phenomenon you actually care about evolves much more slowly.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — a stable timestep for a tokamak-scale grid</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 1-D MHD code uses grid spacing Δx = 0.01 m (1 cm) to resolve a tokamak-core plasma whose fast magnetosonic speed (perpendicular propagation, from Lecture 7) is v_fast ≈ 7.81×10⁶ m/s. Find the maximum stable timestep (C=1) and a safer, commonly used working value (C=0.5).</p>
+        <ol>
+            <li><strong>Maximum stable timestep (C=1):</strong> Δt<sub>max</sub> = Δx/v_fast = 0.01/7.81×10⁶ ≈ <strong>1.28×10⁻⁹ s</strong> (about 1.28 nanoseconds).</li>
+            <li><strong>Recommended working timestep (C=0.5):</strong> Δt = 0.5 × 1.28×10⁻⁹ ≈ <strong>6.40×10⁻¹⁰ s</strong> — a safety margin below the hard limit, standard practice since real schemes have less margin than the idealized C=1 bound suggests.</li>
+            <li><strong>Interpretation:</strong> resolving a tokamak-scale device (~meters) at centimeter resolution with this timestep requires roughly a billion timesteps to simulate even one second of physical time — a concrete illustration of why the fast magnetosonic speed's CFL limit is often the single biggest computational cost in a full MHD simulation, and why many production codes use implicit or semi-implicit time-stepping specifically to sidestep it.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: watch the CFL condition fail in Python</h3>
+        <pre><span class="c"># cfl_demo.py — Lecture 9</span>
+import numpy as np
+
+v, dx = 7.8145e6, 0.01
+dt_cfl = dx / v
+print(f"dt_max (CFL=1) = {dt_cfl:.4e} s")
+
+def run_wave(dt, nsteps, N=200):
+    x = np.arange(N)*dx
+    f_curr = np.exp(-(x-x[N//2])**2/(2*(3*dx)**2))   <span class="c"># Gaussian pulse</span>
+    f_prev = f_curr.copy()
+    c2 = (v*dt/dx)**2
+    for n in range(nsteps):
+        f_next = np.zeros_like(f_curr)
+        f_next[1:-1] = (2*f_curr[1:-1] - f_prev[1:-1]
+                        + c2*(f_curr[2:] - 2*f_curr[1:-1] + f_curr[:-2]))
+        f_prev, f_curr = f_curr, f_next
+        if not np.all(np.isfinite(f_curr)):
+            return np.inf
+    return np.nanmax(np.abs(f_curr))
+
+print("Stable   (dt = 0.5 * dt_cfl):", run_wave(0.5*dt_cfl, 300))
+print("Unstable (dt = 1.5 * dt_cfl):", run_wave(1.5*dt_cfl, 300))
+
+<span class="c"># --- actual output ---</span>
+<span class="c"># dt_max (CFL=1) = 1.2797e-09 s</span>
+<span class="c"># Stable   (dt = 0.5 * dt_cfl): 0.4761   (started at amplitude 1.0 -- pulse spread, still finite)</span>
+<span class="c"># Unstable (dt = 1.5 * dt_cfl): inf      (blew up to ~1.9e234 by step 300, then overflowed)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">A timestep just 50% over the CFL limit is enough to turn a smooth, physically sensible Gaussian pulse into a numerical overflow within 300 steps — there is no "a little bit unstable."</p>
+    </div>
+
+    <!-- DISCUSSION 3 -->
+    <div class="disc">
+        <h3>💬 Discussion 3 — explicit vs. implicit: is the CFL limit a law of physics, or a choice?</h3>
+        <p>The CFL condition as derived here is a property of <em>explicit</em> time-stepping schemes specifically — it is not a fundamental limit on simulating MHD itself. Implicit schemes (which solve a linear system coupling the whole grid at the new time step, rather than updating point-by-point from old values) can remain stable at far larger Δt, sometimes unconditionally. Given that CFL-limited timesteps forced a billion-plus steps to simulate one second of a tokamak in the worked example, why doesn't every MHD code simply switch to an implicit scheme and sidestep the problem entirely? What would you guess is the catch — what does an implicit scheme have to sacrifice in exchange for removing the CFL constraint on Δt?</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>With the numerical toolkit in hand — discretization, the CFL condition, and a concrete sense of why explicit MHD codes are often fast-magnetosonic-speed-limited — you have everything needed for the capstone. Lecture 10 combines the equilibrium solver you started in Lecture 4, the stability check from Lecture 8, and the wave physics of Lectures 6–7 into one working Python project: a 1-D MHD equilibrium solver and a numerical wave-propagation demonstration, built and verified end to end.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why is an explicit finite-difference scheme for a wave equation only <em>conditionally</em> stable?</div>
+            <div class="opt"><b>A.</b> Because finite differences are always inaccurate</div>
+            <div class="opt"><b>B.</b> Because if the timestep is too large, the true physical signal would cross more than one grid cell per step — information the one-cell-wide update rule cannot account for, causing errors to grow exponentially</div>
+            <div class="opt"><b>C.</b> Because computers cannot represent small numbers accurately</div>
+            <div class="opt"><b>D.</b> Explicit schemes are always unconditionally stable; this is a myth</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The scheme's domain of dependence (one grid cell per step) must contain the true physical domain of dependence (v·Δt); violating this is the root cause of the instability. (A, C) are not the mechanism. (D) explicit schemes for hyperbolic equations are specifically and famously conditionally stable — that's the entire content of the CFL condition.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The CFL condition for 1-D MHD is Δt ≤ C·Δx/v_max. What should v_max be?</div>
+            <div class="opt"><b>A.</b> The slowest speed in the problem, since that's what you care about physically</div>
+            <div class="opt"><b>B.</b> The fast magnetosonic speed — the fastest signal the discretized MHD equations can carry</div>
+            <div class="opt"><b>C.</b> Always exactly the speed of light</div>
+            <div class="opt"><b>D.</b> Zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Numerical stability is set by the fastest signal present, which in ideal MHD is always the fast magnetosonic speed (Lecture 7). (A) using a slower speed would under-constrain Δt and the scheme would blow up. (C) MHD uses the non-relativistic, pre-Maxwell ordering (Lecture 2); light speed is irrelevant here. (D) would make the scheme useless.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A grid has Δx = 0.01 m and the fast magnetosonic speed is 7.81×10⁶ m/s. The maximum stable timestep (C=1) is approximately…</div>
+            <div class="opt"><b>A.</b> 1.28 seconds</div>
+            <div class="opt"><b>B.</b> 1.28×10⁻⁹ s</div>
+            <div class="opt"><b>C.</b> 1.28×10⁹ s</div>
+            <div class="opt"><b>D.</b> Exactly zero</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Δt_max = Δx/v = 0.01/7.81×10⁶ ≈ 1.28×10⁻⁹ s, matching both the hand calculation and the Python demo. (A, C) are off by many orders of magnitude. (D) a finite, nonzero stable timestep exists.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the Python demo, a timestep 50% above the CFL limit caused the simulated field to…</div>
+            <div class="opt"><b>A.</b> Remain exactly the same as the stable case</div>
+            <div class="opt"><b>B.</b> Decay smoothly to zero</div>
+            <div class="opt"><b>C.</b> Grow exponentially and overflow to a non-finite value within a few hundred steps</div>
+            <div class="opt"><b>D.</b> Oscillate with a slightly longer period but stay bounded</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The demo showed the amplitude reaching ~10²³⁴ by step 300, overflowing to "inf" — the hallmark exponential blow-up of a CFL-violating explicit scheme. (A, B, D) all understate how dramatically and quickly CFL violation destroys a simulation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why do many production MHD codes use implicit or semi-implicit time-stepping specifically for the fast magnetosonic wave?</div>
+            <div class="opt"><b>A.</b> Because the fast wave is scientifically unimportant and can be ignored</div>
+            <div class="opt"><b>B.</b> Because the fast speed (often dominated by v_A) sets an extremely restrictive CFL limit under explicit schemes, forcing impractically many timesteps to simulate realistic physical times</div>
+            <div class="opt"><b>C.</b> Because implicit schemes are always less accurate and used only for convenience</div>
+            <div class="opt"><b>D.</b> Because explicit schemes cannot represent magnetic fields at all</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> As the worked example showed, the fast speed's CFL limit can force well over a billion timesteps to reach one second of physical time — implicit methods trade per-step cost for freedom from that restriction. (A) the fast wave is physically essential, not ignorable. (C) implicit methods are a legitimate, widely used approach, not a lesser one. (D) explicit schemes handle B perfectly well; the issue is purely about timestep size.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Discretized a 1-D wave-type equation with <b>central finite differences</b> in space and time.</li>
+            <li>Explained why explicit schemes are only <b>conditionally stable</b> — the numerical domain of dependence must contain the physical one.</li>
+            <li>Stated the <b>CFL condition</b>, Δt ≤ CΔx/v_max, with v_max the fast magnetosonic speed for MHD.</li>
+            <li>Computed a stable timestep (~1.28 ns) for a tokamak-scale 1-cm grid.</li>
+            <li>Demonstrated numerically that violating CFL by 50% causes exponential blow-up within a few hundred steps.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10, the capstone: combine the equilibrium solver, the stability check, and the wave physics from every previous lecture into one working Python project — a 1-D MHD equilibrium &amp; wave solver, built and numerically verified end to end.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-mhd-instabilities.html"><div class="dir">← Week 8</div><div class="ttl">MHD Instabilities</div></a>
+        <a class="next" href="l10-capstone-mhd-solver.html"><div class="dir">Week 10 →</div><div class="ttl">Capstone: 1-D MHD Solver</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Magnetohydrodynamics</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

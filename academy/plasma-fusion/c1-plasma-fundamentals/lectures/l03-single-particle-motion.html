@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C1 · Lecture 3 — Single-Particle Motion in E and B Fields</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .disc { background: linear-gradient(135deg, #1f1830, #241a38); border: 1px solid #4a3a6e; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .disc h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .disc p { font-size: .9rem; color: #d8cdf0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C1 Plasma Fundamentals</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3 · Discussion 1</span>
+        <h1>Single-Particle Motion in E and B Fields</h1>
+        <p class="sub">Forget the whole plasma for a moment. Follow just one charged particle through a magnetic field, and you already get the circling motion that makes magnetic confinement conceivable in the first place.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Write and interpret the Lorentz force law F = q(E + v×B).</li>
+            <li>Solve the equation of motion for a charged particle in a uniform B field: cyclotron gyration.</li>
+            <li>Define and compute the cyclotron (gyro) frequency ω_c and the Larmor (gyro) radius r_L.</li>
+            <li>Derive the E×B drift velocity for combined uniform, static E and B fields.</li>
+            <li>Explain why gyration is the single fact that makes magnetic confinement of a plasma conceivable.</li>
+        </ul>
+    </div>
+
+    <!-- 3.1 -->
+    <section class="lec">
+        <h2><span class="n">3.1</span>The Lorentz Force</h2>
+        <p>Every particle-motion result in this course — gyration, drifts, mirrors, all of it — comes from one equation. A particle of charge q and mass m in electric field E and magnetic field B feels the <strong>Lorentz force</strong>:</p>
+        <div class="eq">m (dv/dt) = q ( E + v × B )<small>Electric fields do work and change speed; magnetic fields never do work — they only turn the velocity vector.</small></div>
+        <p>That last point is worth dwelling on. The magnetic term v×B is always perpendicular to v, so B can never change a particle's kinetic energy — it can only steer it. Everything interesting a magnetic field does to a plasma is about <em>where</em> particles go, never about speeding them up or slowing them down directly.</p>
+    </section>
+
+    <!-- 3.2 -->
+    <section class="lec">
+        <h2><span class="n">3.2</span>Pure B Field: Cyclotron Gyration</h2>
+        <p>Set E = 0 and let B = B ẑ be uniform. Write v = v<sub>∥</sub> ẑ + v<sub>⊥</sub>, splitting the velocity into components parallel and perpendicular to B. The Lorentz force has no z-component when E = 0 (since v×B lies entirely in the xy-plane for B along z), so v<sub>∥</sub> is simply constant — a particle slides freely along field lines.</p>
+        <p>The perpendicular motion is more interesting. Writing out the x- and y-components of m dv/dt = qv×B gives a pair of coupled equations whose solution is uniform circular motion: v<sub>x</sub> and v<sub>y</sub> trace a circle in velocity space at a constant angular rate, the <strong>cyclotron frequency</strong> (also called the gyrofrequency):</p>
+        <div class="eq">ω_c = |q| B / m<small>Set entirely by charge, mass, and field strength — independent of the particle's speed or energy.</small></div>
+        <p>The particle itself traces a circle of radius equal to the <strong>Larmor radius</strong> (gyroradius):</p>
+        <div class="eq">r_L = m v_⊥ / (|q| B) = v_⊥ / ω_c<small>Faster particles and weaker fields both mean bigger circles.</small></div>
+        <p>A positive charge in B = Bẑ gyrates <em>clockwise</em> when viewed looking down the field line (from +z toward the origin); a negative charge (an electron) gyrates the opposite way. Either way, the combined motion — circular gyration perpendicular to B plus free streaming along B — traces out a <strong>helix</strong> wrapped around the field line.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>A charged particle in a magnetic field behaves like a bead threaded on a wire that itself can bend, except the "wire" here is the field line and the bead never touches it — it corkscrews around it at a fixed radius, held on by the Lorentz force instead of a physical constraint. Stronger field or lighter/slower particle ⇒ tighter corkscrew.</div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 440 220" role="img" aria-label="A charged particle traces a helix: circular gyration at the Larmor radius perpendicular to B, combined with free streaming parallel to B, winding around the field line">
+            <!-- field line -->
+            <line x1="40" y1="40" x2="40" y2="190" stroke="#60a5fa" stroke-width="2"/>
+            <text x="40" y="30" fill="#60a5fa" font-size="11" text-anchor="middle">B</text>
+            <polygon points="40,40 35,50 45,50" fill="#60a5fa"/>
+            <!-- helix path (projected) -->
+            <path d="M40,190 C90,180 10,165 40,150 C90,140 10,125 40,110 C90,100 10,85 40,70 C90,60 10,45 40,40"
+                  fill="none" stroke="#fb7185" stroke-width="2.2"/>
+            <text x="190" y="115" fill="#fda4af" font-size="11" text-anchor="middle">helical path:<tspan x="190" dy="14">gyration ⊥ B + free streaming ∥ B</tspan></text>
+            <!-- rL label -->
+            <line x1="40" y1="150" x2="88" y2="143" stroke="#34d399" stroke-width="1.3" stroke-dasharray="3 3"/>
+            <text x="100" y="140" fill="#6ee7b7" font-size="10">r_L</text>
+        </svg>
+        <figcaption>A charged particle in a uniform B field gyrates in a tight circle of radius r_L around the field line while sliding freely along it — tracing a helix. The gyration itself never changes the particle's speed.</figcaption>
+    </figure>
+
+    <!-- 3.3 -->
+    <section class="lec">
+        <h2><span class="n">3.3</span>Adding a Uniform E Field: the E×B Drift</h2>
+        <p>Now switch on a uniform, static electric field E perpendicular to B, on top of the uniform B. The trick to solving m dv/dt = q(E + v×B) is to guess that the velocity splits into a constant drift v<sub>E</sub> plus a gyration velocity v′ that still circles exactly as in Section 3.2:</p>
+        <div class="eq">v = v_E + v′,&nbsp;&nbsp; where m (dv′/dt) = q v′ × B<small>If this works, v_E must absorb all the E-field physics and leave v′ with pure gyration.</small></div>
+        <p>Substituting into the full equation of motion: m(dv_E/dt + dv′/dt) = q(E + (v_E+v′)×B). Since v_E is constant (dv_E/dt = 0) and dv′/dt already equals (q/m)v′×B by the guess above, what remains is q(E + v_E×B) = 0 — the E-field force must be exactly canceled by the magnetic force on the drift itself. Solving for v<sub>E</sub> (crossing both sides with B and using B×(B×something)=…):</p>
+        <div class="eq">v_E×B = (E × B) / B²<small>The E×B drift. Notice: no q, no m anywhere. Electrons and ions drift together, at the same velocity, in the same direction.</small></div>
+        <p>This is the single most important result in guiding-center theory. Because the drift is independent of charge and mass, E×B drift does <strong>not</strong> separate charge — it carries the whole plasma sideways as a unit, which is exactly why it's usable for confinement (and exactly why it's exploited deliberately in Hall thrusters and magnetrons).</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't confuse the <strong>drift</strong> velocity v_E = E×B/B² with the <strong>gyration</strong> velocity v′. The full motion is gyration (fast circle of radius r_L, charge-dependent direction) superimposed on drift (slow, steady, charge-independent sideways motion) — the particle's actual trajectory is a cycloid: a circle whose center itself glides at v_E. Students often report only one or the other as "the" velocity.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — gyroradius, gyrofrequency, and E×B drift</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A 100 eV electron and a 100 eV proton both gyrate in B = 1 T. Separately, E = 1×10⁴ V/m (10 kV/m) is applied perpendicular to a B = 0.5 T field. Find ω_c and r_L for each particle, and the E×B drift speed.</p>
+        <ol>
+            <li><strong>Electron cyclotron frequency:</strong> ω_ce = eB/m_e = (1.602×10⁻¹⁹)(1) / (9.109×10⁻³¹) ≈ <strong>1.76×10¹¹ rad/s</strong> (f_ce ≈ 28.0 GHz).</li>
+            <li><strong>Electron speed at 100 eV:</strong> v = √(2·100·1.602×10⁻¹⁹/9.109×10⁻³¹) ≈ 5.93×10⁶ m/s. Larmor radius r_L = v/ω_ce ≈ <strong>3.37×10⁻⁵ m</strong> (about 34 µm — tiny).</li>
+            <li><strong>Proton cyclotron frequency:</strong> ω_ci = eB/m_p ≈ <strong>9.58×10⁷ rad/s</strong> (f_ci ≈ 15.2 MHz) — about 1836× slower than the electron, exactly the mass ratio.</li>
+            <li><strong>Proton Larmor radius at 100 eV:</strong> v ≈ 1.38×10⁵ m/s, so r_L ≈ <strong>1.45×10⁻³ m</strong> (1.45 mm) — about 43× larger than the electron's, the √(m_p/m_e) scaling.</li>
+            <li><strong>E×B drift:</strong> v_E = E/B = (1×10⁴)/(0.5) = <strong>2.0×10⁴ m/s</strong>, the same for the electron and the proton — and for any other charge or mass.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: verify r_L, ω_c, and v_E×B numerically</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Integrate the Lorentz force directly with <code>scipy.integrate.solve_ivp</code> and check the analytic formulas above against a real numerical trajectory — the same technique the Lecture 10 capstone scales up.</p>
+        <pre><span class="c"># single_particle_motion.py — Lecture 3</span>
+import numpy as np
+from scipy.integrate import solve_ivp
+
+q, m = 1.602176634e-19, 1.67262192369e-27   <span class="c"># proton</span>
+B0, E0 = 0.5, 1.0e4                          <span class="c"># Tesla, V/m (E along x, B along z)</span>
+
+def rhs(t, s):
+    x, y, z, vx, vy, vz = s
+    ax = (q/m)*(E0 + vy*B0)
+    ay = (q/m)*(-vx*B0)
+    return [vx, vy, vz, ax, ay, 0.0]
+
+wc = q*B0/m
+Tc = 2*np.pi/wc
+sol = solve_ivp(rhs, (0, 20*Tc), [0,0,0, 0,0,0], max_step=Tc/200)
+
+vy_late = sol.y[4][sol.t > 15*Tc]       <span class="c"># drop the first few gyrations, keep the steady part</span>
+print(f"omega_c computed = {wc:.4e} rad/s")
+print(f"analytic v_ExB (y-dir) = {-E0/B0:.4e} m/s")
+print(f"time-averaged vy (numeric drift) ~ {np.mean(vy_late):.4e} m/s")
+
+<span class="c"># omega_c computed = 4.7894e+07 rad/s</span>
+<span class="c"># analytic v_ExB (y-dir) = -2.0000e+04 m/s</span>
+<span class="c"># time-averaged vy (numeric drift) ~ -1.9960e+04 m/s   (matches to ~0.2%)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The particle starts at rest, so its trajectory is a cycloid (the textbook case): the time-averaged velocity converges to E×B/B² once the gyration has had a few periods to average out.</p>
+    </div>
+
+    <!-- DISCUSSION 1 -->
+    <div class="disc">
+        <h3>💬 Discussion 1</h3>
+        <p>A magnetized particle spirals along field lines instead of flying off in a straight line. That single fact — gyration confines motion <em>perpendicular</em> to B to a tiny Larmor radius while leaving motion <em>along</em> B unconstrained — is the whole reason magnetic confinement of a fusion plasma is even conceivable. Why does confining only two of three dimensions still count as useful confinement? (Hint: think about what shape of field line would fix the third.)</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>E×B drift is the first of a whole family of guiding-center drifts. Next week we add non-uniform B fields and find two more: the grad-B drift and the curvature drift, both of which — unlike E×B — <em>do</em> depend on charge, meaning they push ions and electrons in opposite directions and generate currents. Those currents turn out to matter enormously for tokamak equilibrium in Course 5.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why can a magnetic field never change a charged particle's kinetic energy?</div>
+            <div class="opt"><b>A.</b> Magnetic fields are always too weak to matter</div>
+            <div class="opt"><b>B.</b> The force qv×B is always perpendicular to v, so it does no work</div>
+            <div class="opt"><b>C.</b> Magnetic fields only act on neutral particles</div>
+            <div class="opt"><b>D.</b> Energy conservation forbids it by definition</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Work = F·v dt; since v×B ⟂ v always, (v×B)·v = 0, so the magnetic force does zero work regardless of field strength. It can steer the particle but never speed it up or slow it down.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Doubling the magnetic field strength B (holding v_⊥ fixed) changes the Larmor radius r_L by a factor of…</div>
+            <div class="opt"><b>A.</b> 2</div>
+            <div class="opt"><b>B.</b> 4</div>
+            <div class="opt"><b>C.</b> 1/2</div>
+            <div class="opt"><b>D.</b> no change</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> r_L = mv_⊥/(qB), so r_L ∝ 1/B. Doubling B halves the gyroradius — a stronger field confines particles to tighter circles.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Compared to a proton with the same kinetic energy in the same B field, an electron's gyrofrequency ω_c is…</div>
+            <div class="opt"><b>A.</b> about 1836× smaller</div>
+            <div class="opt"><b>B.</b> about 1836× larger</div>
+            <div class="opt"><b>C.</b> the same</div>
+            <div class="opt"><b>D.</b> about 43× larger</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> ω_c = qB/m ∝ 1/m, and m_p/m_e ≈ 1836, so the lighter electron gyrates about 1836× faster. (D) describes the Larmor-radius ratio instead, which goes as √(m_p/m_e) ≈ 43 — a different comparison at equal energy.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The E×B drift velocity v_E = E×B/B²…</div>
+            <div class="opt"><b>A.</b> depends on the particle's charge sign, so ions and electrons drift oppositely</div>
+            <div class="opt"><b>B.</b> depends on the particle's mass but not its charge</div>
+            <div class="opt"><b>C.</b> is the same for every charged particle regardless of charge or mass</div>
+            <div class="opt"><b>D.</b> is zero unless the particle is at rest initially</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> q and m both cancel out of the derivation entirely — every species drifts together at E×B/B², which is why this drift moves the whole plasma as a unit rather than separating charge.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The actual trajectory of a charged particle released from rest into combined uniform, perpendicular E and B fields is…</div>
+            <div class="opt"><b>A.</b> a straight line along E</div>
+            <div class="opt"><b>B.</b> a circle with no net translation</div>
+            <div class="opt"><b>C.</b> a cycloid — gyration superimposed on a steady E×B drift</div>
+            <div class="opt"><b>D.</b> exponential runaway along B</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Decomposing v = v_E + v′ shows v′ undergoes pure gyration while the guiding center glides at the constant drift v_E — the combined path traced out by a particle starting from rest is the classic cycloid.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Wrote the <b>Lorentz force</b> F = q(E + v×B) and noted magnetic forces do no work.</li>
+            <li>Solved for <b>cyclotron gyration</b> in a uniform B field: ω_c = qB/m and r_L = v_⊥/ω_c.</li>
+            <li>Derived the <b>E×B drift</b> v_E = E×B/B² by decomposing motion into drift + gyration — charge- and mass-independent.</li>
+            <li>Distinguished the fast, charge-dependent <b>gyration</b> from the slow, universal <b>drift</b>.</li>
+            <li>Verified r_L, ω_c, and v_E×B against a direct numerical integration of the Lorentz force.</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: non-uniform B fields add the grad-B and curvature drifts to the guiding-center picture, and a time-varying E field adds the polarization drift. This is also the Week 4 project checkpoint.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l02-plasma-frequency-parameter.html"><div class="dir">← Week 2</div><div class="ttl">The Plasma Frequency &amp; Plasma Parameter</div></a>
+        <a class="next" href="l04-guiding-center-drifts.html"><div class="dir">Week 4 →</div><div class="ttl">Guiding-Center Drifts</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Plasma Fundamentals</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

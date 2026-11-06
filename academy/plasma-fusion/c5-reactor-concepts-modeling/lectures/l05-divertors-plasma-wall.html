@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C5 · Lecture 5 — Divertors &amp; Plasma-Wall Interaction</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C5 Reactor Concepts &amp; Modeling</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Divertors &amp; Plasma-Wall Interaction</h1>
+        <p class="sub">Every watt you put into the plasma has to come back out somewhere. The divertor is the engineered answer to "where."</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the power-exhaust problem: in steady state, all heating power must leave through the plasma boundary.</li>
+            <li>Define the scrape-off layer (SOL), separatrix, and X-point.</li>
+            <li>Explain the divertor concept — redirecting the SOL onto a dedicated target away from the main chamber wall — and contrast it with a simple limiter.</li>
+            <li>Explain why the divertor also helps remove impurities and helium "ash" from the core plasma.</li>
+            <li>Estimate peak heat flux for a simple divertor geometry and see why flux spreading over a larger wetted area matters.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>The Exhaust Problem</h2>
+        <p>Run a tokamak or stellarator in steady state and every watt you put in — ohmic heating, NBI, RF, and (once ignition is approached) the alpha-particle self-heating from Lecture 6 — has to come back out somewhere, since the plasma isn't storing energy indefinitely. That energy leaves the confined plasma mostly as particles and heat crossing the outermost confined flux surface into a thin layer just outside it. Concentrate tens or hundreds of megawatts of exhaust power onto any small, unprepared surface and you melt it. Managing where and how that power lands is one of the central engineering problems a magnetic-confinement reactor has to solve — arguably as hard as the confinement physics itself.</p>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>The Scrape-Off Layer and the Separatrix</h2>
+        <p>The outermost closed flux surface that still bounds confined plasma is the <strong>separatrix</strong>. Just outside it, field lines are no longer closed — they run into a material surface somewhere. The thin region of plasma that straddles this boundary, carrying heat and particles along open field lines toward a wall, is the <strong>scrape-off layer (SOL)</strong>.</p>
+        <p>The simplest way to handle the SOL is a <strong>limiter</strong>: a physical surface positioned to intersect the plasma edge directly, defining the outermost boundary by simple contact. Limiters are straightforward but put plasma-wall interaction right at the edge of the main confined volume, where contamination and heat deposition are hardest to control and most likely to cool or pollute the confined core.</p>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>The Divertor Concept</h2>
+        <p>The <strong>divertor</strong> takes a different approach: shape the poloidal field (using extra coils) so that, instead of smoothly closing, field lines near the edge pinch down to a magnetic <strong>null point</strong> — the <strong>X-point</strong> — where the poloidal field vanishes. Just past the X-point, the field lines (and the SOL plasma riding along them) are steered away from the main chamber entirely and guided down into a separate structure, the <strong>divertor</strong>, specifically engineered to absorb the exhaust. Where the SOL field lines finally land is the <strong>strike point</strong>.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 460 240" role="img" aria-label="Poloidal cross-section showing nested confined flux surfaces inside a separatrix, with an X-point where the field pinches down, and field lines diverted outward to a divertor target plate below." >
+                <ellipse cx="230" cy="100" rx="150" ry="70" fill="none" stroke="#fb7185" stroke-width="2"/>
+                <ellipse cx="230" cy="100" rx="100" ry="46" fill="none" stroke="#4a2820" stroke-width="1.5" stroke-dasharray="4 4"/>
+                <text x="230" y="25" fill="#fda4af" font-size="11" text-anchor="middle">separatrix (outermost closed surface)</text>
+                <!-- X point -->
+                <circle cx="230" cy="172" r="4" fill="#fbbf24"/>
+                <text x="270" y="176" fill="#fbbf24" font-size="11">X-point</text>
+                <!-- SOL field lines diverted down -->
+                <path d="M 150 155 Q 190 175 230 172 Q 270 170 300 190 Q 320 205 325 225" fill="none" stroke="#60a5fa" stroke-width="2"/>
+                <path d="M 310 155 Q 270 175 230 172 Q 190 170 160 190 Q 140 205 135 225" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4 3"/>
+                <text x="330" y="150" fill="#60a5fa" font-size="10">SOL field lines</text>
+                <!-- divertor target plates -->
+                <rect x="100" y="225" width="80" height="10" fill="#34d399"/>
+                <rect x="280" y="225" width="80" height="10" fill="#34d399"/>
+                <text x="230" y="238" fill="#6ee7b7" font-size="10" text-anchor="middle">divertor target plates (strike points)</text>
+            </svg>
+            <figcaption>Confined plasma sits inside the separatrix. Near the X-point, the poloidal field pinches to zero; open field lines in the scrape-off layer are steered away from the main chamber down to dedicated divertor target plates, away from the core.</figcaption>
+        </figure>
+        <p>This buys two things at once. First, the exhaust power lands on a <strong>dedicated, engineered surface</strong> far from the main chamber wall — one that can be designed specifically to survive extreme heat flux (shaped at a shallow angle to spread the load, actively cooled, made of a high-melting-point material). Second, as impurities and the helium "ash" produced by fusion reactions drift into the SOL, they get carried to the divertor and pumped away rather than accumulating in and diluting the confined core — the divertor doubles as the plasma's exhaust-and-cleanup system.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>A divertor does not reduce the <em>total</em> exhaust power — it only relocates <em>where</em> that power lands. The engineering challenge (spreading megawatts per square meter over a survivable area) doesn't go away; the divertor just concentrates the problem onto a surface built to handle it, instead of letting it hit the unprepared main wall.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — why you need a divertor at all</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">150 MW crosses the separatrix into the SOL. Compare the peak heat flux if it's concentrated onto a 5 m&sup2; divertor "wetted area" versus spread uniformly over an entire first-wall surface of &asymp;474 m&sup2; (torus with R=6m, a=2m).</p>
+        <ol>
+            <li><strong>Onto the divertor:</strong> q = P/A = 150&times;10&#8310; W / 5 m&sup2; = <strong>30 MW/m&sup2;</strong>.</li>
+            <li><strong>Spread over the full first wall:</strong> q = 150&times;10&#8310; / 474 m&sup2; &asymp; <strong>0.32 MW/m&sup2;</strong>.</li>
+            <li><strong>Verdict:</strong> even the divertor's engineered, concentrated value (30 MW/m&sup2;) is an extreme heat flux by any industrial standard — and it is nearly 100&times; the unconcentrated first-wall average. This is exactly why real divertor designs spread the strike line further still (shallow incidence angles, active cooling, sometimes partial detachment of the plasma before it reaches the plate) rather than accepting 30 MW/m&sup2; outright.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: heat-flux estimator</h3>
+        <p style="font-size:.9rem; color:var(--text2);">No new install. This reproduces the worked example and lets you explore how wetted area and incidence angle change the peak flux.</p>
+        <pre><span class="c"># divertor_heatflux.py — Lecture 5</span>
+import numpy as np
+
+def peak_flux(P, A_perp, angle_deg=90.0):
+    <span class="c"># A_perp: footprint area perpendicular to field flow; a shallow</span>
+    <span class="c"># incidence angle spreads the same power over a larger wetted area</span>
+    A_wetted = A_perp / np.sin(np.radians(angle_deg))
+    return P / A_wetted
+
+P = 150e6          <span class="c"># W crossing the separatrix</span>
+A_perp = 5.0        <span class="c"># m^2, perpendicular footprint</span>
+
+for angle in [90, 30, 10, 3]:
+    q = peak_flux(P, A_perp, angle)
+    print(f"incidence angle {angle:3d} deg  ->  peak flux {q/1e6:6.2f} MW/m^2")
+<span class="c"># 90 deg -> 30.0 MW/m^2; shallower angles spread the same power over</span>
+<span class="c"># more wetted area, lowering peak flux -- the real reason divertor</span>
+<span class="c"># targets are angled almost edge-on to the incoming field lines</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Notice the big lever here isn't changing the physics power flow — it's geometry: a shallower strike angle spreads the same megawatts over a much larger physical surface, which is the single biggest tool divertor designers have.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>We've now covered where the <em>power</em> goes once it's in the SOL. Lecture 6 zooms out to the full energy ledger: exactly how much power a D-T plasma produces, how it splits between the neutron and the alpha particle, and how that split drives everything downstream — the blanket (Lecture 7), the materials challenge (Lecture 8), and ultimately the plant's net electrical output (Lecture 10's capstone).</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why must a steady-state fusion plasma continuously exhaust power through its boundary?</div>
+            <div class="opt"><b>A.</b> Because the plasma stores all input power indefinitely otherwise</div>
+            <div class="opt"><b>B.</b> Because in steady state, energy in must equal energy out — all heating and alpha power must eventually leave through the boundary</div>
+            <div class="opt"><b>C.</b> Because the magnetic field forces all power out instantly</div>
+            <div class="opt"><b>D.</b> It doesn't need to — power simply disappears</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Energy balance in steady state requires exhaust to match input; the plasma is not an infinite energy sink.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The separatrix is…</div>
+            <div class="opt"><b>A.</b> the physical wall of the vacuum vessel</div>
+            <div class="opt"><b>B.</b> the outermost closed flux surface bounding the confined plasma</div>
+            <div class="opt"><b>C.</b> the central solenoid</div>
+            <div class="opt"><b>D.</b> the strike point on the divertor plate</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Inside the separatrix, flux surfaces are closed and confine plasma; just outside, field lines open up and run to a material surface, forming the SOL.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Compared to a simple limiter, a divertor's main advantage is…</div>
+            <div class="opt"><b>A.</b> it eliminates all exhaust power so no target is needed</div>
+            <div class="opt"><b>B.</b> it redirects the scrape-off-layer plasma to a dedicated, engineered target away from the main chamber wall, instead of letting plasma touch an edge surface directly</div>
+            <div class="opt"><b>C.</b> it requires no magnetic field shaping at all</div>
+            <div class="opt"><b>D.</b> it increases the plasma current</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> By creating an X-point and steering SOL field lines to a separate structure, the divertor moves plasma-wall contact away from the main chamber to a surface specifically designed to survive it.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Besides handling heat exhaust, a divertor also helps by…</div>
+            <div class="opt"><b>A.</b> increasing the plasma's electrical resistivity</div>
+            <div class="opt"><b>B.</b> removing impurities and helium "ash" that would otherwise dilute/contaminate the confined core</div>
+            <div class="opt"><b>C.</b> generating the toroidal field</div>
+            <div class="opt"><b>D.</b> replacing the need for a central solenoid</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Impurities and fusion-produced helium drift into the SOL and get carried to the divertor for pumping/removal, rather than accumulating in the core.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the worked example, why does a shallower divertor strike angle reduce the peak heat flux for the same total power?</div>
+            <div class="opt"><b>A.</b> It reduces the total power crossing the separatrix</div>
+            <div class="opt"><b>B.</b> It spreads the same power over a larger physical wetted area on the target</div>
+            <div class="opt"><b>C.</b> It increases the plasma temperature</div>
+            <div class="opt"><b>D.</b> Shallower angles have no effect on flux</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> q = P/A_wetted, and A_wetted = A_perp/sin(angle) grows as the incidence angle shrinks — same power, bigger footprint, lower peak flux. This is exactly what the hands-on script demonstrates.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>In steady state, all input/alpha heating power must exit through the plasma boundary — this is the <b>power-exhaust problem</b>.</li>
+            <li>The <b>separatrix</b> bounds the confined plasma; the <b>scrape-off layer (SOL)</b> carries exhaust along open field lines beyond it.</li>
+            <li>A <b>divertor</b> uses an <b>X-point</b> to steer the SOL onto a dedicated target (the <b>strike point</b>), away from the main chamber wall — unlike a simple <b>limiter</b>.</li>
+            <li>The divertor also removes <b>impurities and helium ash</b> from the core, doubling as the exhaust-and-cleanup system.</li>
+            <li>Computed peak heat flux (30 MW/m&sup2; concentrated vs &asymp;0.32 MW/m&sup2; spread) and saw how a shallow strike angle lowers peak flux by spreading the wetted area.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: <b>fusion power balance</b> — the full energy ledger from fusion power to a usable plant, starting with the neutron/alpha split you've already used here.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-current-drive-heating.html"><div class="dir">← Week 4</div><div class="ttl">Current Drive &amp; Heating Methods</div></a>
+        <a class="next" href="l06-fusion-power-balance.html"><div class="dir">Week 6 →</div><div class="ttl">Fusion Power Balance</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Reactor Concepts &amp; Modeling</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

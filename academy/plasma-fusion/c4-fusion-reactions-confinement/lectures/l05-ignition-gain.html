@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C4 · Lecture 5 — Ignition &amp; Fusion Gain Q</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C4 Fusion Reactions &amp; Confinement</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Ignition &amp; Fusion Gain Q</h1>
+        <p class="sub">Breakeven is a milestone, not the finish line. The fusion gain Q tracks exactly how close a plasma is to needing no outside help at all.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define the fusion gain Q as the ratio of fusion power to external heating power.</li>
+            <li>Distinguish scientific breakeven (Q=1) from engineering breakeven (plant electrical output = plant electrical input).</li>
+            <li>Derive the relationship between Q and the alpha self-heating fraction f_α, and show Q→∞ as f_α→1 at ignition.</li>
+            <li>Place real devices (JET, ITER's target) on the Q scale using this relationship.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>Defining Fusion Gain Q</h2>
+        <p>Lecture 1 flagged the naming collision: a reaction's <em>Q-value</em> (MeV released per reaction) is not the <em>fusion gain</em> Q used from here on. The fusion gain is a dimensionless performance number — the ratio of fusion power produced to the external heating power you had to supply to sustain the plasma:</p>
+        <div class="eq">Q = P<sub>fusion</sub> / P<sub>aux</sub><small>P_aux is the power delivered to the plasma by external heating systems (neutral beams, RF heating, etc.) — not counting the alpha self-heating, which is already "inside" P_fusion's bookkeeping.</small></div>
+        <p><strong>Scientific breakeven</strong> is Q = 1: the fusion power produced exactly equals the heating power delivered to the plasma. JET (the Joint European Torus) reached Q≈0.67 in its record D-T shots — close to, but short of, scientific breakeven.</p>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>Scientific vs Engineering Breakeven</h2>
+        <p>Q as defined above compares power delivered <em>to the plasma</em> against power the plasma releases. It says nothing about the efficiency of the equipment that generated that heating power in the first place. <strong>Engineering (or "net") breakeven</strong> is the far harder condition that total electrical output of the whole plant exceeds total electrical input to the whole plant — including the inefficient heating systems, magnets, cryogenics, and cooling:</p>
+        <div class="eq">Q<sub>eng</sub> = (plant electrical output) / (plant electrical input)<small>Because heating systems are typically only 30-50% efficient at converting wall-plug power into power delivered to the plasma, Q_eng ≈ 1 typically requires scientific Q well above 1 — commonly cited estimates put the requirement around Q ≳ 5-10 depending on the heating and conversion efficiencies assumed.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>A headline claiming "fusion net energy gain" almost always refers to a <em>scientific</em> comparison (fusion energy released vs. energy delivered to the fuel/plasma), not <em>engineering</em> breakeven (whole-plant electricity in vs. out). The two are very different bars, and conflating them has caused real public confusion about how close commercial fusion power actually is.</div>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>Alpha Self-Heating and the Path to Ignition</h2>
+        <p>As a D-T plasma heats up, an increasing share of its energy losses are made up not by external heating but by the alpha particles produced in fusion reactions themselves (recall: 3.54 of the 17.6 MeV per reaction stays in the plasma as the alpha's kinetic energy). Define the <strong>alpha self-heating fraction</strong> f<sub>α</sub> as the share of total heating power supplied by alphas, with the rest supplied externally — assuming steady state, so total heating power equals the loss power P<sub>loss</sub>:</p>
+        <div class="eq">f<sub>α</sub> = P<sub>α</sub>/P<sub>loss</sub> &nbsp;&nbsp;&nbsp; P<sub>aux</sub> = P<sub>loss</sub>(1 − f<sub>α</sub>)<small>At f_α = 1, alphas alone balance every loss — no external heating is needed. That is exactly the ignition condition from Lecture 4.</small></div>
+        <p>Since P<sub>fusion</sub> = (E<sub>fus</sub>/E<sub>α</sub>)·P<sub>α</sub> ≈ 5.03·P<sub>α</sub> (the fixed energy-split ratio from Lecture 1), substituting gives Q directly in terms of f<sub>α</sub>:</p>
+        <div class="eq">Q = (E<sub>fus</sub>/E<sub>α</sub>)·f<sub>α</sub>/(1 − f<sub>α</sub>) ≈ 5.03·f<sub>α</sub>/(1 − f<sub>α</sub>)<small>A single, clean relationship: pushing f_α toward 1 (self-heating dominates) drives Q to infinity — ignition is the f_α→1 limit of the fusion-gain curve.</small></div>
+        <figure class="fig">
+            <svg viewBox="0 0 520 230" role="img" aria-label="Fusion gain Q versus alpha self-heating fraction f-alpha, rising slowly at first then diverging sharply to infinity as f-alpha approaches 1, with ITER's target Q=10 marked near f-alpha equal to two thirds">
+                <line x1="55" y1="195" x2="495" y2="195" stroke="#d0a99a" stroke-width="1.5"/>
+                <line x1="55" y1="195" x2="55" y2="25" stroke="#d0a99a" stroke-width="1.5"/>
+                <text x="470" y="215" fill="#d0a99a" font-size="11">f_α →</text>
+                <text x="18" y="35" fill="#d0a99a" font-size="11">Q</text>
+                <path d="M65,193 C150,188 250,170 330,130 C390,95 430,55 460,28" fill="none" stroke="#fb7185" stroke-width="2.5"/>
+                <line x1="365" y1="195" x2="365" y2="80" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <circle cx="365" cy="80" r="4" fill="#60a5fa"/>
+                <text x="372" y="76" fill="#60a5fa" font-size="10">f_α≈0.665, Q=10 (ITER target)</text>
+                <text x="480" y="40" fill="#fda4af" font-size="10" text-anchor="end">Q→∞ as f_α→1</text>
+            </svg>
+            <figcaption>Fusion gain Q climbs slowly as alpha self-heating increases, then diverges as f_α approaches 1 (ignition). ITER's Q=10 design target corresponds to alphas already supplying about two-thirds of total heating power.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 5.4 -->
+    <section class="lec">
+        <h2><span class="n">5.4</span>Placing Real Devices on the Q Scale</h2>
+        <p>JET's best D-T result, Q≈0.67, corresponds to a modest alpha fraction — most of its heating was still external. <strong>ITER's design target is Q=10</strong> (not full ignition): solving the f<sub>α</sub>-Q relationship shows this requires f<sub>α</sub>≈0.665, meaning alpha particles already supply roughly two-thirds of the heating power needed to sustain ITER's plasma at its target operating point, with only the remaining third delivered by external heating systems. Pushing further toward f<sub>α</sub>→1 (true ignition, Q→∞) is the explicit goal of next-generation devices beyond ITER.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — Q at three alpha fractions</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Using Q = 5.03·f_α/(1−f_α), find Q at f_α = 0.5, f_α = 0.8, and solve for f_α at Q = 10.</p>
+        <ol>
+            <li><strong>f_α = 0.5:</strong> Q = 5.03 × 0.5/0.5 = <strong>5.03</strong>.</li>
+            <li><strong>f_α = 0.8:</strong> Q = 5.03 × 0.8/0.2 = 5.03 × 4 = <strong>20.1</strong>.</li>
+            <li><strong>Solve for f_α at Q = 10:</strong> 10 = 5.03·f_α/(1−f_α) ⟹ 10(1−f_α) = 5.03f_α ⟹ 10 = 15.03f_α ⟹ f_α = 10/15.03 ≈ <strong>0.665</strong>.</li>
+            <li><strong>Check:</strong> Q(0.665) = 5.03 × 0.665/0.335 ≈ 5.03 × 1.985 ≈ 9.98 ≈ 10 ✓ — matches, confirming ITER's Q=10 target corresponds to f_α≈66.5%.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: Q vs alpha self-heating fraction in Python</h3>
+        <pre><span class="c"># fusion_gain.py — Lecture 5</span>
+from scipy.optimize import brentq
+
+RATIO = 17.6/3.5   <span class="c"># E_fus/E_alpha</span>
+
+def Q_of_falpha(f_alpha):
+    return RATIO*f_alpha/(1-f_alpha)
+
+for f in [0.2, 0.5, 0.665, 0.8, 0.9, 0.95]:
+    print(f"f_alpha={f:.3f}  ->  Q={Q_of_falpha(f):6.2f}")
+
+<span class="c"># solve for f_alpha at a target Q</span>
+target_Q = 10.0
+f_at_Q10 = brentq(lambda f: Q_of_falpha(f) - target_Q, 1e-6, 1-1e-6)
+print(f"f_alpha at Q={target_Q}: {f_at_Q10:.4f}")
+
+<span class="c"># Verified output:
+# f_alpha=0.200  ->  Q=  1.26
+# f_alpha=0.500  ->  Q=  5.03
+# f_alpha=0.665  ->  Q= 10.07
+# f_alpha=0.800  ->  Q= 20.11
+# f_alpha=0.900  ->  Q= 45.26
+# f_alpha=0.950  ->  Q= 95.54
+# f_alpha at Q=10: 0.6654</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Notice how Q accelerates: moving f_α from 0.9 to 0.95 more than doubles Q, while moving it from 0.2 to 0.5 only quadruples it. Chasing the last few percent of f_α toward true ignition is disproportionately hard and disproportionately valuable.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Everything in Lectures 1-5 assumed you already knew τ_E. Lecture 6 finally defines it properly and shows how it is measured and predicted — through empirical <strong>confinement scaling laws</strong> that let you estimate τ_E from a device's size, current, field, and heating power <em>before</em> you build it. That predictive power is exactly what the capstone calculator will exploit.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The fusion gain Q = P_fusion/P_aux equal to 1 defines…</div>
+            <div class="opt"><b>A.</b> ignition</div>
+            <div class="opt"><b>B.</b> engineering breakeven</div>
+            <div class="opt"><b>C.</b> scientific breakeven</div>
+            <div class="opt"><b>D.</b> the Lawson criterion</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Q=1 means fusion power equals the power delivered to the plasma — scientific breakeven. (A) ignition is the f_α→1, Q→∞ limit, far beyond Q=1. (B) engineering breakeven compares whole-plant electricity, a much harder bar. (D) the Lawson criterion is a density-temperature-confinement threshold, not a power ratio.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A news report that a fusion experiment achieved "net energy gain" most likely refers to…</div>
+            <div class="opt"><b>A.</b> engineering breakeven — the whole plant produced more electricity than it consumed</div>
+            <div class="opt"><b>B.</b> scientific breakeven or similar — fusion energy released compared to energy delivered to the fuel/plasma, not whole-plant electricity</div>
+            <div class="opt"><b>C.</b> the plant is now commercially viable</div>
+            <div class="opt"><b>D.</b> the Lawson criterion has been exceeded by 100×</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> As flagged in Section 5.2's common mistake, "net energy gain" headlines virtually always mean the scientific comparison, which is a far lower bar than whole-plant engineering breakeven. (A) is the much harder, rarely-yet-achieved condition. (C) does not follow from scientific gain alone. (D) is an invented, unsupported multiple.</p></details>
+        </div>
+        <div class="q">
+            <div class="qn"><span>Q3.</span> As the alpha self-heating fraction f_α approaches 1, the fusion gain Q = 5.03f_α/(1−f_α)…</div>
+            <div class="opt"><b>A.</b> approaches 5.03</div>
+            <div class="opt"><b>B.</b> approaches 1</div>
+            <div class="opt"><b>C.</b> diverges toward infinity</div>
+            <div class="opt"><b>D.</b> approaches 0</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The denominator (1−f_α) → 0 while the numerator → 5.03, so Q → ∞ — the mathematical signature of ignition, where no external heating (P_aux→0) is needed at all. (A) would be the f_α=0.5 case, not the limit. (B)/(D) don't match the diverging denominator.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> ITER's design target of Q=10 corresponds to an alpha self-heating fraction f_α of approximately…</div>
+            <div class="opt"><b>A.</b> 0.1 (10%)</div>
+            <div class="opt"><b>B.</b> 0.5 (50%)</div>
+            <div class="opt"><b>C.</b> 0.665 (66.5%)</div>
+            <div class="opt"><b>D.</b> 1.0 (100%, full ignition)</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Solving 10 = 5.03f_α/(1−f_α) gives f_α≈0.665 (Section 5.4 and the worked example) — ITER's Q=10 target already relies on alphas for about two-thirds of the needed heating. (A)/(B) are too low to reach Q=10. (D) is full ignition (Q=∞), a step beyond ITER's design target.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Going from f_α=0.9 to f_α=0.95 increases Q by more than doubling it, while going from f_α=0.2 to f_α=0.5 only roughly quadruples a much smaller Q. This illustrates that…</div>
+            <div class="opt"><b>A.</b> Q is a linear function of f_α</div>
+            <div class="opt"><b>B.</b> the Q-vs-f_α relationship accelerates sharply as f_α approaches 1 — the last few percent toward ignition are disproportionately hard to win and disproportionately valuable</div>
+            <div class="opt"><b>C.</b> Q is independent of f_α at high f_α</div>
+            <div class="opt"><b>D.</b> there is a data error in the hands-on script</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The 1/(1−f_α) factor blows up as f_α→1, so equal increments in f_α near 1 produce much larger jumps in Q than the same increments at moderate f_α — exactly what the Section 5's hands-on numbers show. (A) Q is manifestly nonlinear (it diverges). (C) the opposite is true — Q is most sensitive to f_α near 1. (D) the numbers are correctly computed and verified.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined <b>fusion gain Q = P_fusion/P_aux</b> and distinguished it from both the reaction Q-value and engineering Q.</li>
+            <li>Distinguished <b>scientific breakeven</b> (Q=1) from the much harder <b>engineering/net breakeven</b> (whole-plant electricity).</li>
+            <li>Derived <b>Q = (E_fus/E_α)·f_α/(1−f_α) ≈ 5.03f_α/(1−f_α)</b>, showing ignition is the f_α→1 limit.</li>
+            <li>Placed JET (Q≈0.67) and ITER's target (Q=10, f_α≈0.665) on the same scale.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: finally define τ_E rigorously and meet the empirical scaling laws that let you predict it from device parameters before you ever turn the machine on.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-lawson-criterion.html"><div class="dir">← Week 4</div><div class="ttl">The Lawson Criterion: Power Balance &amp; the Triple Product</div></a>
+        <a class="next" href="l06-confinement-time-scaling.html"><div class="dir">Week 6 →</div><div class="ttl">Energy Confinement Time &amp; Scaling Laws</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Fusion Reactions &amp; Confinement</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

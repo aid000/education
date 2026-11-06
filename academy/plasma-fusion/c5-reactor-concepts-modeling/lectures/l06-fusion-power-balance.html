@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C5 · Lecture 6 — Fusion Power Balance</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .disc { background: linear-gradient(135deg, #241233, #2b1540); border: 1px solid #4a2d66; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .disc h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .disc p { font-size: .9rem; color: #ddd3f0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C5 Reactor Concepts &amp; Modeling</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6 · Discussion 2</span>
+        <h1>Fusion Power Balance</h1>
+        <p class="sub">17.6 MeV per reaction isn't the end of the story — it's the start of a whole chain of where that energy goes, and how much of it ever becomes usable electricity.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Recall the D-T energy split between the neutron and the alpha particle, and explain the physical reason for it (momentum conservation).</li>
+            <li>Explain why the alpha's energy stays in the plasma (self-heating) while the neutron's energy escapes to the blanket.</li>
+            <li>Define the ignition condition in terms of alpha self-heating balancing plasma energy losses.</li>
+            <li>Trace the full power-flow chain from fusion power to net electrical output at a conceptual level.</li>
+            <li>Compute the neutron and alpha power for a given total fusion power.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Recall: Where the 17.6 MeV Goes</h2>
+        <p>Every D + T &rarr; He-4 + n reaction releases Q = 17.6 MeV, split inversely with mass between the two products (momentum conservation, as you verified in your fusion-fundamentals work): the light <strong>neutron</strong> carries <strong>&asymp;14.1 MeV (&asymp;80.1%)</strong>, and the <strong>alpha particle (He-4 nucleus)</strong> carries <strong>&asymp;3.5 MeV (&asymp;19.9%)</strong>.</p>
+        <div class="eq">D + T &rarr; He-4 (3.5 MeV) + n (14.1 MeV)&nbsp;&nbsp;&nbsp;&nbsp;Q = 17.6 MeV</div>
+        <p>These two products have completely different fates, and that difference is the single most important fact in fusion reactor engineering.</p>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>Two Products, Two Jobs</h2>
+        <h3>The neutron: escapes to do work outside the plasma</h3>
+        <p>Being electrically neutral, the 14.1 MeV neutron is completely unaffected by the confining magnetic field — it flies straight out of the plasma and through the vacuum vessel wall, depositing its energy as heat deep inside the surrounding structure: the <strong>blanket</strong> (Lecture 7). This is <em>useful</em> — it's most of the plant's thermal power — but it's also the source of the materials-damage problem in Lecture 8.</p>
+        <h3>The alpha: stays and does a different job</h3>
+        <p>The charged 3.5 MeV alpha, by contrast, is confined by the same magnetic field as the rest of the plasma (at least initially) and collides with the background plasma, <strong>heating it</strong> — this is <strong>alpha self-heating</strong>. Only after it slows down and diffuses out across the SOL (Lecture 5) does its energy finally show up as heat on the first wall/divertor.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the D-T reaction as a cannon firing in the plasma's rest frame: the light "shell" (the neutron) flies straight through the magnetic "walls" of the room and out into the hallway (the blanket) to do its work there. The heavy "cannon" (the alpha) recoils gently and stays right in the room, its recoil energy warming the room itself (the plasma).</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Ignition: When the Plasma Heats Itself</h2>
+        <p>As long as external heating (Lecture 4's NBI/RF) is needed to keep the plasma hot, the reactor is not yet self-sustaining. But as the fusion rate rises, alpha self-heating rises too — and if alpha heating alone becomes large enough to balance the plasma's energy losses (radiation, conduction/convection across field lines), the external heating can be reduced to zero and the plasma still holds its temperature. This condition is <strong>ignition</strong>:</p>
+        <div class="eq">P_alpha &ge; P_loss&nbsp;&nbsp;&nbsp;(at ignition, external heating &rarr; 0)<small>Ignition: alpha self-heating alone balances the plasma's energy losses, so the burn is self-sustaining without external heating power.</small></div>
+        <p>This connects directly back to the Lawson triple product from your fusion-fundamentals work: the triple product threshold is really just a density-temperature-confinement-time statement of exactly when P_alpha can clear P_loss. Ignition is a plasma-physics milestone; it is <em>not</em> the same as the plant producing net electricity, which also has to survive everything downstream — conversion losses, recirculating power — covered next.</p>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>The Full Plant Power-Flow Chain</h2>
+        <p>Zooming out from one reaction to the whole plant, here is the chain every watt of fusion power travels, conceptually, from production to the electrical grid:</p>
+        <figure class="fig">
+            <svg viewBox="0 0 560 230" role="img" aria-label="Flow diagram: fusion power splits into neutron power going to the blanket and alpha power staying in the plasma then going to the first wall; both become thermal power; thermal power converts to gross electric power with losses; recirculating power for heating and house loads is subtracted to leave net electric power.">
+                <rect x="10" y="95" width="90" height="40" rx="8" fill="none" stroke="#fb7185" stroke-width="2"/>
+                <text x="55" y="118" fill="#fda4af" font-size="11" text-anchor="middle">Fusion power</text>
+                <line x1="100" y1="100" x2="150" y2="70" stroke="#d0a99a" stroke-width="1.5"/>
+                <line x1="100" y1="130" x2="150" y2="160" stroke="#d0a99a" stroke-width="1.5"/>
+                <rect x="150" y="50" width="100" height="36" rx="8" fill="none" stroke="#60a5fa" stroke-width="2"/>
+                <text x="200" y="72" fill="#60a5fa" font-size="10" text-anchor="middle">Neutron (80%) → blanket</text>
+                <rect x="150" y="142" width="100" height="36" rx="8" fill="none" stroke="#34d399" stroke-width="2"/>
+                <text x="200" y="164" fill="#6ee7b7" font-size="10" text-anchor="middle">Alpha (20%) → plasma → wall</text>
+                <line x1="250" y1="68" x2="300" y2="100" stroke="#d0a99a" stroke-width="1.5"/>
+                <line x1="250" y1="160" x2="300" y2="128" stroke="#d0a99a" stroke-width="1.5"/>
+                <rect x="300" y="95" width="100" height="40" rx="8" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <text x="350" y="118" fill="#fbbf24" font-size="10" text-anchor="middle">Thermal power</text>
+                <line x1="400" y1="115" x2="440" y2="115" stroke="#d0a99a" stroke-width="1.5"/>
+                <rect x="440" y="95" width="110" height="40" rx="8" fill="none" stroke="#fb7185" stroke-width="2"/>
+                <text x="495" y="112" fill="#fda4af" font-size="10" text-anchor="middle">Gross electric</text>
+                <text x="495" y="127" fill="#d0a99a" font-size="9" text-anchor="middle">(&eta;_th loss)</text>
+                <line x1="495" y1="135" x2="495" y2="195" stroke="#d0a99a" stroke-width="1.5"/>
+                <text x="500" y="210" fill="#d0a99a" font-size="9" text-anchor="middle">minus recirculating power →</text>
+                <text x="500" y="222" fill="#d0a99a" font-size="9" text-anchor="middle">= Net electric power</text>
+            </svg>
+            <figcaption>Fusion power splits into neutron power (to the blanket) and alpha power (self-heats the plasma, later reaches the wall). Both become thermal power, which converts to gross electric power at some efficiency &eta;_th. Subtracting recirculating power (heating/CD + house loads) leaves the plant's net electric output — the number that actually matters commercially.</figcaption>
+        </figure>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — the neutron/alpha split for a plant-scale fusion power</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">An illustrative study plant produces P_fusion = 2500 MW of fusion power. Find P_neutron and P_alpha.</p>
+        <ol>
+            <li><strong>Fractions:</strong> f_n = 14.1/17.6 = 0.8011, f_&alpha; = 3.5/17.6 = 0.1989.</li>
+            <li><strong>Neutron power:</strong> P_n = 2500 &times; 0.8011 &asymp; <strong>2002.8 MW</strong>.</li>
+            <li><strong>Alpha power:</strong> P_&alpha; = 2500 &times; 0.1989 &asymp; <strong>497.2 MW</strong>.</li>
+            <li><strong>Check:</strong> 2002.8 + 497.2 = 2500.0 MW &check; — the split accounts for all the fusion power.</li>
+        </ol>
+        <p style="font-size:.88rem; color:var(--text2); margin-top:10px;">These two numbers feed directly into the capstone's blanket and plant-power-balance calculations in Lecture 10 — keep them in mind.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="disc">
+        <h3>💬 Discussion 2 — Ignition versus a power plant</h3>
+        <p>Scientific ignition (alpha heating alone sustains the plasma, external heating drops to zero) is a major physics milestone, but a power plant also has to survive thermal-conversion losses and recirculating power before anything reaches the grid. Can you describe a scenario where a plasma reaches ignition but the plant still fails to produce net electricity? What single number in the power-flow chain would you want improved first, and why?</p>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: neutron/alpha split calculator</h3>
+        <p style="font-size:.9rem; color:var(--text2);">No new install. This reproduces the worked example as a reusable function — you'll import this logic directly into the Lecture 10 capstone.</p>
+        <pre><span class="c"># power_split.py — Lecture 6</span>
+Q_TOTAL_MEV = 17.6
+E_N_MEV = 14.1
+E_A_MEV = 3.5
+
+def dt_power_split(P_fusion):
+    f_n = E_N_MEV / Q_TOTAL_MEV
+    f_a = E_A_MEV / Q_TOTAL_MEV
+    return P_fusion * f_n, P_fusion * f_a
+
+P_fusion = 2500e6   <span class="c"># W, illustrative plant-scale input</span>
+P_n, P_a = dt_power_split(P_fusion)
+print(f"P_fusion  = {P_fusion/1e6:8.1f} MW")
+print(f"P_neutron = {P_n/1e6:8.1f} MW  ({P_n/P_fusion*100:.1f}%)")
+print(f"P_alpha   = {P_a/1e6:8.1f} MW  ({P_a/P_fusion*100:.1f}%)")
+<span class="c"># P_neutron = 2002.8 MW (80.1%); P_alpha = 497.2 MW (19.9%)</span></pre>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The neutron's 2 GW-class power isn't just heat to be captured — those same 14.1 MeV neutrons are what breed the plant's own tritium fuel. Lecture 7 covers the breeding blanket, the lithium reactions that make it work, and why tritium self-sufficiency is a hard constraint a fusion plant cannot avoid.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In D + T &rarr; He-4 + n, which product's energy stays in the plasma to provide self-heating?</div>
+            <div class="opt"><b>A.</b> The neutron, because it is heavier</div>
+            <div class="opt"><b>B.</b> The alpha (He-4), because it is charged and remains confined by the magnetic field</div>
+            <div class="opt"><b>C.</b> Both equally</div>
+            <div class="opt"><b>D.</b> Neither — all energy escapes immediately</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The charged alpha is confined (at least initially) and heats the plasma via collisions; the neutral neutron escapes the field entirely and deposits its energy in the blanket instead.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Ignition is defined as the condition where…</div>
+            <div class="opt"><b>A.</b> the plasma reaches the Coulomb barrier energy</div>
+            <div class="opt"><b>B.</b> alpha self-heating alone balances the plasma's energy losses, so external heating is no longer needed</div>
+            <div class="opt"><b>C.</b> the neutron flux reaches zero</div>
+            <div class="opt"><b>D.</b> the plant produces net electricity</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Ignition is a plasma self-sustainment condition (P_alpha &ge; P_loss), distinct from (D) plant-level net electricity, which also depends on conversion efficiency and recirculating power.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> For P_fusion = 2500 MW of D-T fusion power, approximately how much is carried by the neutron?</div>
+            <div class="opt"><b>A.</b> &asymp;500 MW</div>
+            <div class="opt"><b>B.</b> &asymp;1250 MW</div>
+            <div class="opt"><b>C.</b> &asymp;2003 MW</div>
+            <div class="opt"><b>D.</b> &asymp;2500 MW</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> P_n = P_fusion &times; (14.1/17.6) &asymp; 2500 &times; 0.8011 &asymp; 2002.8 MW, matching the worked example.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Is reaching scientific ignition the same as a fusion plant producing net electricity?</div>
+            <div class="opt"><b>A.</b> Yes, they are identical conditions</div>
+            <div class="opt"><b>B.</b> No — ignition is a plasma-level energy balance; net electricity also depends on thermal-conversion efficiency and recirculating power</div>
+            <div class="opt"><b>C.</b> No, ignition is strictly harder to achieve than net electricity</div>
+            <div class="opt"><b>D.</b> Net electricity always implies ignition has not occurred</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Ignition only concerns the plasma's own energy balance. A plant can reach ignition and still fail to produce net electricity if conversion losses and recirculating power consume too much of the resulting thermal power.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Which power-flow step directly follows "thermal power" in the plant chain?</div>
+            <div class="opt"><b>A.</b> Fusion power</div>
+            <div class="opt"><b>B.</b> Neutron/alpha split</div>
+            <div class="opt"><b>C.</b> Conversion to gross electric power (at some thermal efficiency &eta;_th)</div>
+            <div class="opt"><b>D.</b> Tritium breeding</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The chain runs fusion power &rarr; neutron/alpha split &rarr; thermal power (blanket + wall) &rarr; gross electric power (via &eta;_th) &rarr; net electric power (after subtracting recirculating power). Tritium breeding (D) runs alongside the neutron branch but isn't itself a step in the energy chain.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>D-T fusion power splits <b>80.1% to the neutron</b> (escapes to the blanket) and <b>19.9% to the alpha</b> (self-heats the plasma, later reaches the wall).</li>
+            <li><b>Ignition</b> is the condition where alpha self-heating alone balances plasma energy losses — a plasma-level milestone, not a plant-level one.</li>
+            <li>Traced the full <b>plant power-flow chain</b>: fusion power &rarr; neutron/alpha split &rarr; thermal power &rarr; gross electric (&eta;_th) &rarr; net electric (minus recirculating power).</li>
+            <li>Computed P_neutron &asymp; 2002.8 MW and P_alpha &asymp; 497.2 MW for a 2500 MW illustrative fusion-power input — numbers reused directly in the Lecture 10 capstone.</li>
+            <li>Discussed why ignition and commercial net-electricity production are genuinely different milestones.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: the <b>breeding blanket</b> — how the neutron's energy and the neutron itself are both put to work, breeding the plant's own tritium fuel from lithium.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-divertors-plasma-wall.html"><div class="dir">← Week 5</div><div class="ttl">Divertors &amp; Plasma-Wall Interaction</div></a>
+        <a class="next" href="l07-breeding-blanket-tritium.html"><div class="dir">Week 7 →</div><div class="ttl">The Breeding Blanket &amp; Tritium Breeding</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Reactor Concepts &amp; Modeling</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

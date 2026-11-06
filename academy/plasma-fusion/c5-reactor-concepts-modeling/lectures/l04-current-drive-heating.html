@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C5 · Lecture 4 — Current Drive &amp; Heating Methods</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C5 Reactor Concepts &amp; Modeling</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4 · Project Checkpoint</span>
+        <h1>Current Drive &amp; Heating Methods</h1>
+        <p class="sub">Ohmic heating runs out of steam exactly when you need it most. Everything else in this lecture exists to pick up where it fails.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why ohmic heating alone cannot reach fusion-relevant temperatures, using the falling Spitzer resistivity.</li>
+            <li>Describe neutral beam injection (NBI): why beams must be neutral to cross the field, and how they heat and drive current once ionized.</li>
+            <li>Describe RF heating (ion-cyclotron and electron-cyclotron resonance heating) and the resonance condition it relies on.</li>
+            <li>Compute an ion or electron cyclotron frequency for a given field, and explain why that sets the required RF source frequency.</li>
+            <li>Explain why non-inductive current drive matters for sustained (non-pulsed) tokamak operation.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>Ohmic Heating Hits a Wall</h2>
+        <p>The simplest way to heat a tokamak plasma is also the one it gets automatically: the plasma current I_p flowing against the plasma's own electrical resistance dissipates power, just like a toaster coil — this is <strong>ohmic heating</strong>, P_ohmic = I_p&sup2; R_plasma. It needs no extra hardware and is how early tokamaks heated their plasmas.</p>
+        <p>The catch is one you already met as a C1 discussion question: plasma resistivity (the Spitzer resistivity) <em>falls</em> with temperature, roughly as T^(&minus;3/2). As ohmic heating raises T, the plasma becomes a <em>better</em> conductor, so the same current dissipates <em>less</em> power — ohmic heating is strongly self-limiting and simply cannot push a reactor-scale plasma up to the ten-keV-class temperatures fusion needs. Something else has to do the rest of the work.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't assume more current fixes this. Raising I_p to compensate for falling resistivity runs straight into Lecture 2's safety-factor limit — more current drives q down toward the disruption boundary. Ohmic heating's ceiling is a genuine physics wall, not just an engineering inconvenience to push past with more current.</div>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Neutral Beam Injection (NBI)</h2>
+        <p>To add heat (and, usefully, momentum) directly to a magnetized plasma, you'd like to fire a beam of fast particles into it. But any <em>charged</em> beam gets bent by the confining field before it ever reaches the core. The trick: accelerate ions to high energy, then pass them through a cell that strips an electron back on (or off), converting them to fast <strong>neutral</strong> atoms just before injection. Neutral atoms sail straight through the magnetic field — undeflected — and only become charged again once they collide and ionize deep inside the plasma, depositing their energy (and momentum) right where it's wanted via collisions with the background plasma. Because NBI deposits net momentum along a particular direction, it can also drive a net toroidal current non-inductively — not just heat.</p>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>RF Heating: Resonant Absorption</h2>
+        <p>The second major heating family launches electromagnetic waves into the plasma at a frequency tuned to resonate with a natural particle motion, so the wave's energy is absorbed efficiently at a specific, controllable location. Two common targets:</p>
+        <h3>Ion Cyclotron Resonance Heating (ICRH)</h3>
+        <p>Tuned to the ion cyclotron frequency &omega;_ci = qB/m_i — the rate at which an ion gyrates around the field. A wave at this frequency resonantly accelerates the ion's gyration, heating it directly.</p>
+        <h3>Electron Cyclotron Resonance Heating (ECRH)</h3>
+        <p>Same idea, tuned instead to the much faster electron cyclotron frequency &omega;_ce = qB/m_e (roughly 1,800&times; higher than &omega;_ci for the same B, since m_e &laquo; m_i). ECRH's shorter wavelength lets it be launched and focused with high directional precision, including for highly localized, non-inductive current drive at a chosen location in the plasma.</p>
+        <div class="eq">f_c = qB / (2&pi;m)<small>Cyclotron frequency for a particle of charge q, mass m, in field B. Same formula for ions (ICRH) and electrons (ECRH); only the mass differs.</small></div>
+        <p>Because the resonance condition pins the frequency to the local field strength, and B varies with major radius (Lecture 1's 1/R falloff), tuning the source frequency lets operators choose <em>where</em> in the plasma the wave deposits its energy — a genuine advantage over NBI, whose deposition profile is harder to localize as precisely.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — cyclotron frequencies at B = 5 T</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Find the deuteron cyclotron frequency (for ICRH) and the electron cyclotron frequency (for ECRH) at B = 5 T, and compare.</p>
+        <ol>
+            <li><strong>Deuteron (ICRH):</strong> f_ci = qB/(2&pi;m_d) = (1.602&times;10&#8315;&sup1;&#8313;&times;5)/(2&pi;&times;3.344&times;10&#8315;&sup2;&#8311;) &asymp; <strong>38.1 MHz</strong> — radio-frequency range, consistent with real ICRH systems (tens of MHz).</li>
+            <li><strong>Electron (ECRH):</strong> f_ce = qB/(2&pi;m_e) = (1.602&times;10&#8315;&sup1;&#8313;&times;5)/(2&pi;&times;9.109&times;10&#8315;&sup3;&#185;) &asymp; <strong>140.0 GHz</strong> — microwave/millimeter-wave range, consistent with real ECRH gyrotron sources.</li>
+            <li><strong>Ratio:</strong> f_ce/f_ci = m_d/m_e &asymp; <strong>3,670</strong> — the electron is thousands of times lighter than the deuteron, so it gyrates thousands of times faster at the same field, demanding a correspondingly higher-frequency (and more technologically demanding) source for ECRH.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: cyclotron-frequency calculator</h3>
+        <p style="font-size:.9rem; color:var(--text2);">No new install. This reproduces the worked example and lets you check what source frequency a given B field demands.</p>
+        <pre><span class="c"># cyclotron_freq.py — Lecture 4</span>
+import numpy as np
+
+q = 1.602176634e-19
+m_e = 9.1093837015e-31
+m_d = 2.014102 * 1.66053906660e-27   <span class="c"># deuteron</span>
+
+def f_cyclotron(B, m):
+    return q * B / (2 * np.pi * m)
+
+B = 5.0
+f_ci = f_cyclotron(B, m_d)
+f_ce = f_cyclotron(B, m_e)
+print(f"ICRH (deuteron) frequency : {f_ci/1e6:7.2f} MHz")
+print(f"ECRH (electron)  frequency: {f_ce/1e9:7.2f} GHz")
+print(f"ratio f_ce/f_ci            : {f_ce/f_ci:8.1f}  (~= m_d/m_e)")
+<span class="c"># ICRH ~38.1 MHz, ECRH ~140.0 GHz, ratio ~3670 -- matches m_d/m_e</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);"><strong>Project checkpoint (Week 4):</strong> extend your capstone plasma-parameter calculator from earlier courses with a heating-method module: given B, compute both cyclotron frequencies, and note which heating method (ICRH, ECRH, or NBI) would suit a design that needs localized, tunable deposition versus one that just needs bulk heating.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>All that heating power has to go somewhere once it leaves the plasma — carried out by particles and radiation crossing the last confined surface. Lecture 5 covers exactly that exhaust problem: the scrape-off layer, the divertor concept, and why dumping tens of megawatts onto a wall is a genuinely hard materials and geometry problem.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why can't ohmic heating alone reach fusion-relevant plasma temperatures?</div>
+            <div class="opt"><b>A.</b> The plasma current cannot be increased at all</div>
+            <div class="opt"><b>B.</b> Plasma resistivity falls as temperature rises, so ohmic heating becomes self-limiting</div>
+            <div class="opt"><b>C.</b> Ohmic heating only works in stellarators</div>
+            <div class="opt"><b>D.</b> Ohmic heating cools the plasma instead of heating it</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Spitzer resistivity falls roughly as T^(&minus;3/2), so as the plasma heats up, the same current dissipates less power — a built-in ceiling, not a fixable engineering limit.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why must neutral beam injection use neutral atoms rather than charged ions for the beam itself?</div>
+            <div class="opt"><b>A.</b> Neutral atoms travel faster than ions</div>
+            <div class="opt"><b>B.</b> A charged beam would be deflected by the confining magnetic field before reaching the plasma core</div>
+            <div class="opt"><b>C.</b> Neutral atoms are easier to accelerate from rest</div>
+            <div class="opt"><b>D.</b> Ions cannot carry energy</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A charged particle entering the confining field would gyrate/deflect immediately; only a neutral particle crosses the field in a straight line, ionizing (and depositing its energy) once it collides inside the plasma.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> ICRH and ECRH both work by…</div>
+            <div class="opt"><b>A.</b> cooling the plasma edge to reduce losses</div>
+            <div class="opt"><b>B.</b> launching waves tuned to resonate with a particle's cyclotron gyration frequency, so energy is absorbed efficiently</div>
+            <div class="opt"><b>C.</b> injecting cold neutral gas</div>
+            <div class="opt"><b>D.</b> increasing the plasma current directly</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Both rely on the resonance condition &omega; = qB/m for the relevant species (ion for ICRH, electron for ECRH) to deposit wave energy efficiently at a chosen location.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> At the same magnetic field strength, why is the electron cyclotron frequency so much higher than the ion cyclotron frequency?</div>
+            <div class="opt"><b>A.</b> Electrons carry more charge than ions</div>
+            <div class="opt"><b>B.</b> f_c = qB/(2&pi;m), and the electron mass is thousands of times smaller than an ion's, so 1/m is thousands of times larger</div>
+            <div class="opt"><b>C.</b> Electrons experience a different magnetic field than ions</div>
+            <div class="opt"><b>D.</b> It isn't — they're actually equal</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Both species have the same charge magnitude, so the entire difference comes from mass: m_d/m_e &asymp; 3,670, giving f_ce/f_ci the same ratio (verified in the worked example: &asymp;140 GHz vs &asymp;38 MHz).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why does a tokamak need non-inductive current-drive methods (like NBI or RF) in addition to the central solenoid?</div>
+            <div class="opt"><b>A.</b> The solenoid can only ramp its flux so far before it's exhausted, fundamentally limiting inductive-only pulse length</div>
+            <div class="opt"><b>B.</b> The solenoid cannot produce any current at all</div>
+            <div class="opt"><b>C.</b> Non-inductive methods are required by law</div>
+            <div class="opt"><b>D.</b> Stellarators require it, and tokamaks copy the requirement unnecessarily</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Transformer (inductive) drive is intrinsically pulsed — the solenoid's flux swing is finite. Sustaining current beyond that swing (toward steady-state operation) requires non-inductive drive from NBI or RF systems, which can also heat simultaneously.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li><b>Ohmic heating</b> is self-limiting because plasma resistivity falls with temperature — it cannot reach fusion-relevant temperatures alone.</li>
+            <li><b>Neutral beam injection</b> crosses the confining field as neutral atoms, then ionizes and deposits energy/momentum inside the plasma — and can drive current.</li>
+            <li><b>ICRH and ECRH</b> resonantly heat ions or electrons at their respective cyclotron frequencies &omega;_c = qB/m, with ECRH offering highly localized, tunable deposition.</li>
+            <li>Computed representative cyclotron frequencies (&asymp;38 MHz ICRH, &asymp;140 GHz ECRH at B=5T) and confirmed their ratio matches m_d/m_e.</li>
+            <li><b>Non-inductive current drive</b> (NBI, RF) is what lets a tokamak move beyond the solenoid's pulsed limit toward sustained operation.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: <b>divertors &amp; plasma-wall interaction</b> — where all this input power has to go, and why a dedicated exhaust geometry is needed to handle it.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-the-stellarator-concept.html"><div class="dir">← Week 3</div><div class="ttl">The Stellarator Concept</div></a>
+        <a class="next" href="l05-divertors-plasma-wall.html"><div class="dir">Week 5 →</div><div class="ttl">Divertors &amp; Plasma-Wall Interaction</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Reactor Concepts &amp; Modeling</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C4 · Lecture 6 — Energy Confinement Time &amp; Scaling Laws</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .disc { background: linear-gradient(135deg, #241332, #2b1538); border: 1px solid #4a2d5e; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .disc h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .disc p { font-size: .9rem; color: #ddd0ef; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C4 Fusion Reactions &amp; Confinement</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6 · Discussion 2</span>
+        <h1>Energy Confinement Time &amp; Scaling Laws</h1>
+        <p class="sub">τ_E has been a placeholder since Lecture 4. Time to define it properly — and meet the empirical formulas that let you predict it before a machine is ever built.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define τ_E rigorously via global power balance and describe how it is measured.</li>
+            <li>Explain qualitatively why confinement tends to improve with size, current, and density, and degrade with heating power.</li>
+            <li>Describe how empirical confinement scaling laws are built from multi-device regression.</li>
+            <li>Apply a reduced, illustrative scaling law to estimate τ_E for an ITER-like device.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Defining τ_E Rigorously</h2>
+        <p>Lecture 4 introduced τ_E informally. Formally, the <strong>energy confinement time</strong> is defined by the global power balance of the plasma, including the rate of change of its stored energy:</p>
+        <div class="eq">dW/dt = P<sub>heat</sub> − P<sub>loss</sub> &nbsp;&nbsp;&nbsp; τ<sub>E</sub> ≡ W/P<sub>loss</sub> (steady state: P<sub>loss</sub>=P<sub>heat</sub>)<small>In steady state (dW/dt=0), τ_E is simply the stored energy divided by the total heating power sustaining it — the same quantity used throughout Lectures 4-5.</small></div>
+        <p>Experimentally, W is measured from the plasma's diamagnetic response or kinetic profile reconstructions (density and temperature profiles from Thomson scattering, interferometry, and related diagnostics — recall from C1/C2 that these measure the particle and energy content directly), and P<sub>heat</sub> is the known injected heating power (plus alpha heating, once relevant) minus any power explicitly radiated before reaching the confined core. Dividing the two gives a measured τ_E for every discharge — the raw data behind every scaling law in this lecture.</p>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>Why Confinement Improves with Size and Degrades with Heating</h2>
+        <p>Three qualitative trends recur across every magnetic-confinement device studied to date:</p>
+        <p><strong>Bigger is better.</strong> Heat and particles escape mainly by diffusing across field lines to the wall — a transport process governed by the plasma's surface-to-volume ratio. A larger plasma has proportionally less surface relative to its volume, so, all else equal, τ_E grows with size (empirically, strongly — close to the square of a linear dimension).</p>
+        <p><strong>More current and field help.</strong> Higher plasma current and stronger magnetic field tighten the particle orbits (smaller Larmor radius — recall from C1 that gyroradius shrinks as B grows) and improve MHD stability margins (C3's territory), both of which reduce transport.</p>
+        <p><strong>More heating power hurts, proportionally.</strong> This one is counterintuitive: pumping in more auxiliary heating power to raise the temperature simultaneously drives <em>more</em> turbulent transport, so τ_E empirically <em>degrades</em> with increasing P<sub>heat</sub> (a negative power-law exponent). This is why simply cranking up the heaters is not a free way to reach ignition — it fights itself.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't assume that adding more heating power always helps reach ignition faster. Because τ_E falls as P<sub>heat</sub> rises (empirically, as roughly P<sup>−0.7</sup> in H-mode scalings), overdriving the heating can shrink the triple product nTτ_E even as temperature climbs — real devices must balance heating against this confinement-degradation penalty.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>The Empirical Scaling-Law Approach</h2>
+        <p>No first-principles theory predicts τ_E to engineering accuracy — turbulent transport in a magnetized plasma is simply too complex (this remains an active research frontier). Instead, the field uses <strong>empirical scaling laws</strong>: power-law regressions fit to a multi-device database of thousands of discharges across many different tokamaks, of the general form</p>
+        <div class="eq">τ<sub>E</sub> = C · I<sub>p</sub><sup>a</sup> · n<sup>b</sup> · B<sup>c</sup> · P<sub>heat</sub><sup>d</sup> · R<sup>e</sup> · (shape terms)<small>I_p: plasma current; n: density; B: toroidal field; P_heat: total heating power; R: major radius; shape terms include aspect ratio, elongation, isotope mass.</small></div>
+        <p>The best-known family is the ITER H-mode scaling, IPB98(y,2), fit across the international multi-tokamak database with exponents of roughly 0.93 (I<sub>p</sub>), 0.41 (density), 0.15 (B), −0.69 (P<sub>heat</sub>), and 1.97 (R), plus weaker terms for aspect ratio, elongation, and isotope mass. The signs confirm Section 6.2's qualitative story exactly: positive exponents on size/current/field/density, a negative exponent on heating power.</p>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>A Reduced Scaling Law for This Course</h2>
+        <p>The full IPB98(y,2)-style regression uses eight fitted parameters and a specific prefactor from the international database. For hand and code calculations in this course, we use a deliberately <strong>reduced, 5-parameter version</strong> that keeps the same qualitative exponents on current, density, field, heating power, and major radius, but drops the weaker shape/isotope terms and uses an illustrative prefactor calibrated to land near a representative ITER-like discharge — not the literature's exact published fit:</p>
+        <div class="eq">τ<sub>E,sim</sub> = C · I<sub>p</sub>[MA]<sup>0.93</sup> · n̄<sub>e,19</sub><sup>0.41</sup> · B[T]<sup>0.15</sup> · P<sub>heat</sub>[MW]<sup>−0.69</sup> · R[m]<sup>1.97</sup>&nbsp;&nbsp;&nbsp;&nbsp;C ≈ 0.037<small>n̄_e,19 is the line-averaged electron density in units of 10¹⁹ m⁻³. Flagged explicitly as a simplified, illustrative scaling law — not the published IPB98(y,2) regression.</small></div>
+        <p>For ITER-like parameters (I<sub>p</sub>=15 MA, n̄<sub>e,19</sub>=10, B=5.3 T, P<sub>heat</sub>=50 MW, R=6.2 m), this gives τ<sub>E</sub>≈3.7 s — the right order of magnitude for ITER's actual confinement target, which is the point of calibrating the prefactor this way.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — confinement degradation with heating power</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Using the reduced scaling law with I_p=15 MA, n̄_e,19=10, B=5.3 T, R=6.2 m, C=0.037, find τ_E at P_heat = 30 MW and at P_heat = 80 MW.</p>
+        <ol>
+            <li><strong>Fixed-parameter product:</strong> I_p^0.93 · n^0.41 · B^0.15 · R^1.97 = 15^0.93 × 10^0.41 × 5.3^0.15 × 6.2^1.97 ≈ 12.41 × 2.57 × 1.284 × 36.39 ≈ 1491.</li>
+            <li><strong>At P_heat=30 MW:</strong> τ_E = 0.037 × 1491 × 30^−0.69 ≈ <strong>5.28 s</strong>.</li>
+            <li><strong>At P_heat=80 MW:</strong> τ_E = 0.037 × 1491 × 80^−0.69 ≈ <strong>2.68 s</strong>.</li>
+            <li><strong>Interpretation:</strong> nearly tripling the heating power (30→80 MW) <em>shrinks</em> τ_E by about half — exactly the confinement-degradation trend from Section 6.2's common mistake. More heating raises T but actively works against the triple product through τ_E.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: the reduced confinement scaling law in Python</h3>
+        <pre><span class="c"># confinement_scaling.py — Lecture 6</span>
+C_SCALE = 0.037
+
+def tau_E_scaling(Ip_MA, n19, B_T, P_MW, R_m):
+    return (C_SCALE * Ip_MA**0.93 * n19**0.41 * B_T**0.15
+            * P_MW**-0.69 * R_m**1.97)
+
+<span class="c"># ITER-like baseline</span>
+Ip, n19, B, R = 15.0, 10.0, 5.3, 6.2
+for P in [30, 50, 80, 100]:
+    tau = tau_E_scaling(Ip, n19, B, P, R)
+    print(f"P_heat={P:5.1f} MW  ->  tau_E = {tau:.2f} s")
+
+<span class="c"># Verified output:
+# P_heat= 30.0 MW  ->  tau_E = 5.28 s
+# P_heat= 50.0 MW  ->  tau_E = 3.71 s
+# P_heat= 80.0 MW  ->  tau_E = 2.68 s
+# P_heat=100.0 MW  ->  tau_E = 2.30 s</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Try sweeping R instead (holding P fixed) — you should find τ_E grows much faster with size than it degrades with heating power (exponent 1.97 vs −0.69), which is exactly why every generation of tokamak has been built bigger than the last.</p>
+    </div>
+
+    <!-- DISCUSSION -->
+    <div class="disc">
+        <h3>💬 Discussion 2 — the risk of extrapolating empirical scalings</h3>
+        <p>Confinement scaling laws are regressions fit to existing machines, not derived from first principles. The reduced law above predicts τ_E ∝ R^1.97 — nearly R². If a future device doubled ITER's major radius, the scaling law would predict roughly 4× the confinement time. What physical assumptions could break down at a size, current, or power regime far outside the database the fit was built from, and how would you know if the extrapolation had failed before spending billions of dollars building the machine?</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Confinement scaling laws tell you how long you can hold energy in — but they say nothing about how much pressure the magnetic field can actually contain before the plasma becomes unstable and confinement collapses entirely. Lecture 7 introduces plasma beta, the ratio that answers exactly that question, and the Troyon limit that caps it.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In steady state, τ_E is defined as…</div>
+            <div class="opt"><b>A.</b> the plasma's total lifetime</div>
+            <div class="opt"><b>B.</b> W/P_loss — stored thermal energy divided by the loss power sustaining the steady state</div>
+            <div class="opt"><b>C.</b> the time for one fusion reaction to occur</div>
+            <div class="opt"><b>D.</b> the inverse of the plasma frequency</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> τ_E ≡ W/P_loss, with P_loss=P_heat in steady state — the formal version of the "leaky bucket" picture from Lecture 4. (A)/(C)/(D) are all different timescales entirely.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Why does τ_E tend to improve with the size of a tokamak?</div>
+            <div class="opt"><b>A.</b> Bigger plasmas have a more favorable surface-to-volume ratio for cross-field transport losses</div>
+            <div class="opt"><b>B.</b> Bigger plasmas have a weaker magnetic field</div>
+            <div class="opt"><b>C.</b> Bigger plasmas automatically run at lower temperature</div>
+            <div class="opt"><b>D.</b> Size has no effect on confinement — only current and field matter</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A larger plasma has proportionally less surface area per unit volume through which energy can leak, improving confinement — the physical basis for the strong positive exponent on R in scaling laws. (B) field strength is independent of size. (C) temperature is set by heating, not size. (D) scaling laws show a strong R-dependence (exponent ≈1.97), among the strongest in the formula.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The negative exponent on heating power P_heat in confinement scaling laws (τ_E ∝ P_heat^−0.69) means…</div>
+            <div class="opt"><b>A.</b> heating power has no real effect on the plasma</div>
+            <div class="opt"><b>B.</b> adding more heating power actively degrades confinement time, partially offsetting the benefit of higher temperature</div>
+            <div class="opt"><b>C.</b> the scaling law is non-physical and should be discarded</div>
+            <div class="opt"><b>D.</b> heating power and τ_E are unrelated quantities</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> More injected power drives more turbulent transport, empirically shrinking τ_E even as it raises temperature — the Section 6.2 "more heating hurts, proportionally" trend, confirmed numerically in the worked example (30→80 MW roughly halves τ_E). (A)/(D) contradict the explicit P_heat dependence. (C) the negative exponent is a robust, well-established empirical feature of H-mode confinement, not an error.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> This course's reduced 5-parameter scaling law (Section 6.4) differs from the literature's full IPB98(y,2) regression in that…</div>
+            <div class="opt"><b>A.</b> it uses entirely different, unrelated exponents</div>
+            <div class="opt"><b>B.</b> it drops the weaker shape/isotope terms and uses an illustrative, course-calibrated prefactor rather than the literature's exact fitted constant</div>
+            <div class="opt"><b>C.</b> it only applies to inertial confinement devices</div>
+            <div class="opt"><b>D.</b> it has no dependence on heating power at all</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The reduced law keeps the same qualitative exponents on I_p, n, B, P_heat, and R as real H-mode scalings, but is explicitly flagged (Section 6.4) as simplified — not a claim to reproduce the literature's exact 8-parameter fit or prefactor. (A) the core exponents are real, IPB98(y,2)-style values. (C) the law describes magnetic (tokamak) confinement, not inertial. (D) P_heat appears explicitly with exponent −0.69.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> For the ITER-like baseline in this lecture, increasing major radius R while holding all other parameters fixed increases τ_E…</div>
+            <div class="opt"><b>A.</b> more strongly than decreasing heating power by the same relative amount, because the R exponent (≈1.97) is much larger in magnitude than the P_heat exponent (≈−0.69)</div>
+            <div class="opt"><b>B.</b> less strongly, because size has a smaller exponent</div>
+            <div class="opt"><b>C.</b> not at all — R does not appear in the scaling law</div>
+            <div class="opt"><b>D.</b> only if current is also increased</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The R exponent (≈1.97) is nearly 3× the magnitude of the P_heat exponent (≈−0.69), so proportional changes in size move τ_E much more than the same proportional change in heating power — consistent with every generation of tokamak being built larger. (B) understates R's outsized exponent. (C) R explicitly appears with exponent 1.97. (D) the scaling law treats each parameter's effect independently in this power-law form.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined <b>τ_E = W/P_loss</b> rigorously via global power balance, and how it's measured.</li>
+            <li>Explained why confinement <b>improves with size, current, field, and density</b> but <b>degrades with heating power</b>.</li>
+            <li>Described the <b>empirical scaling-law</b> approach (multi-device regression) and the real IPB98(y,2)-style exponents.</li>
+            <li>Applied a <b>reduced, course-calibrated scaling law</b> (τ_E≈3.7 s for ITER-like parameters) and showed heating-power degradation numerically.</li>
+            <li>Opened Discussion 2 on the risks of extrapolating empirical scalings to untested regimes.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: plasma beta, the ratio of kinetic to magnetic pressure, and the Troyon limit that caps how much pressure a tokamak's field can actually confine.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-ignition-gain.html"><div class="dir">← Week 5</div><div class="ttl">Ignition &amp; Fusion Gain Q</div></a>
+        <a class="next" href="l07-beta-troyon-limit.html"><div class="dir">Week 7 →</div><div class="ttl">Plasma Beta &amp; the Troyon Limit</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Fusion Reactions &amp; Confinement</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

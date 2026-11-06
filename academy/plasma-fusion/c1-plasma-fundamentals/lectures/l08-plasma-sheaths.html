@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma &amp; Fusion C1 · Lecture 8 — Plasma Sheaths &amp; Boundaries</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #a87a68; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #2a1320, #311526); border: 1px solid #5a2d44; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--violet); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #e6c9da; }
+
+        .proj { background: linear-gradient(135deg, #0f2a1d, #123323); border: 1px solid #1f5a3b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .proj h3 { color: var(--green); font-size: 1rem; margin-bottom: 6px; }
+        .proj p { font-size: .9rem; color: #c9ebd9; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C1 Plasma Fundamentals</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8 · Project Checkpoint</span>
+        <h1>Plasma Sheaths &amp; Boundaries</h1>
+        <p class="sub">Every wall a plasma touches charges up negative, all by itself — fast electrons escape, slow ions don't, and the result is a self-built electric fence just a few Debye lengths thick.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why an isolated surface in contact with a plasma charges up negative (the Debye sheath).</li>
+            <li>Derive the floating potential by balancing electron and ion fluxes.</li>
+            <li>State and interpret the Bohm sheath criterion on the ion entry speed.</li>
+            <li>Explain the sheath's thickness scaling in terms of the Debye length.</li>
+            <li>Finish the Week 4 project's plasma-parameter calculator as this week's checkpoint.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>Why Walls Charge Up</h2>
+        <p>Drop any solid surface — a probe, a wall, a spacecraft — into a plasma and leave it electrically isolated (no current forced in or out). At the instant of contact, both species bombard the surface at their own thermal flux. But electrons, being roughly √(m<sub>i</sub>/m<sub>e</sub>) ≈ 43× (for hydrogen) faster at the same temperature, arrive far more often than ions. The surface accumulates negative charge almost immediately, building up a negative potential relative to the bulk plasma.</p>
+        <p>That negative potential then does exactly what Lecture 1's Debye shielding predicts: it repels the slower-moving electrons (only the fastest few in the tail of the distribution have enough energy to climb the resulting potential hill and still reach the wall) while continuing to pull ions in. A thin, strongly non-neutral boundary layer forms — the <strong>Debye sheath</strong> — inside which quasineutrality (Lecture 1's bedrock assumption for the bulk plasma) is explicitly violated.</p>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>The Floating Potential</h2>
+        <p>An isolated ("floating") surface settles at whatever potential makes the electron and ion fluxes exactly equal — net current zero. The ion flux arriving at the sheath edge is set by the Bohm criterion (Section 8.3) at the ion sound speed c<sub>s</sub> = √(k<sub>B</sub>T<sub>e</sub>/m<sub>i</sub>); the electron flux is the thermal flux reduced by the Boltzmann factor for climbing the (negative) wall potential V<sub>f</sub>. Setting these equal and solving for V<sub>f</sub> gives the <strong>floating potential</strong>:</p>
+        <div class="eq">V_f = − (k_BT_e / 2e) · ln( m_i / (2π m_e) )<small>Always negative (the wall sits below the plasma potential) and grows (more negative) with electron temperature and with the ion/electron mass ratio.</small></div>
+        <p>For a hydrogen plasma, m<sub>i</sub>/m<sub>e</sub> ≈ 1836, giving V<sub>f</sub> ≈ −2.8 T<sub>e</sub>[eV] volts — a useful rule of thumb worth memorizing: any floating surface in a hydrogen-isotope plasma sits roughly three electron-temperatures (in eV, as volts) below the plasma.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a bouncer at a club door who lets in whoever can jump a low wall. Electrons are fast but light — most clear the wall easily unless it's built high enough. Ions are slow but heavy — once they're committed to walking toward the door, nothing turns them back. The floating potential is exactly the wall height that lets through just enough fast electrons to match the steady trickle of ions — no more, no less.</div>
+    </section>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>The Bohm Sheath Criterion</h2>
+        <p>Ions don't simply drift into the sheath at their thermal speed — they must already be moving <em>faster</em> than a specific threshold by the time they reach the sheath edge, or the sheath structure itself becomes unstable (a result due to David Bohm). The requirement is the <strong>Bohm sheath criterion</strong>:</p>
+        <div class="eq">v_i ≥ c_s = √( k_B T_e / m_i )<small>The ion sound speed — note it uses the *electron* temperature, since it's the electron pressure that ultimately accelerates ions through a "presheath" region just outside the sheath proper, up to at least c_s.</small></div>
+        <p>Physically, a weak electric field extends slightly into the bulk plasma just outside the sheath (the "presheath") specifically to accelerate ions up to c<sub>s</sub> before they enter the sheath proper — without that pre-acceleration, the sheath's own charge balance cannot be self-consistently maintained. The Bohm criterion sets the ion flux reaching any wall or probe, which is exactly the quantity Lecture 9's Langmuir-probe ion-saturation current depends on.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't confuse the Bohm criterion's c<sub>s</sub> = √(k<sub>B</sub>T<sub>e</sub>/m<sub>i</sub>) with an ion thermal speed √(k<sub>B</sub>T<sub>i</sub>/m<sub>i</sub>). The sound speed uses the <em>electron</em> temperature — because it's the far more mobile, far hotter (in most lab and fusion-edge plasmas) electrons whose pressure does the work of accelerating ions through the presheath, regardless of how cold the ions themselves are.</div>
+    </section>
+
+    <figure class="fig">
+        <svg viewBox="0 0 460 210" role="img" aria-label="Potential profile from bulk plasma through the presheath to a negatively charged wall, with ions accelerated to the Bohm speed before entering the sheath">
+            <line x1="40" y1="180" x2="430" y2="180" stroke="#d0a99a" stroke-width="1.3"/>
+            <text x="235" y="200" fill="#d0a99a" font-size="11" text-anchor="middle">distance from wall →</text>
+            <path d="M40,60 L260,62 C300,66 330,90 360,150 L430,170" fill="none" stroke="#fb7185" stroke-width="2.3"/>
+            <text x="90" y="45" fill="#fda4af" font-size="11">bulk plasma (quasineutral)</text>
+            <text x="290" y="95" fill="#fda4af" font-size="10">presheath (weak field, ions → c_s)</text>
+            <text x="390" y="190" fill="#fda4af" font-size="10" text-anchor="middle">sheath</text>
+            <line x1="420" y1="40" x2="420" y2="185" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <text x="420" y="30" fill="#60a5fa" font-size="10" text-anchor="middle">wall, V_f</text>
+        </svg>
+        <figcaption>The potential falls gently through the presheath (accelerating ions up to the Bohm speed c_s) and then steeply through the thin, strongly non-neutral sheath to the wall's floating potential V_f.</figcaption>
+    </figure>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>Sheath Thickness: the Child–Langmuir Scaling</h2>
+        <p>Because the sheath carries a large potential drop across a region with almost no electrons (they've mostly been repelled), the ions there behave like a space-charge-limited beam — exactly the situation solved by the Child–Langmuir law in vacuum-tube physics. The resulting sheath thickness s scales as:</p>
+        <div class="eq">s ~ λ_D · ( ΔV / T_e )^(3/4)<small>ΔV is the total potential drop across the sheath (of order |V_f| for a floating wall). The sheath is always a few Debye lengths thick — set by the very screening length Lecture 1 derived — but grows somewhat faster than linearly with the potential drop.</small></div>
+        <p>This connects directly back to Lecture 1's first plasma criterion (λ<sub>D</sub> ≪ L): the sheath is a boundary-layer phenomenon precisely <em>because</em> λ<sub>D</sub> is so much smaller than the device size. A plasma that failed criterion 1 wouldn't have a sharp sheath at all — the whole device would behave like one big non-neutral boundary layer.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — floating potential and ion sound speed</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A hydrogen plasma (m_i = m_p) has T_e = 5 eV. Find the ion sound speed c_s and the floating potential V_f.</p>
+        <ol>
+            <li><strong>Ion sound speed:</strong> c_s = √(T_e·e/m_p) = √(5 × 1.602×10⁻¹⁹ / 1.673×10⁻²⁷) ≈ <strong>2.19×10⁴ m/s</strong> (about 22 km/s).</li>
+            <li><strong>Mass ratio:</strong> m_p/(2π m_e) = 1836.15/(2π) ≈ 292.2.</li>
+            <li><strong>Floating potential:</strong> V_f = −(T_e/2)·ln(292.2) = −(5/2)(5.677) ≈ <strong>−14.19 V</strong>.</li>
+            <li><strong>Rule-of-thumb check:</strong> −14.19 V / (5 eV) ≈ −2.84 — matches the "about −2.8 T_e[eV] volts" rule of thumb from Section 8.2 almost exactly.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: Project Checkpoint — the plasma-parameter calculator</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This week's checkpoint finishes the second half of the Week 1 project: a single function that returns λ_D, N_D, ω_pe, c_s, and V_f for any (n_e, T_e) pair — the toolkit you'll reuse in the Week 10 capstone report.</p>
+        <pre><span class="c"># plasma_calculator.py — Lecture 8 project checkpoint</span>
+import numpy as np
+
+e, eps0, me, mp = 1.602176634e-19, 8.8541878128e-12, 9.1093837015e-31, 1.67262192369e-27
+
+def plasma_parameters(n_e, Te_eV, mi=mp):
+    Te_J = Te_eV * e
+    lam_D = np.sqrt(eps0*Te_J/(n_e*e**2))
+    N_D = (4/3)*np.pi*n_e*lam_D**3
+    omega_pe = np.sqrt(n_e*e**2/(eps0*me))
+    c_s = np.sqrt(Te_J/mi)
+    V_f = -(Te_eV/2)*np.log(mi/(2*np.pi*me))
+    return dict(lambda_D_m=lam_D, N_D=N_D, omega_pe=omega_pe, c_s=c_s, V_f=V_f)
+
+r = plasma_parameters(n_e=1e18, Te_eV=5.0)
+for k, v in r.items():
+    print(f"{k:12s} = {v:.4e}")
+
+<span class="c"># lambda_D_m   = 1.6623e-05</span>
+<span class="c"># N_D          = 1.9240e+04</span>
+<span class="c"># omega_pe     = 5.6415e+10</span>
+<span class="c"># c_s          = 2.1885e+04</span>
+<span class="c"># V_f          = -1.4194e+01</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Cross-check this against PlasmaPy's <code>Debye_length</code>, <code>Debye_number</code>, and <code>plasma_frequency</code> from Lecture 1 and 2 — they should agree to the precision of the formulas, since this calculator uses the same physics.</p>
+    </div>
+
+    <!-- PROJECT -->
+    <div class="proj">
+        <h3>📌 Project Checkpoint — Week 8</h3>
+        <p>Deliverable for this week: the plasma-parameter calculator above (or your own equivalent), returning λ_D, N_D, ω_pe, c_s, and V_f for arbitrary inputs, validated against PlasmaPy's built-ins for at least two different (n_e, T_e) pairs. Combined with the Week 4 drift integrator, you now have both halves of the Week 10 capstone report's toolkit.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Everything about a Langmuir probe — Lecture 9's diagnostic — <em>is</em> sheath physics: the probe is just a small, deliberately-biased wall, and its current-voltage curve directly traces out the floating-potential, Bohm-current, and electron-repulsion physics derived here. Sheaths also set the boundary condition for every edge-plasma and divertor calculation in a real fusion device (Course 4), where the ion flux the Bohm criterion predicts determines how fast the plasma-facing material erodes.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> An electrically isolated surface in contact with a plasma charges up negative because…</div>
+            <div class="opt"><b>A.</b> ions are faster than electrons and escape first</div>
+            <div class="opt"><b>B.</b> electrons, being much lighter, arrive at the surface far more often than ions at first contact</div>
+            <div class="opt"><b>C.</b> the plasma has no electrons at all</div>
+            <div class="opt"><b>D.</b> the surface is always made of a negatively-charged material</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> At equal temperature, electrons move roughly √(m_i/m_e) times faster than ions, so they initially bombard any surface far more frequently — charging it negative until the resulting repulsive field throttles the electron flux down to match the ion flux.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The floating potential V_f of a surface in a hydrogen plasma with T_e = 5 eV is approximately…</div>
+            <div class="opt"><b>A.</b> +14 V</div>
+            <div class="opt"><b>B.</b> 0 V</div>
+            <div class="opt"><b>C.</b> −14 V</div>
+            <div class="opt"><b>D.</b> −5 V</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> V_f = −(T_e/2)ln(m_i/2πm_e) ≈ −2.84 × T_e[eV] ≈ −14.2 V for T_e = 5 eV — negative, and several times T_e in magnitude, not equal to it.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The Bohm sheath criterion requires ions to enter the sheath at a speed of at least…</div>
+            <div class="opt"><b>A.</b> the electron thermal speed</div>
+            <div class="opt"><b>B.</b> √(k_BT_i/m_i), the ion thermal speed</div>
+            <div class="opt"><b>C.</b> √(k_BT_e/m_i), the ion sound speed (using electron temperature)</div>
+            <div class="opt"><b>D.</b> the speed of light</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The Bohm speed c_s = √(k_BT_e/m_i) uses the electron temperature, because electron pressure drives the presheath field that accelerates ions up to this speed before they reach the sheath edge.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The Debye sheath is typically how thick, compared to the Debye length λ_D?</div>
+            <div class="opt"><b>A.</b> Thousands of λ_D</div>
+            <div class="opt"><b>B.</b> A few λ_D (scaling roughly as λ_D(ΔV/T_e)^(3/4))</div>
+            <div class="opt"><b>C.</b> Exactly 1 λ_D, always</div>
+            <div class="opt"><b>D.</b> It has no relationship to λ_D at all</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The Child–Langmuir scaling gives a thickness of a handful of Debye lengths, growing somewhat faster than linearly with the potential drop — but always anchored to λ_D, the same screening length from Lecture 1.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why is quasineutrality (Lecture 1) explicitly violated inside the sheath, even though it holds everywhere in the bulk plasma?</div>
+            <div class="opt"><b>A.</b> Quasineutrality is never actually true anywhere</div>
+            <div class="opt"><b>B.</b> The sheath is, by definition, the thin boundary layer where the wall's repulsion of electrons creates a real, measurable charge imbalance over a length scale of order λ_D</div>
+            <div class="opt"><b>C.</b> The sheath has no ions in it</div>
+            <div class="opt"><b>D.</b> Magnetic fields cause the violation</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The sheath is exactly the region where the bulk-plasma approximation of near-perfect charge balance breaks down — a real, non-negligible excess of ion charge builds up over a few Debye lengths next to the (electron-repelling) negative wall.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Explained why isolated surfaces in a plasma charge up negative, forming the <b>Debye sheath</b>.</li>
+            <li>Derived the <b>floating potential</b> V_f = −(T_e/2)ln(m_i/2πm_e) from flux balance.</li>
+            <li>Stated the <b>Bohm sheath criterion</b> v_i ≥ c_s = √(k_BT_e/m_i) and why it uses electron temperature.</li>
+            <li>Connected sheath thickness to λ_D via the Child–Langmuir scaling.</li>
+            <li><b>Project checkpoint:</b> built a plasma-parameter calculator returning λ_D, N_D, ω_pe, c_s, and V_f.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: how do you actually measure any of these quantities in a real plasma? Langmuir probes, interferometry, and spectroscopy. Discussion 3.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-fluid-vs-kinetic.html"><div class="dir">← Week 7</div><div class="ttl">Fluid vs Kinetic Descriptions (Preview)</div></a>
+        <a class="next" href="l09-diagnostics.html"><div class="dir">Week 9 →</div><div class="ttl">Diagnostics — Measuring a Plasma</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Plasma Fundamentals</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>
