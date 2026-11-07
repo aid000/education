@@ -97,6 +97,34 @@
         .lec-nav a.disabled { opacity: .45; pointer-events: none; }
         .lec-nav a.next { text-align: right; }
 
+        /* ── DISCUSSION (interactive ChatGPT-tutor widget) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08120c; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
         footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
         footer a { color: var(--accent2); text-decoration: none; }
     </style>
@@ -124,6 +152,7 @@
             <li>Rank moderators with the <strong>moderating power ξΣ<sub>s</sub></strong> and <strong>moderating ratio ξΣ<sub>s</sub>/Σ<sub>a</sub></strong>.</li>
             <li>Read the <strong>slowing-down density q(E)</strong> as the flow of neutrons down the energy axis.</li>
             <li>Explain <strong>resonance escape probability p</strong> and how it ties moderation back to the four-factor formula.</li>
+            <li>Derive the <strong>Fermi age equation</strong> and use it to obtain the fast non-leakage probability P_FNL &asymp; 1/(1+B&sup2;&tau;).</li>
         </ul>
     </div>
 
@@ -143,15 +172,16 @@
         <p>Because each collision multiplies the energy by a random factor (not subtracts a fixed amount), it is far more natural to work on a <strong>logarithmic</strong> energy scale. Define the <strong>lethargy</strong> u as the log of how far the neutron has slowed from a reference energy:</p>
         <div class="eq">u = ln(E0 / E)<small>Lethargy increases as the neutron slows. A neutron born at E₀ starts at u = 0; "more tired" = more lethargy = lower energy.</small></div>
         <p>The beauty of lethargy is that the <em>average</em> gain in lethargy per collision is a <strong>constant</strong>, independent of energy, depending only on the target mass. This constant is the <strong>average logarithmic energy loss ξ</strong> (xi):</p>
-        <div class="eq">xi = 1 + (alpha / (1 - alpha)) ln(alpha) ≈ 2 / (A + 2/3)<small>&xi; = mean lethargy gained per collision. For hydrogen &xi; = 1.000; deuterium 0.725; carbon 0.158; U-238 ≈ 0.0084.</small></div>
+        <div class="eq">xi = 1 + (alpha / (1 - alpha)) ln(alpha) ≈ 2 / (A + 2/3)<small>&xi; = mean lethargy gained per collision, per nuclide. For hydrogen (A=1) &xi; = 1.000; for pure deuterium (A=2) &xi; = 0.725; carbon &xi; = 0.158; U-238 &xi; &asymp; 0.0084.</small></div>
         <p>Since each collision adds &xi; on average, the number of collisions to slow a neutron from fission energy to thermal is just the total lethargy gap divided by &xi;:</p>
-        <div class="eq">n_collisions ≈ ln(E_fast / E_thermal) / xi<small>From 2 MeV to 0.025 eV the lethargy gap is ln(2e6/0.025) ≈ 18.2. Divide by &xi;: ~18 collisions in water, ~25 in heavy water, ~115 in graphite.</small></div>
+        <div class="eq">n_collisions ≈ ln(E_fast / E_thermal) / xi<small>From 2 MeV to 0.025 eV the lethargy gap is ln(2e6/0.025) ≈ 18.2. Divide by &xi;: ~18 collisions in light water, ~36 in heavy water (D&#8322;O), ~115 in graphite.</small></div>
         <p>So hydrogen thermalizes a neutron in under 20 collisions while graphite needs over a hundred. Fewer collisions means a more compact core — one reason light-water reactors are far smaller than graphite-moderated ones.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't quote &xi; = 0.725 (pure deuterium's per-collision value, A=2) as if it were the number for <strong>heavy water</strong>. A D&#8322;O molecule also contains oxygen, and diluting deuterium's collisions with oxygen's much weaker ones pulls the <em>molecule's</em> effective &xi; down to about <strong>0.509</strong> (the standard literature value) — not 0.725. That drops heavy water's collision count to thermal from the naive ~25 (pure D, A=2 alone) to the correct <strong>~35&ndash;36</strong> for real D&#8322;O. Twenty-five collisions is a bare-deuterium number, not a heavy-water number.</div>
     </section>
 
     <!-- FIGURE 1: collisions to thermal by moderator -->
     <figure class="fig">
-        <svg viewBox="0 0 520 250" role="img" aria-label="A staircase of neutron energy versus collision number for three moderators: hydrogen drops to thermal in about 18 collisions, deuterium in about 25, and carbon in about 115, shown as curves descending to the thermal line at different rates.">
+        <svg viewBox="0 0 520 250" role="img" aria-label="A staircase of neutron energy versus collision number for three moderators: light water drops to thermal in about 18 collisions, heavy water in about 36, and graphite in about 115, shown as curves descending to the thermal line at different rates.">
             <line x1="60" y1="40" x2="60" y2="200" stroke="#94b8a2" stroke-width="1.5"/>
             <line x1="60" y1="200" x2="490" y2="200" stroke="#94b8a2" stroke-width="1.5"/>
             <text x="40" y="48" fill="#6ee7b7" font-size="11" text-anchor="middle">E</text>
@@ -160,20 +190,20 @@
             <!-- thermal line -->
             <line x1="60" y1="185" x2="490" y2="185" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4 4"/>
             <text x="490" y="180" fill="#fbbf24" font-size="10" text-anchor="end">thermal</text>
-            <!-- hydrogen: steep -->
+            <!-- hydrogen / light water: steep -->
             <path d="M 60 50 L 110 90 L 150 120 L 190 145 L 230 165 L 270 178 L 300 185" fill="none" stroke="#34d399" stroke-width="2.2"/>
-            <text x="305" y="70" fill="#34d399" font-size="11">H (~18)</text>
-            <!-- deuterium: medium -->
-            <path d="M 60 50 L 130 85 L 200 115 L 270 145 L 330 168 L 370 185" fill="none" stroke="#60a5fa" stroke-width="2.2"/>
-            <text x="375" y="120" fill="#60a5fa" font-size="11">D (~25)</text>
+            <text x="305" y="70" fill="#34d399" font-size="11">H&#8322;O (~18)</text>
+            <!-- heavy water D2O: medium -->
+            <path d="M 60 50 L 140 80 L 220 110 L 300 140 L 360 165 L 400 185" fill="none" stroke="#60a5fa" stroke-width="2.2"/>
+            <text x="405" y="120" fill="#60a5fa" font-size="11">D&#8322;O (~36)</text>
             <!-- carbon: shallow -->
             <path d="M 60 50 L 160 70 L 260 100 L 350 135 L 430 168 L 480 185" fill="none" stroke="#a78bfa" stroke-width="2.2"/>
             <text x="430" y="150" fill="#a78bfa" font-size="11">C (~115)</text>
             <circle cx="300" cy="185" r="3.5" fill="#34d399"/>
-            <circle cx="370" cy="185" r="3.5" fill="#60a5fa"/>
+            <circle cx="400" cy="185" r="3.5" fill="#60a5fa"/>
             <circle cx="480" cy="185" r="3.5" fill="#a78bfa"/>
         </svg>
-        <figcaption>Slowing-down to thermal by moderator. Each collision drops the neutron a fixed step &xi; in lethargy (log energy). Hydrogen's large &xi; reaches thermal in ~18 collisions; deuterium in ~25; carbon's tiny &xi; needs ~115. Fewer collisions means a more compact, lower-leakage core.</figcaption>
+        <figcaption>Slowing-down to thermal by moderator. Each collision drops the neutron a fixed step &xi; in lethargy (log energy). Light water's large effective &xi; reaches thermal in ~18 collisions; heavy water (D&#8322;O, &xi; &asymp; 0.509 once oxygen's weak scattering is included) in ~36; graphite's tiny &xi; needs ~115. Fewer collisions means a more compact, lower-leakage core.</figcaption>
     </figure>
 
     <!-- 6.3 -->
@@ -197,6 +227,26 @@
         <div class="eq">p = q_thermal / q_fast = (neutrons reaching thermal) / (neutrons that started down)<small>p &lt; 1 because U-238 resonances capture some slowing-down neutrons. Better moderation (more energy lost per collision) jumps neutrons across resonances faster, raising p.</small></div>
         <p>Here moderation and resonance escape lock together: a good moderator with large &xi; makes neutrons take <em>big leaps</em> down the energy scale, so they spend less time lingering at any resonance energy and are more likely to escape capture. This is also why <strong>fuel-moderator geometry matters</strong> — lumping fuel into pins rather than mixing it homogeneously lets neutrons do most of their slowing in the moderator, away from the U-238 resonances, raising p. It is the physics that makes a heterogeneous lattice outperform a homogeneous mixture.</p>
         <div class="box analogy"><span class="lbl">Analogy</span>Resonances are like potholes spread along a downhill road, each able to swallow a slow-rolling marble. A strong moderator gives the marble big bounces that clear several potholes in one hop; a weak one lets it creep along, far likelier to drop into a hole. And keeping the potholes (fuel) separated from the slope (moderator) means the marble does most of its rolling on clear pavement — the heterogeneous-lattice advantage.</div>
+    </section>
+
+    <!-- 6.5 -->
+    <section class="lec">
+        <h2><span class="n">6.5</span>Fermi Age Theory &amp; the Fast Non-Leakage Probability</h2>
+        <p>Section 6.4 tracked slowing-down only in <em>energy</em>, as if the core were infinite. But a real core leaks, and some neutrons leak out <em>while still slowing down</em> — before they ever reach thermal. To put a number on that leakage we need to know not just how a neutron's energy changes but how far it <strong>wanders in space</strong> while it does. That is the job of <strong>Fermi age theory</strong>, and it is where the fast non-leakage probability P_FNL you used without proof back in Week 5 actually comes from.</p>
+        <p>Combine the diffusion approximation at each lethargy with the slowing-down balance of &sect;6.4, and change variables from lethargy u to a new quantity &tau;(u), the <strong>Fermi age</strong>:</p>
+        <div class="eq">tau(u) = integral_0^u  [ D(u') / (xi * Sigma_s(u')) ]  du'<small>&tau; has units of cm&sup2;, not time — a "fictitious time" borrowed from the mathematics of heat conduction.</small></div>
+        <p>With this substitution, the spatial-and-energy balance for the slowing-down density q(r,u) takes on exactly the form of the time-dependent heat/diffusion equation, with &tau; standing in for time:</p>
+        <div class="eq">grad^2 q(r, tau) = dq(r, tau) / d(tau)<small>Fermi's age equation. Neutrons "diffuse" through space as they "age" down the energy axis, exactly as heat diffuses through a solid over time.</small></div>
+        <p>For a point fast source in an infinite medium this has the same Gaussian solution as a point heat pulse: the slowing-down density spreads out in r as a 3-D Gaussian with mean-square migration distance &lang;r&sup2;&rang; = 6&tau;. Physically, &tau; is one-sixth the mean-square straight-line distance a neutron travels between being born fast and slowing to a given energy.</p>
+        <h3>From the age equation to P_FNL</h3>
+        <p>Now use the age equation in a finite, critical core. The fundamental spatial mode of a bare reactor satisfies &nabla;&sup2;&phi; = &minus;B&sup2;&phi; (Week 3), so insert that same curvature into the age equation in place of the Laplacian:</p>
+        <div class="eq">-B^2 * q(tau) = dq(tau)/d(tau)   =>   q(tau) = q(0) * exp(-B^2 * tau)<small>Every unit of age accumulated while slowing down costs a leakage factor exp(&minus;B&sup2; d&tau;) — the same mathematical form as radioactive decay, but in "age" rather than time.</small></div>
+        <p>q(0) is the fast source rate and q(&tau;<sub>th</sub>) is the rate that actually arrives at thermal without leaking, where &tau;<sub>th</sub> — the <strong>age to thermal</strong> — is &tau;(u) accumulated over the whole slowing-down range. Their ratio is exactly the fast non-leakage probability:</p>
+        <div class="eq">P_FNL = exp(-B^2 * tau_th)  ~  1 / (1 + B^2 * tau_th)<small>The exponential is the exact age-theory result; the 1/(1+x) form is the standard engineering approximation, accurate to within a percent or two for the small B&sup2;&tau;<sub>th</sub> (&sim;0.03&ndash;0.1) typical of thermal power reactors — this is the P_FNL formula from Week 5.</small></div>
+        <p>That second form is the one worth remembering, because it has exactly the same shape as the thermal non-leakage probability from Week 4, P_TNL = 1/(1 + B&sup2;L&sup2;). Multiplying the two and keeping the leading term in B&sup2; gives the single most useful leakage formula in one-speed-plus-age reactor physics:</p>
+        <div class="eq">P_NL = P_FNL * P_TNL  ~  1 / (1 + B^2 * M^2),   M^2 = tau_th + L^2<small>M&sup2; is the <strong>migration area</strong> — the total mean-square "wandering distance" from birth to thermal absorption, fast slowing-down (&tau;<sub>th</sub>) plus thermal diffusion (L&sup2;). This upgrades Week 4's one-group P_NL = 1/(1+B&sup2;L&sup2;) into the two-group ("age-diffusion") result.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Picture a neutron's life as a two-leg journey: first a fast, headlong dash while slowing down (wandering radius set by &tau;), then a short thermal shuffle before capture (wandering radius set by L&sup2;). Because the two legs are statistically independent random walks laid end to end, their mean-square distances simply add — M&sup2; = &tau; + L&sup2; is the Pythagorean sum. A bigger core (smaller B&sup2;) tames the leakage from both legs at once.</div>
+        <p>Typical light-water numbers make this concrete: &tau;<sub>th</sub> &asymp; 27 cm&sup2; against L&sup2; &asymp; 8 cm&sup2;, so M&sup2; &asymp; 35 cm&sup2; — most of the migration area is the <em>fast</em> leg, not the thermal one. That is why taming fast leakage (a bigger core, a good reflector) matters at least as much as the thermal non-leakage probability emphasized in Week 5.</p>
     </section>
 
     <!-- WORKED EXAMPLE -->
@@ -242,8 +292,46 @@ print(f"estimate u/xi:          {np.log(E_fast/E_th)/xi:.1f}")</pre>
     <!-- EXTENSION -->
     <div class="ext">
         <h3>🔗 Where this is heading</h3>
-        <p>You've now followed neutrons all the way from fast birth down to thermal, and seen how the moderator choice trades core size against absorption. <strong>Week 7</strong> formalizes the energy axis you just slid down: it slices it into <strong>energy groups</strong>, builds the <strong>multigroup diffusion equations</strong>, and shows how the fast and thermal worlds couple through the very downscattering you simulated here.</p>
+        <p>You've now followed neutrons all the way from fast birth down to thermal, seen how the moderator choice trades core size against absorption, and derived where the Week-5 fast non-leakage probability actually comes from. <strong>Week 7</strong> formalizes the energy axis you just slid down: it slices it into <strong>energy groups</strong>, builds the <strong>multigroup diffusion equations</strong>, and shows how the fast and thermal worlds couple through the very downscattering you simulated here.</p>
     </div>
+
+    <!-- ════════════════ DISCUSSION (interactive ChatGPT-tutor widget) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 2 · Week 6</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="nuc-c2-l6-d2">
+            <p class="disc-prompt" id="prompt-nuc-c2-l6-d2">A good moderator slows neutrons in as few collisions as possible without absorbing them. <strong>Why does that pull material choice in two competing directions, and how do real reactors resolve the tension?</strong> Ground your answer in the moderating power &xi;&Sigma;<sub>s</sub> versus the moderating ratio &xi;&Sigma;<sub>s</sub>/&Sigma;<sub>a</sub> from &sect;6.3, and name at least one real reactor design on each side of the trade-off.</p>
+
+            <textarea id="ans-nuc-c2-l6-d2" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-nuc-c2-l6-d2">Not saved yet</span>
+                <span class="toast" id="toast-nuc-c2-l6-d2"></span>
+            </div>
+
+            <div class="disc-model" id="model-nuc-c2-l6-d2" hidden>
+                <h4>Model response</h4>
+                <p>The tension is between two different figures of merit that both depend on the same material property, but in opposite ways. <strong>Moderating power</strong> &xi;&Sigma;<sub>s</sub> rewards a nuclide that scatters <em>often</em> (large &Sigma;<sub>s</sub>) and steals a <em>lot</em> of energy per hit (large &xi;) — hydrogen wins this contest outright, because A &asymp; 1 lets &alpha;&rarr;0 and a single collision can nearly stop a neutron. But nothing in that figure of merit cares whether the material also <em>absorbs</em> neutrons. The <strong>moderating ratio</strong> &xi;&Sigma;<sub>s</sub>/&Sigma;<sub>a</sub> is the figure of merit that does care: it rewards slowing neutrons down <em>relative to</em> how many you lose to parasitic capture along the way. Hydrogen's absorption cross section, while small in absolute terms, is not negligible next to deuterium's — so light water scores brilliantly on power but only middling on ratio.</p>
+                <p>Real reactors resolve the tension by picking which number they can afford to sacrifice. <strong>Light-water reactors</strong> (PWRs, BWRs) take the moderating-power side of the trade: hydrogen's huge &xi;&Sigma;<sub>s</sub> thermalizes neutrons in ~18 collisions, giving a compact, economical core, but hydrogen's absorption means the fuel must be enriched above natural uranium to overcome the loss — the "price" of choosing power over ratio. <strong>Heavy-water reactors</strong> (CANDU) take the opposite side: deuterium's minuscule absorption gives a moderating ratio roughly 90&times; better than light water, so the reactor can run on cheap, unenriched natural uranium — but it needs ~36 collisions instead of ~18 and a much larger, more expensive core, plus the cost of producing the heavy water itself. Graphite-moderated designs sit at a third point: a very good ratio (low absorption) but a poor power (small &xi;, ~115 collisions), trading an even larger core for natural-uranium fuel without heavy water's expense.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>States that moderating power rewards collision frequency &times; energy loss per collision (&xi;&Sigma;<sub>s</sub>), ignoring absorption entirely</li>
+                    <li>States that moderating ratio divides by &Sigma;<sub>a</sub>, so it penalizes a material that also absorbs neutrons</li>
+                    <li>Explains why the two can rank materials differently (e.g. light water: high power, mediocre ratio)</li>
+                    <li>Names a concrete reactor design on each side of the trade-off (e.g. LWR vs. CANDU/heavy-water, or graphite) and what each gains or gives up</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
 
     <!-- QUIZ -->
     <div class="quiz">
@@ -304,6 +392,7 @@ print(f"estimate u/xi:          {np.log(E_fast/E_th)/xi:.1f}")</pre>
             <li>Ranked moderators by <b>moderating power &xi;&Sigma;<sub>s</sub></b> and <b>moderating ratio &xi;&Sigma;<sub>s</sub>/&Sigma;<sub>a</sub></b>, exposing the size-vs-absorption tension.</li>
             <li>Read the <b>slowing-down density q(E)</b> as a current down the energy axis and tied it to <b>resonance escape p</b>.</li>
             <li>Connected good moderation and a <b>heterogeneous lattice</b> to higher p, and reproduced collision counts in Python.</li>
+            <li>Derived <b>Fermi age theory</b> from the slowing-down balance and obtained <b>P_FNL &asymp; 1/(1+B&sup2;&tau;)</b>, then combined it with Week 4's thermal term into the migration-area result P_NL &asymp; 1/(1+B&sup2;M&sup2;).</li>
         </ul>
         <p class="next-up">Next up — Week 7: Neutron Energy Spectra &amp; Multigroup Methods. We carve the energy axis into discrete groups, collapse cross sections into group constants, and write the two-group equations that couple the fast and thermal worlds.</p>
     </div>
@@ -326,6 +415,54 @@ print(f"estimate u/xi:          {np.log(E_fast/E_th)/xi:.1f}")</pre>
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my reactor-physics tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        // URL prefill works for short text; clipboard is the reliable fallback for long answers.
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

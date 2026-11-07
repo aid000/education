@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Final Exam — Reactor Systems Engineering</title>
+    <style>
+        :root {
+            --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b;
+            --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C4 Reactor Systems</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C4 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from reactor types to the capstone system design.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Types &amp; core/fuel <b>5</b></span>
+            <span class="wchip">Primary system &amp; vessel <b>3</b></span>
+            <span class="wchip">Steam generators &amp; secondary <b>3</b></span>
+            <span class="wchip">Control &amp; reactivity <b>2</b></span>
+            <span class="wchip">Containment &amp; structures <b>3</b></span>
+            <span class="wchip">Materials &amp; radiation <b>2</b></span>
+            <span class="wchip">I&amp;C <b>3</b></span>
+            <span class="wchip">Advanced &amp; SMR <b>3</b></span>
+            <span class="wchip">Capstone synthesis <b>1</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ REACTOR TYPES, PLANT OVERVIEW & CORE/FUEL (Weeks 1-2) ============ -->
+    <div class="exam-sec">Reactor types, plant overview &amp; core/fuel · Weeks 1–2</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>1.</span> A sodium-cooled fast reactor differs fundamentally from a PWR or BWR in that it has no…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> coolant</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> moderator</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> control rods</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> pressure vessel</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A sodium-cooled fast reactor deliberately runs with no moderator, keeping neutrons fast; liquid sodium is still the coolant, control rods are still required, and the low-pressure sodium loop simply does not need a thick PWR-style forged vessel. (A) it has liquid sodium as coolant. (C) control rods are still needed to manage reactivity. (D) the vessel is thinner, not absent, because sodium runs near atmospheric pressure.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>2.</span> In a PWR or BWR, light water serves as both coolant and moderator. What is the key safety implication of that coupling?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> If coolant is lost, moderation is lost with it, so neutrons stay fast and the chain reaction tends to shut itself down</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> Loss of coolant has no effect on reactivity, since moderation is set by a separate graphite block</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> The reactor needs an independent backup moderator in case the water is lost</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> Light-water reactors cannot have any negative feedback mechanisms</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Because the same water both cools and moderates, losing it removes moderation too — neutrons stay fast and fission drops, a built-in negative coolant-void/temperature feedback. (B) is false; moderation and coolant are the same substance, not independent. (C) no backup moderator exists or is needed. (D) this coupling is itself a negative feedback mechanism.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> In the primary/secondary/tertiary loop architecture of a PWR plant, which loop is the only one that becomes radioactive?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> Secondary</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> Tertiary</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> Primary</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> All three loops are equally radioactive</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Only the primary loop flows through the core, so only it becomes radioactive; heat crosses to the secondary and tertiary loops through walls, never by mixing, so those stay clean. (A) and (B) are the clean steam and cooling-water loops. (D) contradicts the entire point of the loop-barrier architecture.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>4.</span> Put the reactor core hierarchy in order from smallest to largest.</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> pellet → fuel rod → assembly → core</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> fuel rod → pellet → core → assembly</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> pellet → assembly → fuel rod → core</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> core → assembly → fuel rod → pellet</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A ceramic UO₂ pellet stacks into a clad fuel rod; rods pack into a square-lattice assembly (e.g. 17×17); assemblies tile into the full core. (B) and (C) scramble the order. (D) reverses it — that is largest-to-smallest, not smallest-to-largest.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>5.</span> Why are commercial LWR lattices deliberately designed to be slightly <em>under</em>-moderated rather than at the moderator-to-fuel ratio that maximizes reactivity?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> To maximize reactivity at every operating temperature</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> So that heating the coolant thins the water and reduces moderation and reactivity — a self-stabilizing negative feedback</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> To minimize the cost of uranium enrichment</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> Because under-moderation removes the need for control rods</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Sitting on the under-moderated side of the reactivity-vs-moderation curve means a hotter, less dense coolant reduces both moderation and reactivity — a passive negative feedback. (A) is backwards; peak reactivity is at the optimum ratio, not under-moderated. (C) enrichment cost is unrelated to lattice pitch. (D) control rods are still required for startup, shutdown, and power shaping.</div>
+    </div>
+
+    <!-- ============ PRIMARY SYSTEM & PRESSURE VESSEL (Week 3) ============ -->
+    <div class="exam-sec">Primary coolant system &amp; pressure vessel · Week 3</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>6.</span> Starting at the cold-leg inlet nozzle, trace the correct coolant flow path inside a PWR reactor vessel.</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> Cold leg (upper shell) → directly up through the core → hot leg (upper shell)</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> Cold leg (bottom of vessel) → up the downcomer → lower plenum → up through the core → hot leg (top)</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> Cold leg (upper shell) → down the downcomer → lower plenum → up through the core → hot leg (upper shell)</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> Cold leg (upper shell) → upper plenum → down through the core → hot leg (lower shell)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Both nozzles penetrate the vessel's <em>upper</em> shell. Cold water enters high, is carried <em>down</em> the downcomer (the annular gap between core barrel and vessel wall) to the lower plenum, then turns and flows <em>up</em> through the core before leaving through the hot leg — also an upper-shell nozzle. (A) skips the downcomer/lower-plenum detour entirely. (B) wrongly puts the cold-leg nozzle at the bottom of the vessel. (D) reverses the up/down direction and misplaces the hot-leg nozzle.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>7.</span> What maintains the ~155 bar system pressure in a PWR primary loop?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> The reactor coolant pumps</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> The pressurizer, via its steam bubble plus heaters and spray</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> The steam generator tubes</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> The thickness of the vessel wall</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The pressurizer's steam space sets the system pressure, trimmed by immersion heaters (raise) and spray nozzles (lower). (A) The pumps only overcome a few bar of loop friction, not the absolute system pressure — confusing the two is off by more than a factor of thirty. (C) The steam generator transfers heat; it does not set primary pressure. (D) The wall withstands pressure but does not create it.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>8.</span> Why must a PWR primary loop run near 155 bar rather than at atmospheric pressure?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> To compress the solid uranium fuel pellets and increase their density</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> To raise water's boiling point above the ~325 °C operating temperature, keeping the coolant liquid with margin to a boiling crisis (DNB)</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> To force coolant through the core faster than the pumps alone could manage</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> To keep dissolved air in the coolant for chemistry control</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> High pressure lifts water's saturation temperature (~345 °C at 155 bar) above the ~325 °C hot-leg temperature, so the primary stays subcooled with a comfortable margin to departure from nucleate boiling (DNB). (A) pressure does not meaningfully compress solid ceramic fuel. (C) flow is set by the pumps overcoming friction, not by the static system pressure. (D) PWR chemistry deliberately removes dissolved oxygen, not air.</div>
+    </div>
+
+    <!-- ============ STEAM GENERATORS & SECONDARY LOOP (Week 4) ============ -->
+    <div class="exam-sec">Steam generators &amp; the secondary loop · Week 4</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>9.</span> Why does a PWR use a separate secondary loop instead of sending primary coolant straight to the turbine?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> To keep the slightly radioactive primary water out of the turbine and condenser, which stay clean</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> Because water cannot be pumped at high pressure</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> To allow the primary coolant to boil inside the core</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> Because turbines cannot run on steam made from reactor-grade water</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The steam generator isolates the radioactive primary loop so the turbine island stays accessible and clean — the defining trade-off of the PWR design. (B) reactor coolant pumps handle high-pressure pumping routinely. (C) PWR primary water is deliberately kept from boiling; that is the BWR's approach. (D) turbines run on steam regardless of its source; the issue is radioactivity, not steam itself.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>10.</span> What is the key advantage of a once-through steam generator (OTSG) over a U-tube (recirculating) design?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> It holds far more secondary water, giving a larger thermal buffer</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> It fully evaporates and superheats the secondary water in a single pass, improving turbine efficiency</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> It eliminates the need for any feedwater pump</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> It removes the radioactive/clean tube-wall boundary entirely</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> An OTSG runs straight tubes with no recirculation, fully evaporating and then superheating the secondary water in one pass — hotter, drier steam than a U-tube SG's ~25% quality at the tube bundle. (A) is backwards: an OTSG holds far <em>less</em> secondary water and less thermal buffer. (C) a feedwater pump is still required. (D) the tube wall remains the only barrier in either design.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>11.</span> During a steam generator tube rupture (SGTR), which way does water flow across the breach, and why?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> Secondary into primary, because the secondary water is hotter</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> There is no net flow, because the two loops run at equal pressure</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> Secondary into primary, because the reactor core draws water in</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> Primary into secondary, because primary pressure (~155 bar) exceeds secondary pressure (~70 bar)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The primary side runs at substantially higher pressure, so a rupture drives radioactive primary water into the clean secondary system — the radiological hazard of an SGTR. (A) and (C) reverse the direction and invoke mechanisms (temperature, core suction) that do not drive the flow. (B) the two loops operate at very different pressures, not equal ones.</div>
+    </div>
+
+    <!-- ============ CONTROL, REACTIVITY & XENON (Week 5) ============ -->
+    <div class="exam-sec">Control systems: rods, reactivity &amp; poisons · Week 5</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>12.</span> A reactor's multiplication factor is k<sub>eff</sub> = 1.0010. Approximately what is its reactivity in pcm?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> ≈ 100 pcm</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> ≈ 10 pcm</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> ≈ 1000 pcm</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> ≈ 0.1 pcm</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> ρ = (k&minus;1)/k = 0.0010/1.0010 ≈ 0.000999 ≈ 99.9 pcm ≈ 100 pcm (1 pcm = 10⁻⁵). (B) and (D) are off by one and three factors of ten respectively. (C) overstates it by a factor of ten — a common slip when forgetting pcm is 10⁻⁵, not 10⁻⁴.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>13.</span> Several hours after a reactor steps down from full power to a lower power, what does the xenon-135 concentration do, and why?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> Falls immediately, because less fission means less xenon is produced</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> Stays constant, because xenon is always in equilibrium regardless of power</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> Rises forever, because xenon-135 is a stable end product</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> Rises for several hours, then falls, because the neutron-burnup loss path nearly shuts off while iodine-135 keeps decaying into xenon</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Lower flux nearly shuts off the neutron-burnup removal path for xenon, while the iodine-135 inventory built up at high power keeps decaying into xenon — so xenon rises for several hours (the "xenon peak") before decaying away. (A) ignores the iodine source term. (B) equilibrium depends on power, so a step change breaks it. (C) xenon-135 is radioactive with a ~9.2 h half-life; it is not stable.</div>
+    </div>
+
+    <!-- ============ CONTAINMENT & STRUCTURAL DESIGN (Week 6) ============ -->
+    <div class="exam-sec">Containment &amp; structural design · Week 6</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>14.</span> In the defense-in-depth scheme for a water reactor, which barrier is the <em>final</em> one between fission products and the public?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> The fuel cladding</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> The reactor coolant pressure boundary</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> The containment building</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> The fuel ceramic matrix</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The containment is the outermost, final barrier, designed to remain intact even if the inner barriers are assumed to have failed. (A) cladding and (B) the pressure boundary are inner barriers. (D) the fuel matrix is the <em>first</em>, innermost barrier, not the last.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>15.</span> For a thin-walled cylindrical containment under internal pressure, how does the hoop (circumferential) membrane stress compare with the longitudinal (axial) stress?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> Hoop stress is twice the longitudinal stress, so the wall is sized against the hoop value</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> Longitudinal stress is twice the hoop stress</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> The two stresses are always exactly equal</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> Hoop stress is zero in a closed cylinder</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> σ<sub>hoop</sub> = P·r/t while σ<sub>long</sub> = P·r/(2t), so hoop is exactly twice longitudinal — the reason a pressurized cylinder tends to split along its length. Designing against the smaller longitudinal value would leave the wall at only half its needed thickness. (B) reverses the ratio. (C) equality holds only for a sphere, not a cylinder. (D) is false — hoop stress is the larger of the two, not zero.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>16.</span> How do a PWR large-dry containment, a PWR ice-condenser containment, and a BWR Mark I/II/III containment each limit peak accident pressure?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> All three rely on the exact same large free volume to keep pressure low</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> Large-dry uses a suppression pool, ice-condenser uses sheer volume, and Mark I/II/III use borated ice</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> Large-dry relies on a large free volume (plus sprays); ice-condenser melts a bed of borated ice; Mark I/II/III vent steam into a water suppression pool</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> None of these designs are rated to a specific accident pressure</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Large-dry containments use cavernous free volume (and often sprays) to keep the pressure spike down; ice-condenser containments route steam through a melting borated-ice bed, allowing a much smaller building; BWR Mark I/II/III containments are pressure-suppression designs that vent steam into a water pool (torus-shaped in Mark I) where it condenses. (A) and (B) scramble which design uses which mechanism. (D) every containment is explicitly rated to a design-basis peak pressure.</div>
+    </div>
+
+    <!-- ============ MATERIALS & RADIATION DAMAGE (Week 7) ============ -->
+    <div class="exam-sec">Materials, stress &amp; radiation damage · Week 7</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>17.</span> A reactor-internals component sees a fast-neutron flux of 5.0×10¹⁰ n/cm²/s with a displacement cross-section of 2.0×10⁻²¹ cm². Over 10 years at a 90% capacity factor, roughly what dpa does it accumulate?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> ≈ 0.0028 dpa</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> ≈ 0.028 dpa</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> ≈ 0.28 dpa</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> ≈ 2.8 dpa</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Rate = φ·σ<sub>d</sub> = (5.0×10¹⁰)(2.0×10⁻²¹) = 1.0×10⁻¹⁰ dpa/s. Exposure t = 10 yr × 0.90 × 3.15×10⁷ s/yr ≈ 2.84×10⁸ s. dpa = rate × t ≈ 0.0283 dpa, i.e. ≈ 0.028 dpa. (A), (C), (D) are each off by one power of ten from a dropped or misplaced exponent.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>18.</span> As a pressure-vessel steel accumulates neutron dose, its ductile-to-brittle transition temperature (DBTT)…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> shifts upward, so the steel turns brittle at a higher (warmer) temperature than when new</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> shifts downward, making the steel tougher at low temperature</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> stays exactly constant for the plant's entire life</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> disappears entirely once a critical dose is reached</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Irradiation hardens and embrittles the steel, raising the DBTT — it becomes brittle at a warmer temperature than when new, which is why pressurized thermal shock (cold water into a hot, irradiated vessel) must be avoided. (B) reverses the real effect. (C) ignores well-documented aging. (D) the transition does not vanish; it shifts.</div>
+    </div>
+
+    <!-- ============ INSTRUMENTATION & CONTROL (Week 8) ============ -->
+    <div class="exam-sec">Instrumentation &amp; control (I&amp;C) · Week 8</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> Why is reactor-trip logic almost always built as two-out-of-four (2oo4) voting rather than a single channel?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> So that any single channel reading high immediately trips the reactor</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> So that all four channels must agree before any action is taken</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> So that one channel failing high cannot cause a spurious trip, and one channel failing low cannot block a real trip</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> Because regulations require exactly four sensors on every measured variable</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Needing two of four channels to agree tolerates any single channel failure in either direction — a failed-high channel alone cannot trip the plant, and a failed-low channel alone cannot mask a real danger. (A) describes 1oo4 logic, which would trip spuriously on any single failed-high channel. (B) describes 4oo4 logic, which would fail to trip if even one channel failed low. (D) is not the engineering rationale.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> How does a PWR's SCRAM mechanism differ from a BWR's, and why?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> Both use identical hydraulic injection; there is no difference</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> A PWR drives rods in hydraulically from below; a BWR drops them by gravity from above</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> A PWR uses chemical shim injection for a fast trip; a BWR has no fast-shutdown capability</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> A PWR's top-entry rods fall into the core by gravity when released; a BWR's bottom-entry blades are driven up into the core by hydraulic scram valves, since gravity cannot insert them</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> PWR control rods enter from the top and drop by gravity in a couple of seconds once their holding magnets are de-energized. A BWR's blades enter from below (the top is occupied by steam separators/dryers), so a SCRAM instead fires hydraulic scram valves that drive the blades upward using accumulator or reactor pressure. Both are fail-safe fast-insertion paths. (A) and (B) scramble or invert the mechanisms. (C) soluble boron is far too slow for a fast trip, and BWRs absolutely have a fast-shutdown system.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>21.</span> Adding more identical redundant channels to a trip system eventually stops improving reliability. What is the dominant limiting factor, and the fix?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> Sensor cost rises without limit; the fix is a bigger budget</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> Cabling becomes too heavy; the fix is thinner wire</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> Detectors physically interfere with each other; the fix is more shielding</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> A common-cause failure floors the reliability no matter how many identical channels are added; the fix is diversity (different technology), which lowers the common-cause fraction</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Identical channels can share a hidden common-cause flaw (same software bug, same drift mode), which sets a reliability floor that more copies cannot remove. Only genuine diversity — a different sensor principle, manufacturer, or technology — lowers that common-cause fraction. (A), (B), (C) are not the limiting statistical mechanism.</div>
+    </div>
+
+    <!-- ============ ADVANCED & SMALL MODULAR REACTORS (Week 9) ============ -->
+    <div class="exam-sec">Advanced &amp; small modular reactors · Week 9</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> Why are Generation IV reactor concepts classified first by their coolant (gas, sodium, or molten salt)?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> The coolant determines the color of the reactor building</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> The coolant sets the operating temperature, pressure, and neutron spectrum, which cascade into the rest of the design</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> Coolant choice has essentially no effect on reactor design</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> Regulators require the coolant to be named first on any license application</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The coolant fixes temperature and pressure directly, and whether it moderates neutrons at all — choices that ripple through fuel, structure, and safety approach. (A) is not a real engineering factor. (C) is the opposite of true. (D) is not the reason for the classification scheme.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> In a "fast reactor," what does the word "fast" refer to?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> How quickly the reactor's power can be changed</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> How quickly the coolant pumps circulate the coolant</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> The high energy of the neutrons, which are not slowed by a moderator</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> The speed of plant construction</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> "Fast" describes the neutron energy spectrum — a fast reactor omits a moderator so neutrons stay near their birth energy, enabling breeding and actinide burning. (A), (B), and (D) all misread the term; it has nothing to do with response time, pump speed, or build schedule.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> What is the central economic bet behind small modular reactors (SMRs)?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> That a single larger reactor is always cheaper per kilowatt than any smaller design</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> That nuclear fuel costs will fall to zero</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> That no safety systems are required once a core is small enough</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> That factory series production and shorter on-site construction can offset the lost economies of scale, while also enabling passive safety</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> SMRs trade away some of the classic economies of scale in exchange for factory learning, standardization, lower financing risk from faster builds, and the passive safety that a small core makes easier. (A) is the traditional logic SMRs work against. (B) and (C) are false — fuel still has a cost, and safety systems are still required, just often passive ones.</div>
+    </div>
+
+    <!-- ============ CAPSTONE SYSTEMS DESIGN (Week 10) ============ -->
+    <div class="exam-sec">Capstone: reactor system design · Week 10</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>25.</span> A plant must deliver 250 MWe net electrical power at a net cycle (thermal-to-electric) efficiency of 0.32. What thermal power must the core produce?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> ≈ 80 MWth</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> ≈ 250 MWth</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> ≈ 368 MWth</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> ≈ 781 MWth</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> P<sub>th</sub> = P<sub>e</sub>/η = 250/0.32 ≈ 781 MWth, meaning roughly 531 MWth is waste heat rejected to the environment. (A) mistakenly multiplies instead of dividing (250×0.32 = 80). (B) ignores efficiency entirely. (C) uses 1&minus;η in the denominator (250/0.68 ≈ 368), which has no physical basis — always divide the electrical target by η, never by 1&minus;η.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C4 Reactor Systems Syllabus</div></a>
+        <a href="../lectures/l01-reactor-types-overview.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Reactor Systems</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

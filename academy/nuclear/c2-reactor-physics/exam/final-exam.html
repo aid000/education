@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 · Final Exam — Reactor Physics &amp; Neutronics</title>
+    <style>
+        :root {
+            --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b;
+            --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C2 Reactor Physics</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C2 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full ten-week syllabus, from the transport equation through diffusion theory, criticality, the four-/six-factor formula, moderation, multigroup methods, kinetics, and reactivity feedback.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward the core neutronics:</span>
+            <span class="wchip">Transport/diffusion <b>4</b></span>
+            <span class="wchip">Flux shapes/buckling <b>2</b></span>
+            <span class="wchip">Criticality/k-eff <b>3</b></span>
+            <span class="wchip">Four/six-factor <b>3</b></span>
+            <span class="wchip">Moderation <b>3</b></span>
+            <span class="wchip">Multigroup <b>2</b></span>
+            <span class="wchip">Kinetics <b>3</b></span>
+            <span class="wchip">Feedback/Xe-Sm/burnup <b>3</b></span>
+            <span class="wchip">OpenMC capstone <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ TRANSPORT & DIFFUSION THEORY (Weeks 1-2) ============ -->
+    <div class="exam-sec">Neutron transport &amp; diffusion theory · Weeks 1&ndash;2</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> Why is the scalar flux &phi;, not the neutron density n alone, the quantity that drives reaction rates?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> &phi; = n&middot;v is the track-length density swept per second, and reaction rate = &Sigma;&middot;&phi;</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> &phi; counts only the fast neutrons and ignores the slow ones</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> &phi; measures the net directional flow of neutrons, with sign</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> &phi; is simply the neutron density expressed in different units</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> &phi; = n&middot;v is the total distance flown per second by all neutrons in a cm&sup3;, so a reaction rate is exactly &Sigma;&phi;. (B) &phi; weights all speeds, fast or slow. (C) that describes the net current J, not the flux — flux adds up travel regardless of direction. (D) &phi; includes the speed factor v, which density alone lacks.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>2.</span> A region has a thermal-neutron density n = 1.0&times;10&sup8; cm&sup3; and neutron speed v = 2.2&times;10&#8309; cm/s. The scalar flux &phi; = n&middot;v is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> 2.2&times;10&sup8; n/cm&sup2;/s</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> 2.2&times;10&sup1;&sup3; n/cm&sup2;/s</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> 4.4&times;10&sup1;&sup3; n/cm&sup2;/s</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> 1.0&times;10&sup1;&sup3; n/cm&sup2;/s</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> &phi; = n&middot;v = (1.0&times;10&sup8;)(2.2&times;10&#8309;) = 2.2&times;10&sup1;&sup3; n/cm&sup2;/s. (A) drops five orders of magnitude. (C) doubles the correct value. (D) uses the wrong leading digit.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> Fick's law for neutrons, J = &minus;D&nabla;&phi;, carries a minus sign. What does that sign mean physically?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> The diffusion coefficient D is always a negative number</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> Absorption only occurs wherever the flux happens to be highest</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> The net current flows down the flux gradient, from high flux toward low flux</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> Neutrons travel faster wherever the local flux is lower</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Neutrons drift from crowded (high-&phi;) regions to sparse (low-&phi;) regions, exactly like heat flowing from hot to cold. (A) D is a positive material property. (B) confuses current direction with a separate reaction (absorption). (D) flux is density&times;speed, not a statement about local neutron speed.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> A moderator has diffusion coefficient D = 1.2 cm and macroscopic absorption cross section &Sigma;<sub>a</sub> = 0.003 cm&#8315;&sup1;. Its diffusion length L = &radic;(D/&Sigma;<sub>a</sub>) is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> 0.0025 cm</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> 400 cm</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> 3.6 cm</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> 20 cm</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> L = &radic;(1.2/0.003) = &radic;400 = 20 cm. (A) inverts the ratio. (B) is D/&Sigma;<sub>a</sub> itself, forgetting the square root. (C) does not correspond to the correct ratio.</div>
+    </div>
+
+    <!-- ============ ONE-GROUP DIFFUSION & FLUX SHAPES (Week 3) ============ -->
+    <div class="exam-sec">One-group diffusion &amp; flux shapes · Week 3</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> What exactly is the criticality condition for a bare, homogeneous reactor, in terms of buckling?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> Material buckling B&sup2;<sub>m</sub> (from cross sections) equals geometric buckling B&sup2;<sub>g</sub> (from size and shape)</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> The physical core dimension equals the diffusion length L</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> Absorption equals leakage everywhere in the core</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> The extrapolation distance d is forced to exactly zero</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> B&sup2; has two independent identities — one set by the material (cross sections, D), one set by the geometry (size/shape) — and a bare reactor is critical exactly when they coincide. (B) L and the core size are not forced equal. (C) at criticality production = absorption + leakage, not absorption alone equal to leakage. (D) the extrapolation distance is a small geometric correction, not driven to zero.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>6.</span> A bare slab reactor has extrapolated half-thickness a = 75 cm. Its geometric buckling B&sup2;<sub>g</sub> = (&pi;/2a)&sup2; is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> 0.0209 cm&#8315;&sup2;</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> 0.000439 cm&#8315;&sup2;</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> 0.00175 cm&#8315;&sup2;</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> 0.0000439 cm&#8315;&sup2;</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> B&sup2;<sub>g</sub> = (&pi;/150)&sup2; = (0.02094)&sup2; &asymp; 0.000439 cm&#8315;&sup2;. (A) is &pi;/2a itself — forgetting to square it. (C) uses (&pi;/a)&sup2; instead of (&pi;/2a)&sup2;, dropping the factor of 2. (D) is off by a factor of ten.</div>
+    </div>
+
+    <!-- ============ CRITICALITY & k-eff (Week 4) ============ -->
+    <div class="exam-sec">Criticality &amp; the multiplication factor · Week 4</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> Why is k<sub>eff</sub> always smaller than k<sub>inf</sub> for a real, finite reactor built from the same material?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> Because &nu;, the neutrons per fission, drops in small cores</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> Because k<sub>inf</sub> already double-counts leakage internally</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> Because a finite core loses neutrons by leakage through its surface, so the non-leakage probability P<sub>NL</sub> &lt; 1 and k<sub>eff</sub> = k<sub>inf</sub>&middot;P<sub>NL</sub></span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> Because the diffusion coefficient becomes negative in finite media</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> k<sub>eff</sub> = k<sub>inf</sub>&middot;P<sub>NL</sub>, and P<sub>NL</sub> is strictly less than 1 whenever the core has a finite surface to leak through. (A) &nu; is a nuclide property, independent of size. (B) k<sub>inf</sub> is defined with zero leakage, not double-counted leakage. (D) D is always positive.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> A bare core has k<sub>inf</sub> = 1.15, diffusion area L&sup2; = 45 cm&sup2;, and geometric buckling B&sup2;<sub>g</sub> = 0.0035 cm&#8315;&sup2;. Using k<sub>eff</sub> = k<sub>inf</sub>/(1 + B&sup2;<sub>g</sub>L&sup2;), what is k<sub>eff</sub> and the reactor's state?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> k<sub>eff</sub> &asymp; 1.15, supercritical (leakage ignored)</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> k<sub>eff</sub> &asymp; 1.04, supercritical</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> k<sub>eff</sub> &asymp; 0.86, subcritical</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> k<sub>eff</sub> &asymp; 0.99, subcritical</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> B&sup2;<sub>g</sub>L&sup2; = 0.0035&times;45 = 0.1575, so k<sub>eff</sub> = 1.15/1.1575 &asymp; 0.9935 &asymp; 0.99 &lt; 1 — subcritical; this core is slightly too small or too leaky to sustain the chain as built. (A) simply reports k<sub>inf</sub>, skipping leakage entirely. (B) and (C) do not match the arithmetic.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>9.</span> Compressing a fissile metal sphere to higher density, keeping the same number of atoms, changes the critical mass how?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> Critical mass falls, because higher density shortens the neutron mean free path and reduces leakage</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> Critical mass rises, because density has no bearing on leakage</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> Critical mass is unchanged, since the atom count is fixed</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> The sphere can no longer sustain a chain reaction at any size</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Higher density shortens the mean free path, shrinking the critical volume and lowering critical mass — exactly why criticality-safety rules forbid compressing or concentrating fissile material. (B) reverses the physics. (C) ignores that critical mass depends on density and geometry, not atom count alone. (D) has no physical basis.</div>
+    </div>
+
+    <!-- ============ FOUR- & SIX-FACTOR FORMULAS (Week 5) ============ -->
+    <div class="exam-sec">Four- &amp; six-factor formulas · Week 5</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>10.</span> What is the key distinction between &eta; (the reproduction factor) and &nu; (neutrons per fission) in the four-factor formula?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> They are the same quantity written with different symbols</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> &eta; is neutrons produced per thermal neutron absorbed IN THE FUEL, and is smaller than &nu; because some fuel absorptions are sterile capture rather than fission</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> &nu; depends on moderator choice while &eta; does not</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> &eta; is always greater than 2.4 for any fuel</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> &eta; = &nu;&Sigma;<sub>f</sub>/&Sigma;<sub>a</sub>(fuel); since &Sigma;<sub>a</sub>(fuel) = &Sigma;<sub>f</sub> + &Sigma;<sub>c</sub>, &eta; &lt; &nu; whenever there is any parasitic capture in the fuel. Plugging &nu; into the four-factor formula where &eta; belongs overpredicts k. (C) &nu; is a nuclear property of the fissioning nuclide, not the moderator. (D) &eta; is typically well below 2.4 (e.g. ~1.33 for natural uranium).</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> A thermal lattice has &eta; = 1.80, f = 0.68, p = 0.92, &epsilon; = 1.02, P<sub>FNL</sub> = 0.98, and P<sub>TNL</sub> = 0.97. What is k<sub>eff</sub>?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> k<sub>eff</sub> &asymp; 1.149 (this is actually k<sub>inf</sub>, before leakage)</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> k<sub>eff</sub> &asymp; 1.224 (&eta;&middot;f alone)</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> k<sub>eff</sub> &asymp; 1.09</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> k<sub>eff</sub> &asymp; 0.92</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> k<sub>inf</sub> = &eta;&middot;f&middot;p&middot;&epsilon; = 1.80&times;0.68&times;0.92&times;1.02 &asymp; 1.1486. k<sub>eff</sub> = k<sub>inf</sub>&middot;P<sub>FNL</sub>&middot;P<sub>TNL</sub> = 1.1486&times;0.98&times;0.97 &asymp; 1.092. (A) stops at k<sub>inf</sub> and forgets leakage. (B) stops after only two of the four factors. (D) does not match the arithmetic.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> Inserting control rods into an operating core primarily lowers k<sub>eff</sub> by reducing which factor, and why?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> &epsilon;, because rods disrupt fast fission in U-238</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> &eta;, because rods change the fuel's reproduction factor</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> p, because rods interfere with resonance escape during slowing-down</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> f, because rods are strong thermal absorbers in non-fuel material that steal thermal neutrons away from the fuel</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Control rods are deliberately strong thermal-neutron absorbers, so they reduce the fraction of thermal absorptions that occur in the fuel — the thermal utilization factor f. (A) &epsilon; is set by lattice geometry, not control rods. (B) &eta; depends on fuel composition. (C) p is set during slowing-down, well before the already-thermal rod absorption occurs.</div>
+    </div>
+
+    <!-- ============ MODERATION & SLOWING-DOWN (Week 6) ============ -->
+    <div class="exam-sec">Neutron moderation &amp; slowing-down · Week 6</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>13.</span> Why are good neutron moderators made of light elements such as hydrogen, deuterium, or carbon?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> A neutron transfers a far larger fraction of its energy per collision with a nucleus of similar mass — the kinematic parameter &alpha; = ((A&minus;1)/(A+1))&sup2; shrinks toward 0 as A&rarr;1</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> Light nuclei have a larger neutron-absorption cross section than heavy nuclei</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> Light elements have a higher fission cross section than uranium</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> Heavy nuclei are physically incapable of scattering neutrons</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Elastic kinematics let a neutron lose up to (1&minus;&alpha;) of its energy per hit; &alpha;&rarr;0 as the target mass approaches the neutron's own mass, so hydrogen can absorb nearly all the energy in one collision. (B) good moderators must absorb little, not much. (C) moderators are not chosen for fission. (D) heavy nuclei do scatter, just with almost no energy transfer.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>14.</span> A moderator has average logarithmic energy loss &xi; = 0.20. How many collisions, approximately, does it take to slow a neutron from 1.0 MeV to 0.025 eV thermal (n &asymp; ln(E<sub>fast</sub>/E<sub>th</sub>)/&xi;)?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> About 18 collisions</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> About 88 collisions</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> About 115 collisions</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> About 175 collisions</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The lethargy gap is u = ln(1.0&times;10&#8310;/0.025) &asymp; 17.5; dividing by &xi; = 0.20 gives n &asymp; 87.5 &asymp; 88 collisions. (A) is the hydrogen-like count for a much larger &xi; (&asymp;0.92-1.0). (C) is the graphite count for &xi; &asymp; 0.158 from a 2 MeV start. (D) does not match this &xi; and energy range.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> What is the difference between a material's "moderating power" and its "moderating ratio"?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> They are two names for the identical quantity &xi;&Sigma;<sub>s</sub></span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> Moderating ratio applies only to heavy water, never to light water or graphite</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> Moderating power &xi;&Sigma;<sub>s</sub> measures raw slowing-down speed per cm; moderating ratio &xi;&Sigma;<sub>s</sub>/&Sigma;<sub>a</sub> measures slowing-down quality relative to absorption — a material can have high power yet a poor ratio if it also absorbs strongly</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> Moderating power already accounts fully for absorption, making the ratio redundant</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Light water has excellent moderating power (compact cores) but only a mediocre moderating ratio because hydrogen absorbs a non-trivial fraction of neutrons, which is exactly why light-water reactors need enriched fuel. (A) conflates two distinct figures of merit. (B) both quantities apply to any moderator. (D) is backwards — power ignores absorption entirely, which is why the ratio is needed.</div>
+    </div>
+
+    <!-- ============ MULTIGROUP METHODS (Week 7) ============ -->
+    <div class="exam-sec">Neutron energy spectra &amp; multigroup methods · Week 7</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> A multigroup "group constant" &Sigma;<sub>x,g</sub> is computed by averaging the continuous cross section &Sigma;<sub>x</sub>(E) over group g weighted by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> the physical volume of the reactor core</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> a simple unweighted arithmetic mean over the energy band</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> the coolant temperature at the group's energy boundary</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> the actual neutron flux &phi;(E), so that &Sigma;<sub>x,g</sub>&middot;&phi;<sub>g</sub> preserves the true reaction rate</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> &Sigma;<sub>x,g</sub> = &int;&Sigma;<sub>x</sub>(E)&phi;(E)dE / &int;&phi;(E)dE — flux-weighting is the only choice that reproduces the correct reaction rate when multiplied by the group flux. (A) and (C) are not the weighting variable for an energy collapse. (B) an unweighted mean ignores where the neutrons actually sit in energy and gives the wrong rate.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> In the standard two-group diffusion equations, how are thermal-group (group 2) neutrons created?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> Only by down-scattering of fast-group neutrons, &Sigma;<sub>s,1&rarr;2</sub>&phi;<sub>1</sub>, since all fission neutrons are born into the fast group</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> Directly by fission, since most fission neutrons are born thermal</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> By absorption events occurring in the fuel</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> By leakage of neutrons into the core from outside the boundary</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> With &chi;<sub>1</sub> = 1 (all fission neutrons born fast), the only source term on the right of the thermal-group equation is the down-scatter coupling &Sigma;<sub>s,1&rarr;2</sub>&phi;<sub>1</sub>. (B) is wrong — fission neutrons are born fast, not thermal. (C) absorption removes neutrons, it does not create them. (D) leakage is a loss mechanism at the boundary, not a thermal-group source.</div>
+    </div>
+
+    <!-- ============ REACTOR KINETICS (Week 8) ============ -->
+    <div class="exam-sec">Reactor kinetics &amp; delayed neutrons · Week 8</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> Why do delayed neutrons make a reactor controllable, when they are only about 0.65% of all fission neutrons for U-235?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> They absorb and cancel out the excess prompt neutrons</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> Their seconds-to-minutes precursor decay stretches the reactor's effective response time from the ~10&#8315;&#8308; s prompt generation time to the ~0.1 s precursor timescale — slow enough for mechanical control</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> Each delayed neutron carries far more energy than a prompt one, so fewer are needed</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> They are released only when a control rod is physically moved</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> As long as &rho; &lt; &beta;, the reactor's behavior is governed by the slow precursor-decay timescale (tens of seconds to minutes), not the brutally fast prompt generation time &Lambda;. (A) delayed neutrons cause fission like any other, they do not act as absorbers. (C) their count, not their energy, is what matters, and they are actually lower in energy on average. (D) precursor decay is independent of rod motion.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> A critical reactor receives a step reactivity insertion of &rho; = 0.0015, with &beta; = 0.0075. The prompt jump ratio n<sub>after</sub>/n<sub>before</sub> = &beta;/(&beta;&minus;&rho;) is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> 2.00</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> 0.80</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> 1.25</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> 1.50</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> &beta;/(&beta;&minus;&rho;) = 0.0075/(0.0075&minus;0.0015) = 0.0075/0.0060 = 1.25 — power jumps about 25% almost instantly, then rises more slowly on the precursor timescale. (A), (B), and (D) do not match this arithmetic.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> A reactor becomes "prompt critical" — power runs away on the millisecond, &Lambda;-limited timescale — at which reactivity value?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> &rho; = 0, the instant it first turns supercritical</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> &rho; = 1, when k formally becomes infinite</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> &rho; = &minus;&beta;, a negative dollar</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> &rho; = &beta; (one dollar), where prompt neutrons alone become sufficient to sustain and grow the chain</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> At &rho; = &beta; the prompt term (&rho;&minus;&beta;)/&Lambda; turns from negative to zero/positive, so the chain no longer needs any help from delayed neutrons — the response collapses to the ~10&#8315;&#8308; s prompt scale. (A) ordinary, controlled supercriticality starts at &rho; = 0, far below the danger line. (B) &rho; &rarr; 1 only as k &rarr; &infin;, which is unphysical. (C) a negative reactivity describes a subcritical, decaying reactor, the opposite situation.</div>
+    </div>
+
+    <!-- ============ REACTIVITY FEEDBACK & Xe/Sm/BURNUP (Week 9) ============ -->
+    <div class="exam-sec">Reactivity feedback, temperature coefficients &amp; the fuel cycle · Week 9</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>21.</span> As fuel temperature rises, what does Doppler broadening do to the U-238 absorption resonances, and why is the resulting feedback so fast?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> Resonances broaden and shorten; the broadened wings defeat self-shielding, raising net resonance capture and lowering k — acting within milliseconds because it lives directly in the fuel, with no heat-transfer delay</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> Resonances grow taller and narrower, which directly increases capture</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> Resonances vanish completely once the fuel is hot enough</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> The effect requires the coolant to reach boiling before it can act</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Thermal motion smears each resonance shorter and wider; the broadened wings reach energies that were previously shielded, so net capture rises and k falls — and because this happens in the fuel itself, it acts in milliseconds, long before any heat reaches the coolant. (B) gets the mechanism backwards (peaks shorten, not grow taller). (C) resonances broaden, they do not disappear. (D) Doppler feedback is independent of coolant boiling, which is the separate void-coefficient mechanism.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> What determines the sign of a reactor's void coefficient?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> It is always negative, regardless of reactor design</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> It is negative when water is the reactor's primary moderator (as in an LWR, where voiding removes moderation and hardens the spectrum); it can be positive if water mainly acts as an absorber alongside a separate solid moderator</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> It is always positive, regardless of reactor design</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> It is set entirely by the coolant's operating pressure</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> In a light-water reactor, water is the primary moderator, so boiling it away removes moderation and lowers k — a safe, negative void coefficient. But in a design where water mainly absorbs neutrons beside a separate solid moderator (e.g. graphite), losing water removes an absorber without losing moderation, and voiding can add reactivity — a dangerous, positive void coefficient. (A) and (C) ignore this crucial design dependence. (D) pressure is not the deciding factor.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> How does xenon-135's behavior after a reactor shutdown differ from samarium-149's?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> Both poisons behave identically, simply decaying away at the same rate after shutdown</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> Samarium-149 is the one that produces the "iodine pit," not xenon-135</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> Xe-135 concentration transiently RISES after shutdown (the iodine pit) as I-135 keeps decaying into fresh Xe-135 while its neutron-burnout term vanishes, then decays away over about a day; Sm-149 is stable and has no decay exit, so it simply accumulates and stays until burned off by neutrons</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> Xenon-135 is a stable nuclide just like samarium-149</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Xenon's story is a race between production, its own ~9.2 h beta decay, and neutron burnout; tripping the reactor kills the burnout term but I-135 keeps feeding fresh Xe-135, so the concentration overshoots before finally decaying. Samarium-149 is stable, so once formed it only grows (fed by Pm-149 decay) and is removed solely by neutron absorption at power — it never decays away on its own. (A) and (D) are directly false; (B) swaps the two nuclides' roles.</div>
+    </div>
+
+    <!-- ============ CAPSTONE: OpenMC (Week 10) ============ -->
+    <div class="exam-sec">Capstone: criticality in OpenMC · Week 10</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> In an OpenMC k-eigenvalue run, why must a number of "inactive" batches be discarded before scoring k<sub>eff</sub> and tallies?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> Simply to save computer memory on disk</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> OpenMC requires a fixed minimum of 20 batches as a hard-coded rule</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> To give the user time to redefine the geometry mid-run</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> To let the fission source distribution (tracked via its Shannon entropy) relax from the arbitrary initial guess to the converged fundamental mode before any batch is trusted</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Fission-source iteration starts from an arbitrary guess; scoring before the source's Shannon entropy has flattened lets that arbitrary starting shape bias both k<sub>eff</sub> and the flux tallies. (A) is not the physical reason. (B) there is no such universal hard-coded minimum — the right number depends on the problem. (C) geometry is fixed for the whole run, not redefined mid-simulation.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>25.</span> OpenMC's Monte Carlo statistical uncertainty on k<sub>eff</sub> scales as &sigma;<sub>k</sub> &sim; 1/&radic;N, where N is the total number of simulated neutron histories. To cut &sigma;<sub>k</sub> in half, you must…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> Run about four times as many particle-histories (batches &times; particles-per-batch)</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> Run exactly twice as many particle-histories</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> Run half as many particle-histories</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> Keep N the same but change only the random number seed</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Since &sigma;<sub>k</sub> &prop; 1/&radic;N, halving &sigma;<sub>k</sub> requires N to increase by a factor of (2)&sup2; = 4. (B) doubling N only shrinks &sigma;<sub>k</sub> by &radic;2 &asymp; 1.41&times;, not 2&times;. (C) running fewer histories makes the uncertainty worse, not better. (D) a different seed resamples the same noise level; it does not reduce it systematically.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C2 Syllabus</div></a>
+        <a href="../lectures/l01-neutron-transport.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Reactor Physics</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

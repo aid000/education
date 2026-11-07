@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Final Exam — Nuclear Plant Ops &amp; Safety</title>
+    <style>
+        :root {
+            --bg: #0a140e; --surface: #122017; --surface2: #1a2c20; --border: #24382b;
+            --text: #e8f4ec; --text2: #94b8a2; --accent: #34d399; --accent2: #6ee7b7;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #11271b 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Nuclear</a> / <a href="../index.html">C5 Ops &amp; Safety</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C5 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from plant operations to the capstone transient analysis.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted across the course:</span>
+            <span class="wchip">Operations <b>2</b></span>
+            <span class="wchip">Reactivity &amp; limits <b>3</b></span>
+            <span class="wchip">Defense-in-depth <b>2</b></span>
+            <span class="wchip">LOCA / 10 CFR 50.46 <b>3</b></span>
+            <span class="wchip">ECCS <b>3</b></span>
+            <span class="wchip">Decay heat / LOFA <b>3</b></span>
+            <span class="wchip">PRA <b>3</b></span>
+            <span class="wchip">Severe accidents <b>2</b></span>
+            <span class="wchip">Radiation &amp; waste <b>2</b></span>
+            <span class="wchip">Capstone transient <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ PLANT OPERATIONS (Week 1) ============ -->
+    <div class="exam-sec">Plant Operations · Week 1</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> During approach to criticality, operators withdraw control rods in small steps and plot 1/M (inverse count-rate ratio) after each step. If 1/M keeps trending toward zero in a controlled, predictable way with each step, that indicates the core is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> Still subcritical, approaching criticality as predicted — exactly the safe, controlled picture</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> Already supercritical and power is diverging</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> Shut down permanently and rods should be driven back in</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> Unaffected by rod position</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A smooth, predictable 1/M trend toward zero is the expected signature of a subcritical core approaching k = 1 in a controlled way — the whole point of the 1/M method is to extrapolate safely without ever actually reaching criticality uncontrolled.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>2.</span> A reactor is to "load follow" — reduce power smoothly as grid demand drops overnight. The self-regulating feedback that lets fuel and coolant temperature settle at a new steady state without the operator constantly chasing power is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> A positive temperature coefficient of reactivity</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> A negative temperature coefficient of reactivity</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> The shutdown margin</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> The boron letdown system</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A negative temperature coefficient means a power rise heats the core, which removes reactivity, damping the rise — the self-correcting feedback behind load-following. A positive coefficient would do the opposite and is not tolerated in the normal operating range.</div>
+    </div>
+
+    <!-- ============ REACTIVITY & OPERATIONAL LIMITS (Week 2) ============ -->
+    <div class="exam-sec">Reactivity &amp; Operational Limits · Week 2</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> A power-level automatic reactor trip (the LSSS) is set at 118% of rated power. The TRUE Safety Limit for this same parameter (e.g. minimum DNBR or fuel-centerline melt) is located…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> At exactly 118%, the same value as the trip</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> Below the LSSS trip setpoint — the trip occurs after the Safety Limit</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> Above the LSSS trip setpoint — the automatic trip acts first, with margin to spare</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> There is no such thing as a Safety Limit distinct from the LSSS</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The LSSS is the automatic trip setpoint, deliberately set with margin below the true Safety Limit so the protection system scrams the reactor well before DNBR or fuel-centerline melt could ever be reached. (A) and (B) confuse the two layers; (D) ignores the whole point of the layered hierarchy.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> As a reactor is brought from cold, zero-power conditions up to full power, the net reactivity change from fuel and moderator heating (the power/temperature defect) in a well-designed LWR is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> Positive — heating adds reactivity</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> Exactly zero by design</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> Positive at low power, negative at high power</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> Negative — heating removes reactivity, a safety-critical negative feedback</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Doppler broadening in the fuel and moderator expansion/density reduction both remove reactivity as temperature rises — the negative power coefficient that makes a reactor inherently self-stabilizing. A positive defect would create runaway feedback and is not permitted in the operating range.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> The "iodine pit" — a transient rise in xenon-135 concentration ABOVE its prior equilibrium value — occurs because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> Iodine-135 keeps decaying into xenon-135 after a power reduction or trip, even though the fission source that made new iodine has dropped</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> Xenon production increases sharply right after a reactor trip</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> Xenon-135 is created directly by control-rod insertion</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> It is simply the normal buildup of xenon during a fresh, xenon-free startup</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> After a trip or power cut, fission (and new iodine production) drops toward zero, but the large existing iodine-135 inventory keeps decaying into xenon-135 for hours, pushing xenon temporarily above its pre-trip equilibrium before it falls back. (D) describes an unrelated, genuine startup transient — xenon building from zero, not overshooting equilibrium.</div>
+    </div>
+
+    <!-- ============ DEFENSE-IN-DEPTH (Week 3) ============ -->
+    <div class="exam-sec">Defense-in-Depth · Week 3</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>6.</span> A 3000 MW-thermal reactor scrams. Using P/P<sub>0</sub> &asymp; 0.066&middot;t<sup>(-0.2)</sup> (valid once the reactor has run a long time), the decay heat approximately ONE HOUR (3600 s) after shutdown is closest to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> 200 MW</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> 38 MW</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> 20 MW</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> 6 MW</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> 0.066 &times; 3600<sup>-0.2</sup> &asymp; 1.28%, so P<sub>decay</sub> &asymp; 0.0128 &times; 3000 MW &asymp; 38 MW. (A) is the value right at scram (t &asymp; 1 s). (C) is actually closer to the 1-DAY value, a common mix-up. (D) underestimates by roughly a factor of 6.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> The defense-in-depth philosophy places multiple independent layers between radioactivity and the public because it assumes…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> No layer will ever fail, so redundancy is just insurance</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> Only the outermost layer (containment) actually matters</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> Individual layers will fail, so independent layers in series catch what the previous one missed</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> Low power operation eliminates the need for layers</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Defense-in-depth is built on the premise that no single barrier is trusted alone — each layer is assumed capable of failing, so independent layers are stacked so a failure in one is caught by the next.</div>
+    </div>
+
+    <!-- ============ DESIGN-BASIS LOCA & 10 CFR 50.46 (Week 4) ============ -->
+    <div class="exam-sec">Design-Basis LOCA &amp; 10 CFR 50.46 · Week 4</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>8.</span> Also under 10 CFR 50.46, the companion limit on local cladding oxidation is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> 17% of cladding thickness</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> 1% of cladding thickness</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> 50% of cladding thickness</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> No limit is specified</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> 10 CFR 50.46(b)(2) caps local cladding oxidation at 17% of the original thickness, alongside the 1204&nbsp;°C PCT limit and the core-wide hydrogen-generation limit of 1% of the hypothetical maximum — together keeping the cladding ductile enough to stay coolable.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>9.</span> In a large-break LOCA, peak cladding temperature is typically reached during which phase?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> Blowdown, in the first second</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> The refill phase, just before the reflood quench front rewets the rods</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> Long-term recirculation, days later</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> Normal full-power operation, before the break</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> During refill the core is poorly cooled (steam-blanketed) while decay heat keeps adding energy, so temperature peaks just before the reflood quench front arrives. (C) recirculation only handles the slowly-decaying long-term tail, well after the peak.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>10.</span> Under the NRC's 10 CFR 50.46, the peak cladding temperature acceptance limit for a design-basis LOCA is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> 800 °C (1472 °F)</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> 2800 °C (5072 °F)</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> 100 °C (212 °F)</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> 1204 °C (2200 °F)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> 10 CFR 50.46(b)(1) sets the PCT acceptance limit at 1204&nbsp;°C (2200&nbsp;°F) — well below where the zirconium-steam reaction and embrittlement would make the geometry uncoolable, with margin built in for licensing analysis.</div>
+    </div>
+
+    <!-- ============ ECCS (Week 5) ============ -->
+    <div class="exam-sec">Emergency Core Cooling Systems · Week 5</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> Compared with low-pressure injection (LPI), high-pressure injection (HPI) is designed to deliver…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> Low head and modest flow</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> The same head and flow as LPI</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> High head but modest flow</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> High head and very high flow</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> HPI trades flow for head — it can push water against a still-pressurized system but only at modest flow. LPI does the opposite: low head, very high flow, which is actually what refloods a large break.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> In a BWR, the Automatic Depressurization System (ADS) exists primarily to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> Replace the need for any core-spray system</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> Passively inject borated water the moment pressure drops, like a PWR accumulator</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> Provide the plant's only source of high-pressure injection</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> Forcibly vent steam to the suppression pool so vessel pressure falls enough for low-pressure ECCS to inject, when a small break would not depressurize the vessel on its own</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A BWR has no passive accumulators, so for a small break that would never blow the vessel down by itself, the ADS deliberately vents steam to force depressurization, letting LPCS/LPCI take over. (B) describes a PWR accumulator, which BWRs do not have.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>13.</span> The NRC's single-failure criterion, codified in 10 CFR 50 Appendix A (General Design Criteria, e.g. GDC 35 for ECCS), requires that a safety system…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> Perform its safety function even with the worst single active-component failure occurring on top of the accident</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> Never experience any component failure under any circumstance</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> Only needs one train, since redundancy is optional</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> Be exempt from single failures if the plant has a diesel generator</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The single-failure criterion is a design margin, not a claim of perfection: the plant must survive the design-basis accident plus the worst single active failure, which is why ECCS is built from redundant, independent trains.</div>
+    </div>
+
+    <!-- ============ DECAY HEAT & LOSS-OF-FLOW (Week 6) ============ -->
+    <div class="exam-sec">Decay Heat &amp; Loss-of-Flow · Week 6</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>14.</span> Decay heat after shutdown follows a smooth power-law decline rather than a single clean exponential because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> Only one isotope contributes to decay heat</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> It is the sum of thousands of fission-product decay chains, each with a different decay constant</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> The chain reaction has not actually stopped</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> Decay heat is constant in time</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Short-lived fission products burn off in seconds to minutes while long-lived ones linger for years; summing all those different decay constants produces a smooth power-law curve, not one clean exponential.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> Modern passive-safety plant designs advertise that they can remove decay heat with no AC power and no operator action, using gravity-fed water and natural circulation, for roughly…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> 30 minutes</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> 30 days</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> 72 hours</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> Indefinitely, with no further action ever needed</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The commonly advertised passive-plant grace period is about 72 hours — long enough to buy time to restore active cooling, but still finite, since passive capacity is fixed.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> A loss-of-flow accident (LOFA) is best described as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> A large pipe break that empties the reactor coolant system</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> A control-rod ejection event</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> A loss of electrical grid connection with no effect on cooling</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> A degradation or loss of forced coolant circulation (e.g. a pump trip) while decay heat continues to arrive</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A LOFA is about losing forced circulation (pump trip, bus failure) rather than losing coolant inventory (that's a LOCA) — the reactor trips on low flow, but decay heat still has to be carried off by coast-down flow or natural circulation.</div>
+    </div>
+
+    <!-- ============ PROBABILISTIC RISK ASSESSMENT (Week 7) ============ -->
+    <div class="exam-sec">Probabilistic Risk Assessment · Week 7</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> Core-damage frequency (CDF) is expressed in units of per reactor-year. The NRC's Safety Goal Policy Statement sets a benchmark around…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> 1e-4 per reactor-year</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> 1 per reactor-year</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> 1e-12 per reactor-year</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> 50 per reactor-year</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> "Fewer than one core-damage event expected per 10,000 reactor-years" is the NRC's roughly 1e-4/ry CDF benchmark; LERF carries a similar idea forward to offsite release, with its own benchmark around 1e-5/ry.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> Two redundant pumps are each 2.5% likely to fail; naive multiplication gives a combined failure probability of 0.0625%. This simple multiplication is undermined by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> The pumps being physically separated</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> Common-cause failure — a shared cause (miscalibration, a clogged shared strainer, a flood) that can disable both at once, violating the independence assumption</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> Adding a third, diverse train</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> Nothing — the multiplication is always exactly correct</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The AND-gate multiplication only holds if failures are truly independent. Common-cause failure defeats that assumption and is the dominant contributor to risk in most real PRAs precisely because it undermines redundancy.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> Stanley Kaplan framed probabilistic risk assessment around three questions. They are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> Who is responsible? Who pays? Who decides?</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> Is it legal? Is it cheap? Is it fast?</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> What can go wrong? How likely is it? What are the consequences?</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> What broke? When? Where?</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> PRA enumerates accident sequences (what can go wrong), attaches a frequency to each (how likely), and multiplies by consequence to get risk — the Kaplan risk triplet.</div>
+    </div>
+
+    <!-- ============ SEVERE ACCIDENTS (Week 8) ============ -->
+    <div class="exam-sec">Severe Accidents &amp; Lessons Learned · Week 8</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> At Three Mile Island, the component that stuck open and drained coolant while a misleading instrument led operators to throttle back emergency injection was…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> A main steam isolation valve</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> A control rod drive mechanism</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> The containment airlock</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> The pressurizer's PORV (Power-Operated Relief Valve)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A stuck-open PORV on top of the pressurizer drained coolant while ambiguous instrumentation led operators to throttle back ECCS, believing the system was too full — a human-machine-interface failure, not a containment failure (containment held).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>21.</span> A key reactor-physics factor that made the Chernobyl accident possible, and that modern operating licenses forbid in the normal operating range, was…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> A positive void coefficient — boiling coolant increased reactivity instead of decreasing it</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> A negative void coefficient</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> An absence of any fission products</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> Too much negative reactivity from control rods</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The RBMK's positive void coefficient meant boiling added reactivity rather than removing it — combined with a flawed control-rod design and no robust Western-style containment, this drove the prompt-critical excursion and the uncontained release.</div>
+    </div>
+
+    <!-- ============ RADIATION, WASTE & DECOMMISSIONING (Week 9) ============ -->
+    <div class="exam-sec">Radiation, Waste &amp; Decommissioning · Week 9</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> Under the NRC's 10 CFR 20, the occupational effective-dose limit for a radiation worker is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> 1 mSv/yr (100 mrem/yr)</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> 50 mSv/yr (5 rem/yr)</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> 500 mSv/yr (50 rem/yr)</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> 20 mSv/yr averaged over a lifetime, with no annual limit</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> 10 CFR 20.1201 sets the occupational whole-body effective-dose limit at 50 mSv/yr (5 rem/yr); the public dose limit under 10 CFR 20.1301 is far lower, at 1 mSv/yr (100 mrem/yr) — option (A). ALARA keeps actual doses far below either limit.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> Under the NRC's 10 CFR 61, low-level waste (LLW) is sorted into Classes A, B, and C, all of which may go to near-surface disposal. Waste exceeding the Class C limits — Greater-Than-Class-C (GTCC) — is handled differently because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> GTCC is actually less radioactive than Class A</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> GTCC can be released to the environment without monitoring</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> GTCC is not suitable for near-surface disposal and needs a deep geologic disposal facility instead, like high-level waste</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> GTCC is reclassified as ordinary trash</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> GTCC waste exceeds the Class C concentration limits entirely, so near-surface disposal (the pathway for Classes A/B/C) is not permitted — it requires a deep geologic facility, and by statute is the federal government's responsibility.</div>
+    </div>
+
+    <!-- ============ CAPSTONE TRANSIENT ANALYSIS (Week 10) ============ -->
+    <div class="exam-sec">Capstone: Transient Analysis · Week 10</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> The Way&ndash;Wigner decay-heat correlation used consistently throughout this course takes the form P(t)/P<sub>0</sub> = (prefactor) &times; [t<sup>(-0.2)</sup> &minus; (t+T<sub>0</sub>)<sup>(-0.2)</sup>]. The prefactor used consistently across this course is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> 0.0622</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> 1.00</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> 6.6</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> 0.066</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Every lecture in this course uses 0.066 as the Way&ndash;Wigner prefactor — giving ~6.6% of pre-trip power at 1 s, ~1.3% at 1 hour, and ~0.68% at 1 day. Using a different prefactor in one place and 0.066 elsewhere would make a course's own numbers contradict each other.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>25.</span> A capstone transient analysis predicts a peak cladding temperature T<sub>peak</sub> below the acceptance limit T<sub>limit</sub>. Professional licensing practice treats this positive margin as trustworthy chiefly because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> The margin is computed with intentionally stacked conservative/pessimistic assumptions (highest plausible decay heat, lowest plausible cooling), so the true plant is safer than the model</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> Margins are always rounded up for convenience</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> T<sub>limit</sub> is adjusted after the fact to guarantee a pass</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> Conservatism is unnecessary once a single calculation shows a positive number</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Real licensing analyses deliberately bias every input against themselves (worst single failure, lost offsite power, high peaking factors, high decay heat, low conductance) so that if even the pessimistic model shows positive margin, the actual plant is known to be safer still — that is what makes the margin defensible.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C5 Syllabus</div></a>
+        <a href="../lectures/l01-plant-operations.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Ops &amp; Safety</a> · <a href="../../index.html">Nuclear</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
