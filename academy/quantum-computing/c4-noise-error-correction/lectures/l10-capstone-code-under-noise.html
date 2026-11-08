@@ -140,13 +140,13 @@
         <h2><span class="n">10.1</span>What "Logical Error Rate Below Physical" Actually Means</h2>
         <p>Every previous lecture built one piece of this picture: Lecture 4 built the code, Lecture 7 told you <em>when</em> scaling a code should help, Lecture 8 gave you the real noise numbers to test it against. This lecture closes the loop by actually running the comparison: for a given <span class="key">physical</span> error rate p per qubit, does the repetition code's <span class="key">logical</span> error rate — the probability the 3-qubit block ends up decoded wrong after majority vote — come out lower than p itself?</p>
         <div class="eq">P_logical ≈ 3p²(1−p) + p³ &nbsp;&nbsp; (fails only if ≥2 of 3 qubits flip)<small>From Lecture 4 §4.4 — this is the exact quantity you'll now measure empirically rather than just derive.</small></div>
-        <p>The theoretical formula assumes independent, identically-distributed bit-flip errors — a simplification. Running a real noise model — gate depolarizing error, applied per-gate throughout the actual encode/syndrome/correct circuit, the simpler half of Lecture 8's full thermal-relaxation-plus-depolarizing model — tests whether that simplified picture survives contact with something closer to real hardware behavior. (Adding thermal relaxation on top is a natural extension if you want to push this further.)</p>
+        <p>The theoretical formula assumes each of the 3 data qubits independently has probability p of flipping during <em>storage</em> (the idle time between a perfect, noiseless encode and a perfect, noiseless syndrome extraction + correction) — a simplification of Lecture 8's full gate-noise picture, but the right simplification to actually test <em>this specific formula</em> against simulation. Running a real Aer noise model that injects exactly that — a probability-p bit-flip on each data qubit's idle period, nothing else — tests whether the simplified theory survives contact with a real stochastic simulator. (Adding gate noise to the encode/syndrome/correction circuitry itself, on top of this idle noise, is a natural extension if you want to push further — Lecture 8's full thermal-relaxation-plus-depolarizing model is exactly what you'd reach for.)</p>
     </section>
 
     <!-- 10.2 -->
     <section class="lec">
         <h2><span class="n">10.2</span>Guided Walkthrough: Repetition Code Meets Realistic Noise</h2>
-        <p>The plan: build the full Week-4 circuit (encode → syndrome → correct) with a depolarizing noise model attached to every gate, sweep the noise strength across several values, and plot logical vs. physical error rate on the same axes — reproducing Lecture 7's conceptual Fig 7.1, now with real simulated data instead of a cartoon curve.</p>
+        <p>The plan: build the full Week-4 circuit (encode → syndrome → correct), add an explicit idle period on the 3 data qubits between encode and syndrome extraction, attach a bit-flip noise channel to <em>only</em> that idle period, sweep the noise strength across several values, and plot logical vs. physical error rate on the same axes — reproducing Lecture 7's conceptual Fig 7.1, now with real simulated data instead of a cartoon curve.</p>
         <div class="fig">
             <svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
                 <style>.ax{stroke:#34204a;stroke-width:2;} .lbl3{font:600 12px sans-serif;fill:#b7a4d0;} .diag{stroke:#8a72b0;stroke-width:1.5;stroke-dasharray:4,4;} .logc{stroke:#34d399;stroke-width:2.5;fill:none;} .pt{fill:#34d399;}</style>
@@ -170,17 +170,18 @@
     <!-- HANDS ON -->
     <div class="hands">
         <h3>🛠️ Hands-On: logical vs. physical error rate sweep</h3>
-        <p style="font-size:.9rem; color:var(--text2);">Build the full encode/syndrome/correct circuit from Lecture 4, attach a Lecture-8-style depolarizing noise model to every gate, sweep the per-gate error rate, and compare the logical failure rate against the raw physical rate.</p>
+        <p style="font-size:.9rem; color:var(--text2);">Build the full encode/syndrome/correct circuit from Lecture 4, add an explicit idle step on the 3 data qubits right after encoding, attach a bit-flip noise channel to only that idle step (treating encode/syndrome/correction as fast and effectively noiseless by comparison — the standard simplifying assumption for a first pass), sweep the per-qubit idle flip probability, and compare the logical failure rate against the raw physical rate.</p>
         <pre><span class="c"># capstone_repetition_under_noise.py — Lecture 10</span>
 from qiskit import QuantumCircuit
 from qiskit_aer import AerSimulator
-from qiskit_aer.noise import NoiseModel, depolarizing_error
+from qiskit_aer.noise import NoiseModel, pauli_error
 
 def repetition_circuit():
     qc = QuantumCircuit(5, 5)         <span class="c"># 5 qubits (q0,q1,q2 data; q3,q4 ancilla), 5 classical bits (2 syndrome + 3 data)</span>
     creg = qc.cregs[0]
     qc.x(0)                           <span class="c"># logical |1>_L -- a definite target to check against</span>
     qc.cx(0, 1); qc.cx(0, 2)          <span class="c"># encode: |111></span>
+    qc.id(0); qc.id(1); qc.id(2)      <span class="c"># idle/storage period -- this is where the noise model below injects flips</span>
     qc.cx(0, 3); qc.cx(1, 3)          <span class="c"># syndrome S1 = Z0 Z1 -> ancilla q3</span>
     qc.cx(1, 4); qc.cx(2, 4)          <span class="c"># syndrome S2 = Z1 Z2 -> ancilla q4</span>
     qc.measure(3, 0); qc.measure(4, 1)   <span class="c"># c[0]=S1, c[1]=S2 -- the other 3 bits are still 0 here</span>
@@ -198,12 +199,12 @@ def repetition_circuit():
 def majority_vote(bits3):
     return '1' if bits3.count('1') >= 2 else '0'
 
-def run_sweep(p_values, shots=3000):
+def run_sweep(p_values, shots=20000):
     results = {}
     for p in p_values:
         nm = NoiseModel()
-        nm.add_all_qubit_quantum_error(depolarizing_error(p, 1), ['x'])
-        nm.add_all_qubit_quantum_error(depolarizing_error(p, 2), ['cx'])
+        idle_flip = pauli_error([('X', p), ('I', 1 - p)])   <span class="c"># exactly the theory's assumption: P(flip)=p per idle qubit</span>
+        nm.add_all_qubit_quantum_error(idle_flip, ['id'])    <span class="c"># noise ONLY on the idle gates -- encode/syndrome/correct stay ideal</span>
         sim = AerSimulator(noise_model=nm)
         qc = repetition_circuit()
         counts = sim.run(qc, shots=shots).result().get_counts()
@@ -215,12 +216,12 @@ def run_sweep(p_values, shots=3000):
         results[p] = logical_fails / shots
     return results
 
-p_values = [0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.35, 0.4]
+p_values = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6]
 logical_rates = run_sweep(p_values)
 for p, p_logical in logical_rates.items():
     print(f"physical p={p:.2f}   logical error rate={p_logical:.3f}   "
           f"{'code wins' if p_logical &lt; p else 'code loses'}")</pre>
-        <p style="font-size:.88rem; color:var(--text2);">At small p you should see "code wins" — the logical rate sitting below the physical rate, matching Lecture 4's 3p²(1−p)+p³ prediction fairly closely. As p climbs through the extended 0.3–0.4 tail added to the sweep above (consistent with the repetition code's own majority-vote breakeven, not the same number as Lecture 7's gate-level threshold — the repetition code's breakeven sits much higher than a real surface-code threshold since it's a much weaker code, and the extra CNOTs needed for syndrome extraction and correction push it lower than the idealized p=0.5 you'd get by ignoring circuit overhead entirely), expect "code loses" to start showing up — reproducing Fig 10.1's crossover directly from your own simulation.</p>
+        <p style="font-size:.88rem; color:var(--text2);">At small p you should see "code wins" — the logical rate sitting below the physical rate, matching Lecture 4's 3p²(1−p)+p³ prediction closely (because the idle-only noise model above is exactly what that formula assumes: one independent flip chance per data qubit, with everything else ideal). The break-even is exact algebra, not a simulation artifact: 3p²(1−p)+p³ < p rearranges to (2p−1)(p−1) > 0, which holds for p < 0.5 — so the sweep above is built to straddle p=0.5 and you should watch "code wins" flip to "code loses" right around there, reproducing Fig 10.1's crossover directly from your own simulation. That break-even is still far above the realistic gate-error thresholds (10⁻³–10⁻²) Lecture 7 quoted for genuinely scalable codes — this idealized, gate-noise-free version of the repetition code is an optimistic best case, and even it is a much weaker code than something like the surface code.</p>
     </div>
 
     <!-- 10.3 -->
