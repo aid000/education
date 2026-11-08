@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C4 · Lecture 6 — Stabilizer Formalism II: The Surface Code</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .disc { background: linear-gradient(135deg, #182238, #142138); border: 1px solid #2a4068; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .disc h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .disc p { font-size: .9rem; color: #c3d6ee; }
+        .disc .lbl { font-weight: 700; text-transform: uppercase; font-size: .7rem; letter-spacing: .5px; color: var(--blue); margin-bottom: 6px; display: block; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C4 Noise &amp; QEC</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>Stabilizer Formalism II: The Surface Code</h1>
+        <p class="sub">The repetition code catches bit flips and nothing else. The surface code catches both bit flips and phase flips at once — by arranging qubits on a 2D grid instead of a line.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why a code needs both X-type and Z-type stabilizers to catch both bit-flip and phase-flip errors.</li>
+            <li>Describe the surface code's layout: data qubits on a 2D lattice, stabilizers on plaquettes (faces) and vertices.</li>
+            <li>Identify which stabilizer type (X-type or Z-type) detects which error type (Z or X) and why.</li>
+            <li>Describe, qualitatively, the trade-off between lattice size (physical qubits) and logical error rate.</li>
+            <li>Read a small surface-code patch's stabilizer generators as Pauli strings.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>The Gap the Repetition Code Left Open</h2>
+        <p>Lecture 4 built a code that handles bit-flip (X) errors well but is completely blind to phase-flip (Z) errors — its stabilizers (Z₁Z₂, Z₂Z₃, from Lecture 5) are built entirely out of Z operators, so they only ever detect disagreements that a Z error would never cause. You could build a mirror-image code with X-type stabilizers that catches phase flips but goes blind to bit flips — but real noise (recall Lecture 2's depolarizing channel) can do both. You need a single code that watches for both at once.</p>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>The Surface Code: Data Qubits on a 2D Lattice</h2>
+        <p>The <span class="key">surface code</span> solves this by moving from a 1D line of qubits to a 2D grid. Data qubits sit on the <em>edges</em> of the lattice; each interior <em>vertex</em> hosts a Z-type stabilizer (the product of Z on all edges touching that vertex), and each interior <em>face</em> (plaquette) hosts an X-type stabilizer (the product of X on all edges bordering that face):</p>
+        <div class="eq">vertex stabilizer: Z_a Z_b Z_c Z_d &nbsp;&nbsp; plaquette stabilizer: X_e X_f X_g X_h<small>Each stabilizer touches only the 4 data qubits immediately around it — "local" checks, which matters enormously for real hardware where only nearby qubits can interact.</small></div>
+        <p>Crucially, the two stabilizer types always overlap each other in an even number of qubits (a vertex and an adjacent face share exactly 2 edges), which is exactly what makes a Z-type and an X-type stabilizer commute — a non-negotiable requirement for them to be simultaneously measurable without disturbing each other's outcome.</p>
+        <div class="fig">
+            <svg viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg">
+                <style>.gl{stroke:#34204a;stroke-width:2;} .dq{fill:#c4b5fd;} .vt{fill:#60a5fa; opacity:.85;} .pl{fill:#f87171; opacity:.22; stroke:#f87171; stroke-width:1.5;} .lb{font:700 11px sans-serif; fill:#b7a4d0; text-anchor:middle;}</style>
+                <!-- grid lines (3x3 vertices) -->
+                <g class="gl">
+                    <line x1="60" y1="60" x2="360" y2="60"/>
+                    <line x1="60" y1="210" x2="360" y2="210"/>
+                    <line x1="60" y1="360" x2="360" y2="360"/>
+                    <line x1="60" y1="60" x2="60" y2="360"/>
+                    <line x1="210" y1="60" x2="210" y2="360"/>
+                    <line x1="360" y1="60" x2="360" y2="360"/>
+                </g>
+                <!-- X-type plaquette highlight (top-left face) -->
+                <rect class="pl" x="60" y="60" width="150" height="150"/>
+                <text class="lb" x="135" y="145" fill="#f87171">X·X·X·X</text>
+                <text class="lb" x="135" y="160" fill="#f87171">plaquette</text>
+                <!-- Z-type vertex highlight (center vertex) -->
+                <circle class="vt" cx="210" cy="210" r="10"/>
+                <text class="lb" x="255" y="205" fill="#60a5fa">Z·Z·Z·Z</text>
+                <text class="lb" x="255" y="220" fill="#60a5fa">vertex</text>
+                <!-- data qubits on edge midpoints -->
+                <circle class="dq" cx="135" cy="60" r="6"/><circle class="dq" cx="285" cy="60" r="6"/>
+                <circle class="dq" cx="135" cy="210" r="6"/><circle class="dq" cx="285" cy="210" r="6"/>
+                <circle class="dq" cx="135" cy="360" r="6"/><circle class="dq" cx="285" cy="360" r="6"/>
+                <circle class="dq" cx="60" cy="135" r="6"/><circle class="dq" cx="60" cy="285" r="6"/>
+                <circle class="dq" cx="210" cy="135" r="6"/><circle class="dq" cx="210" cy="285" r="6"/>
+                <circle class="dq" cx="360" cy="135" r="6"/><circle class="dq" cx="360" cy="285" r="6"/>
+                <text class="lb" x="210" y="395" fill="#c4b5fd">● data qubit (on each edge)</text>
+            </svg>
+            <figcaption>Fig 6.1 — A small patch of the surface code. Data qubits (violet) sit on lattice edges. A Z-type stabilizer (blue) checks the 4 edges touching a vertex; an X-type stabilizer (red) checks the 4 edges bordering a face. Every edge sits inside exactly one vertex check and one face check, so a single data-qubit error always trips at least one stabilizer of each relevant type.</figcaption>
+        </div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>Why This Catches Both Error Types</h2>
+        <p>A bit-flip (X) error on a data qubit anticommutes with the Z-type vertex checks touching it, flipping their measured eigenvalue from +1 to −1 — exactly the Lecture-5 mechanism, just arranged on a 2D grid instead of a line. A phase-flip (Z) error anticommutes with the X-type plaquette checks instead, flipping <em>those</em> eigenvalues. Because the lattice has both stabilizer types everywhere, <strong>every</strong> single-qubit error — X, Z, or both at once (a Y error) — trips at least one type of check, somewhere.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the repetition code as a single tripwire line that only catches someone moving north-south. The surface code lays tripwires in <em>both</em> directions across a grid — one set catches north-south movement (X errors), the other catches east-west movement (Z errors) — so no single intruder direction slips through both nets at once.</div>
+    </section>
+
+    <!-- 6.4 -->
+    <section class="lec">
+        <h2><span class="n">6.4</span>The Trade-Off: More Qubits, Lower Logical Error Rate</h2>
+        <p>The surface code's power scales with its size: a larger lattice (more rows and columns, hence more physical data qubits per encoded logical qubit) suppresses the logical error rate further, because an undetected logical error now requires a whole <em>chain</em> of physical errors to sneak across the lattice without tripping any stabilizer along the way — and longer chains are exponentially less likely as the lattice grows. This qualitative trade-off — pay with more physical qubits, get exponentially better logical protection — is the seed of Week 7's threshold theorem, and it's also this week's discussion prompt below.</p>
+    </section>
+
+    <!-- DISCUSSION 2 -->
+    <div class="disc">
+        <h3>💬 Discussion 2 — due this week</h3>
+        <span class="lbl">Prompt</span>
+        <p>The surface code buys lower logical error rates by burning far more physical qubits per logical qubit than the repetition code did. Why is that trade worth it for an algorithm that genuinely needs fault tolerance — and where, realistically, does it stop being worth it on near-term hardware? Post your answer in this week's discussion thread.</p>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: reading off a small patch's stabilizers</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Keeping this conceptual (per this week's scope — no full lattice simulation or decoder yet), just enumerate the stabilizer generators of the tiny 3×3-vertex patch in Fig 6.1 as Pauli strings over its 12 data qubits (labeled d0–d11 by edge position), and sanity-check that each pair of adjacent X-type and Z-type stabilizers shares an even number of qubits — the commutation condition from §6.2.</p>
+        <pre><span class="c"># surface_patch_stabilizers.py — Lecture 6 (conceptual, no circuit execution)</span>
+<span class="c"># 12 data qubits on the edges of a 3x3-vertex, 2x2-face patch (Fig 6.1)</span>
+vertex_stabilizers = {
+    "top-left vertex":  "Z0 Z4",         <span class="c"># corner vertex: only 2 edges meet here</span>
+    "center vertex":    "Z4 Z5 Z8 Z9",   <span class="c"># interior vertex: all 4 edges present</span>
+}
+plaquette_stabilizers = {
+    "top-left face":    "X4 X5 X10 X11",
+    "top-right face":   "X1 X2 X7 X9",
+}
+
+<span class="c"># overlap check: center vertex (Z4,Z5,Z8,Z9) vs top-left face (X4,X5,X10,X11)</span>
+shared = set("Z4 Z5 Z8 Z9".replace("Z","").split()) & set("X4 X5 X10 X11".replace("X","").split())
+print("shared qubit indices:", shared, " -> even overlap (2 qubits) keeps them commuting")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The real surface-code decoder (matching up a whole pattern of triggered stabilizers to the most likely error chain) is well beyond this introductory course's scope — the goal here is just the picture: local X- and Z-type checks tiling a 2D lattice, together catching every single-qubit error type.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have the conceptual picture of a code that catches everything the repetition code missed. Week 7 asks the scaling question directly: if you keep growing the surface code's lattice, does the logical error rate actually keep dropping forever, or is there a point past which more qubits stop helping? That's the threshold theorem.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The repetition code (Lecture 4) is blind to phase-flip errors because its stabilizers are…</div>
+            <div class="opt"><b>A.</b> too few in number</div>
+            <div class="opt"><b>B.</b> measured too rarely</div>
+            <div class="opt"><b>C.</b> built from X operators only</div>
+            <div class="opt"><b>D.</b> built entirely from Z operators, which never detect a phase (Z) error</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Z-type stabilizers only flag disagreements in the computational basis, which a Z error never produces — exactly why a single error type needs a matching stabilizer type to be caught.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In the surface code, data qubits sit on…</div>
+            <div class="opt"><b>A.</b> the edges of a 2D lattice, with vertex and plaquette stabilizers surrounding them</div>
+            <div class="opt"><b>B.</b> a single 1D line, exactly like the repetition code</div>
+            <div class="opt"><b>C.</b> only the corners of the lattice</div>
+            <div class="opt"><b>D.</b> ancilla qubits exclusively</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Data qubits live on lattice edges; each vertex hosts a Z-type stabilizer over its surrounding edges, and each face hosts an X-type stabilizer over its bordering edges.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A phase-flip (Z) error on a data qubit is detected by…</div>
+            <div class="opt"><b>A.</b> neither stabilizer type — surface codes can't catch Z errors either</div>
+            <div class="opt"><b>B.</b> the vertex (Z-type) stabilizers</div>
+            <div class="opt"><b>C.</b> a classical parity check outside the lattice</div>
+            <div class="opt"><b>D.</b> the plaquette (X-type) stabilizers, since a Z error anticommutes with X-type checks</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> X-type plaquette stabilizers flip sign when they overlap a Z error, exactly mirroring how Z-type vertex stabilizers flag X errors.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Growing the surface code's lattice (more physical qubits per logical qubit) has what qualitative effect?</div>
+            <div class="opt"><b>A.</b> It suppresses the logical error rate further, since an undetected error now requires a longer, less-likely chain of physical errors</div>
+            <div class="opt"><b>B.</b> It has no effect on the logical error rate</div>
+            <div class="opt"><b>C.</b> It increases the logical error rate</div>
+            <div class="opt"><b>D.</b> It removes the need for any stabilizer measurement</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A larger lattice makes it exponentially less likely for a chain of physical errors to sneak across undetected — more physical qubits buys better logical protection, at a real hardware cost.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Adjacent X-type and Z-type stabilizers in the surface code must share an even number of qubits because…</div>
+            <div class="opt"><b>A.</b> an odd overlap would make the two stabilizers fail to commute, which breaks simultaneous measurement</div>
+            <div class="opt"><b>B.</b> odd numbers are forbidden in quantum mechanics</div>
+            <div class="opt"><b>C.</b> it has no physical significance, it's just a convention</div>
+            <div class="opt"><b>D.</b> it ensures every data qubit is measured directly</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Pauli operators anticommute on each shared qubit; an even number of shared qubits means an even number of anticommutations, which multiply out to an overall commuting pair — exactly what's needed to measure both without disturbing the other's outcome.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Identified the gap left open by the repetition code: blindness to <b>phase-flip</b> errors.</li>
+            <li>Described the <b>surface code's</b> 2D lattice layout: data qubits on edges, Z-type stabilizers on vertices, X-type stabilizers on plaquettes.</li>
+            <li>Explained why X errors trip vertex checks and Z errors trip plaquette checks — catching <b>both</b> error types at once.</li>
+            <li>Described the qualitative trade-off: more physical qubits per logical qubit buys an exponentially lower logical error rate.</li>
+            <li>Read a small lattice patch's stabilizer generators as Pauli strings and verified the even-overlap commutation condition.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: the threshold theorem — the precise statement of when scaling up a code actually helps, and the realistic thresholds today's hardware is trying to clear.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-stabilizer-formalism-groups-generators.html"><div class="dir">← Week 5</div><div class="ttl">Stabilizer Formalism I: Groups &amp; Generators</div></a>
+        <a class="next" href="l07-fault-tolerance-threshold-theorem.html"><div class="dir">Week 7 →</div><div class="ttl">Fault Tolerance &amp; the Threshold Theorem</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Noise &amp; QEC</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

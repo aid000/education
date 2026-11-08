@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C5 · Lecture 4 — VQE II: Expectation Values &amp; the Optimization Loop</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .proj { background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.28); border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; color: #bdeed4; }
+        .proj .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; color: var(--green); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C5 Variational &amp; Hybrid</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>VQE II: Expectation Values &amp; the Optimization Loop</h1>
+        <p class="sub">Lecture 3's toy Hamiltonian had one Pauli term. Every real molecule's Hamiltonian has several — and a quantum device can't measure a sum directly. This week fills in the practical detail that's usually glossed over.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why a real device must measure each Pauli term of H = Σᵢ cᵢPᵢ <em>separately</em>, not all at once.</li>
+            <li>Describe the basis-rotation trick needed to measure X and Y terms using a Z-basis measurement device.</li>
+            <li>Walk the complete VQE loop: prepare → measure each term → combine into ⟨H⟩ → classical update → repeat.</li>
+            <li>Work through measuring H = Z₀ + X₀X₁ term by term for a specific ansatz state.</li>
+            <li>Build and run that 2-term VQE loop in PennyLane for a few optimization steps.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>Why You Can't Just "Measure H"</h2>
+        <p>Lecture 3 wrote ⟨H⟩ as a single number without dwelling on how a real circuit produces it. Here's the detail: a quantum device's native measurement is in the <strong>Z basis</strong> — it tells you, per qubit, whether the outcome was |0⟩ or |1⟩. If H = Σᵢ cᵢPᵢ is a sum of several different Pauli strings, there's no single circuit measurement that reads off all of them simultaneously, because different Pᵢ terms generally don't commute with each other.</p>
+        <div class="eq">H = Σᵢ cᵢ Pᵢ&nbsp;&nbsp;&nbsp; ⟨H⟩ = Σᵢ cᵢ ⟨Pᵢ⟩<small>Expectation value is linear, so ⟨H⟩ is just the weighted sum of each term's own expectation value — but each ⟨Pᵢ⟩ must be measured in its own separate run of the circuit.</small></div>
+        <p>The practical recipe: for each Pauli term Pᵢ, prepare |ψ(θ)⟩ fresh, measure ⟨Pᵢ⟩ (many shots, same θ), record the result, then move to the next term. Once you have every ⟨Pᵢ⟩, combine them with their coefficients cᵢ to get ⟨H⟩. This is more circuit runs per optimization step than Lecture 3's one-term toy suggested — a real cost that scales with how many Pauli terms your Hamiltonian has.</p>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Measuring X and Y Terms: Basis Rotation</h2>
+        <p>There's one more wrinkle. A Z-basis measurement directly reads out ⟨Z⟩-type terms, but what about a term like X₀ or Y₁ Z₂? The trick: rotate the qubit <em>before</em> measuring so that the thing you want to know about gets mapped onto the Z axis, then measure in the (now native) Z basis.</p>
+        <ul style="margin-left:18px; font-size:.96rem; margin-bottom:14px;">
+            <li style="margin-bottom:8px;"><strong>To measure ⟨X⟩</strong>: apply a Hadamard gate, then measure in the Z basis. H maps the X-eigenstates to the Z-eigenstates, so the Z-basis outcome now reports what the X-basis outcome would have been.</li>
+            <li style="margin-bottom:8px;"><strong>To measure ⟨Y⟩</strong>: apply a slightly different single-qubit rotation (equivalent to H composed with a phase gate) before the Z-basis measurement, for the same reason.</li>
+            <li><strong>To measure ⟨Z⟩</strong>: no rotation needed — it's already native.</li>
+        </ul>
+        <p>For a multi-qubit Pauli string like X₀X₁, apply the X-basis rotation independently to each qubit it touches before measuring both in the Z basis, then multiply together the ±1 outcomes per shot. This basis-rotation step is exactly why real VQE implementations group and tag Pauli terms by which basis rotation they need — it's bookkeeping, but it's essential bookkeeping that the toy one-term example from Lecture 3 let you skip entirely.</p>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>The Full VQE Loop</h2>
+        <p>Putting everything from Lectures 1–4 together, here is VQE's actual loop, run once per optimizer iteration:</p>
+        <div class="eq">1) prepare |ψ(θ)⟩&nbsp; → &nbsp;2) measure each ⟨Pᵢ⟩ (with basis rotation as needed) &nbsp;→ &nbsp;3) combine into ⟨H⟩=Σᵢcᵢ⟨Pᵢ⟩ &nbsp;→ &nbsp;4) classical optimizer proposes new θ &nbsp;→ &nbsp;repeat<small>Steps 1–2 happen on the quantum device (possibly several circuit runs per iteration, one per distinct Pauli term); steps 3–4 happen entirely on a classical computer.</small></div>
+        <p>This is identical in spirit to Lecture 1's four-step loop — the only new content is that "measure the cost" (step 2 there) now fans out into several separate quantum measurements before being recombined classically in step 3. PennyLane, as you'll see in the hands-on below, hides most of this bookkeeping behind a single <code>qml.ops.LinearCombination</code> object (the modern name for what older PennyLane code calls <code>qml.Hamiltonian</code>, now deprecated) — but you should now know exactly what it's doing underneath.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Assuming a Hamiltonian with k Pauli terms costs the same to measure as a 1-term Hamiltonian. It doesn't — naively, you need a separate set of circuit shots per distinct term (per distinct required basis rotation), so the measurement cost of VQE scales with how many terms the qubit-mapped Hamiltonian has, not just with qubit count.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — measuring H = Z₀ + X₀X₁ term by term</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Take a 2-qubit Hamiltonian H = Z₀ + X₀X₁ and a trial state |ψ⟩ = (|00⟩+|11⟩)/√2 (a Bell state). Find ⟨H⟩ by measuring each term separately.</p>
+        <ol>
+            <li><strong>Term 1, ⟨Z₀⟩:</strong> measuring qubit 0 in the Z basis on this state gives |0⟩ half the time (+1) and |1⟩ half the time (−1), so ⟨Z₀⟩ = ½(+1) + ½(−1) = 0.</li>
+            <li><strong>Term 2, ⟨X₀X₁⟩:</strong> rotate both qubits into the X measurement basis (Hadamard on each), then measure in Z. For this Bell state, the two qubits' X-basis outcomes are perfectly correlated, giving ⟨X₀X₁⟩ = 1.</li>
+            <li><strong>Combine:</strong> ⟨H⟩ = ⟨Z₀⟩ + ⟨X₀X₁⟩ = 0 + 1 = 1.</li>
+        </ol>
+        <div class="eq" style="margin:8px 0 10px;">⟨H⟩ = ⟨Z₀⟩ + ⟨X₀X₁⟩ = 0 + 1 = 1<small>Two separate measurement settings were required — one native Z-basis run for the Z₀ term, one Hadamard-rotated run for the X₀X₁ term — then combined classically.</small></div>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a real 2-term VQE loop in PennyLane</h3>
+        <p style="font-size:.9rem; color:var(--text2);">PennyLane's <code>qml.ops.LinearCombination</code> (the current, non-deprecated replacement for <code>qml.Hamiltonian</code>) handles the term-by-term measurement and basis rotation under the hood. Build H = Z₀ + X₀X₁, attach a small 2-qubit ansatz, and run a few real optimization steps toward whatever ground state this toy Hamiltonian has.</p>
+        <pre><span class="c"># vqe_two_term.py — Lecture 4</span>
+import pennylane as qml
+from pennylane import numpy as np
+
+<span class="c"># qml.ops.LinearCombination is current PennyLane's replacement for the deprecated qml.Hamiltonian</span>
+H = qml.ops.LinearCombination([1.0, 1.0], [qml.PauliZ(0), qml.PauliX(0) @ qml.PauliX(1)])
+
+dev = qml.device("default.qubit", wires=2)
+
+@qml.qnode(dev)
+def cost(params):
+    qml.RY(params[0], wires=0)
+    qml.RY(params[1], wires=1)
+    qml.CNOT(wires=[0, 1])
+    return qml.expval(H)                     <span class="c"># PennyLane measures each Pauli term and sums for you</span>
+
+params = np.array([0.4, 0.9], requires_grad=True)
+opt = qml.GradientDescentOptimizer(stepsize=0.3)
+
+print(f"start:  params={params}  &lt;H&gt;={cost(params):.4f}")
+for step in range(10):
+    params = opt.step(cost, params)
+    print(f"step {step+1}:  params={np.round(params, 3)}  &lt;H&gt;={cost(params):.4f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Watch ⟨H⟩ fall step by step. Behind <code>qml.expval(H)</code>, PennyLane is running the exact term-by-term, basis-rotated measurement recipe from §4.1–4.2 — you're just no longer doing the bookkeeping by hand.</p>
+    </div>
+
+    <div class="proj"><span class="lbl">🛠️ Project Checkpoint — Week 4</span>By now your project's ansatz and cost function (VQE track: a real or toy molecular Hamiltonian; QAOA track: preview Weeks 6–7 first) should be <strong>built and running</strong> — even if the optimization hasn't converged yet. That's Week 8's checkpoint. This week's bar is just: circuit built, Hamiltonian defined, cost function returning numbers.</div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have VQE's complete machinery: ansatz, Hamiltonian, term-by-term measurement, and classical loop. The natural next question is whether this machinery actually <em>scales</em> — and Week 5's answer is sobering: as circuits and parameter counts grow, the gradient-based descent you just watched work can flatten out almost everywhere, a phenomenon called barren plateaus.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Why can't a quantum device measure ⟨H⟩ for H = Σᵢ cᵢPᵢ in one single measurement setting?</div>
+            <div class="opt"><b>A.</b> Because the different Pauli terms generally don't commute and need different measurement bases, so each must be measured in its own circuit run</div>
+            <div class="opt"><b>B.</b> Because quantum devices cannot measure sums of operators under any circumstances</div>
+            <div class="opt"><b>C.</b> Because H must first be diagonalized by hand</div>
+            <div class="opt"><b>D.</b> Because classical computers cannot add numbers together</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Each Pauli term may need its own basis rotation before the native Z-basis measurement, so distinct terms generally require separate circuit runs.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> To measure ⟨X⟩ on a device whose native measurement is the Z basis, you should…</div>
+            <div class="opt"><b>A.</b> Apply a Hadamard gate before measuring in the Z basis</div>
+            <div class="opt"><b>B.</b> Apply nothing — X is already native</div>
+            <div class="opt"><b>C.</b> Apply a CNOT gate before measuring</div>
+            <div class="opt"><b>D.</b> Measure twice and average</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> A Hadamard rotates the X-eigenbasis onto the Z-eigenbasis, so the subsequent native Z-basis measurement reports the X-basis outcome.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In the full VQE loop, which steps happen on the quantum device versus the classical computer?</div>
+            <div class="opt"><b>A.</b> Everything happens on the quantum device</div>
+            <div class="opt"><b>B.</b> Preparing |ψ(θ)⟩ and measuring each ⟨Pᵢ⟩ happen on the quantum device; combining into ⟨H⟩ and proposing new θ happen classically</div>
+            <div class="opt"><b>C.</b> Everything happens on the classical computer</div>
+            <div class="opt"><b>D.</b> The quantum device proposes new θ values directly</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The quantum/classical split from Lecture 1 is unchanged — only the "measure the cost" step now fans out into several Pauli-term measurements before classical recombination.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For H = Z₀ + X₀X₁ on the Bell state (|00⟩+|11⟩)/√2, the worked example found ⟨H⟩ equals…</div>
+            <div class="opt"><b>A.</b> 0</div>
+            <div class="opt"><b>B.</b> 1</div>
+            <div class="opt"><b>C.</b> 2</div>
+            <div class="opt"><b>D.</b> −1</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> ⟨Z₀⟩ = 0 and ⟨X₀X₁⟩ = 1 on this Bell state, so ⟨H⟩ = 0 + 1 = 1.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the PennyLane hands-on code, what is doing the term-by-term basis-rotated measurement work from §4.1–4.2 under the hood?</div>
+            <div class="opt"><b>A.</b> <code>qml.GradientDescentOptimizer</code></div>
+            <div class="opt"><b>B.</b> <code>qml.CNOT(wires=[0, 1])</code></div>
+            <div class="opt"><b>C.</b> <code>np.array(...)</code></div>
+            <div class="opt"><b>D.</b> <code>qml.expval(H)</code>, where <code>H</code> is a <code>qml.ops.LinearCombination</code></div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> <code>qml.expval</code> on a multi-term <code>LinearCombination</code> (PennyLane's current, non-deprecated name for a Hamiltonian-like sum of Pauli terms) transparently measures every Pauli term with its correct basis rotation and sums them with their coefficients.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Explained why a sum-of-Paulis Hamiltonian needs <b>term-by-term measurement</b>, not one combined measurement.</li>
+            <li>Described <b>basis rotation</b> (e.g. Hadamard for X) that maps a non-native Pauli measurement onto the device's native Z basis.</li>
+            <li>Walked the full <b>VQE loop</b>: prepare → measure each term → combine into ⟨H⟩ → classical update → repeat.</li>
+            <li>Hand-measured H = Z₀ + X₀X₁ term by term on a Bell state, getting ⟨H⟩ = 1.</li>
+            <li>Ran a real 2-term VQE optimization loop in <b>PennyLane</b> using <code>qml.ops.LinearCombination</code> (the current, non-deprecated replacement for <code>qml.Hamiltonian</code>).</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: barren plateaus, and why the gradient descent you just watched work can fail entirely as circuits scale up.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-vqe-molecular-hamiltonians.html"><div class="dir">← Week 3</div><div class="ttl">VQE I: Molecular Hamiltonians</div></a>
+        <a class="next" href="l05-barren-plateaus.html"><div class="dir">Week 5 →</div><div class="ttl">Barren Plateaus</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Variational &amp; Hybrid</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C1 · Lecture 2 — Inner Products, Bras &amp; Operators</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C1 QM Foundations</a> / Lecture 2</div>
+        <span class="wk-tag">Week 2 · Lecture 2</span>
+        <h1>Inner Products, Bras &amp; Operators</h1>
+        <p class="sub">Every ket has a mirror-image bra. Every gate is a matrix. Two of those matrices — Hermitian and unitary — are the only ones physics ever lets you use.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Form the bra ⟨ψ| from a ket |ψ⟩ and compute inner products ⟨φ|ψ⟩.</li>
+            <li>Treat 2×2 matrices as operators that act on kets, and recognize a quantum gate as exactly that.</li>
+            <li>Define Hermitian operators (A = A†) and explain why every observable must be one.</li>
+            <li>Define unitary operators (U†U = I) and explain why every quantum gate must be one.</li>
+            <li>Find the eigenvalues and eigenvectors of a 2×2 matrix by hand.</li>
+            <li>Build a Pauli matrix in QuTiP/NumPy and verify it numerically satisfies both properties.</li>
+        </ul>
+    </div>
+
+    <!-- 2.1 -->
+    <section class="lec">
+        <h2><span class="n">2.1</span>The Bra: a Ket's Mirror Image</h2>
+        <p>Lecture 1 wrote a qubit as a column vector, the <span class="key">ket</span> |ψ⟩ = [α, β]ᵀ. For every ket there is a partner row vector called the <span class="key">bra</span>, written ⟨ψ|, formed by taking the <strong>conjugate transpose</strong> (flip rows/columns, then complex-conjugate every entry):</p>
+        <div class="eq">|ψ⟩ = [ α , β ]ᵀ &nbsp;&nbsp;&nbsp;&rarr;&nbsp;&nbsp;&nbsp; ⟨ψ| ≡ |ψ⟩† = [ α* , β* ]<small>The dagger (†) means "conjugate transpose." Bras are row vectors of complex conjugates.</small></div>
+        <p>Putting a bra next to a ket — "bra-c-ket" — produces the <strong>inner product</strong>, a single complex number measuring how much two states overlap:</p>
+        <div class="eq">⟨φ|ψ⟩ = φ₁*ψ₁ + φ₂*ψ₂<small>The inner product of ⟨φ| = [φ₁*, φ₂*] with |ψ⟩ = [ψ₁, ψ₂]ᵀ.</small></div>
+        <p>The basis states satisfy ⟨0|0⟩ = ⟨1|1⟩ = 1 and ⟨0|1⟩ = ⟨1|0⟩ = 0 — they're <strong>orthonormal</strong>. That is exactly why ⟨0|ψ⟩ = α and ⟨1|ψ⟩ = β: the inner product with a basis bra <em>extracts</em> that basis's amplitude. And ⟨ψ|ψ⟩ = |α|² + |β|² = 1 is nothing new — it's Lecture 1's normalization condition, now written as an inner product of a state with itself.</p>
+    </section>
+
+    <!-- 2.2 -->
+    <section class="lec">
+        <h2><span class="n">2.2</span>Operators: Matrices That Act on Kets</h2>
+        <p>An <span class="key">operator</span> is anything that takes one ket and returns another. For a single qubit, every operator we'll meet is a 2×2 matrix, and "applying the operator" is ordinary matrix-vector multiplication. This is the entire mathematical content of a <strong>quantum gate</strong>: a gate <em>is</em> a 2×2 matrix acting on a state vector.</p>
+        <div class="eq">X = [ 0 1 ; 1 0 ] &nbsp;&nbsp;&nbsp;&nbsp; X|0⟩ = |1⟩ &nbsp;&nbsp;&nbsp;&nbsp; X|1⟩ = |0⟩<small>The Pauli-X matrix, written row-by-row, flips the two basis states — the quantum NOT gate.</small></div>
+        <p>You'll meet its partners Y and Z throughout the course: Z = [[1,0],[0,−1]] leaves |0⟩ alone and flips the sign of |1⟩; Y mixes a flip with a phase. Sandwiching an operator between a bra and a ket, ⟨φ|A|ψ⟩, collapses the whole expression down to one complex number — first apply A to |ψ⟩, getting a new ket, then take the inner product with ⟨φ|. This "sandwich" is the single most common expression in quantum mechanics; you'll use it constantly starting next lecture.</p>
+    </section>
+
+    <!-- 2.3 -->
+    <section class="lec">
+        <h2><span class="n">2.3</span>Hermitian Operators: the Observables</h2>
+        <p>Not every matrix can represent something you measure. A physical <strong>observable</strong> — energy, spin along some axis, anything with a real-world reading — must be represented by a <span class="key">Hermitian</span> operator, defined by:</p>
+        <div class="eq">A = A† &nbsp;&nbsp;&nbsp; (equivalently: A<sub>jk</sub> = A<sub>kj</sub>*)<small>A matrix is Hermitian if it equals its own conjugate transpose.</small></div>
+        <p>The reason is almost forced on you: a measurement has to return a real number, and the average of many measurements, ⟨A⟩ = ⟨ψ|A|ψ⟩, has to come out real for <em>every</em> possible state |ψ⟩ you might measure. It is a short exercise in linear algebra to show that the only matrices with that property are exactly the Hermitian ones. All three Pauli matrices X, Y, Z are Hermitian — which is exactly why they double as physical observables (spin components) and not just gates.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Hermitian does <strong>not</strong> mean "all entries are real." A = [[0, −i],[i, 0]] (that's Y) has purely imaginary off-diagonal entries and is still Hermitian, because the mirror-image entries are complex conjugates of each other: A₁₂ = −i = (i)* = A₂₁*. What Hermitian <em>does</em> force is that the diagonal entries are real — A<sub>jj</sub> = A<sub>jj</sub>* only holds if A<sub>jj</sub> is real.</div>
+    </section>
+
+    <!-- 2.4 -->
+    <section class="lec">
+        <h2><span class="n">2.4</span>Unitary Operators: the Gates</h2>
+        <p>Gates face a different constraint. Applying a gate must never destroy or create probability — if |ψ⟩ is normalized, U|ψ⟩ must be normalized too. Write |ψ'⟩ = U|ψ⟩ and demand ⟨ψ'|ψ'⟩ = 1 given ⟨ψ|ψ⟩ = 1:</p>
+        <div class="eq">⟨ψ'|ψ'⟩ = ⟨ψ|U†U|ψ⟩ = ⟨ψ|ψ⟩ &nbsp;&nbsp;&nbsp;&nbsp;&rarr;&nbsp;&nbsp;&nbsp;&nbsp; U†U = I<small>This must hold for every |ψ⟩, which forces U†U = I — the definition of a unitary matrix.</small></div>
+        <p>A <span class="key">unitary</span> operator is exactly one satisfying U†U = I (equivalently UU† = I). Geometrically, unitary operators <em>rotate</em> the state vector without stretching or shrinking it — they preserve length, hence preserve total probability. Every gate in every quantum circuit you will ever see, from a single-qubit flip to a thousand-qubit algorithm, is unitary for exactly this reason.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of Hermitian and unitary as two different jobs, occasionally done by the same matrix. Hermitian operators are <em>rulers</em> — things you use to read a value off a state. Unitary operators are <em>rotations</em> — things you use to turn one state into another without changing its length. The Pauli matrices happen to be both at once (X†X = I <em>and</em> X† = X), which is a special feature of this 2-level case, not a general rule — most Hermitian matrices aren't unitary, and vice versa. In Week 4 "rotating without stretching" becomes literally spinning a point around the Bloch sphere.</div>
+    </section>
+
+    <!-- 2.5 -->
+    <section class="lec">
+        <h2><span class="n">2.5</span>Eigenvalues &amp; Eigenvectors</h2>
+        <p>A ket |v⟩ is an <strong>eigenvector</strong> of operator A with <strong>eigenvalue</strong> λ if applying A simply rescales |v⟩ without rotating it:</p>
+        <div class="eq">A|v⟩ = λ|v⟩<small>λ is in general a complex number; for Hermitian A it is always real (next lecture leans on this fact heavily).</small></div>
+        <p>For a 2×2 matrix, the eigenvalues solve the <strong>characteristic equation</strong> det(A − λI) = 0, a quadratic in λ with (for a 2-level system) exactly two roots. Each eigenvalue then has at least one eigenvector, found by solving (A − λI)|v⟩ = 0. These eigenvector/eigenvalue pairs are the backbone of next lecture's measurement theory — the eigenvalues turn out to be the only numbers a measurement can ever return.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — eigenvalues and eigenvectors of a Hermitian matrix</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Find the eigenvalues and (normalized) eigenvectors of the Pauli-X matrix, A = [[0,1],[1,0]].</p>
+        <ol>
+            <li><strong>Characteristic equation:</strong> det(A − λI) = det[[−λ, 1],[1, −λ]] = λ² − 1 = 0, so λ = +1 or λ = −1.</li>
+            <li><strong>Eigenvector for λ = +1:</strong> solve (A − I)|v⟩ = 0, i.e. [[−1, 1],[1, −1]][v₁, v₂]ᵀ = 0, which forces v₁ = v₂. Normalizing gives |v₊⟩ = (|0⟩ + |1⟩)/√2.</li>
+            <li><strong>Eigenvector for λ = −1:</strong> solve (A + I)|v⟩ = 0, forcing v₁ = −v₂. Normalizing gives |v₋⟩ = (|0⟩ − |1⟩)/√2.</li>
+            <li><strong>Check:</strong> X|v₊⟩ should equal +|v₊⟩. X(|0⟩+|1⟩)/√2 = (|1⟩+|0⟩)/√2 = |v₊⟩ ✓. Similarly X(|0⟩−|1⟩)/√2 = (|1⟩−|0⟩)/√2 = −|v₋⟩... check sign: −(|0⟩−|1⟩)/√2 = (−|0⟩+|1⟩)/√2 = (|1⟩−|0⟩)/√2 ✓.</li>
+            <li><strong>Note:</strong> both eigenvalues are real (+1, −1), as guaranteed for a Hermitian matrix, and the two eigenvectors are orthogonal (⟨v₊|v₋⟩ = 0) — also guaranteed. These two states will reappear in Week 4 as the east and west points on the Bloch sphere's equator.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: Hermiticity and unitarity, numerically</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Build a Pauli matrix in QuTiP and check both properties directly instead of trusting algebra alone.</p>
+        <pre><span class="c"># operators.py — Lecture 2</span>
+import numpy as np
+from qutip import sigmax, qeye
+
+X = sigmax()                                  <span class="c"># QuTiP's built-in Pauli-X operator</span>
+
+<span class="c"># Hermiticity: does X equal its own conjugate transpose?</span>
+print("Hermitian?", X == X.dag())             <span class="c"># True</span>
+
+<span class="c"># Unitarity: does X-dagger times X equal the identity?</span>
+I2 = qeye(2)
+print("Unitary?", (X.dag() * X) == I2)        <span class="c"># True</span>
+
+<span class="c"># Eigenvalues and eigenvectors, read straight off the operator</span>
+eigvals, eigvecs = X.eigenstates()
+print("eigenvalues:", eigvals)                <span class="c"># [-1.  1.] -- matches the worked example</span>
+print("eigenvector for +1:", eigvecs[1])      <span class="c"># (|0> + |1>)/sqrt(2), up to a sign/phase convention</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Repeat with <code>sigmay()</code> and <code>sigmaz()</code> — both come back Hermitian <em>and</em> unitary too, and their eigenvalues are always ±1. Then try a matrix that is Hermitian but <em>not</em> unitary, such as <code>Qobj([[1,0],[0,0]])</code> (a projector) — confirm it fails the unitarity check, since a projector is exactly the kind of Hermitian operator that is not also a rotation.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Hermitian and unitary are the two load-bearing walls of everything that follows. Next lecture turns Hermitian operators into full measurement theory: their eigenvalues become the only possible readings of an experiment, and their eigenvectors become the states you collapse to. Week 5 turns unitary operators into <em>dynamics</em>: the Schrödinger equation generates a continuous family of unitary operators U(t) that evolve a qubit smoothly in time. And in Week 6, once we have more than one qubit, the same two definitions — unchanged — are exactly what makes multi-qubit gates and multi-qubit observables well-defined.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 2 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> If |ψ⟩ = [α, β]ᵀ, then the bra ⟨ψ| is…</div>
+            <div class="opt"><b>A.</b> [α*, β*], the conjugate transpose of |ψ⟩</div>
+            <div class="opt"><b>B.</b> [α, β], the same column vector written sideways</div>
+            <div class="opt"><b>C.</b> [β, α], the entries swapped</div>
+            <div class="opt"><b>D.</b> a 2×2 matrix built from α and β</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The bra is formed by transposing the ket into a row vector <em>and</em> complex-conjugating every entry — both steps are required, not just the transpose.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> An operator A is called Hermitian when…</div>
+            <div class="opt"><b>A.</b> A is a rotation matrix</div>
+            <div class="opt"><b>B.</b> A equals its own conjugate transpose, A = A†</div>
+            <div class="opt"><b>C.</b> all of A's entries are real numbers</div>
+            <div class="opt"><b>D.</b> A has determinant 1</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A = A† is the definition. (Option C is the common mistake flagged in §2.3 — Hermitian matrices can have complex off-diagonal entries, as long as mirror-image entries are conjugates of each other.)</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Why must every quantum gate U satisfy U†U = I?</div>
+            <div class="opt"><b>A.</b> So that U has only real eigenvalues</div>
+            <div class="opt"><b>B.</b> So that U can represent a measurement</div>
+            <div class="opt"><b>C.</b> So that applying U preserves normalization — total probability stays 1</div>
+            <div class="opt"><b>D.</b> It's a historical convention with no physical reason</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> U†U = I is exactly the condition that keeps ⟨ψ'|ψ'⟩ = ⟨ψ|ψ⟩ after applying U — a gate that didn't satisfy this would turn a valid state into an invalid (non-normalized) one.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> |v⟩ is an eigenvector of operator A with eigenvalue λ means…</div>
+            <div class="opt"><b>A.</b> A|v⟩ is orthogonal to |v⟩</div>
+            <div class="opt"><b>B.</b> |v⟩ is normalized to length λ</div>
+            <div class="opt"><b>C.</b> A|v⟩ = |v⟩ + λ, a vector plus a number</div>
+            <div class="opt"><b>D.</b> A|v⟩ = λ|v⟩ — applying A only rescales |v⟩, it doesn't rotate it</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> That's the defining equation. Geometrically, an eigenvector is a direction that A leaves unrotated — it only stretches or shrinks (by factor λ), possibly flipping sign.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Which pair of matrices below are <em>both</em> Hermitian and unitary, for the reason given in §2.4?</div>
+            <div class="opt"><b>A.</b> The Pauli matrices X, Y, Z — because X† = X and X†X = I simultaneously hold for them</div>
+            <div class="opt"><b>B.</b> Any two matrices with determinant 1</div>
+            <div class="opt"><b>C.</b> Any Hermitian matrix is automatically unitary, and vice versa, in general</div>
+            <div class="opt"><b>D.</b> Only the identity matrix has this property</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The Pauli matrices are a special 2-level case where both properties hold at once. In general the two properties are independent — most Hermitian matrices are not unitary (e.g. a projector), and most unitary matrices are not Hermitian (e.g. a rotation by an arbitrary angle).</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Formed the <b>bra</b> ⟨ψ| as the conjugate transpose of a ket, and computed <b>inner products</b> ⟨φ|ψ⟩.</li>
+            <li>Treated 2×2 matrices as <b>operators</b> acting on kets — the mathematical content of a quantum gate.</li>
+            <li>Defined <b>Hermitian</b> operators (A = A†) and tied them to observables via ⟨A⟩ being real.</li>
+            <li>Defined <b>unitary</b> operators (U†U = I) and tied them to gates via normalization-preservation.</li>
+            <li>Found <b>eigenvalues/eigenvectors</b> of a 2×2 matrix by hand and verified Hermiticity/unitarity numerically in QuTiP.</li>
+        </ul>
+        <p class="next-up">Next up — Week 3: observables, eigenvalues as measurement outcomes, and the expectation value ⟨A⟩ = ⟨ψ|A|ψ⟩.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l01-states-and-qubits.html"><div class="dir">← Week 1</div><div class="ttl">States, Vectors &amp; the Qubit</div></a>
+        <a class="next" href="l03-observables-and-measurement.html"><div class="dir">Week 3 →</div><div class="ttl">Observables &amp; Measurement</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 QM Foundations</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

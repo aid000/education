@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C4 · Lecture 1 — Open Quantum Systems &amp; Decoherence</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C4 Noise &amp; QEC</a> / Lecture 1</div>
+        <span class="wk-tag">Week 1 · Lecture 1</span>
+        <h1>Open Quantum Systems &amp; Decoherence</h1>
+        <p class="sub">Every qubit you've simulated so far lived alone, evolving under a clean unitary. Real qubits never get that luxury — and this course is about what happens next.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain why coupling a qubit to an uncontrolled environment breaks the closed-system unitary picture from C1–C3.</li>
+            <li>Define decoherence as information leaking into the environment, and distinguish it from measurement collapse.</li>
+            <li>Describe the T1 (energy relaxation) and T2 (dephasing) timescales and what each one destroys.</li>
+            <li>Apply a simple amplitude-damping channel to a density matrix and read off the resulting state.</li>
+            <li>Build a noisy qubit in PennyLane or Qiskit-Aer and measure the fidelity drop caused by a noise channel.</li>
+        </ul>
+    </div>
+
+    <!-- 1.1 -->
+    <section class="lec">
+        <h2><span class="n">1.1</span>Why "Closed System" Was Always a Simplification</h2>
+        <p>Courses 1 through 3 ran on one quiet assumption: a qubit's state evolves under a clean <strong>unitary</strong> — U|ψ⟩, always reversible, always norm-preserving, with a Hamiltonian you fully control. That assumption is what let you write gates as matrices and trust that probabilities summed to one forever. It is also, for any real physical qubit, false.</p>
+        <p>A real qubit — a superconducting circuit, a trapped ion, a photon in a fiber — is never truly alone. It sits inside a lab, coupled (weakly, but never exactly zero) to everything around it: stray electromagnetic fields, phonons in the substrate, control-line noise, even the vacuum fluctuations of the electromagnetic field itself. Physicists call the qubit plus everything it's entangled with the <span class="key">open quantum system</span>, and the uncontrolled rest of the universe the <span class="key">environment</span> (or <em>bath</em>).</p>
+        <div class="eq">U<sub>total</sub> acts on |ψ⟩<sub>qubit</sub> ⊗ |E⟩<sub>environment</sub><small>The true evolution is still unitary — but on a much bigger system you don't get to see or control.</small></div>
+        <p>If you only ever look at the qubit — which is all you can do, since you have no way to measure "the environment" in full — the qubit's own evolution stops looking unitary. Information about the qubit's state has leaked into the environment, and from the qubit's point of view alone, that information is simply gone.</p>
+    </section>
+
+    <!-- 1.2 -->
+    <section class="lec">
+        <h2><span class="n">1.2</span>Decoherence: Losing Coherence, Not Losing a Measurement</h2>
+        <p><span class="key">Decoherence</span> is the name for that leak: the qubit's phase relationships — the very thing that makes superposition more than "secretly 0 or 1," the thing that lets amplitudes interfere — get scrambled by the uncontrolled coupling to the environment. The off-diagonal terms of the qubit's density matrix ρ (recall from C1 L8: ρ encodes both populations <em>and</em> coherences) decay toward zero, even though nobody measured anything.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Decoherence is <strong>not</strong> the same thing as measurement collapse. Measurement is something <em>you</em> do, on purpose, to extract one classical bit of information — and it happens instantaneously. Decoherence happens whether or not anyone is watching; it's a continuous, gradual leak of quantum information into an environment nobody is reading out. The practical effect can look similar (coherence disappears either way), but the mechanism and the math are different, and QEC (this whole course) is built specifically to fight decoherence, not to prevent measurement.</div>
+        <p>Formally: the full qubit+environment state stays pure and unitary the entire time (nothing in quantum mechanics has actually been violated). But once you <strong>trace out</strong> the environment — exactly the partial-trace operation from C1 L8 — the qubit alone is left in a <em>mixed</em> state, described by a density matrix that has picked up extra uncertainty it didn't start with.</p>
+    </section>
+
+    <!-- 1.3 -->
+    <section class="lec">
+        <h2><span class="n">1.3</span>T1 and T2: Two Different Ways to Lose Information</h2>
+        <p>Experimentalists characterize decoherence with two timescales, and the distinction matters because they come from different physics and different noise channels (Week 2 gives you the operator picture for both):</p>
+        <h3>T1 — energy relaxation</h3>
+        <p><span class="key">T1</span> is the timescale over which an excited qubit, |1⟩, spontaneously decays toward its ground state |0⟩ — literally dumping energy into the environment, the same way an excited atom eventually emits a photon. A population initially in |1⟩ decays roughly exponentially:</p>
+        <div class="eq">P(1, t) ≈ P(1, 0) · e<sup>−t / T1</sup><small>T1 ("relaxation time") sets how fast energy — and the |1⟩ population — bleeds away.</small></div>
+        <h3>T2 — dephasing</h3>
+        <p><span class="key">T2</span> is the timescale over which the <em>relative phase</em> between |0⟩ and |1⟩ — the thing that makes a superposition genuinely quantum rather than a classical mixture — randomizes and washes out, even if the populations never change at all. A state can dephase without losing any energy.</p>
+        <div class="eq">T2 ≤ 2·T1<small>Dephasing is always at least as fast as relaxation — T2 can never exceed 2T1, and on real hardware it is usually noticeably shorter.</small></div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of a line of synchronized dancers (the qubit's relative phase) performing on a stage whose floor is slowly tilting until everyone falls down (T1 — losing energy, ending the show). <em>Dephasing</em> (T2) is different: the dancers stay standing and keep moving, but each one drifts very slightly out of sync with the others until the "performance" — the coherent, correlated pattern — is unrecognizable, long before anyone actually falls. Both end the show; only one costs you the energy.</div>
+    </section>
+
+    <!-- 1.4 -->
+    <section class="lec">
+        <h2><span class="n">1.4</span>Why This Is the Whole Point of This Course</h2>
+        <p>Today's quantum processors are called <span class="key">NISQ</span> devices — Noisy Intermediate-Scale Quantum. "Noisy" is not a footnote; it is the defining constraint. Typical superconducting qubits today have T1 and T2 in the tens to hundreds of microseconds, while a single two-qubit gate takes tens to hundreds of nanoseconds — so you only get a few thousand gate operations before decoherence has scrambled the computation beyond recovery. Every algorithm you built in C2/C3 assumed unlimited clean gates; real hardware gives you a noisy, strictly limited budget.</p>
+        <p>That gap is exactly why this course exists. Weeks 2–3 give you the precise operator language (Kraus operators, the density-matrix picture) for how noise channels act. Weeks 4–7 build actual <strong>quantum error correction</strong> — encoding one fragile logical qubit into several redundant physical qubits so errors can be detected and reversed. Weeks 8–9 confront the reality that full error correction is still mostly out of reach on current hardware, so NISQ-era practice leans on cheaper <strong>error mitigation</strong> instead. By Week 10 you'll simulate a real code fighting real noise, end to end.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — amplitude damping acting on a density matrix</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A qubit starts in the excited state, ρ = |1⟩⟨1| = [[0,0],[0,1]]. Apply an <strong>amplitude-damping channel</strong> with damping parameter γ (the probability of a T1-style decay event) and find the resulting state.</p>
+        <ol>
+            <li><strong>The channel's Kraus operators</strong> (you'll meet Kraus operators formally in Week 2 — for now, just two matrices that describe "decay with probability γ"):
+                <div class="eq" style="margin:10px 0;">K₀ = [[1, 0], [0, √(1−γ)]] &nbsp;&nbsp; K₁ = [[0, √γ], [0, 0]]</div>
+            </li>
+            <li><strong>Apply the channel:</strong> ρ′ = K₀ρK₀† + K₁ρK₁†.</li>
+            <li><strong>Compute K₀ρK₀†:</strong> K₀ρK₀† = [[0, 0], [0, 1−γ]] — the |1⟩ population shrinks from 1 to (1−γ).</li>
+            <li><strong>Compute K₁ρK₁†:</strong> K₁ρK₁† = [[γ, 0], [0, 0]] — a new |0⟩ population of exactly γ appears: the "decayed" probability has moved to the ground state.</li>
+            <li><strong>Add them:</strong> ρ′ = [[γ, 0], [0, 1−γ]]. Still a valid density matrix (trace 1, positive) — but population has flowed from |1⟩ toward |0⟩, exactly the T1 relaxation picture from §1.3.</li>
+            <li><strong>Connect γ to T1:</strong> for a time interval t, γ = 1 − e<sup>−t/T1</sup>. As t grows, γ → 1 and ρ′ → |0⟩⟨0| — total relaxation. This is the same exponential decay as the T1 formula in §1.3, now written in the density-matrix language from C1 L8.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: a noise channel in PennyLane</h3>
+        <p style="font-size:.9rem; color:var(--text2);">PennyLane and Qiskit-Aer both ship built-in noise channels, so you never have to hand-multiply Kraus matrices to use one. <strong>Week 1 setup:</strong> install both toolkits once (below) — PennyLane for the differentiable, noise-channel-friendly circuits used from here through C5, Qiskit-Aer for realistic device noise models later in this course.</p>
+        <details class="install" open>
+            <summary>⬇ Install PennyLane + Qiskit noise tools (one-time, Week 1 setup)</summary>
+            <p>Reuse the Python environment from C1–C3 if you still have it, or create a fresh one:</p>
+            <pre>python3 -m venv qc-env
+source qc-env/bin/activate         <span class="c"># macOS / Linux</span>
+qc-env\Scripts\activate            <span class="c"># Windows (PowerShell)</span>
+pip install pennylane qiskit qiskit-aer</pre>
+            <p><strong>Verify:</strong> run <code>python -c "import pennylane, qiskit; print(pennylane.__version__, qiskit.__version__)"</code> — two version strings means you're set. Still no quantum hardware required; the noise is <em>simulated</em> on purpose, so you can dial it up, down, or off.</p>
+        </details>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">Prepare |1⟩, apply a depolarizing channel (a channel that, with probability p, replaces the state with a fully mixed state — a different noise model than the amplitude damping above, but built in the same spirit), and watch the fidelity to the ideal state drop as p grows.</p>
+        <pre><span class="c"># noisy_qubit.py — Lecture 1</span>
+import pennylane as qml
+from pennylane import numpy as np
+
+dev = qml.device("default.mixed", wires=1)   <span class="c"># mixed-state simulator: required for noise channels</span>
+
+@qml.qnode(dev)
+def noisy_one(p):
+    qml.PauliX(wires=0)                      <span class="c"># prepare |1> from |0></span>
+    qml.DepolarizingChannel(p, wires=0)       <span class="c"># apply noise with strength p</span>
+    return qml.density_matrix(wires=0)
+
+ideal_rho1 = np.array([[0, 0], [0, 1]])       <span class="c"># perfect |1><1|, no noise</span>
+
+for p in [0.0, 0.1, 0.3, 0.6]:
+    rho = noisy_one(p)
+    fidelity = np.real(rho[1, 1])             <span class="c"># overlap with ideal |1> population</span>
+    print(f"p={p:.1f}  rho={np.round(rho, 3)}  fidelity-to-|1>={fidelity:.3f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">At p = 0 you should recover the clean [[0,0],[0,1]] from the worked example. As p grows toward 1, the state slides toward the fully-mixed [[0.5,0],[0,0.5]] — all memory of "which state it started in" is erased. Swap <code>DepolarizingChannel</code> for <code>AmplitudeDamping(gamma, wires=0)</code> and confirm it reproduces the worked-example math exactly.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You've now seen noise act on a single qubit two ways — informally (T1/T2 timescales) and formally (Kraus operators on ρ). Week 2 generalizes this to the three canonical single-qubit noise channels (bit-flip, phase-flip, depolarizing) and gives you the full Kraus-operator toolkit. Week 3 pushes the density-matrix picture further, and by Week 4 you'll see the first real countermeasure: the repetition code, which spreads one logical qubit's information across several physical qubits specifically so that a bit-flip error becomes <em>detectable</em> — the first step toward the stabilizer codes and fault tolerance that occupy the rest of this course.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 1 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> An "open quantum system" refers to a qubit that…</div>
+            <div class="opt"><b>A.</b> has been measured and collapsed</div>
+            <div class="opt"><b>B.</b> is coupled to an uncontrolled environment, not evolving in isolation</div>
+            <div class="opt"><b>C.</b> is in an equal superposition of |0⟩ and |1⟩</div>
+            <div class="opt"><b>D.</b> has no valid density matrix</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> "Open" means not isolated — the qubit is entangled with, and exchanging information with, an environment outside your control. This is the opposite of the closed, purely-unitary systems of C1–C3.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Decoherence differs from measurement collapse mainly because…</div>
+            <div class="opt"><b>A.</b> decoherence is instantaneous while measurement is gradual</div>
+            <div class="opt"><b>B.</b> decoherence only happens to mixed states, never pure ones</div>
+            <div class="opt"><b>C.</b> decoherence is a continuous, unintentional leak of information to the environment, while measurement is a deliberate, one-time extraction of a classical outcome</div>
+            <div class="opt"><b>D.</b> they are two names for the same process</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Decoherence happens whether or not anyone is watching, gradually, as the qubit couples to its environment. Measurement is a deliberate act that extracts one bit of classical information and collapses the state.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> T1 and T2 are both decoherence timescales, but they differ because…</div>
+            <div class="opt"><b>A.</b> T1 measures energy relaxation (population decay), T2 measures dephasing (loss of relative phase)</div>
+            <div class="opt"><b>B.</b> T1 only applies to |0⟩, T2 only applies to |1⟩</div>
+            <div class="opt"><b>C.</b> T2 is always longer than 2·T1</div>
+            <div class="opt"><b>D.</b> T1 is a classical-only concept and T2 is purely quantum</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> T1 (relaxation) is how fast an excited qubit decays toward its ground state, dumping energy to the environment. T2 (dephasing) is how fast the phase relationship between |0⟩ and |1⟩ randomizes — and T2 ≤ 2·T1, never the reverse.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Applying the amplitude-damping Kraus operators K₀ and K₁ to ρ = |1⟩⟨1| with damping parameter γ gives ρ′ = [[γ, 0], [0, 1−γ]]. What does this represent?</div>
+            <div class="opt"><b>A.</b> The qubit has been measured and found to be |0⟩ with certainty</div>
+            <div class="opt"><b>B.</b> Population has partially decayed from |1⟩ toward |0⟩, with probability γ of having relaxed</div>
+            <div class="opt"><b>C.</b> The state is now a pure superposition (|0⟩+|1⟩)/√2</div>
+            <div class="opt"><b>D.</b> The channel has increased the qubit's energy</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> ρ′ is still mixed and diagonal: a γ chance the qubit has relaxed to |0⟩, a (1−γ) chance it is still |1⟩ — exactly the T1 relaxation picture, now expressed as a density matrix.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why does NISQ-era hardware make quantum error correction and mitigation the central topic of this course, rather than an afterthought?</div>
+            <div class="opt"><b>A.</b> Because classical simulators cannot represent noise at all</div>
+            <div class="opt"><b>B.</b> Because T1/T2 timescales are thousands of times longer than gate times, so noise is negligible</div>
+            <div class="opt"><b>C.</b> Because decoherence limits real devices to only a few thousand noisy gate operations before the computation is corrupted, unlike the unlimited clean gates assumed in C1–C3</div>
+            <div class="opt"><b>D.</b> Because only readout error exists on real hardware, and it is trivial to remove</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Real devices have T1/T2 in the tens-to-hundreds-of-microseconds range against gate times of tens-to-hundreds of nanoseconds, so only a limited budget of noisy operations is available — the opposite of the ideal, unlimited-gate world of earlier courses.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Why the closed-system unitary picture from C1–C3 breaks down once a qubit couples to an <b>environment</b> — the <b>open quantum system</b> picture.</li>
+            <li>Defined <b>decoherence</b> as a continuous information leak into the environment, distinct from deliberate <b>measurement</b> collapse.</li>
+            <li>Distinguished <b>T1</b> (energy relaxation) from <b>T2</b> (dephasing), and the inequality T2 ≤ 2·T1.</li>
+            <li>Applied an <b>amplitude-damping channel</b> to a density matrix ρ and read off the resulting mixed state — connecting back to C1 L8's ρ, Tr, and partial trace.</li>
+            <li>Built a noisy qubit in <b>PennyLane</b> and watched fidelity drop under a depolarizing channel.</li>
+        </ul>
+        <p class="next-up">Next up — Week 2: the three canonical single-qubit noise channels (bit-flip, phase-flip, depolarizing) and the full Kraus-operator picture behind them.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C4 Syllabus</div></a>
+        <a class="next" href="l02-noise-channels-bit-phase-depolarizing.html"><div class="dir">Week 2 →</div><div class="ttl">Noise Channels: Bit-Flip, Phase-Flip &amp; Depolarizing</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Noise &amp; QEC</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

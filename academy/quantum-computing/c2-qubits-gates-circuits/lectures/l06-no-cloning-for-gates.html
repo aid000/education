@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C2 · Lecture 6 — The No-Cloning Theorem, Revisited for Gates</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C2 Qubits, Gates &amp; Circuits</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>The No-Cloning Theorem, Revisited for Gates</h1>
+        <p class="sub">Course 1 proved no-cloning as a fact about state vectors. Here's the same fact asked the way a circuit builder actually asks it: why can't I just wire up a CLONE gate?</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Restate the no-cloning theorem as a question about building a specific gate: does a CLONE gate exist?</li>
+            <li>Re-derive, at the circuit level, why linearity forces any candidate CLONE circuit to fail on superposition inputs.</li>
+            <li>Explain why CNOT looks like a classical copier but fails exactly where cloning would require it to succeed.</li>
+            <li>Connect no-cloning to the Week-6 discussion prompt on error correction and cryptography.</li>
+            <li>Preview why teleportation (Lecture 7) is the "loophole" that moves information without ever cloning it.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>Reframing No-Cloning as a Gate-Design Question</h2>
+        <p>Course 1 Lecture 9 proved the no-cloning theorem as a fact about unitary operators: no U satisfies U(|ψ⟩⊗|0⟩) = |ψ⟩⊗|ψ⟩ for every unknown |ψ⟩. This course has spent five lectures building gates and circuits that <em>do</em> exist — Pauli gates, Hadamard, phase gates, CNOT. It's natural to ask the same question in gate-builder's language: <strong>can I design a CLONE gate</strong> — a circuit box labeled "CLONE" that takes an unknown qubit and an ancilla |0⟩ and outputs two copies?</p>
+        <div class="eq">CLONE gate, hoped-for behavior: &nbsp; |ψ⟩ ──[CLONE]── |ψ⟩<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|0⟩ ──[CLONE]── |ψ⟩<small>This is exactly the same equation from Course 1 §9.1, just drawn as a circuit diagram with two wires in and two wires out instead of written as an abstract unitary equation.</small></div>
+        <p>The no-cloning theorem answers: no such two-qubit gate exists, for the same underlying reason Course 1 derived — and that reason becomes even more concrete once you picture it as a specific box you'd have to wire into a circuit.</p>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>Why Any Candidate CLONE Circuit Fails</h2>
+        <p>Suppose you tried to build CLONE out of gates you already know. The obvious first attempt is CNOT itself — after all, Lecture 4 showed CNOT acting on a definite control bit does look exactly like copying: CNOT|0⟩⊗|0⟩=|0⟩⊗|0⟩ and CNOT|1⟩⊗|0⟩=|1⟩⊗|1⟩, matching "both wires end up equal" for both basis states. The trap is assuming this pattern continues for a superposition input.</p>
+        <div class="eq">CNOT · [(|0⟩+|1⟩)/√2]⊗|0⟩ = (|00⟩+|11⟩)/√2 &nbsp;&nbsp;&nbsp; vs. desired: [(|0⟩+|1⟩)/√2]⊗[(|0⟩+|1⟩)/√2]<small>The left side is exactly Lecture 5's Bell state — two terms, entangled. The right side (true cloning) is a four-term product state. These are provably different states, by the same factoring argument Lecture 5's worked example used.</small></div>
+        <p>This is Course 1 §9.2's linearity proof, now visible as a specific, concrete gate failure rather than an abstract one: CNOT is <em>exactly</em> the gate this course already built that would have been the natural CLONE candidate, and it demonstrably does not clone. No amount of swapping in a different two-qubit gate rescues the attempt — any unitary gate, being linear, is forced to distribute over a superposition term-by-term, and that distribution always produces an entangled sum, never the four-term product state true cloning would require. Every possible "CLONE gate" design hits this same wall.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't conclude from §6.2 that "CNOT is secretly broken" or that it fails at its actual job. CNOT does exactly what Lecture 4 defined it to do — flip the target iff the control is 1 — faithfully, on every input including superpositions. It simply never <em>was</em> a cloning gate; it only resembled one on the two basis-state cases where cloning happens to be classically easy anyway.</div>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>The Discussion Prompt: What No-Cloning Protects</h2>
+        <p>The course page's Week-6 discussion asks how the no-cloning constraint shapes error correction and cryptography, where classical systems would simply keep a backup copy. Course 1 §9.4 already answered this in the state-vector language: an eavesdropper can't silently clone a qubit in quantum key distribution, and error correction can't rely on majority-vote copies the way classical bit-flip correction does. The gate-level reframing of this lecture makes the "why" viscerally concrete: there is no CLONE gate sitting on the shelf next to H and CNOT waiting to be wired in. Any error-correction or eavesdropping scheme has to work <em>around</em> that absence, not through it — which is exactly why real quantum error-correcting codes spread one logical qubit's information across the <em>correlations</em> of several physical qubits (an entanglement-based trick, not a copying one) rather than keeping literal backups.</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — testing a second candidate CLONE circuit</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A student proposes a different candidate: apply H to the ancilla, then CNOT with the <em>unknown</em> qubit as target and the ancilla as control — the reverse wiring from §6.2. Does this clone (|0⟩+|1⟩)/√2?</p>
+        <ol>
+            <li><strong>Set up the input:</strong> unknown qubit |ψ⟩=(|0⟩+|1⟩)/√2 on wire A, ancilla |0⟩ on wire B. Apply H to B first: joint state becomes [(|0⟩+|1⟩)/√2]<sub>A</sub> ⊗ [(|0⟩+|1⟩)/√2]<sub>B</sub> = (|00⟩+|01⟩+|10⟩+|11⟩)/2.</li>
+            <li><strong>Apply CNOT with B as control, A as target:</strong> flip A whenever B=1. Term by term: |00⟩→|00⟩, |01⟩→|11⟩ (A flips), |10⟩→|10⟩, |11⟩→|01⟩ (A flips).</li>
+            <li><strong>Sum the results:</strong> (|00⟩+|11⟩+|10⟩+|01⟩)/2 = (|00⟩+|01⟩+|10⟩+|11⟩)/2 — unchanged by the relabeling, since it's a symmetric sum of all four terms.</li>
+            <li><strong>Compare to the cloning target:</strong> true cloning of |ψ⟩=(|0⟩+|1⟩)/√2 would require exactly this same four-term equal-superposition product state [(|0⟩+|1⟩)/√2]⊗[(|0⟩+|1⟩)/√2] = (|00⟩+|01⟩+|10⟩+|11⟩)/2 — <em>and it matches!</em></li>
+            <li><strong>The catch:</strong> this circuit only "clones" because H happened to put the ancilla into the <em>same specific state</em> |+⟩ already, regardless of what the unknown qubit was — it never looked at |ψ⟩ at all. Try it on a different unknown state, e.g. |ψ⟩=|0⟩: the circuit still outputs (|00⟩+|01⟩)/√2 = |0⟩⊗|+⟩, not |0⟩⊗|0⟩. It fails to clone |0⟩, confirming this candidate is not a universal cloner either — it just got lucky on the one input tested, exactly the kind of trap the no-cloning theorem warns against.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: confirm the CLONE-candidate failure in Qiskit</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Build the CNOT "copier" from §6.2 and show its output on a superposition input does not factor into two identical copies.</p>
+        <pre><span class="c"># clone_attempt.py — Lecture 6</span>
+import numpy as np
+from qiskit.quantum_info import Statevector, partial_trace
+from qiskit import QuantumCircuit
+
+qc = QuantumCircuit(2)
+qc.h(0)        <span class="c"># unknown qubit 0 is prepared in (|0>+|1>)/sqrt(2)</span>
+qc.cx(0, 1)    <span class="c"># attempted "CLONE": CNOT with qubit 0 as control, ancilla 1 as target</span>
+
+out = Statevector.from_label('00').evolve(qc)
+print(out)                              <span class="c"># (|00>+|11>)/sqrt(2) -- the Bell state, NOT a clone</span>
+
+<span class="c"># check: is qubit 1 alone really an independent copy of qubit 0's state?</span>
+rho1 = partial_trace(out, [0])          <span class="c"># reduced density matrix of qubit 1 alone</span>
+print(rho1)                             <span class="c"># I/2, maximally mixed -- not the pure state (|0>+|1>)/sqrt(2) you wanted</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The reduced state of "qubit 1 alone" is maximally mixed, not a clean copy of qubit 0's superposition — exactly the Course 1 Lecture 8 signature of entanglement, and the circuit-level proof that the CNOT "copier" produced correlation, not duplication.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>No-cloning sounds like a pure restriction, but it has a constructive flip side: you can't <em>clone</em> an unknown state, but you absolutely can <em>move</em> it — destroying the original as you go, using entanglement plus a small amount of classical communication. That's precisely what quantum teleportation does, and it's no accident that Lecture 7 opens by reusing the exact Bell-pair recipe from Lecture 5. No-cloning is the rule teleportation respects; entanglement is the resource that lets it work anyway.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Restated at the gate level, the no-cloning theorem says…</div>
+            <div class="opt"><b>A.</b> no CLONE gate exists that maps |ψ⟩⊗|0⟩ → |ψ⟩⊗|ψ⟩ for every unknown |ψ⟩</div>
+            <div class="opt"><b>B.</b> no circuit gate can ever be unitary</div>
+            <div class="opt"><b>C.</b> CNOT is not a valid quantum gate</div>
+            <div class="opt"><b>D.</b> only known states can ever be used as circuit inputs</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> This is the same Course 1 statement, just phrased as "does a specific two-qubit gate exist" rather than as an abstract unitary equation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> CNOT acting on a control qubit in the superposition (|0⟩+|1⟩)/√2 and a target |0⟩ produces…</div>
+            <div class="opt"><b>A.</b> two independent copies of (|0⟩+|1⟩)/√2</div>
+            <div class="opt"><b>B.</b> an error — CNOT cannot accept a superposed control</div>
+            <div class="opt"><b>C.</b> |00⟩, unchanged</div>
+            <div class="opt"><b>D.</b> the entangled Bell state (|00⟩+|11⟩)/√2, not a clone</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Linearity forces CNOT to distribute over the superposition term-by-term, giving an entangled two-term sum — not the four-term product state true cloning requires.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> CNOT applied to the definite basis states |0⟩⊗|0⟩ and |1⟩⊗|0⟩ looks like cloning because…</div>
+            <div class="opt"><b>A.</b> CNOT is secretly a cloning gate for all inputs</div>
+            <div class="opt"><b>B.</b> copying a known, definite classical-like bit is easy by any method — the real test is an unknown superposition</div>
+            <div class="opt"><b>C.</b> |0⟩ and |1⟩ are themselves superpositions</div>
+            <div class="opt"><b>D.</b> the target qubit was never |0⟩ to begin with</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Both basis-state cases happen to match cloning's requirement trivially, since a known definite state can always be reproduced some other way; the theorem's real content only bites on unknown superposition inputs.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Checking the reduced state of the "target" qubit after a CNOT-based cloning attempt on a superposed control, you find it is…</div>
+            <div class="opt"><b>A.</b> a pure state identical to the control's original state</div>
+            <div class="opt"><b>B.</b> undefined</div>
+            <div class="opt"><b>C.</b> always exactly |0⟩</div>
+            <div class="opt"><b>D.</b> maximally mixed (I/2), not a clean copy</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The circuit produced entanglement, and the Course 1 Lecture 8 signature of entanglement is exactly that each qubit's reduced state is mixed — the opposite of a faithful, independent copy.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> No-cloning is compatible with moving an unknown quantum state from one qubit to another because…</div>
+            <div class="opt"><b>A.</b> no-cloning actually forbids moving information too</div>
+            <div class="opt"><b>B.</b> teleportation secretly violates no-cloning but gets away with it</div>
+            <div class="opt"><b>C.</b> moving information always destroys the original, so no second copy ever exists simultaneously</div>
+            <div class="opt"><b>D.</b> moving only works for known, classical states</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Teleportation (Lecture 7) destroys the original as part of the protocol, so at no point do two valid copies of the unknown state coexist — fully consistent with, not a violation of, no-cloning.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Restated <b>no-cloning</b> as a question about a specific CLONE gate, rather than an abstract unitary equation.</li>
+            <li>Re-derived the <b>linearity failure</b> at the circuit level, using CNOT as the natural (and failing) candidate.</li>
+            <li>Showed why CNOT looks like a copier on basis states but fails on the superposition case that actually matters.</li>
+            <li>Connected no-cloning to <b>error correction and cryptography</b>, resolving the Week-6 discussion prompt.</li>
+            <li>Previewed <b>teleportation</b> as the no-cloning-respecting way to move quantum information using entanglement.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: the full quantum teleportation protocol — moving an unknown state using a shared Bell pair and two classical bits, without ever cloning it.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-creating-measuring-bell-states.html"><div class="dir">← Week 5</div><div class="ttl">Creating &amp; Measuring Bell States</div></a>
+        <a href="l07-quantum-teleportation.html" class="next"><div class="dir">Week 7 →</div><div class="ttl">Quantum Teleportation</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Qubits, Gates &amp; Circuits</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

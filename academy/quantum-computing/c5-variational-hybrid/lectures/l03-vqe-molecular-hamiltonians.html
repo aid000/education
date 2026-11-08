@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C5 · Lecture 3 — VQE I: Molecular Hamiltonians</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C5 Variational &amp; Hybrid</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3</span>
+        <h1>VQE I: Molecular Hamiltonians</h1>
+        <p class="sub">The first real hybrid algorithm. VQE takes Lecture 1's loop and Lecture 2's ansatz and points them at an actual question of chemistry: how low can a molecule's energy go?</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State and understand the <b>variational principle</b>: ⟨ψ(θ)|H|ψ(θ)⟩ ≥ E₀ for any trial state, where E₀ is the true ground-state energy.</li>
+            <li>Describe, conceptually, how a molecular Hamiltonian gets mapped onto qubit operators.</li>
+            <li>Explain the VQE idea: use a classical optimizer to tune θ so ⟨H⟩ approaches E₀ from above.</li>
+            <li>Work a fully analytic toy VQE problem: H = aZ with an RY(θ) ansatz.</li>
+            <li>Discuss what VQE trades away in exchange for near-term feasibility (Discussion 1).</li>
+        </ul>
+    </div>
+
+    <!-- 3.1 -->
+    <section class="lec">
+        <h2><span class="n">3.1</span>The Variational Principle</h2>
+        <p>Everything VQE does rests on one theorem from quantum mechanics, and it's worth stating carefully because the whole algorithm is really just this theorem run as a search. For a system with Hamiltonian H and true ground-state energy E₀ (its lowest possible eigenvalue), <em>any</em> normalized trial state |ψ⟩ — good, bad, or arbitrary — satisfies:</p>
+        <div class="eq">⟨ψ|H|ψ⟩ ≥ E₀&nbsp;&nbsp;&nbsp; for every normalized |ψ⟩<small>The expectation value of H in any trial state is never below the true ground energy. Equality holds only when |ψ⟩ is exactly the ground state.</small></div>
+        <p>Why is this true? Expand |ψ⟩ in H's own eigenbasis, |ψ⟩ = Σᵢ cᵢ|Eᵢ⟩ with Σᵢ|cᵢ|²=1 and E₀ ≤ E₁ ≤ E₂ ≤ …. Then ⟨ψ|H|ψ⟩ = Σᵢ|cᵢ|²Eᵢ — a weighted average of eigenvalues, every one of which is at least E₀. A weighted average of numbers each ≥ E₀ is itself ≥ E₀, with equality exactly when all the weight sits on E₀. That's the entire proof, and it holds for <em>any</em> trial state — including a parameterized |ψ(θ)⟩ from an ansatz.</p>
+        <p>This single fact licenses the whole VQE strategy: you don't need to know anything about H's eigenstates in advance. Pick any trial state, compute ⟨H⟩, and you have a number you <em>know</em> sits at or above E₀. Searching over θ to push that number down is therefore always safe — you can never accidentally overshoot below the true answer.</p>
+    </section>
+
+    <!-- 3.2 -->
+    <section class="lec">
+        <h2><span class="n">3.2</span>From Molecules to Qubits</h2>
+        <p>The variational principle works for any Hamiltonian, but chemistry's Hamiltonians are written in the language of electrons and orbitals, not qubits. Conceptually, getting from a molecule like H₂ to something a qubit ansatz can measure takes two steps, neither of which this course derives in detail:</p>
+        <h3>Second quantization</h3>
+        <p>The molecule's electronic Hamiltonian — kinetic energy plus electron-nucleus and electron-electron interactions — gets rewritten in terms of "creation" and "annihilation" operators acting on electron orbitals, a standard reformulation from quantum chemistry.</p>
+        <h3>Qubit mapping</h3>
+        <p>Those orbital operators then get translated into Pauli operators (X, Y, Z, I) acting on qubits, via a qubit mapping (e.g. Jordan-Wigner). The end result, for any molecule, is a Hamiltonian written as a weighted sum of Pauli strings:</p>
+        <div class="eq">H = Σᵢ cᵢ Pᵢ&nbsp;&nbsp;&nbsp; each Pᵢ a tensor product of Pauli operators (e.g. X₀Z₁, Y₀Y₁X₂, …)<small>For H₂ in a minimal basis, this sum has just a handful of terms across 2–4 qubits — small enough to simulate on a laptop, which is exactly why H₂ is the standard "hello world" of VQE.</small></div>
+        <p>You will not derive this mapping in this course — treat it as a black box that hands you H in exactly this form. Lecture 4 picks up from here: once H is a sum of Pauli terms, there's a very concrete recipe for measuring ⟨H⟩ on a real circuit.</p>
+    </section>
+
+    <!-- 3.3 -->
+    <section class="lec">
+        <h2><span class="n">3.3</span>The VQE Idea</h2>
+        <p>Put 3.1 and 3.2 together and VQE's idea is almost a one-liner: build an ansatz |ψ(θ)⟩ (Lecture 2), measure ⟨ψ(θ)|H|ψ(θ)⟩ for the molecule's qubit Hamiltonian, and let a classical optimizer (Lecture 1's loop) search over θ to push that number as low as possible. Because of the variational principle, every value you see during the search is a valid upper bound on E₀ — the search is literally "approach the true ground energy from above, and stop when you can't push it down any further."</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>The variational principle is like knowing a hidden floor value in a building you can only ever stand above — every elevator you take lands you on some floor ≥ the true ground floor, never below it. VQE is the strategy of trying elevator after elevator (θ after θ), always landing legally at or above ground, and simply keeping whichever elevator got you lowest. You never risk landing in the basement by mistake; you just might not have found the best elevator yet.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — a fully analytic toy VQE</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Take the simplest possible "molecular" Hamiltonian: one qubit, H = aZ with a &gt; 0 (so the true ground energy is whichever Z-eigenvalue times a is smaller). Use the RY(θ) ansatz from Lecture 1 and find θ that minimizes ⟨H⟩, and confirm it recovers the exact ground energy.</p>
+        <ol>
+            <li><strong>Trial state:</strong> |ψ(θ)⟩ = RY(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩ (Lecture 1's derivation).</li>
+            <li><strong>Expectation value:</strong> since H = aZ, ⟨H⟩ = a·⟨Z⟩ = a·cos(θ), reusing Lecture 1's result that ⟨Z⟩ = cos(θ) for this exact ansatz.</li>
+            <li><strong>Minimize over θ:</strong> with a &gt; 0, cos(θ) is smallest (−1) at θ = π, so ⟨H⟩ is minimized at θ = π, giving ⟨H⟩ = a·(−1) = −a.</li>
+            <li><strong>Check against the true spectrum:</strong> Z's eigenvalues are +1 (eigenstate |0⟩) and −1 (eigenstate |1⟩), so H = aZ has eigenvalues +a and −a. With a &gt; 0, the true ground energy is E₀ = −a — exactly what the variational search found.</li>
+        </ol>
+        <div class="eq" style="margin:8px 0 10px;">min_θ ⟨H⟩ = −a = E₀&nbsp;&nbsp;&nbsp; achieved at θ = π, where |ψ(π)⟩ = |1⟩ exactly<small>A toy case where the ansatz happens to be expressive enough to reach the true ground state exactly — not guaranteed in general, but a clean confirmation that the variational search works.</small></div>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: scan ⟨H⟩ for the toy Hamiltonian in PennyLane</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Build the H = aZ circuit, scan θ across a full range, and confirm numerically that the minimum sits at θ = π with value −a — the same result the worked example found by hand.</p>
+        <pre><span class="c"># toy_vqe.py — Lecture 3</span>
+import pennylane as qml
+from pennylane import numpy as np
+
+a = 0.7
+dev = qml.device("default.qubit", wires=1)
+
+@qml.qnode(dev)
+def expH(theta):
+    qml.RY(theta, wires=0)
+    return qml.expval(a * qml.PauliZ(0))     <span class="c"># this is &lt;psi(theta)|H|psi(theta)&gt; for H = a*Z</span>
+
+thetas = np.linspace(0, 2 * np.pi, 9)
+for t in thetas:
+    print(f"theta={t:.2f}   &lt;H&gt;={expH(t):.4f}")
+
+print(f"\nTrue ground energy E0 = -a = {-a:.4f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The scan should bottom out near θ = π at ⟨H⟩ ≈ −a. Lecture 4 replaces this manual scan with the real VQE loop — a classical optimizer driving θ there automatically, exactly as Lecture 1's loop drove θ toward π for the undressed ⟨Z⟩ cost.</p>
+    </div>
+
+    <div class="box analogy"><span class="lbl">💬 Week 3 Discussion</span>VQE is sold as a near-term, noise-tolerant alternative to full quantum phase estimation (the textbook algorithm for finding ground-state energies exactly). Given what you now know about the variational principle only guaranteeing an <em>upper bound</em>, and about ansätze (Lecture 2) only being able to reach <em>some</em> states exactly — what precisely is VQE trading away in exchange for that near-term tolerance? Is "an upper bound you can actually compute on today's hardware" always worth more than "an exact answer you can't"?</div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You've now seen VQE's full logical skeleton, worked by hand on the simplest possible case. What's still missing is the practical machinery: real Hamiltonians are sums of several Pauli terms, not one, and a real quantum device doesn't hand you ⟨H⟩ directly — it hands you measurement outcomes you have to combine yourself. Lecture 4 fills in exactly that gap, and runs a genuine multi-term VQE optimization loop end to end.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The variational principle states that for any normalized trial state |ψ⟩ and Hamiltonian H with ground energy E₀…</div>
+            <div class="opt"><b>A.</b> ⟨ψ|H|ψ⟩ ≥ E₀, always</div>
+            <div class="opt"><b>B.</b> ⟨ψ|H|ψ⟩ = E₀, always</div>
+            <div class="opt"><b>C.</b> ⟨ψ|H|ψ⟩ ≤ E₀, always</div>
+            <div class="opt"><b>D.</b> there is no relationship between ⟨ψ|H|ψ⟩ and E₀</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Expanding |ψ⟩ in H's eigenbasis shows ⟨ψ|H|ψ⟩ is a weighted average of eigenvalues all ≥ E₀, so the average itself is always ≥ E₀.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> After second quantization and a qubit mapping, a molecular Hamiltonian is expressed as…</div>
+            <div class="opt"><b>A.</b> A single classical number, the molecule's total energy</div>
+            <div class="opt"><b>B.</b> A weighted sum of Pauli-operator strings, H = Σᵢ cᵢPᵢ</div>
+            <div class="opt"><b>C.</b> A list of the molecule's atomic coordinates</div>
+            <div class="opt"><b>D.</b> A single Hadamard gate</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The qubit mapping rewrites the electronic Hamiltonian as a sum of Pauli strings with real coefficients — the form Lecture 4's measurement recipe is built around.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In the VQE loop, what role does the classical optimizer play?</div>
+            <div class="opt"><b>A.</b> It computes the exact molecular Hamiltonian from first principles</div>
+            <div class="opt"><b>B.</b> It performs the qubit mapping from orbitals to Pauli strings</div>
+            <div class="opt"><b>C.</b> It searches over the ansatz's θ to push the measured ⟨H⟩ as low as possible, exactly as in Lecture 1's loop</div>
+            <div class="opt"><b>D.</b> It measures the quantum circuit directly</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> VQE is Lecture 1's hybrid loop with H set to a molecular Hamiltonian — the classical optimizer's job doesn't change.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For the toy Hamiltonian H = aZ (a &gt; 0) with an RY(θ) ansatz, ⟨H⟩ = a·cos(θ) is minimized at…</div>
+            <div class="opt"><b>A.</b> θ = 0, giving ⟨H⟩ = a</div>
+            <div class="opt"><b>B.</b> θ = π/2, giving ⟨H⟩ = 0</div>
+            <div class="opt"><b>C.</b> θ = π, giving ⟨H⟩ = −a</div>
+            <div class="opt"><b>D.</b> There is no minimum</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> cos(θ) reaches its minimum, −1, at θ = π, so a·cos(θ) reaches −a there — exactly H's true ground-state eigenvalue.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Why can a variational search never "overshoot" below the true ground energy E₀, no matter how bad the trial state is?</div>
+            <div class="opt"><b>A.</b> Because quantum computers cannot make computational errors</div>
+            <div class="opt"><b>B.</b> Because classical optimizers always converge to the global minimum</div>
+            <div class="opt"><b>C.</b> Because ansätze are always expressive enough to reach the exact ground state</div>
+            <div class="opt"><b>D.</b> Because ⟨ψ|H|ψ⟩ is a weighted average of H's eigenvalues, all of which are ≥ E₀ by definition</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The variational principle's proof is exactly this averaging argument — it holds for literally any normalized trial state, which is why VQE can safely minimize without ever dipping below E₀.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Stated and proved (by eigenbasis expansion) the <b>variational principle</b>: ⟨ψ|H|ψ⟩ ≥ E₀ for any trial state.</li>
+            <li>Described, conceptually, the <b>second quantization → qubit mapping</b> pipeline that turns a molecular Hamiltonian into a sum of Pauli strings.</li>
+            <li>Stated the <b>VQE idea</b>: ansatz (Lecture 2) + classical optimizer (Lecture 1) minimizing ⟨H⟩ as an upper bound on E₀.</li>
+            <li>Fully solved a toy VQE problem by hand: H = aZ, RY(θ) ansatz, minimum ⟨H⟩ = −a at θ = π.</li>
+            <li>Discussed what VQE's near-term tolerance costs relative to exact methods (Discussion 1).</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: measuring a multi-term Pauli Hamiltonian in practice, and running a real VQE optimization loop.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l02-parameterized-circuits.html"><div class="dir">← Week 2</div><div class="ttl">Parameterized Quantum Circuits</div></a>
+        <a class="next" href="l04-vqe-expectation-optimization-loop.html"><div class="dir">Week 4 →</div><div class="ttl">VQE II: Expectation Values &amp; the Optimization Loop</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Variational &amp; Hybrid</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

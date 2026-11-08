@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C3 · Lecture 4 — Grover's Algorithm I: Amplitude Amplification</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .ms-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+        .ms { font-size: .76rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 11px; color: var(--text2); }
+        .ms b { color: var(--green); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C3 Quantum Algorithms</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>Grover's Algorithm I: Amplitude Amplification</h1>
+        <p class="sub">No promise, no shortcut structure — just an unstructured list and a quadratic speedup earned by rotating a vector toward the answer.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the unstructured search problem and its classical O(N) query complexity.</li>
+            <li>Describe the Grover oracle (phase-flips the marked state) and the diffusion operator (reflects about the average amplitude).</li>
+            <li>Explain amplitude amplification geometrically as rotation in a 2D marked/unmarked plane.</li>
+            <li>Compute the number of Grover iterations needed to reach near-certainty for a given N.</li>
+            <li>Build a Grover search circuit in Qiskit for N=8 and verify the marked item is found.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>The Search Problem: No Structure to Exploit</h2>
+        <p>Suppose f : {0,1}<sup>n</sup> → {0,1} is <em>completely unstructured</em> — the only guarantee is that exactly one input x₀ (out of N = 2<sup>n</sup> possibilities) satisfies f(x₀)=1, and f is 0 everywhere else. Unlike every oracle in Weeks 1–3, there is no promise of linearity or a constant/balanced split to exploit; x₀ could be any one of the N inputs, and nothing about f's "shape" narrows that down ahead of time.</p>
+        <div class="eq">Classical queries needed (worst case) = O(N) &nbsp;&nbsp;(up to N − 1 to be certain)<small>With no structure, the only classical strategy is to check inputs one at a time; in the worst case you check every one except the last before finding x₀.</small></div>
+        <p>This is the generic unstructured search problem: finding one marked item among N, "needle in a haystack," with zero shortcuts available. It is a much more common real-world shape than the Weeks 1–3 promise problems — SAT-solving, database lookup without an index, and brute-force key search all reduce to exactly this.</p>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>The Grover Oracle and the Diffusion Operator</h2>
+        <p>Grover's algorithm uses two building blocks, applied alternately. First, the <strong>oracle</strong> U<sub>f</sub>, built to <em>phase-flip</em> the marked state and leave everything else alone:</p>
+        <div class="eq">U_f |x⟩ = −|x⟩ if x = x₀ (marked), &nbsp;&nbsp;U_f |x⟩ = +|x⟩ otherwise<small>Unlike Weeks 1–3's XOR-style oracle, Grover's oracle directly attaches a minus sign to the one marked basis state — this is the "phase oracle" form, equivalent to the XOR form via the same |−⟩-ancilla trick from Lecture 1.</small></div>
+        <p>Second, the <strong>diffusion operator</strong> D (also called the Grover operator), which reflects every amplitude about their collective average:</p>
+        <div class="eq">D = 2|s⟩⟨s| − I, &nbsp;&nbsp;where |s⟩ = H<sup>⊗n</sup>|0⟩<sup>⊗n</sup> is the uniform superposition<small>D flips each amplitude's distance from the mean average to the opposite side — amplitudes below average get pushed up, amplitudes above average get pushed down, same total "energy."</small></div>
+        <p>One <strong>Grover iteration</strong> G = D·U<sub>f</sub> applies the oracle, then the diffusion operator. Starting from the uniform superposition |s⟩, each application of G increases the amplitude on the marked state x₀ and decreases it (slightly) on every other state — the amplitude <em>amplification</em> that gives the algorithm its name.</p>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>The Geometric Picture: Rotation in a 2D Plane</h2>
+        <p>The cleanest way to see what's happening is to project the whole N-dimensional state space down to just 2 dimensions: the axis spanned by the single marked state |x₀⟩, and the axis spanned by the uniform superposition of all N−1 unmarked states. Every state Grover's algorithm ever visits is a unit vector in this 2D plane, written as sinθ·|marked⟩ + cosθ·|unmarked⟩ for some angle θ. The starting state |s⟩ sits at a small angle θ₀ above the unmarked axis (θ₀ = arcsin(1/√N), tiny for large N), and <strong>each Grover iteration rotates this vector by a fixed angle 2θ₀ toward the marked axis</strong> — both the oracle and the diffusion operator are reflections, and two reflections compose into a rotation.</p>
+        <div class="fig">
+            <svg viewBox="0 0 420 260" role="img" aria-label="2D plane showing the state vector rotating from the unmarked axis toward the marked axis under repeated Grover iterations">
+                <line x1="40" y1="220" x2="380" y2="220" stroke="#34204a" stroke-width="2"/>
+                <text x="362" y="224" fill="#b7a4d0" font-size="11">unmarked</text>
+                <line x1="40" y1="220" x2="40" y2="20" stroke="#34204a" stroke-width="2"/>
+                <text x="18" y="16" fill="#b7a4d0" font-size="11">|marked⟩</text>
+
+                <!-- initial state vector, small angle -->
+                <line x1="40" y1="220" x2="355" y2="195" stroke="#60a5fa" stroke-width="2.5"/>
+                <circle cx="355" cy="195" r="4" fill="#60a5fa"/>
+                <text x="330" y="182" fill="#93c5fd" font-size="10">|s⟩ (start, θ₀)</text>
+
+                <!-- after 1 iteration -->
+                <line x1="40" y1="220" x2="300" y2="110" stroke="#a78bfa" stroke-width="2.5"/>
+                <circle cx="300" cy="110" r="4" fill="#a78bfa"/>
+                <text x="255" y="98" fill="#c4b5fd" font-size="10">after 1 iter (3θ₀)</text>
+
+                <!-- after optimal iterations, near marked axis -->
+                <line x1="40" y1="220" x2="75" y2="35" stroke="#34d399" stroke-width="2.5"/>
+                <circle cx="75" cy="35" r="4" fill="#34d399"/>
+                <text x="82" y="32" fill="#6ee7b7" font-size="10">after ~√N iters (≈90°)</text>
+
+                <path d="M 90 220 A 50 50 0 0 0 73 172" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,3"/>
+                <text x="98" y="205" fill="#fbbf24" font-size="9">2θ₀ per step</text>
+            </svg>
+            <figcaption>Each Grover iteration rotates the state vector by a fixed angle 2θ₀ in the marked/unmarked plane. Starting near the unmarked axis, roughly √N iterations bring the vector close to the marked axis — where measuring returns x₀ with near certainty.</figcaption>
+        </div>
+        <p>Since θ₀ ≈ 1/√N for large N, and the vector needs to rotate roughly π/2 radians total to reach the marked axis, the number of iterations needed is roughly (π/2)/(2θ₀) ≈ (π/4)√N — an <strong>O(√N)</strong> algorithm, a quadratic speedup over the classical O(N).</p>
+        <div class="eq">Optimal iteration count r ≈ (π/4)√N<small>Rounded to the nearest integer in practice — rotating by a non-integer number of steps isn't possible, so real implementations pick the closest r and accept a small residual error.</small></div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — one Grover iteration for N=4, x₀=|11⟩</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Track how one iteration of G amplifies the amplitude on the marked state |11⟩ among N=4 states.</p>
+        <ol>
+            <li><strong>Start:</strong> uniform superposition |s⟩ = ½(|00⟩+|01⟩+|10⟩+|11⟩) — every amplitude is ½, and θ₀ = arcsin(1/2) = 30°.</li>
+            <li><strong>Apply the oracle</strong> U_f (flip the sign on |11⟩ only): ½(|00⟩+|01⟩+|10⟩−|11⟩).</li>
+            <li><strong>Compute the average amplitude:</strong> (½+½+½−½)/4 = ¼.</li>
+            <li><strong>Apply the diffusion reflection</strong> about that average: each amplitude a becomes 2·(average) − a. For the three unmarked states: 2(¼)−½ = 0. For the marked state: 2(¼)−(−½) = 1.</li>
+            <li><strong>Result:</strong> 0·(|00⟩+|01⟩+|10⟩) + 1·|11⟩ = |11⟩. The marked state's amplitude jumped from ½ to 1 (probability ¼ → 1) after just one iteration — exactly the rotation toward the marked axis predicted geometrically, since one iteration at θ₀=30° moves the angle to (2·1+1)θ₀=90°, landing exactly on the marked axis (N=4 is small enough that one iteration reaches the marked state with certainty, which is why Grover search on N=4 needs only 1 iteration in practice).</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: Grover search over N=8 items</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Build the 3-qubit Grover circuit (N=2³=8), mark a single item, run ⌊(π/4)√8⌋ = 2 iterations, and confirm the marked item dominates the measurement distribution. <strong>Project checkpoint:</strong> this is the Grover half of the course project — keep this circuit, you'll extend it directly in Week 10.</p>
+        <pre><span class="c"># grover_search.py — Lecture 4</span>
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import Statevector
+import numpy as np
+
+n = 3   <span class="c"># N = 2^3 = 8 items</span>
+marked = "101"   <span class="c"># the one marked item, as a bitstring</span>
+
+def oracle(qc):
+    <span class="c"># phase-flip |101>: sandwich a controlled-Z-like flip between X gates on the 0-bits</span>
+    for i, b in enumerate(reversed(marked)):
+        if b == '0': qc.x(i)
+    qc.h(n - 1); qc.mcx(list(range(n - 1)), n - 1); qc.h(n - 1)   <span class="c"># multi-controlled Z via H-MCX-H</span>
+    for i, b in enumerate(reversed(marked)):
+        if b == '0': qc.x(i)
+
+def diffusion(qc):
+    qc.h(range(n)); qc.x(range(n))
+    qc.h(n - 1); qc.mcx(list(range(n - 1)), n - 1); qc.h(n - 1)   <span class="c"># reflect about |0...0>, i.e. about the average</span>
+    qc.x(range(n)); qc.h(range(n))
+
+qc = QuantumCircuit(n)
+qc.h(range(n))                    <span class="c"># uniform superposition |s></span>
+iterations = round((np.pi / 4) * np.sqrt(2**n))   <span class="c"># optimal r ~ 2 for N=8</span>
+for _ in range(iterations):
+    oracle(qc)
+    diffusion(qc)
+
+sv = Statevector.from_instruction(qc)
+probs = sv.probabilities_dict()
+print(f"after {iterations} iterations -> P =", probs)</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Expected output: the marked bitstring <code>'101'</code> dominates the distribution (probability well above 90% after 2 iterations for N=8), with the remaining probability spread thinly over the other 7 states — a clear amplification signature even though N=8 is too small for the asymptotic O(√N) to look dramatic yet.</p>
+    </div>
+
+    <div class="ms-row">
+        <span class="ms"><b>Project checkpoint ✓</b> Grover oracle + diffusion operator working for N=8 — carry this circuit into Week 10's capstone.</span>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Today fixed the number of iterations at the apparently-right value, (π/4)√N — but what happens if you keep iterating past that point? And is O(√N) really the best any quantum algorithm could do, or just the best this particular construction achieves? Week 5 answers both questions: the rotation picture makes "overshooting" the answer visually obvious, and a separate (non-constructive) argument proves no quantum algorithm can beat √N for unstructured search — Grover's algorithm is not just good, it's provably optimal.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Classically, finding the one marked item among N unstructured items requires, in the worst case…</div>
+            <div class="opt"><b>A.</b> O(log N) queries</div>
+            <div class="opt"><b>B.</b> O(√N) queries</div>
+            <div class="opt"><b>C.</b> O(N) queries</div>
+            <div class="opt"><b>D.</b> exactly 1 query</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> With no structure to exploit, you may have to check nearly every item before finding the marked one — linear, O(N), worst-case cost.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The Grover diffusion operator D = 2|s⟩⟨s| − I acts by…</div>
+            <div class="opt"><b>A.</b> measuring the state</div>
+            <div class="opt"><b>B.</b> reflecting every amplitude about their collective average</div>
+            <div class="opt"><b>C.</b> deleting the marked state entirely</div>
+            <div class="opt"><b>D.</b> applying a classical NOT gate to every qubit</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> D reflects each amplitude about the mean amplitude — amplitudes below average rise, amplitudes above average fall, by the same amount in opposite directions.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Geometrically, each Grover iteration G = D·U_f acts on the 2D marked/unmarked state vector as…</div>
+            <div class="opt"><b>A.</b> a fixed-angle rotation toward the marked axis</div>
+            <div class="opt"><b>B.</b> a random walk with no fixed direction</div>
+            <div class="opt"><b>C.</b> a projection onto the unmarked axis</div>
+            <div class="opt"><b>D.</b> no change at all</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Both U_f and D are reflections, and composing two reflections yields a rotation by a fixed angle (2θ₀) — the geometric heart of amplitude amplification.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the N=4 worked example, after one Grover iteration the marked state |11⟩'s amplitude went from…</div>
+            <div class="opt"><b>A.</b> ½ to 1</div>
+            <div class="opt"><b>B.</b> ½ to 0</div>
+            <div class="opt"><b>C.</b> ½ to ½ (unchanged)</div>
+            <div class="opt"><b>D.</b> 1 to ½</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The oracle flips its sign to −½, then the diffusion reflection about the new average (¼) pushes it to 1 — probability jumps from ¼ to 1, certainty, after just one iteration (matching θ₀=30° rotating to 90° at N=4, M=1).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The optimal number of Grover iterations for a search over N items scales as…</div>
+            <div class="opt"><b>A.</b> N</div>
+            <div class="opt"><b>B.</b> log₂ N</div>
+            <div class="opt"><b>C.</b> N²</div>
+            <div class="opt"><b>D.</b> roughly (π/4)√N</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Since the rotation angle per iteration is 2θ₀ ≈ 2/√N and the vector must rotate about π/2 total, the iteration count works out to roughly (π/4)√N — the source of Grover's quadratic speedup.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Stated the <b>unstructured search problem</b> and its classical O(N) query cost.</li>
+            <li>Described the <b>Grover oracle</b> (phase-flip the marked state) and the <b>diffusion operator</b> (reflect about the average).</li>
+            <li>Visualized amplitude amplification as a <b>fixed-angle rotation</b> in a 2D marked/unmarked plane.</li>
+            <li>Computed the <b>optimal iteration count</b> ≈ (π/4)√N and verified it in a worked N=4 example.</li>
+            <li>Built a working <b>Grover search circuit</b> in Qiskit for N=8 — project checkpoint complete.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: why O(√N) is provably optimal, what happens with multiple marked items, and why over-iterating actually makes things worse.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-bernstein-vazirani-simon.html"><div class="dir">← Week 3</div><div class="ttl">Bernstein–Vazirani &amp; Simon's Problem</div></a>
+        <a href="l05-grover-optimality-multiple-solutions.html" class="next"><div class="dir">Week 5 →</div><div class="ttl">Grover's Algorithm II: Optimality &amp; Multiple Solutions</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Quantum Algorithms</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

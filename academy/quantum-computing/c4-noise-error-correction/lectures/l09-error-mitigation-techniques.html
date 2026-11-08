@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C4 · Lecture 9 — Error Mitigation Techniques</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .disc { background: linear-gradient(135deg, #182238, #142138); border: 1px solid #2a4068; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .disc h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .disc p { font-size: .9rem; color: #c3d6ee; }
+        .disc .lbl { font-weight: 700; text-transform: uppercase; font-size: .7rem; letter-spacing: .5px; color: var(--blue); margin-bottom: 6px; display: block; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C4 Noise &amp; QEC</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Error Mitigation Techniques</h1>
+        <p class="sub">Full error correction needs extra qubits and a safety margin today's hardware doesn't have. Error mitigation needs neither — just smarter classical post-processing on the noisy results you already have.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Describe zero-noise extrapolation: run a circuit at several artificially amplified noise levels, then extrapolate back to the zero-noise limit.</li>
+            <li>Describe readout-error correction: calibrate a confusion matrix for measurement errors, then invert it to correct observed counts.</li>
+            <li>Distinguish error mitigation from error correction — no extra qubits/encoding, just extra classical post-processing.</li>
+            <li>Explain why mitigation doesn't scale to arbitrarily long circuits the way true fault tolerance would.</li>
+            <li>Run a zero-noise-extrapolation demo in Qiskit and extrapolate a 1× / 3× noise-scaled result to the 0× limit.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>Zero-Noise Extrapolation: Make It Worse, on Purpose, to See the Trend</h2>
+        <p><span class="key">Zero-noise extrapolation (ZNE)</span> sounds backwards at first: deliberately run the <em>same</em> circuit at several <em>higher</em> noise levels than your hardware's natural noise, then use the resulting trend to extrapolate back to what the answer would have been at <em>zero</em> noise — a level you can never actually run on real hardware, but can estimate.</p>
+        <div class="eq">measure at noise scale 1×, 2×, 3×, … → fit a curve → extrapolate to scale 0×<small>Noise is amplified deliberately — e.g. by stretching gate pulses or inserting extra identity-equivalent gate pairs — not reduced; ZNE never needs noise lower than what the hardware naturally provides.</small></div>
+        <p>Why does this work? Because many physical observables degrade smoothly (often close to linearly, for small amplification factors) as noise strength increases — exactly the kind of compounding decay you tracked in Lecture 3's fidelity curves. If you know the value at 1× and 3× noise, you can fit a line (or a low-order polynomial) through those two points and read off its value at 0×, which is usually closer to the true, noiseless answer than the raw 1× measurement alone.</p>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>Readout-Error Correction: Invert the Confusion Matrix</h2>
+        <p>Lecture 8 introduced readout error as a distinct failure mode: a correct quantum state, misreported by the detector. Because this happens entirely in the classical measurement step, it has an entirely classical fix. First, <span class="key">calibrate</span>: prepare each basis state (|0⟩, |1⟩, …) with no other noise in play, measure it many times, and record how often it gets misreported as something else — building a <span class="key">confusion matrix</span> M, where M[i][j] is the probability of reading outcome j when the true state was i.</p>
+        <div class="eq">observed counts = Mᵀ · true counts &nbsp;&nbsp;⟹&nbsp;&nbsp; true counts ≈ (Mᵀ)⁻¹ · observed counts<small>The transpose matters: M[i][j] has rows indexed by the true state and columns by the observed outcome, so summing over the true index i to get observed outcome j — observed_j = Σᵢ M[i][j]·trueᵢ — is exactly a multiplication by Mᵀ, not M. Once Mᵀ is calibrated and inverted (or fit via a more numerically stable least-squares method), it converts your raw, readout-corrupted counts back into an estimate of what the counts would have been with perfect readout.</small></div>
+        <p>This fix costs nothing in circuit complexity — the quantum circuit you run is identical. All the work happens after the fact, on the classical histogram of measurement outcomes.</p>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>Mitigation vs. Correction: the Key Distinction</h2>
+        <p>Both techniques above share the defining feature of error <span class="key">mitigation</span>: no extra physical qubits, no encoding, no syndrome measurement — just the same circuit you already wanted to run, plus extra classical post-processing on the results. Compare that to error <em>correction</em> (Weeks 4–7), which spends real physical qubits and real additional gates to actively detect and reverse errors mid-circuit.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Mitigation is not a free lunch, and it is not a substitute for correction at scale. Both ZNE and readout correction rely on the <em>underlying</em> noise being well-behaved and well-characterized (smooth trends for ZNE, a stable confusion matrix for readout correction) — assumptions that break down as circuits get deeper and noise compounds (Lecture 3). Mitigation buys you a meaningfully better answer on <em>today's</em> circuits; it does not scale to arbitrarily long circuits the way true fault tolerance (Lecture 7) would, in principle, if hardware ever gets safely below threshold.</div>
+        <div class="box analogy"><span class="lbl">Analogy</span>Error correction is like replacing a cracked window pane entirely — expensive, but the fix is structural and holds up no matter how long the house stands. Error mitigation is like carefully photographing the view through the cracked pane from several angles and digitally reconstructing what you'd see through a clean one — cheap, immediately useful, and good enough for today's picture, but it doesn't actually fix the crack, and it gets harder to trust the longer and more complex the scene gets.</div>
+    </section>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: zero-noise extrapolation in Qiskit</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Scale up the noise model from Lecture 8 by 1× and 3×, measure the same observable at both scales, and linearly extrapolate to 0×.</p>
+        <pre><span class="c"># zne_demo.py — Lecture 9</span>
+from qiskit import QuantumCircuit
+from qiskit_aer import AerSimulator
+from qiskit_aer.noise import NoiseModel, depolarizing_error
+import numpy as np
+
+def make_noise_model(scale):
+    nm = NoiseModel()
+    nm.add_all_qubit_quantum_error(depolarizing_error(1e-2 * scale, 2), ['cx'])  <span class="c"># scale the noise, not the circuit</span>
+    return nm
+
+def run_circuit(scale, shots=4000):
+    qc = QuantumCircuit(2, 2)
+    qc.h(0); qc.cx(0, 1)             <span class="c"># prepare a Bell pair -- ideal P(00)+P(11) = 1.0</span>
+    qc.measure([0, 1], [0, 1])
+    sim = AerSimulator(noise_model=make_noise_model(scale))
+    counts = sim.run(qc, shots=shots).result().get_counts()
+    agree = counts.get('00', 0) + counts.get('11', 0)
+    return agree / shots             <span class="c"># observable: probability the two qubits still agree</span>
+
+obs_1x = run_circuit(scale=1)
+obs_3x = run_circuit(scale=3)
+
+<span class="c"># linear extrapolation through (1, obs_1x) and (3, obs_3x), evaluated at scale=0</span>
+slope = (obs_3x - obs_1x) / (3 - 1)
+obs_0x = obs_1x - slope * 1
+
+print(f"observable at 1x noise: {obs_1x:.3f}")
+print(f"observable at 3x noise: {obs_3x:.3f}")
+print(f"extrapolated to 0x noise: {obs_0x:.3f}   (ideal value is 1.0)")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The extrapolated 0× estimate should land noticeably closer to the ideal value of 1.0 than the raw 1× measurement alone — that gap is exactly the value ZNE adds, for the cost of one extra (noisier) circuit run and a two-point line fit.</p>
+    </div>
+
+    <!-- DISCUSSION 3 -->
+    <div class="disc">
+        <h3>💬 Discussion 3 — due this week</h3>
+        <span class="lbl">Prompt</span>
+        <p>Error mitigation (no extra qubits) and error correction (extra qubits, real redundancy) solve the same underlying problem differently. Why do today's NISQ devices lean on mitigation while future fault-tolerant devices will lean on correction? Post your answer in this week's discussion thread.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have both halves of the NISQ-era toolkit: correction (Weeks 4–7, structural but expensive) and mitigation (this week, cheap but limited). Week 10, the capstone, puts them side by side directly — running the repetition code under realistic noise and measuring exactly how much the logical error rate improves over the uncorrected physical error rate, closing the loop on everything this course has built.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Zero-noise extrapolation works by…</div>
+            <div class="opt"><b>A.</b> reducing the hardware's natural noise to zero before measuring</div>
+            <div class="opt"><b>B.</b> running the circuit only once, at the hardware's natural noise level</div>
+            <div class="opt"><b>C.</b> adding extra physical qubits to cancel the noise</div>
+            <div class="opt"><b>D.</b> deliberately amplifying noise to several higher levels, then extrapolating the trend back to the zero-noise limit</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> ZNE never achieves literally zero noise — it estimates what the zero-noise answer would be by fitting a trend through deliberately noisier runs.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> A confusion matrix, used in readout-error correction, records…</div>
+            <div class="opt"><b>A.</b> the probability of reading outcome j when the true prepared state was i</div>
+            <div class="opt"><b>B.</b> the gate error rate of every two-qubit gate</div>
+            <div class="opt"><b>C.</b> the T1/T2 times of every qubit</div>
+            <div class="opt"><b>D.</b> the depth of the circuit being run</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Calibrating the confusion matrix means preparing each known basis state and recording how often the detector misreports it as something else.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The key distinction between error mitigation and error correction is that mitigation…</div>
+            <div class="opt"><b>A.</b> requires more physical qubits than correction</div>
+            <div class="opt"><b>B.</b> is identical to correction, just renamed</div>
+            <div class="opt"><b>C.</b> can only be applied to classical bits, never qubits</div>
+            <div class="opt"><b>D.</b> needs no extra qubits or encoding — just extra classical post-processing on the same circuit's results</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Mitigation leaves the quantum circuit itself unchanged and does all its work on the classical output; correction spends real physical qubits and gates to actively detect and reverse errors.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why doesn't error mitigation scale to arbitrarily long circuits the way true fault tolerance would?</div>
+            <div class="opt"><b>A.</b> Because mitigation techniques rely on the underlying noise being smooth and well-characterized, assumptions that break down as noise compounds over longer, deeper circuits</div>
+            <div class="opt"><b>B.</b> Because mitigation is only a theoretical idea with no working implementation</div>
+            <div class="opt"><b>C.</b> Because mitigation requires exactly as many extra qubits as correction</div>
+            <div class="opt"><b>D.</b> Because mitigation only works on single-qubit circuits</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> As circuits deepen, compounding noise (Lecture 3) eventually breaks the smooth trends ZNE relies on and the stability readout correction assumes — mitigation is a near-term patch, not a scalable foundation.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the hands-on ZNE demo, the observable is measured at 1× and 3× noise scale. The 0× estimate is obtained by…</div>
+            <div class="opt"><b>A.</b> averaging the two measured values</div>
+            <div class="opt"><b>B.</b> taking whichever value is larger</div>
+            <div class="opt"><b>C.</b> fitting a line through the two points and evaluating it at scale=0</div>
+            <div class="opt"><b>D.</b> ignoring both measurements and using the hardware's natural noise level directly</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Linear extrapolation fits a straight line through (1, obs_1x) and (3, obs_3x), then reads off the line's value at scale=0 as the zero-noise estimate.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Described <b>zero-noise extrapolation</b>: amplify noise deliberately, extrapolate the trend back to the zero-noise limit.</li>
+            <li>Described <b>readout-error correction</b>: calibrate a confusion matrix, invert it to correct observed counts.</li>
+            <li>Distinguished <b>mitigation</b> (no extra qubits, classical post-processing) from <b>correction</b> (extra qubits, structural redundancy).</li>
+            <li>Explained why mitigation doesn't scale to arbitrarily long circuits the way true fault tolerance would.</li>
+            <li>Ran a ZNE demo in Qiskit, extrapolating 1×/3× noise-scaled results to the 0× limit.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10, the capstone: simulate the repetition code under realistic noise, measure its logical error rate against the uncorrected physical error rate, and close the loop on the full 10-week arc.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-nisq-reality-gate-errors-t1-t2-readout.html"><div class="dir">← Week 8</div><div class="ttl">NISQ-Era Reality: Gate Errors, T1/T2, Readout Error</div></a>
+        <a class="next" href="l10-capstone-code-under-noise.html"><div class="dir">Week 10 →</div><div class="ttl">Capstone: Simulating a Code Under Noise</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Noise &amp; QEC</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

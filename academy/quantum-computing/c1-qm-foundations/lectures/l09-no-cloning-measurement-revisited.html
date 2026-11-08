@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C1 · Lecture 9 — No-Cloning &amp; the Measurement Postulate Revisited</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C1 QM Foundations</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>No-Cloning &amp; the Measurement Postulate Revisited</h1>
+        <p class="sub">You can't copy an unknown qubit, and you can't peek at one without disturbing it. Both facts turn out to be the same idea, viewed from two angles.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the no-cloning theorem: no unitary can map |ψ⟩|0⟩ → |ψ⟩|ψ⟩ for arbitrary unknown |ψ⟩.</li>
+            <li>Follow the proof sketch via linearity showing why cloning is impossible.</li>
+            <li>Explain why no-cloning matters for quantum cryptography and error correction.</li>
+            <li>Rewrite projective measurement in the density-matrix language: ρ → ΠρΠ/Tr(Πρ).</li>
+            <li>Resolve the course's Week-9 discussion prompt: what would break if cloning were possible.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>The No-Cloning Theorem</h2>
+        <p>Classical bits are trivial to copy — read the value, write it somewhere else. Can a quantum computer do the same for a qubit in an unknown state |ψ⟩? The <strong>no-cloning theorem</strong> says no:</p>
+        <div class="eq">No unitary U exists such that U(|ψ⟩⊗|0⟩) = |ψ⟩⊗|ψ⟩ &nbsp; for every unknown |ψ⟩<small>"Unknown" is essential: if you already know |ψ⟩ classically, you can trivially prepare a second copy from scratch. The theorem forbids a universal copier that works without knowing the state in advance.</small></div>
+        <p>This is not a statement about current technology being too primitive — it is a hard mathematical fact about unitary operators themselves, true for any possible quantum hardware, present or future. It directly answers part of the Week-9 discussion prompt from the course page: there is no sense in which "better engineering" could someday build a universal qubit copier.</p>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>Proof Sketch via Linearity</h2>
+        <p>Suppose, for contradiction, that a cloning unitary U did exist, working correctly on two different known basis states:</p>
+        <div class="eq">U(|0⟩⊗|0⟩) = |0⟩⊗|0⟩ &nbsp;&nbsp; U(|1⟩⊗|0⟩) = |1⟩⊗|1⟩<small>These two cases are unremarkable — cloning a definite, known basis state is easy classically too.</small></div>
+        <p>Now apply U to the superposition |ψ⟩ = (|0⟩+|1⟩)/√2 tensored with |0⟩. Because U is <strong>unitary</strong>, it must be <strong>linear</strong> — it distributes over the sum exactly like any linear operator:</p>
+        <div class="eq">U(|ψ⟩⊗|0⟩) = U[(|0⟩⊗|0⟩ + |1⟩⊗|0⟩)/√2] = (|0⟩⊗|0⟩ + |1⟩⊗|1⟩)/√2<small>Linearity forces U to act on each term separately and add the results — U cannot "look at" the whole superposition first.</small></div>
+        <p>But correct cloning would require the output to be |ψ⟩⊗|ψ⟩ = [(|0⟩+|1⟩)/√2] ⊗ [(|0⟩+|1⟩)/√2] = (|00⟩+|01⟩+|10⟩+|11⟩)/2 — a product state with <em>four</em> equal terms. What linearity actually produced, (|00⟩+|11⟩)/√2, is instead a <strong>Bell state</strong> — maximally entangled, with only two terms. These are not the same state, so U fails to clone the superposition even though it clones the two basis states perfectly. No choice of U can fix this: linearity is forced by unitarity, and linearity always produces this mismatch for any superposition. Hence no universal cloning unitary can exist.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't confuse no-cloning with "you can't observe a qubit." No-cloning is about <em>copying</em> an unknown state without destroying or revealing it — a different (though related) restriction from the collapse that happens when you measure. You also cannot clone by measuring and re-preparing: measurement destroys the unknown amplitudes themselves (§9.3), so there is nothing left to copy from.</div>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>Measurement Revisited: Projective Measurement on ρ</h2>
+        <p>Lecture 1 described measurement informally as "collapse to a basis state with probability given by the Born rule." Now that you have the density-matrix language from Lecture 8, that same postulate can be written as a precise operator equation. Let Π be the projector onto a measurement outcome (e.g. Π₀ = |0⟩⟨0|). After measuring and obtaining that outcome, the state updates as:</p>
+        <div class="eq">ρ &nbsp;→&nbsp; ΠρΠ / Tr(Πρ)<small>The numerator projects ρ onto the subspace of the observed outcome; the denominator Tr(Πρ) is exactly that outcome's probability, restoring normalization (trace 1) after the projection.</small></div>
+        <p>For a pure state ρ = |ψ⟩⟨ψ|, this formula reproduces exactly the familiar Lecture 1 picture: Πρ Π / Tr(Πρ) collapses to the pure state |b_k⟩⟨b_k| matching the observed outcome, with probability Tr(Π_kρ) = |c_k|² — the Born rule, unchanged. The advantage of the operator form is that it works identically for <em>mixed</em> states too, including the reduced density matrix of an entangled qubit from Lecture 8 — a case the ket-only picture from Lecture 1 had no language for at all.</p>
+    </section>
+
+    <!-- 9.4 -->
+    <section class="lec">
+        <h2><span class="n">9.4</span>What Would Break If You Could Clone?</h2>
+        <p>The course page's Week-9 discussion prompt asks what would break in physics or cryptography if cloning were possible. Now you have the tools to answer it directly:</p>
+        <div class="eq">If cloning existed → measure one copy in the {|0⟩,|1⟩} basis, measure another copy in the {|+⟩,|−⟩} basis → learn both α and β exactly<small>Repeating this over many clones of the same unknown |ψ⟩ would let you reconstruct the full state — something single-copy measurement can never do, since one measurement only yields one bit of basis-dependent information and destroys the rest.</small></div>
+        <p>Two concrete consequences follow immediately. <strong>Quantum key distribution</strong> (quantum cryptography, previewed for Course 4) relies on the fact that an eavesdropper intercepting a qubit cannot clone it, measure it undetected, and pass along a perfect copy — any interception attempt necessarily disturbs the state in a way the legitimate parties can detect. If cloning were possible, this entire security guarantee would vanish: an eavesdropper could silently clone every qubit, measure the clones at leisure, and forward the originals untouched. <strong>Quantum error correction</strong> (also Course 4) also depends on no-cloning: the usual classical fix for noise — keep three copies, vote on the majority — is unavailable for qubits, which is exactly why quantum error-correcting codes need a much more elaborate strategy (spreading one logical qubit's information across several physical qubits' <em>correlations</em>, rather than literal copies).</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — applying the measurement update rule to a mixed state</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Take ρ_A = I/2 (the maximally mixed reduced state from Lecture 8's Bell-pair example) and apply the measurement update for outcome Π₀ = |0⟩⟨0|.</p>
+        <ol>
+            <li><strong>Compute Tr(Π₀ρ_A):</strong> Π₀ρ_A = |0⟩⟨0|·(½I) = ½|0⟩⟨0|, so Tr(Π₀ρ_A) = ½ — a 50% chance of measuring 0, as expected for a maximally mixed qubit.</li>
+            <li><strong>Compute the numerator:</strong> Π₀ρ_AΠ₀ = ½|0⟩⟨0|·|0⟩⟨0| = ½|0⟩⟨0| (using ⟨0|0⟩=1).</li>
+            <li><strong>Apply the update rule:</strong> ρ_A → (½|0⟩⟨0|) / (½) = |0⟩⟨0|.</li>
+            <li><strong>Interpretation:</strong> after measuring outcome 0, qubit A's state updates to the pure state |0⟩⟨0| — collapse happens for mixed states exactly as it does for pure ones, using the same operator formula. Before measurement, qubit A carried no information on its own (I/2); the act of measurement is what actually produces a definite outcome.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: simulate the cloning failure in QuTiP</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Build the CNOT-based "classical copier" circuit from §9.2 and show it fails exactly on a superposition input, confirming the no-cloning proof numerically.</p>
+        <pre><span class="c"># no_cloning_check.py — Lecture 9</span>
+import numpy as np
+from qutip import basis, tensor
+from qutip.gates import cnot
+
+ket0, ket1 = basis(2, 0), basis(2, 1)
+U = cnot()                                     <span class="c"># the "copy" unitary: clones basis states correctly</span>
+
+<span class="c"># check U clones |0> and |1> correctly</span>
+out0 = U * tensor(ket0, ket0)
+out1 = U * tensor(ket1, ket0)
+print("clones |0> ->|00>:", (out0 - tensor(ket0, ket0)).norm() < 1e-9)   <span class="c"># True</span>
+print("clones |1> ->|11>:", (out1 - tensor(ket1, ket1)).norm() < 1e-9)   <span class="c"># True</span>
+
+<span class="c"># now try the superposition (|0>+|1>)/sqrt(2)</span>
+psi = (ket0 + ket1).unit()
+actual   = U * tensor(psi, ket0)
+intended = tensor(psi, psi)                    <span class="c"># what "successful cloning" would require</span>
+
+print("actual output:\n", actual)
+print("intended (true) clone:\n", intended)
+print("cloning succeeded:", (actual - intended).norm() < 1e-9)   <span class="c"># False -- matches the proof!</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The <code>actual</code> output is the Bell state (|00⟩+|11⟩)/√2 predicted in §9.2 — entangled, not the product state |ψ⟩⊗|ψ⟩ true cloning would need. Try other superpositions, e.g. (ket0 + 1j*ket1).unit(), and confirm the mismatch persists.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>No-cloning is one of the deepest structural facts in quantum information — it is the reason quantum states behave like a genuinely new kind of resource, not just "information you haven't read yet." The capstone lecture ties this together with everything else from the course: states, operators, measurement, tensor products, entanglement, and density matrices, all inside one guided QuTiP project simulating a complete two-qubit system end to end.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The no-cloning theorem states that…</div>
+            <div class="opt"><b>A.</b> no unitary can map |ψ⟩|0⟩ → |ψ⟩|ψ⟩ for an arbitrary unknown |ψ⟩</div>
+            <div class="opt"><b>B.</b> qubits can never be measured twice</div>
+            <div class="opt"><b>C.</b> only entangled qubits can be copied</div>
+            <div class="opt"><b>D.</b> cloning is possible only with better hardware</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> No-cloning is a mathematical fact about unitary operators — no universal copying unitary exists for an unknown state, regardless of hardware.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The proof of no-cloning relies crucially on the fact that unitary operators are…</div>
+            <div class="opt"><b>A.</b> Hermitian</div>
+            <div class="opt"><b>B.</b> non-invertible</div>
+            <div class="opt"><b>C.</b> linear</div>
+            <div class="opt"><b>D.</b> always diagonal</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Linearity forces U to distribute over a superposition term-by-term, producing an entangled Bell state instead of the desired product state |ψ⟩⊗|ψ⟩.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In density-matrix language, measuring outcome Π and obtaining it updates the state as…</div>
+            <div class="opt"><b>A.</b> ρ → ρ + Π</div>
+            <div class="opt"><b>B.</b> ρ → ΠρΠ / Tr(Πρ)</div>
+            <div class="opt"><b>C.</b> ρ → Π⁻¹ρΠ</div>
+            <div class="opt"><b>D.</b> ρ stays unchanged</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The projective measurement update rule projects ρ with Π and renormalizes by that outcome's probability Tr(Πρ), matching the Lecture 1 collapse picture when ρ is pure.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> If cloning an unknown qubit were possible, which security application would be directly broken?</div>
+            <div class="opt"><b>A.</b> Classical RSA encryption</div>
+            <div class="opt"><b>B.</b> Classical hash functions</div>
+            <div class="opt"><b>C.</b> Classical majority-vote error correction</div>
+            <div class="opt"><b>D.</b> Quantum key distribution's eavesdropper-detection guarantee</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> QKD's security relies on an eavesdropper being unable to clone a qubit and measure the clone undetected; cloning would let them intercept silently with no detectable disturbance.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Measuring outcome Π₀=|0⟩⟨0| on the maximally mixed state ρ=I/2 and obtaining 0 leaves the state in…</div>
+            <div class="opt"><b>A.</b> I/2, unchanged</div>
+            <div class="opt"><b>B.</b> (|0⟩+|1⟩)/√2</div>
+            <div class="opt"><b>C.</b> |0⟩⟨0|, a pure state</div>
+            <div class="opt"><b>D.</b> an undefined state, since I/2 has no ket representation</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Applying ρ → Π₀ρΠ₀/Tr(Π₀ρ) to ρ=I/2 gives exactly |0⟩⟨0| — the measurement produces a definite pure outcome even though the pre-measurement state was mixed.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Stated the <b>no-cloning theorem</b>: no unitary can universally copy an unknown qubit state.</li>
+            <li>Followed the <b>linearity proof</b> showing a would-be cloner instead produces an entangled Bell state.</li>
+            <li>Connected no-cloning to <b>quantum cryptography</b>'s security guarantees and <b>quantum error correction</b>'s need for a different strategy than classical majority voting.</li>
+            <li>Rewrote projective <b>measurement</b> as the operator update ρ → ΠρΠ/Tr(Πρ), valid for both pure and mixed states.</li>
+            <li>Resolved the course's Week-9 discussion prompt with a concrete, worked answer.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10: the capstone. Everything from states to entanglement, strung together into one guided two-qubit QuTiP project.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-density-matrices-mixed-states.html"><div class="dir">← Week 8</div><div class="ttl">Density Matrices &amp; Mixed States</div></a>
+        <a href="l10-capstone-two-qubit-dynamics.html" class="next"><div class="dir">Week 10 →</div><div class="ttl">Capstone: Two-Qubit Dynamics in QuTiP</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 QM Foundations</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

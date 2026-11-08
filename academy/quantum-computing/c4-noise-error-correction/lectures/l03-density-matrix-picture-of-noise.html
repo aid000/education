@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C4 · Lecture 3 — The Density-Matrix Picture of Noise</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .disc { background: linear-gradient(135deg, #182238, #142138); border: 1px solid #2a4068; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .disc h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .disc p { font-size: .9rem; color: #c3d6ee; }
+        .disc .lbl { font-weight: 700; text-transform: uppercase; font-size: .7rem; letter-spacing: .5px; color: var(--blue); margin-bottom: 6px; display: block; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C4 Noise &amp; QEC</a> / Lecture 3</div>
+        <span class="wk-tag">Week 3 · Lecture 3</span>
+        <h1>The Density-Matrix Picture of Noise</h1>
+        <p class="sub">You have the channels. Now: how do you measure how "wrong" a noisy state has gotten — and what happens when noise doesn't hit once, but over and over, the way it really does inside a circuit?</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define fidelity F(ρ,σ) informally as a similarity measure between two density matrices, with F=1 meaning identical states.</li>
+            <li>Compose multiple noise channels by applying them sequentially to the same density matrix.</li>
+            <li>Track how fidelity to an ideal state decays as the same channel is applied repeatedly.</li>
+            <li>Explain, quantitatively, why "just living with the noise" fails as circuit depth grows.</li>
+            <li>Simulate repeated depolarizing-channel application in PennyLane and plot the fidelity decay.</li>
+        </ul>
+    </div>
+
+    <!-- 3.1 -->
+    <section class="lec">
+        <h2><span class="n">3.1</span>Fidelity: How "Close" Are Two States?</h2>
+        <p>Week 2 gave you exact Kraus operators for three channels. But once a channel has acted, you need a number that answers a very practical question: <em>how much damage did that actually do?</em> That number is <span class="key">fidelity</span>, F(ρ,σ) — informally, a similarity score between two density matrices.</p>
+        <div class="eq">F(ρ,σ) ∈ [0,1] &nbsp;&nbsp; F=1 ⟺ ρ=σ (identical states)<small>Higher fidelity = more similar. F=1 means no distinguishable difference at all; F=0 means maximally different (e.g. orthogonal pure states).</small></div>
+        <p>For comparing a noisy state ρ to the ideal pure state |ψ⟩ you were trying to prepare, fidelity reduces to something you've already computed without naming it: F(ρ, |ψ⟩⟨ψ|) = ⟨ψ|ρ|ψ⟩ — literally "the probability that a measurement in the |ψ⟩ basis would still say yes." That's exactly what Lecture 1's PennyLane snippet printed as <code>fidelity</code> when it read off ρ[1,1].</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Fidelity is like a photocopy-quality score. F=1 is a perfect copy, indistinguishable from the original. As a document gets photocopied from a photocopy from a photocopy (composing channels, next section), fidelity to the <em>original</em> page keeps dropping — not because any single copy step was catastrophic, but because the small degradations compound.</div>
+    </section>
+
+    <!-- 3.2 -->
+    <section class="lec">
+        <h2><span class="n">3.2</span>Composing Channels: Applying Noise More Than Once</h2>
+        <p>A real circuit doesn't apply one noise channel once — every gate, every idle moment, every measurement is another opportunity for the environment to act. Composing channels is simple in the Kraus picture: apply one channel's operator-sum, then feed the result straight into the next:</p>
+        <div class="eq">ρ → ℰ₂(ℰ₁(ρ)) → ℰ₃(ℰ₂(ℰ₁(ρ))) → …<small>Each ℰᵢ can be the same channel repeated, or a different channel entirely — composition just means "apply the whole operator-sum, then do it again."</small></div>
+        <p>Composition is where the real danger of noise shows up. A single application of a weak channel (small p) might barely move the fidelity. But a moderately deep circuit might apply that same channel (or similar ones) dozens or hundreds of times — once per gate — and small per-step degradations compound multiplicatively, not additively.</p>
+    </section>
+
+    <!-- 3.3 -->
+    <section class="lec">
+        <h2><span class="n">3.3</span>Why Repeated Noise Is the Real Threat</h2>
+        <p>Here's the concrete shape of the problem. For this channel acting on this state, a single application with strength p leaves fidelity to the ideal state at <em>exactly</em> F₁ = 1 − p/2 (not merely a leading-order approximation — the next worked example confirms this precisely). Apply it n times in a row, and fidelity doesn't fall linearly — it falls <em>roughly geometrically</em>:</p>
+        <div class="eq">Fₙ ≈ (1 − p)ⁿ<small>Each application multiplies the surviving fidelity by roughly (1−p) again — so fidelity decays toward 0 exponentially in the number of applications n, not linearly.</small></div>
+        <p>This is precisely why NISQ-era circuits have a practical depth limit even when each individual gate's error rate looks tiny: 100 gates at 99.9% fidelity each still compounds to roughly 0.999¹⁰⁰ ≈ 90.5%, and a circuit with a few thousand gates — well within reach of real algorithms — can be driven to fidelity near zero. "The per-gate error is small" is not the same statement as "the circuit is reliable."</p>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — fidelity decay under repeated depolarizing noise</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Start with the ideal state |1⟩⟨1|, apply the depolarizing channel with p=0.2 once, twice, then three times, and track fidelity to the ideal |1⟩⟨1| after each application.</p>
+        <ol>
+            <li><strong>Recall the channel:</strong> ℰ(ρ) = (1−p)ρ + p·I/2, with p=0.2, so ℰ(ρ) = 0.8ρ + 0.1·I.</li>
+            <li><strong>Apply once to ρ₀=|1⟩⟨1|=[[0,0],[0,1]]:</strong> ρ₁ = 0.8·[[0,0],[0,1]] + 0.1·[[1,0],[0,1]] = [[0.1, 0],[0, 0.9]]. Fidelity to |1⟩⟨1| is the (1,1) entry: F₁ = 0.9.</li>
+            <li><strong>Apply a second time to ρ₁:</strong> ρ₂ = 0.8·ρ₁ + 0.1·I = 0.8·[[0.1,0],[0,0.9]] + [[0.1,0],[0,0.1]] = [[0.18, 0],[0, 0.82]]. F₂ = 0.82.</li>
+            <li><strong>Apply a third time to ρ₂:</strong> ρ₃ = 0.8·ρ₂ + 0.1·I = [[0.244, 0],[0, 0.756]]. F₃ = 0.756.</li>
+            <li><strong>Compare to the geometric estimate:</strong> (1−p)ⁿ at p=0.2 gives (0.8)¹=0.8, (0.8)²=0.64, (0.8)³=0.512 — the exact populations (0.9, 0.82, 0.756) decay <em>slower</em> than this crude estimate because every application also mixes back in exactly 0.5 from I/2, but the qualitative trend is identical: each application erodes fidelity further, converging toward the fully-mixed F=0.5, never reaching it exactly in finite steps.</li>
+            <li><strong>The takeaway:</strong> Three applications of a 20%-strength channel already cost nearly 15 points of fidelity (0.9→0.756). A real circuit with hundreds of noisy operations faces exactly this compounding — which is precisely why Week 4 introduces an actual countermeasure instead of just a worse worked example.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: plotting fidelity decay in PennyLane</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reproduce the worked example numerically, then push it further — watch what happens at n=10, n=50. Note: PennyLane's built-in <code>DepolarizingChannel(p)</code> uses the Nielsen–Chuang convention (1−4p/3)ρ+(4p/3)(I/2), not this lecture's (1−p)ρ+p·I/2 — the code below rescales p by 3/4 before calling it so the printed numbers match the worked example exactly.</p>
+        <pre><span class="c"># fidelity_decay.py — Lecture 3</span>
+import pennylane as qml
+from pennylane import numpy as np
+
+dev = qml.device("default.mixed", wires=1)
+
+@qml.qnode(dev)
+def repeated_noise(p, n_apps):
+    qml.PauliX(wires=0)                        <span class="c"># prepare |1></span>
+    p_pl = 3 * p / 4                            <span class="c"># rescale: PennyLane's (1-4p_pl/3) = this lecture's (1-p)</span>
+    for _ in range(n_apps):
+        qml.DepolarizingChannel(p_pl, wires=0)  <span class="c"># compose the (rescaled) channel n_apps times</span>
+    return qml.density_matrix(wires=0)
+
+ideal_pop = 1.0   <span class="c"># |1><1|'s own population entry</span>
+for n in [0, 1, 2, 3, 10, 50]:
+    rho = repeated_noise(0.2, n)
+    fidelity = np.real(rho[1, 1])
+    print(f"n={n:2d} applications   fidelity-to-|1>: {fidelity:.4f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">n=1,2,3 should match the worked example's 0.9, 0.82, 0.756. By n=50 the fidelity should be sitting very close to 0.5 — the maximally mixed state has essentially been reached, and no trace of "which state it started in" remains.</p>
+    </div>
+
+    <!-- DISCUSSION 1 -->
+    <div class="disc">
+        <h3>💬 Discussion 1 — due this week</h3>
+        <span class="lbl">Prompt</span>
+        <p>Noise turns a pure state into a mixed one — information isn't destroyed, it leaks into the environment (Lecture 1). Why does that distinction — "leaked, not destroyed" versus "truly gone" — matter for whether errors can, in principle, ever be corrected? Post your answer in this week's discussion thread.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You've now seen, concretely, why noise is a compounding problem rather than a fixed cost — fidelity doesn't just drop, it drops multiplicatively with every additional noisy operation. That is the entire motivation for Week 4's repetition code: a way to spend extra qubits to actively detect and reverse errors mid-circuit, rather than simply accumulating fidelity loss and hoping the final answer is still usable.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 3 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Fidelity F(ρ,σ) = 1 means…</div>
+            <div class="opt"><b>A.</b> ρ and σ are orthogonal</div>
+            <div class="opt"><b>B.</b> ρ is pure and σ is mixed</div>
+            <div class="opt"><b>C.</b> ρ and σ are identical (indistinguishable) states</div>
+            <div class="opt"><b>D.</b> ρ has trace 1</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> F=1 is the maximum possible fidelity, reached only when the two density matrices describe the exact same state.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Composing two noise channels ℰ₁ then ℰ₂ on a state ρ means computing…</div>
+            <div class="opt"><b>A.</b> ℰ₁(ρ) + ℰ₂(ρ)</div>
+            <div class="opt"><b>B.</b> ℰ₁(ρ) · ℰ₂(ρ)</div>
+            <div class="opt"><b>C.</b> ℰ₂(ℰ₁(ρ)) — feed the output of the first channel into the second</div>
+            <div class="opt"><b>D.</b> the average of ℰ₁ and ℰ₂'s Kraus operators</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Composition is sequential: apply the first channel's full operator-sum to ρ, then apply the second channel's operator-sum to that result.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> In the worked example, applying the p=0.2 depolarizing channel to |1⟩⟨1| three times in a row leaves fidelity at approximately…</div>
+            <div class="opt"><b>A.</b> 0.98</div>
+            <div class="opt"><b>B.</b> 0.756</div>
+            <div class="opt"><b>C.</b> 0.512</div>
+            <div class="opt"><b>D.</b> 0.2</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> ρ₃=[[0.244,0],[0,0.756]] after three applications, computed by repeatedly applying ℰ(ρ)=0.8ρ+0.1I — not the cruder (1−p)ⁿ=0.512 geometric estimate, which decays faster than the true population.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Why does "the per-gate error rate is tiny" not guarantee a reliable circuit?</div>
+            <div class="opt"><b>A.</b> Because fidelity decays roughly multiplicatively with the number of noisy operations, so many small factors compound into a large overall loss</div>
+            <div class="opt"><b>B.</b> Because per-gate error rates are always underestimated by a factor of 10</div>
+            <div class="opt"><b>C.</b> Because quantum gates have no error at all, only measurement does</div>
+            <div class="opt"><b>D.</b> Because fidelity only matters at the very last gate in a circuit</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Repeated applications of even a weak channel compound roughly geometrically (Fₙ ≈ (1−p)ⁿ), so a circuit with enough gates can drive fidelity toward zero even if each individual gate looks nearly perfect.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> What does the "leaked, not destroyed" framing of decoherence (Lecture 1) imply about the possibility of error correction?</div>
+            <div class="opt"><b>A.</b> Nothing — leaked information can never be recovered, so error correction is impossible in principle</div>
+            <div class="opt"><b>B.</b> It implies errors can, in principle, be identified and reversed, since the underlying evolution is still unitary on the larger qubit+environment system</div>
+            <div class="opt"><b>C.</b> It implies only classical bits can ever be protected, never quantum superpositions</div>
+            <div class="opt"><b>D.</b> It implies decoherence and measurement collapse are the same process</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Because decoherence is information <em>leaking</em> rather than being erased, the full qubit+environment evolution stays unitary and reversible in principle — error correction exploits exactly this by catching and reversing the leak before it's gone for good.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined <b>fidelity</b> F(ρ,σ) as a similarity score between density matrices, with F=1 meaning identical states.</li>
+            <li>Composed multiple noise channels sequentially: ρ → ℰ₂(ℰ₁(ρ)).</li>
+            <li>Tracked fidelity decay under <b>repeated</b> depolarizing-channel application — roughly geometric, Fₙ ≈ (1−p)ⁿ.</li>
+            <li>Connected this compounding decay to why NISQ circuits have a practical <b>depth limit</b>, even with small per-gate error rates.</li>
+            <li>Simulated repeated noise in <b>PennyLane</b> and watched fidelity converge toward the maximally mixed state.</li>
+        </ul>
+        <p class="next-up">Next up — Week 4: the first real countermeasure. The 3-qubit repetition code encodes one logical qubit into three physical qubits so bit-flip errors become detectable and correctable.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l02-noise-channels-bit-phase-depolarizing.html"><div class="dir">← Week 2</div><div class="ttl">Noise Channels: Bit-Flip, Phase-Flip &amp; Depolarizing</div></a>
+        <a class="next" href="l04-qec-repetition-code.html"><div class="dir">Week 4 →</div><div class="ttl">QEC Basics: the Repetition Code</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Noise &amp; QEC</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

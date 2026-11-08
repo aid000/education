@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C5 · Lecture 9 — Where NISQ-Era Variational Methods Stand Today</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C5 Variational &amp; Hybrid</a> / Lecture 9</div>
+        <span class="wk-tag">Week 9 · Lecture 9</span>
+        <h1>Where NISQ-Era Variational Methods Stand Today</h1>
+        <p class="sub">An honest wrap-up before the capstone. Variational algorithms are the most hyped near-term application of quantum computers — what does everything from Weeks 1–8 actually support claiming?</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Summarize what VQE/QAOA have actually demonstrated to date: small molecules, small Max-Cut instances, on real hardware.</li>
+            <li>Catalog the real obstacles: barren plateaus (Week 5), noise (C4), limited qubit counts/connectivity.</li>
+            <li>Describe the ongoing debate over when (or whether) "quantum advantage" will be demonstrated for practically useful variational problems.</li>
+            <li>Frame what a quantum-internship-track student should realistically be able to say in an interview.</li>
+            <li>Simulate a VQE circuit under a simple noise model and see how far it drifts from the noiseless result.</li>
+        </ul>
+    </div>
+
+    <!-- 9.1 -->
+    <section class="lec">
+        <h2><span class="n">9.1</span>What's Actually Been Demonstrated</h2>
+        <p>Strip away the hype and the honest record, as of today, looks like this: VQE has computed ground-state energies for small molecules (H₂ and similar minimal-basis systems, exactly the toy-scale problems this course's worked examples have mirrored) on real superconducting and trapped-ion hardware, matching known exact answers to reasonable precision. QAOA has found good (though rarely provably optimal) cuts on small Max-Cut instances — tens of nodes, not thousands — on real devices as well.</p>
+        <p>These are genuine, real demonstrations — not simulations — and they're meaningful proof-of-concept results for the entire hybrid-loop paradigm this course has built from Lecture 1 onward. What they are <em>not</em> yet is a demonstration that either algorithm outperforms the best classical methods on a problem anyone outside a research paper actually needs solved. That gap is the honest center of this week's discussion.</p>
+    </section>
+
+    <!-- 9.2 -->
+    <section class="lec">
+        <h2><span class="n">9.2</span>The Real Obstacles</h2>
+        <p>Three obstacles, each one you've already met in this course, compound together on real hardware:</p>
+        <h3>Barren plateaus (Week 5)</h3>
+        <p>As ansätze scale toward the qubit counts needed for practically useful chemistry or optimization problems, gradient-based training can become unreliable — and the problem-inspired structure of QAOA (Weeks 6–7) only partially shields against it.</p>
+        <h3>Noise (C4)</h3>
+        <p>Every measurement in this course's hands-on examples ran on a noiseless simulator. Real NISQ devices add gate errors and decoherence on top of everything else — the entire premise of "shallow circuits trade depth for iterations" (Lecture 1) only buys you so much headroom before noise itself corrupts the cost estimate the optimizer is working from.</p>
+        <h3>Limited qubit counts and connectivity</h3>
+        <p>Real molecules of practical interest (beyond H₂-scale toys) and real optimization instances of practical interest (beyond small graphs) need more qubits, more connected, than most current devices offer — and adding qubits worsens both of the obstacles above simultaneously.</p>
+        <div class="eq">practical usefulness requires: more qubits + more connectivity + deeper circuits<small>— and every one of those three directions makes barren plateaus and noise worse, not better. This tension, not any single obstacle alone, is the real story of where NISQ-era variational methods stand.</small></div>
+    </section>
+
+    <!-- 9.3 -->
+    <section class="lec">
+        <h2><span class="n">9.3</span>The Quantum Advantage Debate, and Interview Framing</h2>
+        <p>"Quantum advantage" for variational methods — a demonstration that VQE or QAOA solves a <em>practically useful</em> problem faster or better than the best available classical method — has not yet been achieved, and there's genuine, active debate among researchers about whether near-term (rather than fully error-corrected) hardware will ever get there for these specific algorithms, versus other quantum algorithm classes.</p>
+        <p>This course's stated goal has been quantum-internship-track readiness (IBM, Google, academic labs), and here is the realistic framing that goal actually calls for: you should be able to explain exactly what VQE and QAOA are, why they're built the way they are (the hybrid loop, Lecture 1; the ansatz trade-offs, Lecture 2), what's been genuinely demonstrated (§9.1), and why barren plateaus and noise (§9.2) are the two obstacles any serious conversation about scaling has to address head-on. An interviewer in this space is far more likely to respect "here's exactly what's proven and what isn't" than an overclaiming pitch — and far more likely to respect obvious ignorance of barren plateaus than a glossy answer that pretends they don't exist.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Walking into a quantum-computing interview and either (a) overclaiming — implying VQE/QAOA already beat classical methods on useful problems — or (b) underclaiming — dismissing variational methods as useless hype. Both responses signal you haven't actually engaged with where the field stands; the honest, defensible position is the nuanced one this lecture just walked through.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — a fair-claim checklist</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A classmate claims: "VQE has already found the ground-state energy of large industrially relevant molecules faster than classical computers." Evaluate this claim against what §9.1–9.2 actually support.</p>
+        <ol>
+            <li><strong>Check scale:</strong> §9.1 says real-hardware VQE demonstrations have been on small molecules (H₂-scale), not large industrially relevant ones — the claim overstates scale.</li>
+            <li><strong>Check speed/advantage:</strong> §9.3 says no demonstrated quantum advantage over classical methods exists yet for a practically useful variational problem — the claim overstates performance.</li>
+            <li><strong>What would be fair to say instead:</strong> "VQE has demonstrated correct ground-state energies for small molecules on real hardware, matching known classical answers — a genuine proof of the hybrid-loop concept, but not yet a demonstrated advantage over classical methods on a problem of practical industrial scale."</li>
+            <li><strong>Lesson:</strong> the corrected claim keeps everything that's actually true (real hardware, correct results, proof of concept) while dropping exactly the two overclaims (scale, advantage) that §9.1–9.3 don't support.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: how much does noise move a VQE result?</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Rerun Lecture 3's toy VQE (H = aZ, RY(θ) ansatz) on a noiseless simulator and on a simple noisy one, and compare how far the measured ⟨H⟩ drifts from the exact −a — a small, concrete taste of the noise obstacle from §9.2 and C4.</p>
+        <pre><span class="c"># noisy_vqe_comparison.py — Lecture 9</span>
+import pennylane as qml
+from pennylane import numpy as np
+
+a = 0.7
+theta = np.pi                                  <span class="c"># the exact minimizer from Lecture 3</span>
+
+dev_clean = qml.device("default.qubit", wires=1)
+dev_noisy = qml.device("default.mixed", wires=1)   <span class="c"># supports noise channels</span>
+
+def circuit(theta):
+    qml.RY(theta, wires=0)
+    qml.DepolarizingChannel(0.05, wires=0)      <span class="c"># 5% depolarizing noise, applied only on the noisy device</span>
+    return qml.expval(a * qml.PauliZ(0))
+
+clean_H = qml.QNode(lambda th: (qml.RY(th, wires=0), qml.expval(a * qml.PauliZ(0)))[-1], dev_clean)
+noisy_H = qml.QNode(circuit, dev_noisy)
+
+print(f"Exact ground energy E0 = {-a:.4f}")
+print(f"Noiseless &lt;H&gt; at theta=pi: {clean_H(theta):.4f}")
+print(f"Noisy (5% depolarizing) &lt;H&gt; at theta=pi: {noisy_H(theta):.4f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">The noiseless run should land essentially exactly on −a; the noisy run will sit measurably closer to 0 — depolarizing noise pulls expectation values toward the maximally mixed state. Try raising the noise probability and watch the drift grow, a direct, hands-on echo of exactly the obstacle §9.2 and this course's parent, C4, spent ten weeks on.</p>
+    </div>
+
+    <div class="box analogy"><span class="lbl">💬 Week 9 Discussion</span>Variational methods are the most hyped near-term application of quantum computers. Based on what you now know about barren plateaus, noise, and classical competition — what's a fair and honest claim to make about them today? Try drafting one sentence you'd be comfortable saying in a technical interview, and one sentence you'd flag as an overclaim to avoid.</div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have the complete, honest picture: what VQE and QAOA do, how they're built, what obstacles they face, and what's fair to claim about them. Week 10 — the final lecture of this course and the capstone of the entire 5-course Quantum Computing specialization — puts every single piece from Weeks 1–9 together into one project you build yourself.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 9 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> What has VQE actually demonstrated on real quantum hardware to date?</div>
+            <div class="opt"><b>A.</b> Ground-state energies of large, industrially relevant molecules, faster than classical computers</div>
+            <div class="opt"><b>B.</b> Correct ground-state energies for small molecules (e.g. H₂-scale), matching known classical answers — a proof of concept, not yet a demonstrated advantage</div>
+            <div class="opt"><b>C.</b> Nothing has ever been demonstrated on real hardware, only simulators</div>
+            <div class="opt"><b>D.</b> A full replacement for all classical chemistry software</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Real-hardware VQE results exist for small molecules and match known answers, but no demonstrated advantage over classical methods at practically useful scale exists yet.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Which three obstacles does this lecture identify as compounding together on real NISQ hardware?</div>
+            <div class="opt"><b>A.</b> Barren plateaus, noise, and limited qubit counts/connectivity</div>
+            <div class="opt"><b>B.</b> Too much funding, too many researchers, too much publicity</div>
+            <div class="opt"><b>C.</b> Lack of classical computers, lack of programming languages, lack of textbooks</div>
+            <div class="opt"><b>D.</b> Only noise — barren plateaus and qubit counts are not real obstacles</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Barren plateaus (Week 5), noise (C4), and limited qubit counts/connectivity are the three obstacles this lecture names, and they worsen each other as circuits scale up.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Has "quantum advantage" for a practically useful variational problem been demonstrated as of this lecture?</div>
+            <div class="opt"><b>A.</b> Yes, for VQE on industrial-scale molecules</div>
+            <div class="opt"><b>B.</b> Yes, for QAOA on large-scale Max-Cut instances</div>
+            <div class="opt"><b>C.</b> No — this remains an open question and an active research debate</div>
+            <div class="opt"><b>D.</b> Quantum advantage was proven mathematically impossible for these algorithms</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> As of this lecture, no demonstrated quantum advantage exists for a practically useful variational problem — it remains genuinely open and debated.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the worked example's fair-claim checklist, what two things did the classmate's claim overstate?</div>
+            <div class="opt"><b>A.</b> The number of qubits used and the programming language</div>
+            <div class="opt"><b>B.</b> The molecule's scale (claiming large/industrial rather than small) and the existence of a demonstrated speed/advantage over classical methods</div>
+            <div class="opt"><b>C.</b> Nothing — the claim was entirely accurate</div>
+            <div class="opt"><b>D.</b> The cost of the quantum hardware</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The fair-claim checklist found the claim overstated both the demonstrated molecular scale and the existence of a classical-beating advantage.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the noisy-VQE hands-on, what effect does the depolarizing channel have on the measured ⟨H⟩ relative to the noiseless result?</div>
+            <div class="opt"><b>A.</b> No effect whatsoever</div>
+            <div class="opt"><b>B.</b> It pulls the measured expectation value toward 0 (the maximally mixed state), away from the exact −a</div>
+            <div class="opt"><b>C.</b> It makes the measured value exactly equal to −a</div>
+            <div class="opt"><b>D.</b> It changes the sign of the measured value</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Depolarizing noise pulls a qubit's state toward the maximally mixed state, which drives Pauli expectation values toward zero rather than their ideal extremes.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Summarized what VQE/QAOA have actually demonstrated: small molecules, small Max-Cut, real hardware, no classical-beating advantage yet.</li>
+            <li>Catalogued the three compounding obstacles: <b>barren plateaus</b>, <b>noise</b>, and <b>limited qubit counts/connectivity</b>.</li>
+            <li>Described the open <b>quantum advantage debate</b> for practically useful variational problems.</li>
+            <li>Practiced separating fair claims from overclaims using a worked fair-claim checklist.</li>
+            <li>Simulated noise's effect on a VQE result directly in <b>PennyLane</b>, watching ⟨H⟩ drift toward 0.</li>
+        </ul>
+        <p class="next-up">Next up — Week 10: the capstone. Build a complete VQE or QAOA project end to end, and close out the entire 5-course specialization.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l08-classical-optimizers-hybrid-loops.html"><div class="dir">← Week 8</div><div class="ttl">Classical Optimizers for Hybrid Loops</div></a>
+        <a class="next" href="l10-capstone-vqe-or-qaoa.html"><div class="dir">Week 10 →</div><div class="ttl">Capstone: VQE or QAOA</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Variational &amp; Hybrid</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

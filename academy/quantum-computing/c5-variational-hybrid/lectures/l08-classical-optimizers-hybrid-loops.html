@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C5 · Lecture 8 — Classical Optimizers for Hybrid Loops</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box.tip { background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.28); }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+        .box.tip .lbl { color: var(--green); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .proj { background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.28); border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; color: #bdeed4; }
+        .proj .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; color: var(--green); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C5 Variational &amp; Hybrid</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>Classical Optimizers for Hybrid Loops</h1>
+        <p class="sub">Every lecture so far has used plain gradient descent, deliberately, to keep the quantum side in focus. This week finally gives the classical-optimizer side of the loop the real survey it deserves.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Explain the <b>parameter-shift rule</b>: exact quantum gradients from two circuit evaluations at θᵢ±π/2.</li>
+            <li>Contrast gradient-based optimizers (gradient descent, Adam) with gradient-free ones (COBYLA, Nelder-Mead).</li>
+            <li>Describe <b>SPSA</b> and why its noise-robustness makes it popular on NISQ devices.</li>
+            <li>Derive the parameter-shift formula for a single RY(θ) gate by hand.</li>
+            <li>Run <code>scipy.optimize.minimize</code> with COBYLA on Lecture 6/7's QAOA circuit and compare to the manual approach.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>Gradient-Based Methods and the Parameter-Shift Rule</h2>
+        <p>Every gradient-descent step this course has run — Lecture 1's toy circuit, Lecture 4's VQE, Lecture 7's QAOA — used PennyLane's automatic gradients without asking how a real quantum device, which can't run backpropagation the way a classical neural network can, actually produces them. The answer is one of the genuinely elegant quantum-specific tricks in this whole field: the <span class="key">parameter-shift rule</span>.</p>
+        <div class="box tip"><span class="lbl">✦ The Parameter-Shift Rule</span>For a cost function built from a gate like RY(θᵢ) (and many other common gates), the exact derivative of the cost with respect to θᵢ can be computed from exactly two circuit evaluations, shifted by ±π/2 — no finite-difference approximation, no small-step error, just two clean measurements:<div class="eq" style="margin-top:10px;">∂⟨H⟩/∂θᵢ = [⟨H⟩(θᵢ+π/2) − ⟨H⟩(θᵢ−π/2)] / 2</div>This is exact, not approximate — a genuinely quantum-mechanical fact about how these gates' generators work, with no classical finite-difference analog of this cleanliness.</div>
+        <p>Once you have exact gradients via parameter shift, standard gradient-based classical optimizers become available: plain gradient descent (Lecture 1's choice throughout, for simplicity), or <strong>Adam</strong> (which adapts its step size per parameter using running estimates of the gradient's mean and variance — generally more robust than plain gradient descent on noisy, multi-parameter landscapes like VQE's and QAOA's).</p>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>Gradient-Free Methods: COBYLA, Nelder-Mead</h2>
+        <p>Gradient-based methods have one obvious weakness given Week 5: if you're sitting on a barren plateau, the parameter-shift rule will faithfully compute a gradient that's just... correctly, exactly zero (or indistinguishable from shot noise). No amount of gradient-computation cleverness rescues you from a genuinely flat landscape.</p>
+        <p><strong>Gradient-free</strong> optimizers sidestep the issue by never computing a gradient at all. <strong>COBYLA</strong> (Constrained Optimization BY Linear Approximation) and <strong>Nelder-Mead</strong> both work by evaluating the cost function at a handful of nearby points and using the pattern of those values — not derivatives — to decide where to move next. They avoid ever needing an <em>explicit</em> gradient computation — but that's not the same as being immune to barren plateaus: per Arrasmith et al. (2021), the cost-function <em>differences</em> these methods rely on to decide where to move also vanish exponentially on a barren plateau, so gradient-free optimization sidesteps the mechanics of gradient computation without actually escaping the underlying flat landscape. They also typically need more total cost-function evaluations to converge and can get stuck more easily on landscapes with many shallow local structures.</p>
+    </section>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>SPSA: Gradient-Free and Noise-Robust</h2>
+        <p><strong>SPSA</strong> (Simultaneous Perturbation Stochastic Approximation) sits between the two camps above. Each iteration, instead of evaluating every parameter's shift separately (as full parameter-shift gradients would require), SPSA perturbs <em>all</em> parameters at once in a single random direction, evaluates the cost at only two points, and uses that to estimate a descent direction. This makes each iteration dramatically cheaper for high-dimensional θ (one random direction's worth of evaluations, not one pair per parameter), and it tends to be naturally robust to the shot noise inherent in real quantum hardware measurements — which is exactly why SPSA is a popular choice for NISQ-era VQE and QAOA runs specifically, rather than a general-purpose classical optimization default.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Assuming there's one "correct" optimizer for every hybrid loop. Gradient-based methods (with parameter shift) give exact gradients but can be blind-sided by barren plateaus; gradient-free methods (COBYLA, Nelder-Mead) avoid computing an explicit gradient but are not actually immune to barren plateaus — the cost differences they rely on vanish too — and they converge more slowly; SPSA trades some precision for cheap, noise-robust iterations on real hardware. The right choice depends on qubit count, ansatz depth, and whether you're running on a simulator or noisy real hardware.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — parameter-shift by hand, on Lecture 1's circuit</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Apply the parameter-shift rule to Lecture 1's exact toy circuit: cost(θ) = ⟨ψ(θ)|Z|ψ(θ)⟩ = cos(θ) for the RY(θ) ansatz. Confirm the parameter-shift formula reproduces the known exact derivative at θ = π/4.</p>
+        <ol>
+            <li><strong>Known exact derivative</strong> (by direct calculus): d/dθ[cos(θ)] = −sin(θ). At θ = π/4: −sin(π/4) = −√2/2 ≈ −0.7071.</li>
+            <li><strong>Parameter-shift evaluations:</strong> cost(π/4 + π/2) = cos(3π/4) = −√2/2 ≈ −0.7071, and cost(π/4 − π/2) = cos(−π/4) = cos(π/4) = √2/2 ≈ 0.7071.</li>
+            <li><strong>Apply the formula:</strong> ∂cost/∂θ = [cost(θ+π/2) − cost(θ−π/2)] / 2 = [(−0.7071) − (0.7071)] / 2 = (−1.4142)/2 = −0.7071.</li>
+            <li><strong>Compare:</strong> the parameter-shift result (−0.7071) matches the exact calculus derivative (−0.7071) exactly — not approximately, exactly — confirming the rule's claim of exactness for this gate type.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: COBYLA via SciPy on the Lecture 6/7 QAOA circuit</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Rebuild the p=1 triangle-graph QAOA circuit from Lecture 7, but this time optimize γ, β with <code>scipy.optimize.minimize</code> using COBYLA — a gradient-free method — and compare the final ⟨Hc⟩ to Lecture 7's manual gradient-descent result.</p>
+        <pre><span class="c"># qaoa_cobyla.py — Lecture 8</span>
+import pennylane as qml
+from pennylane import numpy as np
+from scipy.optimize import minimize
+
+edges = [(0, 1), (1, 2), (0, 2)]
+coeffs, obs = [], []
+for (i, j) in edges:
+    coeffs += [0.5, -0.5]
+    obs += [qml.Identity(i), qml.PauliZ(i) @ qml.PauliZ(j)]
+<span class="c"># qml.ops.LinearCombination is current PennyLane's replacement for the deprecated qml.Hamiltonian</span>
+Hc = qml.ops.LinearCombination(coeffs, obs)
+Hm = qml.ops.LinearCombination([1.0]*3, [qml.PauliX(0), qml.PauliX(1), qml.PauliX(2)])
+
+dev = qml.device("default.qubit", wires=3)
+
+@qml.qnode(dev)
+def qaoa_cost(params):
+    gamma, beta = params[0], params[1]
+    for q in range(3):
+        qml.Hadamard(wires=q)
+    qml.ApproxTimeEvolution(Hc, gamma, 1)
+    qml.ApproxTimeEvolution(Hm, beta, 1)
+    return qml.expval(Hc)
+
+def neg_cost(params):
+    return -float(qaoa_cost(params))           <span class="c"># SciPy minimizes; we want to maximize &lt;Hc&gt;</span>
+
+result = minimize(neg_cost, x0=[0.4, 0.8], method="COBYLA",
+                   options={"maxiter": 100})
+print(f"COBYLA best gamma,beta = {np.round(result.x, 3)}")
+print(f"COBYLA best &lt;Hc&gt; = {-result.fun:.3f}   (true max = 2.0)")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">COBYLA should land near the same ⟨Hc⟩ Lecture 7's manual gradient descent found — often in fewer lines of orchestration code, since SciPy handles the iteration loop internally, but typically at the cost of more total circuit evaluations under the hood.</p>
+    </div>
+
+    <div class="proj"><span class="lbl">🛠️ Project Checkpoint — Week 8</span>By now your project's full optimization loop (Week 4's checkpoint, plus a real optimizer from this week) should be <strong>converging</strong> — ⟨H⟩ or ⟨Hc⟩ settling near its best achievable value for your chosen ansatz. If it's stuck on a barren-plateau-like flat region (Week 5), this is the week to swap in COBYLA or SPSA and see whether a gradient-free approach breaks through.</div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>You now have the complete toolkit this course set out to build: ansätze (Week 2), two flagship algorithms (VQE, Weeks 3–4; QAOA, Weeks 6–7), the barren-plateau obstacle (Week 5), and a real survey of classical optimizers (this week). Week 9 steps back and asks, honestly, what all of this actually adds up to on today's hardware — and Week 10 puts every piece together in a capstone project.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The parameter-shift rule computes an exact quantum gradient from…</div>
+            <div class="opt"><b>A.</b> Two circuit evaluations at θᵢ±π/2</div>
+            <div class="opt"><b>B.</b> A single circuit evaluation at θᵢ</div>
+            <div class="opt"><b>C.</b> A finite-difference approximation with a small step size</div>
+            <div class="opt"><b>D.</b> Classical backpropagation through the quantum circuit</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Parameter shift gives an exact (not approximate) derivative from exactly two circuit evaluations shifted by ±π/2 — a quantum-specific trick with no classical finite-difference analog.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> What is the key advantage of gradient-free methods like COBYLA or Nelder-Mead over gradient-based methods?</div>
+            <div class="opt"><b>A.</b> They always converge faster</div>
+            <div class="opt"><b>B.</b> They require quantum hardware with more qubits</div>
+            <div class="opt"><b>C.</b> They never require a classical optimizer at all</div>
+            <div class="opt"><b>D.</b> They never compute an explicit gradient — though the cost-function differences they rely on instead also vanish exponentially on a barren plateau, so they typically need more cost evaluations to converge and don't actually escape the problem</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> By using only cost-function values (never explicit gradients), gradient-free methods sidestep the mechanics of gradient computation — but per Arrasmith et al. (2021), the cost-function differences they depend on also vanish exponentially in a barren plateau, so they don't actually escape Week 5's vanishing-gradient problem, and they generally converge more slowly.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> What makes SPSA particularly well-suited to NISQ devices specifically?</div>
+            <div class="opt"><b>A.</b> It requires error-corrected logical qubits</div>
+            <div class="opt"><b>B.</b> It perturbs all parameters simultaneously using only two cost evaluations per iteration, and is naturally robust to the shot noise inherent in real quantum measurements</div>
+            <div class="opt"><b>C.</b> It is the only optimizer that can use the parameter-shift rule</div>
+            <div class="opt"><b>D.</b> It eliminates the need for an ansatz</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> SPSA's cheap, simultaneous-perturbation gradient estimate scales well with parameter count and tolerates the noisy measurements typical of real NISQ hardware.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the worked example, applying the parameter-shift rule to cost(θ)=cos(θ) at θ=π/4 gives a derivative of…</div>
+            <div class="opt"><b>A.</b> +0.7071</div>
+            <div class="opt"><b>B.</b> 0</div>
+            <div class="opt"><b>C.</b> −0.7071, exactly matching the calculus derivative −sin(π/4)</div>
+            <div class="opt"><b>D.</b> −1</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> [cos(3π/4) − cos(−π/4)]/2 = [−√2/2 − √2/2]/2 = −√2/2 ≈ −0.7071, exactly matching −sin(π/4).</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the hands-on code, what role does <code>scipy.optimize.minimize(..., method="COBYLA")</code> play relative to Lecture 7's manual <code>opt.step</code> loop?</div>
+            <div class="opt"><b>A.</b> It replaces the ansatz circuit entirely</div>
+            <div class="opt"><b>B.</b> It is a gradient-free alternative that searches γ,β using only cost-function evaluations, run via SciPy instead of a manual PennyLane optimizer loop</div>
+            <div class="opt"><b>C.</b> It computes the exact molecular Hamiltonian</div>
+            <div class="opt"><b>D.</b> It performs the qubit mapping from Lecture 3</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> COBYLA is a gradient-free classical optimizer; SciPy's <code>minimize</code> drives the same underlying quantum circuit toward a good γ,β without ever using parameter-shift gradients.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Learned the <b>parameter-shift rule</b>: exact quantum gradients from two circuit evaluations at θᵢ±π/2.</li>
+            <li>Contrasted gradient-based (descent, Adam) with gradient-free (COBYLA, Nelder-Mead) classical optimizers.</li>
+            <li>Described <b>SPSA</b> and its specific popularity for noisy, high-dimensional NISQ-era hybrid loops.</li>
+            <li>Verified the parameter-shift formula by hand against the known exact derivative of cos(θ).</li>
+            <li>Ran <b>COBYLA via SciPy</b> on the triangle QAOA circuit and compared it to Lecture 7's manual gradient descent.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: an honest look at where NISQ-era variational methods actually stand, obstacles and all.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-qaoa-mixer-cost-depth-p.html"><div class="dir">← Week 7</div><div class="ttl">QAOA II: Mixer/Cost Layers &amp; Depth p</div></a>
+        <a class="next" href="l09-nisq-variational-status.html"><div class="dir">Week 9 →</div><div class="ttl">Where NISQ-Era Variational Methods Stand Today</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Variational &amp; Hybrid</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

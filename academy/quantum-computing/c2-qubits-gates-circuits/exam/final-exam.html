@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 · Final Exam — Qubits, Gates &amp; Circuits</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C2 Qubits, Gates &amp; Circuits</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C2 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from the circuit model and Pauli gates through the capstone circuit zoo.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Pauli Gates &amp; Circuit Model <b>4</b></span>
+            <span class="wchip">Universal &amp; Multi-Qubit Gates <b>5</b></span>
+            <span class="wchip">Bell States &amp; No-Cloning <b>6</b></span>
+            <span class="wchip">Teleportation &amp; Superdense Coding <b>5</b></span>
+            <span class="wchip">Circuit Zoo &amp; Capstone <b>5</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ PAULI GATES & THE CIRCUIT MODEL (Weeks 1–2) ============ -->
+    <div class="exam-sec">Pauli Gates &amp; the Circuit Model · Weeks 1–2</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> A quantum gate U, acting on a qubit state, must always satisfy…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> U†U = I</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> U = U†</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> det(U) = 0</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> U² = I</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Unitarity (U†U = I) is the exact condition that preserves normalization, mapping every valid state to another valid state — required of every gate, not just special ones.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>2.</span> The Pauli-X gate acting on α|0⟩ + β|1⟩ produces…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> α|0⟩ − β|1⟩</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> β|0⟩ + α|1⟩</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> α|1⟩ − β|0⟩</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> the same state, unchanged</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> X swaps the two amplitudes — the bit-flip gate, acting on amplitudes rather than a single classical bit.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> H|0⟩ equals…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> |1⟩</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> (|0⟩−|1⟩)/√2</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> (|0⟩+|1⟩)/√2</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> i|1⟩</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The Hadamard gate creates the equal superposition |+⟩ = (|0⟩+|1⟩)/√2 from the basis state |0⟩. Option B, |−⟩, is H|1⟩ instead.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> On the Bloch sphere, the S gate…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> shifts the polar angle θ by π/2</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> swaps the north and south poles</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> has no effect on any state whatsoever</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> shifts the azimuthal angle φ by π/2, leaving θ unchanged</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> S is diagonal and only multiplies the |1⟩ amplitude by i — a pure rotation of φ around the z-axis, with θ (and the poles) fixed.</div>
+    </div>
+
+    <!-- ============ UNIVERSAL & MULTI-QUBIT GATES (Weeks 3–4) ============ -->
+    <div class="exam-sec">Universal &amp; Multi-Qubit Gates · Weeks 3–4</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> A gate set is called "universal" when circuits built from it can…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> approximate any unitary to arbitrary precision</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> exactly reproduce any unitary with zero error</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> only approximate single-qubit gates</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> work only with an infinite number of distinct physical gates</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Universality is about arbitrarily close approximation, not exact reproduction — the Solovay–Kitaev theorem guarantees this approximation is also efficient.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>6.</span> In the universal set {H, T, CNOT}, which gate supplies the entangling, multi-qubit ingredient?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> H</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> CNOT</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> T</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> none of them</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> No sequence of single-qubit gates alone, acting on separate wires, can ever entangle two qubits — CNOT is the specific multi-qubit gate that makes it possible.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> CNOT acting on |10⟩ (control=1, target=0) produces…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> |00⟩</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> |01⟩</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> |11⟩</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> |10⟩, unchanged</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The control is 1, so the target flips from 0 to 1, giving |11⟩ — CNOT's defining rule: flip the target iff the control is |1⟩.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> A controlled-U gate, for an arbitrary single-qubit unitary U, applies U to the target…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> regardless of the control's value</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> only when the control is |0⟩</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> with probability 50%, regardless of the control</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> only when the control is |1⟩, leaving the target untouched otherwise</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Controlled-U generalizes CNOT (controlled-X): apply U to the target exactly when the control reads |1⟩.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>9.</span> In CNOT, the control/target asymmetry means…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> the control qubit's value never changes; only the target is conditionally modified</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> both qubits are always modified equally</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> the target qubit's value never changes</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> CNOT has no meaningful control or target distinction</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The control is read but never altered; the target is the one conditionally flipped — swapping which wire plays which role produces a genuinely different gate.</div>
+    </div>
+
+    <!-- ============ BELL STATES & NO-CLONING (Weeks 5–6) ============ -->
+    <div class="exam-sec">Bell States &amp; No-Cloning · Weeks 5–6</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>10.</span> The standard circuit for preparing |Φ⁺⟩ = (|00⟩+|11⟩)/√2 from |00⟩ is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> CNOT alone, no single-qubit gate needed</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> H on the control qubit, then CNOT with that qubit as control</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> X on both qubits</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> measure, then apply H</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> H creates the superposition on the control first; CNOT then correlates the target with it — CNOT alone on |00⟩ does nothing, since both rows it would swap already agree.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> Measuring both qubits of |Φ⁺⟩ many times, the possible outcomes are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> only '01' and '10', roughly 50/50</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> all four bitstrings, equally often</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> only '00' and '11', roughly 50/50</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> always '00', with certainty</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> |Φ⁺⟩ has amplitude only on |00⟩ and |11⟩, so the two measurement outcomes are perfectly correlated — the signature Bell-state statistics.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> The no-cloning theorem states that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> unitary gates don't exist</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> cloning only fails for already-known classical states</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> CNOT is not a valid quantum gate</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> no unitary U can map |ψ⟩⊗|0⟩ → |ψ⟩⊗|ψ⟩ for every unknown |ψ⟩</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> This is the precise statement — it forbids a universal copier working on an unknown state, not copying of already-known classical information.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>13.</span> Attempting to "clone" a superposed control qubit using CNOT instead produces…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> an entangled Bell state, not a clone</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> two fully independent copies of the control's state</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> |00⟩, unchanged</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> a runtime error — CNOT rejects superposed inputs</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Linearity forces CNOT to distribute over the superposition, producing an entangled two-term sum — not the four-term product state true cloning would require.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>14.</span> After the CNOT "cloning" attempt on a superposed control, the reduced state of the target qubit alone is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> a pure state, identical to the control's original state</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> maximally mixed (I/2), not a clean copy</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> always exactly |0⟩</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> undefined</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The attempt produced entanglement, not duplication — tracing out an entangled partner always leaves a mixed state behind, the opposite of a faithful copy.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> Feeding the input |10⟩ into the standard H(control)+CNOT circuit produces…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> |Φ⁺⟩ = (|00⟩+|11⟩)/√2</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> |Ψ⁺⟩ = (|01⟩+|10⟩)/√2</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> |Φ⁻⟩ = (|00⟩−|11⟩)/√2</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> |Ψ⁻⟩ = (|01⟩−|10⟩)/√2</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Flipping the control's input bit (via X beforehand) introduces the relative minus sign while leaving the same pair of terms connected, giving |Φ⁻⟩.</div>
+    </div>
+
+    <!-- ============ TELEPORTATION & SUPERDENSE CODING (Weeks 7–8) ============ -->
+    <div class="exam-sec">Teleportation &amp; Superdense Coding · Weeks 7–8</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> The teleportation protocol requires Alice and Bob to pre-share…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> a copy of the unknown state |ψ⟩</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> nothing at all</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> four classical bits</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> a Bell pair, prepared before the protocol begins</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The pre-shared entanglement is the resource the protocol spends — it must be distributed using no knowledge of the unknown |ψ⟩.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> Bob's corrective gate, chosen from {I, X, Z, XZ}, is selected by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> the two classical bits from Alice's Bell measurement</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> a random guess</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> the unknown amplitudes α and β directly</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> measuring his own qubit first</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The two classical bits Alice measures and transmits determine exactly which of the four Pauli corrections restores |ψ⟩ on Bob's qubit.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> Teleportation does not violate relativity because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> no entanglement is actually used</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> Bob's qubit carries no usable information until the classical bits physically arrive, at light speed or slower</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> the protocol only works over very short distances</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> Alice's measurement has no effect on Bob's qubit</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Before the classical bits arrive, Bob's qubit is in an uninformative average over all four possible corrections — the protocol's effective speed is capped by the classical channel.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> Superdense coding lets Alice send Bob…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> 1 qubit of quantum information, using 2 classical bits</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> an unlimited number of classical bits</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> 2 classical bits, using 1 transmitted qubit plus a pre-shared Bell pair</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> nothing, without any entanglement</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> One transmitted qubit, leveraging pre-shared entanglement, carries two classical bits — double the usual one-qubit-one-bit capacity. Option A describes teleportation instead.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> The circuit equivalence HXH equals…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> X</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> I</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> H</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> Z</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Conjugating X by Hadamards gives Z — direct matrix multiplication confirms it, and it reflects H swapping the roles of the Z-basis and X-basis.</div>
+    </div>
+
+    <!-- ============ CIRCUIT ZOO & CAPSTONE (Weeks 9–10) ============ -->
+    <div class="exam-sec">Circuit Zoo &amp; Capstone · Weeks 9–10</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>21.</span> The 3-qubit GHZ state is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> (|000⟩+|111⟩)/√2</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> (|000⟩+|011⟩+|101⟩+|110⟩)/2</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> |000⟩, unchanged from the input</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> (|001⟩+|110⟩)/√2</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> |GHZ₃⟩ is the three-qubit generalization of a Bell state's two-term equal superposition, now across three qubits.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> The standard circuit for building an n-qubit GHZ state uses…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> n separate Hadamard gates, one per qubit</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> H on one qubit, then a chain of CNOTs from that same qubit to every other qubit</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> only CNOT gates, no Hadamard at all</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> measurement, performed before any gates</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> One H creates the initial superposition; each CNOT off that same control qubit extends the correlation to one more qubit.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> In the swap test, the ancilla qubit (measured over many runs) reads 0 with probability…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> always exactly 1, regardless of the two states compared</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> always exactly 0</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> (1 + |⟨ψ|φ⟩|²) / 2</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> a value unrelated to the overlap of the two states</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> This formula ranges from 1/2 (orthogonal states) to 1 (identical states), letting many repeated runs statistically estimate the overlap |⟨ψ|φ⟩|².</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> A complete capstone project report, for each named circuit, should include…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> only the final Qiskit code, nothing else</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> no measurement results at all</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> a formal proof that quantum computers are faster than classical ones</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> the circuit diagram, measured counts, and a comparison to the theoretical prediction</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Diagram, data, and theory, together, is the shape the project asks for across every circuit in the zoo.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>25.</span> Course 3 (Quantum Algorithms) builds directly on this course's toolkit by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> using superposition, interference, and controlled operations to achieve genuine computational speedups over classical methods</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> abandoning gates and circuits entirely in favor of a new formalism</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> only reusing the Pauli gates from Lecture 1</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> having no relationship to Course 2 at all</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Deutsch-Jozsa and Grover's algorithm both lean directly on this course's circuit-level tools, now aimed at provable speedups rather than demonstration circuits.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C2 Syllabus</div></a>
+        <a href="../lectures/l01-circuit-model-and-pauli-gates.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Qubits, Gates &amp; Circuits</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

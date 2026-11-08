@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C3 · Lecture 6 — The Quantum Fourier Transform (QFT)</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .disc { background: rgba(96,165,250,.06); border: 1px solid rgba(96,165,250,.22); border-radius: 12px; padding: 18px 22px; margin: 24px 0; }
+        .disc .lbl { color: var(--blue); font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 8px; display: block; }
+        .disc p { font-size: .9rem; color: #cfe0f5; margin: 0; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C3 Quantum Algorithms</a> / Lecture 6</div>
+        <span class="wk-tag">Week 6 · Lecture 6</span>
+        <h1>The Quantum Fourier Transform (QFT)</h1>
+        <p class="sub">The circuit that turns computational-basis states into Fourier-coefficient superpositions — in O(n²) gates, not O(n·2ⁿ).</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Define the QFT as the quantum analog of the classical discrete Fourier transform (DFT).</li>
+            <li>Describe the QFT circuit: Hadamards plus controlled phase rotations, in a divide-and-conquer structure.</li>
+            <li>Explain why the QFT circuit needs only O(n²) gates, versus O(n·2ⁿ) for a brute-force classical DFT.</li>
+            <li>State clearly why the QFT does NOT give classical read-out access to the Fourier coefficients.</li>
+            <li>Build and run a 3-qubit QFT circuit in Qiskit and inspect the resulting amplitudes.</li>
+        </ul>
+    </div>
+
+    <!-- 6.1 -->
+    <section class="lec">
+        <h2><span class="n">6.1</span>The QFT as a Quantum Analog of the DFT</h2>
+        <p>The classical <strong>discrete Fourier transform (DFT)</strong> takes a vector of N complex numbers and produces another vector of N complex numbers — the original data re-expressed in terms of frequency components. The <strong>quantum Fourier transform (QFT)</strong> is the exact same linear transformation, applied instead to the amplitudes of an n-qubit state (N = 2<sup>n</sup>):</p>
+        <div class="eq">QFT : |j⟩ ↦ (1/√N) Σₖ e^(2πijk/N) |k⟩ &nbsp;&nbsp;(N = 2ⁿ, sum over k = 0..N−1)<small>Each computational basis state |j⟩ maps to a superposition over all N basis states, weighted by the same complex exponential the classical DFT uses.</small></div>
+        <p>Applied to a general superposition Σⱼ aⱼ|j⟩, the QFT acts linearly, mapping the amplitude vector (a₀,…,a_{N-1}) to its DFT (ã₀,…,ã_{N-1}), exactly as the classical transform would — just carried out as amplitudes inside a quantum state rather than as numbers in classical memory.</p>
+    </section>
+
+    <!-- 6.2 -->
+    <section class="lec">
+        <h2><span class="n">6.2</span>The QFT Circuit: Hadamards + Controlled Phase Rotations</h2>
+        <p>The QFT factors into a product of single- and two-qubit gates with a structure that echoes the classical FFT's divide-and-conquer recursion. For each qubit (from most- to least-significant), apply a Hadamard, then a cascade of <strong>controlled phase rotations</strong> R<sub>k</sub> = diag(1, e<sup>2πi/2<sup>k</sup></sup>) controlled by every qubit that comes after it, with the rotation angle halving each time you move one qubit further away:</p>
+        <div class="eq">R_k = [[1, 0], [0, e^(2πi/2ᵏ)]]<small>A phase gate that leaves |0⟩ alone and multiplies |1⟩ by a 2ᵏ-th root of unity — the building block for every controlled rotation in the circuit.</small></div>
+        <div class="fig">
+            <svg viewBox="0 0 440 220" role="img" aria-label="3-qubit QFT circuit diagram: Hadamards and controlled phase rotations cascading across the wires, ending in a swap">
+                <line x1="20" y1="30" x2="420" y2="30" stroke="#b7a4d0" stroke-width="1.5"/>
+                <text x="4" y="34" fill="#b7a4d0" font-size="11" font-family="monospace">q0</text>
+                <line x1="20" y1="100" x2="420" y2="100" stroke="#b7a4d0" stroke-width="1.5"/>
+                <text x="4" y="104" fill="#b7a4d0" font-size="11" font-family="monospace">q1</text>
+                <line x1="20" y1="170" x2="420" y2="170" stroke="#b7a4d0" stroke-width="1.5"/>
+                <text x="4" y="174" fill="#b7a4d0" font-size="11" font-family="monospace">q2</text>
+
+                <!-- H on q0 -->
+                <rect x="55" y="12" width="36" height="36" rx="6" fill="#1a1029" stroke="#a78bfa" stroke-width="2"/>
+                <text x="73" y="35" fill="#c4b5fd" font-size="15" text-anchor="middle" font-family="monospace">H</text>
+
+                <!-- controlled R2 from q1 to q0 -->
+                <line x1="110" y1="30" x2="110" y2="100" stroke="#60a5fa" stroke-width="1.5"/>
+                <circle cx="110" cy="100" r="5" fill="#60a5fa"/>
+                <rect x="92" y="12" width="36" height="36" rx="6" fill="#1a1029" stroke="#60a5fa" stroke-width="2"/>
+                <text x="110" y="35" fill="#93c5fd" font-size="11" text-anchor="middle" font-family="monospace">R₂</text>
+
+                <!-- controlled R3 from q2 to q0 -->
+                <line x1="150" y1="30" x2="150" y2="170" stroke="#60a5fa" stroke-width="1.5"/>
+                <circle cx="150" cy="170" r="5" fill="#60a5fa"/>
+                <rect x="132" y="12" width="36" height="36" rx="6" fill="#1a1029" stroke="#60a5fa" stroke-width="2"/>
+                <text x="150" y="35" fill="#93c5fd" font-size="11" text-anchor="middle" font-family="monospace">R₃</text>
+
+                <!-- H on q1 -->
+                <rect x="195" y="82" width="36" height="36" rx="6" fill="#1a1029" stroke="#a78bfa" stroke-width="2"/>
+                <text x="213" y="105" fill="#c4b5fd" font-size="15" text-anchor="middle" font-family="monospace">H</text>
+
+                <!-- controlled R2 from q2 to q1 -->
+                <line x1="255" y1="100" x2="255" y2="170" stroke="#60a5fa" stroke-width="1.5"/>
+                <circle cx="255" cy="170" r="5" fill="#60a5fa"/>
+                <rect x="237" y="82" width="36" height="36" rx="6" fill="#1a1029" stroke="#60a5fa" stroke-width="2"/>
+                <text x="255" y="105" fill="#93c5fd" font-size="11" text-anchor="middle" font-family="monospace">R₂</text>
+
+                <!-- H on q2 -->
+                <rect x="300" y="152" width="36" height="36" rx="6" fill="#1a1029" stroke="#a78bfa" stroke-width="2"/>
+                <text x="318" y="175" fill="#c4b5fd" font-size="15" text-anchor="middle" font-family="monospace">H</text>
+
+                <!-- swap q0 and q2 -->
+                <text x="400" y="23" fill="#fbbf24" font-size="9" text-anchor="middle">swap</text>
+                <line x1="20" y1="30" x2="20" y2="30" stroke="none"/>
+                <g stroke="#fbbf24" stroke-width="2">
+                    <line x1="385" y1="24" x2="395" y2="36"/><line x1="395" y1="24" x2="385" y2="36"/>
+                    <line x1="385" y1="164" x2="395" y2="176"/><line x1="395" y1="164" x2="385" y2="176"/>
+                </g>
+                <line x1="390" y1="30" x2="390" y2="170" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,3"/>
+            </svg>
+            <figcaption>QFT circuit for 3 qubits: each qubit gets a Hadamard followed by controlled phase rotations from every qubit after it, with the angle halving each time (R₂, R₃, …). A final swap reverses qubit order to match the standard output convention — O(n²) gates total.</figcaption>
+        </div>
+        <p>This cascading, halving-angle structure is the direct circuit analog of the classical <strong>fast Fourier transform's (FFT)</strong> divide-and-conquer recursion — splitting the problem by bit position rather than computing the full O(N) sum for each output directly.</p>
+    </section>
+
+    <!-- 6.3 -->
+    <section class="lec">
+        <h2><span class="n">6.3</span>O(n²) Gates vs. O(n·2ⁿ) Classical — But Read a Careful Asterisk</h2>
+        <p>The QFT circuit uses one Hadamard and up to n−1 controlled rotations per qubit, across n qubits: O(n²) gates total. Classically, evaluating the DFT at all N=2<sup>n</sup> frequencies directly from the sum definition costs O(N²) = O(4<sup>n</sup>) multiplications; even the classical FFT, which is itself a major algorithmic improvement, costs O(N log N) = O(n·2<sup>n</sup>). The QFT's O(n²) is exponentially cheaper than even the classical FFT.</p>
+        <div class="eq">QFT: O(n²) gates &nbsp;&nbsp;|&nbsp;&nbsp; classical FFT: O(n·2ⁿ) operations<small>A genuinely exponential advantage in gate/operation count for computing "the same transform" — with a crucial caveat coming next.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake — read this carefully</span>The QFT's exponential gate-count advantage does <strong>not</strong> mean you can extract all N Fourier coefficients and read them out classically in O(n²) time. After running the QFT circuit, the result lives as amplitudes in a quantum superposition — invisible until measured, and a single measurement yields only <em>one</em> basis state, collapsing the rest. You cannot simply "read off" the full Fourier spectrum the way you would from a classical FFT's output array. The QFT is a tool for <em>computations that only need to interrogate structure in the transformed state</em> (like phase estimation, Week 7) — not a general-purpose way to compute and extract a classical Fourier transform faster than the classical FFT. This nuance is one of the most common points of confusion about the QFT, and it's worth internalizing now, before Week 7 puts it to direct use.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — QFT of |1⟩ for a single qubit (n=1, N=2)</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Confirm the n=1 QFT circuit is literally just a Hadamard, by matching it against the formula.</p>
+        <ol>
+            <li><strong>Formula:</strong> QFT|j⟩ = (1/√2) Σₖ e^(2πijk/2) |k⟩ = (1/√2)[ |0⟩ + e^(πij)|1⟩ ].</li>
+            <li><strong>Plug in j=1:</strong> QFT|1⟩ = (1/√2)[ |0⟩ + e^(πi)|1⟩ ] = (1/√2)[ |0⟩ − |1⟩ ] = |−⟩.</li>
+            <li><strong>Compare to a Hadamard:</strong> H|1⟩ = (1/√2)(|0⟩ − |1⟩) = |−⟩ — an exact match. The n=1 QFT is literally the Hadamard gate — the n-qubit QFT circuit of §6.2 is this single-qubit case, generalized with the controlled-rotation cascade added for the cross-qubit terms.</li>
+            <li><strong>Takeaway:</strong> every Hadamard you've used since Lecture 1 was already a (trivial, 1-qubit) quantum Fourier transform — the QFT circuit is what it takes to generalize that same idea to n qubits.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: build a 3-qubit QFT circuit and inspect the output</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Qiskit ships a built-in QFT gate; build it from scratch once (matching the circuit diagram above) to see the controlled-rotation structure directly, then compare to the library version.</p>
+        <pre><span class="c"># qft_circuit.py — Lecture 6</span>
+import numpy as np
+from qiskit import QuantumCircuit
+from qiskit.circuit.library import QFT
+from qiskit.quantum_info import Statevector
+
+def qft_by_hand(n):
+    qc = QuantumCircuit(n)
+    for i in range(n):
+        qc.h(i)
+        for j in range(i + 1, n):
+            angle = 2 * np.pi / 2**(j - i + 1)
+            qc.cp(angle, j, i)     <span class="c"># controlled phase rotation, halving each step away</span>
+    for i in range(n // 2):        <span class="c"># final swap to match standard qubit ordering</span>
+        qc.swap(i, n - i - 1)
+    return qc
+
+n = 3
+qc_manual = QuantumCircuit(n)
+qc_manual.x(0)   <span class="c"># prepare |001> BEFORE transforming, to make the output non-trivial</span>
+qc_manual.compose(qft_by_hand(n), inplace=True)   <span class="c"># then append the by-hand QFT on top</span>
+
+sv = Statevector.from_instruction(qc_manual)
+print("QFT|001> amplitudes (by hand):", np.round(sv.data, 3))
+
+qc_lib = QuantumCircuit(n)
+qc_lib.x(0)
+qc_lib.append(QFT(n), range(n))
+sv_lib = Statevector.from_instruction(qc_lib)
+print("QFT|001> amplitudes (library):   ", np.round(sv_lib.data, 3))</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Expected output: both amplitude vectors match (up to Qiskit's little-endian qubit-ordering convention) — 8 complex amplitudes, each of magnitude 1/√8, with phases stepping through e^(2πik/8) for k=0..7, exactly the formula from §6.1 applied to j=1.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Today's §6.3 warning — that the QFT doesn't hand you classical access to Fourier coefficients — sets up exactly the right question for next week: what <em>can</em> you usefully extract from a QFT-transformed state? Week 7's quantum phase estimation answers that: by combining the QFT with a controlled-unitary setup, you can extract a single real number (an eigenphase θ) with high precision from a quantum state, using the QFT's inverse as the final decoding step. That's the QFT finally earning its keep — not as a general transform you read out, but as the back-end of a measurement protocol.</p>
+    </div>
+
+    <!-- DISCUSSION 2 -->
+    <div class="disc">
+        <span class="lbl">💬 Discussion 2 — due this week</span>
+        <p>The QFT looks like the classical discrete Fourier transform but acts on amplitudes, not measured data. Why can't you just measure the input register classically, run an ordinary FFT on the measured bits, and get the same speedup the QFT provides? What exactly is lost the moment you measure? Post your answer to the course discussion board.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 6 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The quantum Fourier transform is best described as…</div>
+            <div class="opt"><b>A.</b> a measurement operation</div>
+            <div class="opt"><b>B.</b> the classical DFT applied to the amplitudes of a quantum state</div>
+            <div class="opt"><b>C.</b> a classical algorithm with no quantum circuit equivalent</div>
+            <div class="opt"><b>D.</b> only defined for a single qubit</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The QFT is exactly the DFT's linear transformation, applied to the amplitude vector of an n-qubit quantum state rather than to classical numbers in memory.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> The QFT circuit is built from…</div>
+            <div class="opt"><b>A.</b> Toffoli gates only</div>
+            <div class="opt"><b>B.</b> measurement gates in a loop</div>
+            <div class="opt"><b>C.</b> Hadamards and controlled phase rotations, in a divide-and-conquer cascade</div>
+            <div class="opt"><b>D.</b> only CNOT gates</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Each qubit gets a Hadamard followed by controlled rotations from every later qubit, with rotation angles halving each step — directly echoing the classical FFT's recursive structure.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The QFT circuit's gate count scales as…</div>
+            <div class="opt"><b>A.</b> O(n²), versus O(n·2ⁿ) for the classical FFT</div>
+            <div class="opt"><b>B.</b> O(2ⁿ), same as the classical FFT</div>
+            <div class="opt"><b>C.</b> O(n), better than the classical FFT's O(n log n)</div>
+            <div class="opt"><b>D.</b> O(n!), worse than any classical approach</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The cascading controlled-rotation structure costs O(n²) gates — exponentially fewer than the O(n·2ⁿ) operations the classical FFT needs to evaluate all 2ⁿ frequencies.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Despite its O(n²)-gate efficiency, the QFT does NOT let you…</div>
+            <div class="opt"><b>A.</b> be implemented on a quantum circuit at all</div>
+            <div class="opt"><b>B.</b> act linearly on superpositions</div>
+            <div class="opt"><b>C.</b> directly read out all N classical Fourier coefficients from one run</div>
+            <div class="opt"><b>D.</b> be used as a subroutine in other algorithms</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The transformed coefficients exist only as amplitudes; a single measurement collapses to one basis state, so you cannot extract the full classical Fourier spectrum the way a classical FFT's output array lets you.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> The n=1 (single-qubit) quantum Fourier transform is exactly…</div>
+            <div class="opt"><b>A.</b> the identity gate</div>
+            <div class="opt"><b>B.</b> the Hadamard gate</div>
+            <div class="opt"><b>C.</b> the Pauli-X gate</div>
+            <div class="opt"><b>D.</b> undefined for n=1</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Plugging n=1 into the QFT formula reproduces exactly H|0⟩ and H|1⟩ — every Hadamard used since Lecture 1 is a trivial, single-qubit instance of the QFT.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined the <b>QFT</b> as the DFT applied to a quantum state's amplitudes.</li>
+            <li>Described the <b>QFT circuit's</b> Hadamard + controlled-rotation cascade, O(n²) gates total.</li>
+            <li>Compared to the classical FFT's O(n·2ⁿ) cost — an exponential gate-count advantage.</li>
+            <li>Flagged the critical caveat: the QFT does <b>not</b> hand you classical access to Fourier coefficients.</li>
+            <li>Built a 3-qubit <b>QFT circuit</b> from scratch in Qiskit and matched it against the library version.</li>
+        </ul>
+        <p class="next-up">Next up — Week 7: quantum phase estimation, which puts the QFT to work extracting an eigenphase θ from a unitary — the first real payoff of today's circuit.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l05-grover-optimality-multiple-solutions.html"><div class="dir">← Week 5</div><div class="ttl">Grover's Algorithm II: Optimality &amp; Multiple Solutions</div></a>
+        <a href="l07-quantum-phase-estimation.html" class="next"><div class="dir">Week 7 →</div><div class="ttl">Quantum Phase Estimation (QPE)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Quantum Algorithms</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

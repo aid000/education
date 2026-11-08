@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C2 · Lecture 10 — Capstone: Bell States &amp; Circuit Zoo in Qiskit</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        .course-recap { background: linear-gradient(135deg, #1a1029, #20123a); border: 1px solid var(--border); border-radius: 14px; padding: 24px 26px; margin: 36px 0; }
+        .course-recap h2 { font-size: 1.1rem; color: var(--accent2); margin-bottom: 14px; }
+        .wk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 12px; }
+        .wk-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: .78rem; color: var(--text2); }
+        .wk-chip b { color: var(--accent2); display: block; font-size: .72rem; text-transform: uppercase; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C2 Qubits, Gates &amp; Circuits</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10 · Capstone</span>
+        <h1>Capstone: Bell States &amp; Circuit Zoo in Qiskit</h1>
+        <p class="sub">Ten weeks ago this course started with three 2×2 matrices. It ends with a working Qiskit project stringing together every circuit you've built — Bell states, teleportation, superdense coding, and the circuit zoo — into one story.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Assemble the full course project: Bell states, teleportation, superdense coding, and the circuit zoo, in one Qiskit notebook.</li>
+            <li>Re-derive, from memory, why each circuit works — tying every piece back to the lecture that introduced it.</li>
+            <li>Verify each circuit's measurement statistics match the theoretical prediction, end to end.</li>
+            <li>Recap the course's 10-week arc: from single-qubit gates to entanglement-based protocols.</li>
+            <li>Preview Course 3's quantum algorithms and how they build on this course's circuit toolkit.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>The Project, Assembled</h2>
+        <p>The course-page project asked for a circuit library covering single-qubit gates, CNOT, all four Bell states, a teleportation circuit, and a small zoo of named circuits — plus a report with diagrams and verified measurement statistics. Rather than introduce new physics, this capstone walks that project through start to finish, in the order the course built it, so the whole arc reads as one continuous Qiskit program rather than ten disconnected snippets.</p>
+        <div class="eq">Lecture 1–3: single-qubit gates &nbsp;→&nbsp; Lecture 4: CNOT &nbsp;→&nbsp; Lecture 5: Bell states<br>→ Lecture 6: no-cloning &nbsp;→&nbsp; Lecture 7: teleportation &nbsp;→&nbsp; Lecture 8: superdense coding &nbsp;→&nbsp; Lecture 9: GHZ/swap test<small>Every arrow in this chain is a real dependency, not just a scheduling convenience — Bell states need CNOT, teleportation needs Bell states, superdense coding reuses teleportation's exact correction table, and GHZ states are Bell states extended by the same chain-CNOT logic.</small></div>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Step 1: Single-Qubit Gates and Bell States</h2>
+        <p>The project's foundation layer is the gate set from Lectures 1–3 (I, X, Y, Z, H, S, T) plus the H+CNOT Bell-state recipe from Lecture 5. A clean report builds all four Bell states from the same two-gate circuit (varying the input, as Lecture 5 §5.2 showed) and verifies each one's measurement histogram shows exactly the two expected correlated outcomes.</p>
+        <pre><span class="c"># capstone_part1_bell_states.py</span>
+from qiskit import QuantumCircuit
+from qiskit_aer import AerSimulator
+
+def bell_circuit(input_bits='00'):
+    qc = QuantumCircuit(2, 2)
+    if input_bits[0] == '1': qc.x(0)
+    if input_bits[1] == '1': qc.x(1)
+    qc.h(0); qc.cx(0, 1)
+    qc.measure([0, 1], [0, 1])
+    return qc
+
+sim = AerSimulator()
+for bits in ['00', '01', '10', '11']:
+    counts = sim.run(bell_circuit(bits), shots=500).result().get_counts()
+    print(f"input {bits} -> {counts}")   <span class="c"># four distinct Bell states, each a two-outcome histogram</span></pre>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Step 2: Teleportation and Superdense Coding</h2>
+        <p>Next, the project layers in Lecture 7's teleportation circuit and Lecture 8's superdense coding circuit — both built directly on top of the same Bell-pair-sharing step from Step 1, just with different follow-up gates. Running both side by side in the report makes the Lecture 8 §8.3 duality visually obvious: identical setup, mirrored direction of information flow.</p>
+        <div class="eq">shared ingredient: qc.h(0); qc.cx(0,1) &nbsp;&nbsp;⟶&nbsp;&nbsp; teleportation adds a Bell <em>measurement</em> + classical correction<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⟶&nbsp;&nbsp; superdense coding adds a Pauli <em>encoding</em> + Bell measurement<small>Both protocols are, structurally, "share a Bell pair, then do a small amount of extra work on one side" — they differ only in which side does the measuring and which side does the encoding.</small></div>
+    </section>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>Step 3: The Circuit Zoo — GHZ and the Swap Test</h2>
+        <p>The project's final layer is Lecture 9's zoo: a GHZ state for n≥3 qubits (chain-CNOT recipe) and the swap test for estimating state overlap. A good report runs the GHZ circuit for n=3, 4, and 5 qubits and confirms the two-outcome histogram pattern persists at every size, and runs the swap test on a pair of identical states and a pair of orthogonal states to confirm the two extreme-case probabilities from Lecture 9 §9.4.</p>
+        <pre><span class="c"># capstone_part3_zoo.py</span>
+from qiskit import QuantumCircuit
+from qiskit_aer import AerSimulator
+
+def ghz_circuit(n):
+    qc = QuantumCircuit(n, n)
+    qc.h(0)
+    for i in range(1, n):
+        qc.cx(0, i)
+    qc.measure(range(n), range(n))
+    return qc
+
+sim = AerSimulator()
+for n in (3, 4, 5):
+    counts = sim.run(ghz_circuit(n), shots=500).result().get_counts()
+    print(f"GHZ_{n} -> {counts}")   <span class="c"># only '0'*n and '1'*n should ever appear, at every size n</span></pre>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — the whole arc, traced in one sentence per lecture</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">As a capstone sanity check, re-derive <em>why</em> each circuit works, from memory, in one line each — the fastest way to confirm the ten weeks actually connect.</p>
+        <ol>
+            <li><strong>L1–L2:</strong> every gate is a unitary matrix, and every single-qubit gate is some rotation of the Bloch vector (H, S, T included).</li>
+            <li><strong>L3–L4:</strong> {H, T, CNOT} is universal because single-qubit gates reach every one-qubit unitary and CNOT alone supplies the entangling, multi-qubit ingredient.</li>
+            <li><strong>L5:</strong> H then CNOT turns an unentangled product state into a Bell state, because CNOT correlates a definite target with a superposed control.</li>
+            <li><strong>L6:</strong> no CLONE gate exists because every gate is linear, and linearity forces a superposition input into an entangled (not duplicated) output.</li>
+            <li><strong>L7:</strong> teleportation moves (not copies) an unknown state by using a Bell pair plus two classical bits to pick one of four Pauli corrections — consistent with no-cloning since the original is destroyed.</li>
+            <li><strong>L8:</strong> superdense coding is teleportation's mirror image — the same four-gate table, used to encode two classical bits instead of decode a quantum state.</li>
+            <li><strong>L9:</strong> GHZ states extend Bell pairs via chain-CNOTs, and the swap test trades a full measurement for a statistical estimate of overlap, via a controlled-SWAP and an ancilla.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: the full capstone notebook — project due</h3>
+        <p style="font-size:.9rem; color:var(--text2);"><strong>Project due (Week 10):</strong> combine Sections 10.2–10.4's snippets into one notebook, add a short write-up connecting each circuit's measured statistics to its theoretical prediction, and submit.</p>
+        <pre><span class="c"># capstone_full.py — Lecture 10 / Project due</span>
+from qiskit import QuantumCircuit
+from qiskit_aer import AerSimulator
+
+sim = AerSimulator()
+
+<span class="c"># 1. Bell states (Section 10.2) -- all four, verified</span>
+<span class="c"># 2. Teleportation (Lecture 7) -- verified against a known test state</span>
+<span class="c"># 3. Superdense coding (Lecture 8) -- all four 2-bit messages, verified</span>
+<span class="c"># 4. GHZ states, n = 3..5 (Section 10.4) -- verified</span>
+<span class="c"># 5. Swap test -- run on an identical pair and an orthogonal pair, compare to theory</span>
+
+print("Report checklist: circuit diagrams + measured counts + theoretical comparison for all five.")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">A complete report includes, for each of the five pieces: the circuit diagram, the measured counts from a few hundred shots, and one sentence connecting the measured statistics back to the specific lecture that predicted them. That triad — diagram, data, theory — is the whole shape of the project, repeated five times.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Every circuit in this capstone is built from gates and entangling tricks — nothing here yet constitutes an <em>algorithm</em> that outperforms a classical computer at a real task. Course 3, Quantum Algorithms, is exactly where that changes: Deutsch-Jozsa shows a toy problem solvable in one quantum query versus exponentially many classical ones, and Grover's algorithm searches an unsorted list quadratically faster than any classical method can. Both lean directly on tools from this course — superposition, interference, and controlled operations, now aimed at a genuine computational advantage instead of just a demonstration circuit.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The capstone project's five required pieces are…</div>
+            <div class="opt"><b>A.</b> only Bell states, nothing else</div>
+            <div class="opt"><b>B.</b> a brand-new algorithm not covered in any lecture</div>
+            <div class="opt"><b>C.</b> only single-qubit gates</div>
+            <div class="opt"><b>D.</b> Bell states, teleportation, superdense coding, GHZ states, and the swap test</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The capstone strings together exactly the named circuits built across Lectures 5, 7, 8, and 9 into one cohesive project.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Teleportation and superdense coding share which exact structure?</div>
+            <div class="opt"><b>A.</b> Neither uses a Bell pair</div>
+            <div class="opt"><b>B.</b> They use completely unrelated gate sets</div>
+            <div class="opt"><b>C.</b> Both start by sharing a Bell pair and use the identical four-gate {I,X,Z,ZX} table</div>
+            <div class="opt"><b>D.</b> Both require three classical bits</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Both protocols spend one pre-shared Bell pair and are organized around the same four-gate table, just used to encode vs. decode respectively.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> A complete capstone report, for each circuit, should include…</div>
+            <div class="opt"><b>A.</b> the circuit diagram, measured counts, and a theoretical comparison</div>
+            <div class="opt"><b>B.</b> only the final Qiskit code, nothing else</div>
+            <div class="opt"><b>C.</b> no measurement results at all</div>
+            <div class="opt"><b>D.</b> a proof that quantum computers are faster than classical ones</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Diagram, data, and theory, side by side, is the full shape the project asks for — repeated across all five named circuits.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Running the GHZ circuit for n=3, 4, and 5 qubits, the measurement histogram should show…</div>
+            <div class="opt"><b>A.</b> all 2ⁿ possible bitstrings, roughly equally</div>
+            <div class="opt"><b>B.</b> a different number of distinct outcomes at each n</div>
+            <div class="opt"><b>C.</b> only the all-zeros and all-ones bitstrings, at every n</div>
+            <div class="opt"><b>D.</b> only the all-zeros bitstring, regardless of n</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The chain-CNOT recipe extends the same two-term equal superposition to any number of qubits — always exactly two possible outcomes, all-0s or all-1s.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Course 3 (Quantum Algorithms) builds directly on this course's toolkit by…</div>
+            <div class="opt"><b>A.</b> abandoning gates and circuits entirely in favor of a new formalism</div>
+            <div class="opt"><b>B.</b> using superposition, interference, and controlled operations to achieve genuine computational speedups over classical methods</div>
+            <div class="opt"><b>C.</b> only reusing the Pauli gates from Lecture 1</div>
+            <div class="opt"><b>D.</b> having no relationship to Course 2 at all</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Deutsch-Jozsa and Grover's algorithm both lean on exactly the circuit-level tools this course built — now aimed at provable speedups rather than demonstration circuits.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned this lecture</h2>
+        <ul>
+            <li>Assembled the full <b>capstone project</b>: Bell states, teleportation, superdense coding, and the circuit zoo, in one notebook.</li>
+            <li>Re-derived, from memory, <b>why</b> each circuit in the course works, lecture by lecture.</li>
+            <li>Verified every circuit's measurement statistics against its theoretical prediction.</li>
+            <li>Recapped the course's full <b>10-week arc</b> and connected it to Course 3's quantum algorithms.</li>
+        </ul>
+    </div>
+
+    <!-- COURSE-LEVEL RECAP -->
+    <div class="course-recap">
+        <h2>🎓 Course 2 Recap — the 10-week arc</h2>
+        <p style="font-size:.92rem; color:var(--text2);">From a single 2×2 matrix to a working entanglement toolkit:</p>
+        <div class="wk-grid">
+            <div class="wk-chip"><b>Wk 1</b>Circuit model, Pauli gates</div>
+            <div class="wk-chip"><b>Wk 2</b>H, S, T, Bloch rotations</div>
+            <div class="wk-chip"><b>Wk 3</b>Universal gate sets</div>
+            <div class="wk-chip"><b>Wk 4</b>CNOT, controlled-U</div>
+            <div class="wk-chip"><b>Wk 5</b>Bell states</div>
+            <div class="wk-chip"><b>Wk 6</b>No-cloning, gate view</div>
+            <div class="wk-chip"><b>Wk 7</b>Teleportation</div>
+            <div class="wk-chip"><b>Wk 8</b>Superdense coding</div>
+            <div class="wk-chip"><b>Wk 9</b>GHZ, swap test</div>
+            <div class="wk-chip"><b>Wk 10</b>Capstone project</div>
+        </div>
+        <p style="font-size:.88rem; color:var(--text2); margin-top:16px;">Course 1 asked what a qubit <em>is</em>. Course 2 asked what you can <em>do</em> to one — and, once you have two or more, what you can do <em>between</em> them. Course 3 asks the natural next question: what can you <em>compute</em> with all of this that a classical computer genuinely cannot match?</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-circuit-zoo.html"><div class="dir">← Week 9</div><div class="ttl">Building a Small "Circuit Zoo"</div></a>
+        <a href="../../c3-quantum-algorithms/index.html" class="next"><div class="dir">Next Course →</div><div class="ttl">C3: Quantum Algorithms</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Qubits, Gates &amp; Circuits</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

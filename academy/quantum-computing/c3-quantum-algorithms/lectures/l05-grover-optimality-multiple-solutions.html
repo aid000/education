@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C3 · Lecture 5 — Grover's Algorithm II: Optimality &amp; Multiple Solutions</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C3 Quantum Algorithms</a> / Lecture 5</div>
+        <span class="wk-tag">Week 5 · Lecture 5</span>
+        <h1>Grover's Algorithm II: Optimality &amp; Multiple Solutions</h1>
+        <p class="sub">√N isn't just what Grover's construction happens to achieve — it's the best any quantum algorithm can do. And iterating too far rotates right past the answer.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State that O(√N) is a proven quantum lower bound for unstructured search — no algorithm can beat it.</li>
+            <li>Derive how the optimal iteration count changes when M>1 items are marked: ~√(N/M).</li>
+            <li>Explain why over-iterating past the optimum rotates the state past the marked axis, hurting success probability.</li>
+            <li>Compute optimal iteration counts for N=16 at M=1 and M=4.</li>
+            <li>Simulate over-iteration in Qiskit and observe the success probability oscillate.</li>
+        </ul>
+    </div>
+
+    <!-- 5.1 -->
+    <section class="lec">
+        <h2><span class="n">5.1</span>O(√N) Is Provably Optimal</h2>
+        <p>Lecture 4 showed a quantum algorithm achieving O(√N) for unstructured search. A natural question: is that just the best construction found so far, or is it the best <em>possible</em>? The <strong>BBBV theorem</strong> (Bennett, Bernstein, Brassard, Vazirani, 1997) answers this with a genuine <strong>quantum lower bound</strong>: no quantum algorithm, no matter how cleverly built, can solve unstructured search in fewer than Ω(√N) queries. The proof is a careful "hybrid" argument comparing a quantum algorithm's behavior on oracles differing in exactly one marked position — it's beyond today's scope to work through, but the conclusion is load-bearing for the whole field:</p>
+        <div class="eq">Any quantum algorithm needs Ω(√N) queries for unstructured search<small>This is one of the few quantum speedup limits proven rigorously, not just "not yet beaten" — Grover's algorithm is asymptotically optimal, not merely good.</small></div>
+        <p>This matters because it tells you where to stop looking for improvements. Grover's quadratic speedup is the ceiling for <em>generic</em> unstructured search — any further speedup on a real problem has to come from exploiting extra structure in that specific problem (the way Weeks 1–3's promises enabled exponential speedups), not from a better generic search algorithm.</p>
+    </section>
+
+    <!-- 5.2 -->
+    <section class="lec">
+        <h2><span class="n">5.2</span>Multiple Marked Solutions: M &gt; 1</h2>
+        <p>Suppose instead of exactly one marked item, there are M marked items out of N (M known in advance). The geometric picture from Lecture 4 still applies — a 2D rotation in a marked/unmarked plane — but now the marked axis represents the <em>combined</em> subspace of all M marked states, and the starting angle is larger: θ₀ = arcsin(√(M/N)) instead of arcsin(1/√N).</p>
+        <div class="eq">Optimal iteration count r ≈ (π/4)√(N/M)<small>More marked items means the starting vector is already closer to the marked axis, so fewer iterations are needed to rotate the rest of the way.</small></div>
+        <p>This is intuitive: if a quarter of all items are marked (M = N/4), a uniformly random guess already succeeds 25% of the time, so amplitude amplification has less work left to do — correspondingly, it needs fewer iterations than the M=1 case. The asymptotic formula says roughly √(N/M) = √4 = 2 times fewer, but that's a ballpark: the exact count (from the geometry in §5.3) can drop even further once you check it against the rounding, as the N=16 worked example below shows.</p>
+    </section>
+
+    <!-- 5.3 -->
+    <section class="lec">
+        <h2><span class="n">5.3</span>Over-Iterating: Grover Walks Past the Answer</h2>
+        <p>Because each Grover iteration is a <em>fixed-angle rotation</em>, there is nothing that stops the vector at the marked axis — it keeps rotating. Iterate past the optimal count r, and the vector <strong>overshoots</strong> the marked axis, swinging back down toward (and eventually past) the unmarked axis again. Success probability, as a function of the number of iterations, oscillates periodically rather than monotonically increasing and then plateauing.</p>
+        <div class="fig">
+            <svg viewBox="0 0 420 220" role="img" aria-label="Success probability oscillating as a function of Grover iteration count, peaking near the optimal count then falling back down">
+                <line x1="40" y1="190" x2="400" y2="190" stroke="#34204a" stroke-width="2"/>
+                <text x="360" y="194" fill="#b7a4d0" font-size="10">iterations</text>
+                <line x1="40" y1="190" x2="40" y2="20" stroke="#34204a" stroke-width="2"/>
+                <text x="8" y="16" fill="#b7a4d0" font-size="10">P(marked)</text>
+
+                <path d="M 40 185 Q 90 100 140 30 Q 190 95 240 185 Q 290 100 340 30 Q 365 70 390 130"
+                      fill="none" stroke="#a78bfa" stroke-width="2.5"/>
+
+                <line x1="140" y1="190" x2="140" y2="30" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <text x="100" y="24" fill="#6ee7b7" font-size="10">optimal r (peak ≈1)</text>
+
+                <line x1="240" y1="190" x2="240" y2="185" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="195" y="202" fill="#fbbf24" font-size="10">2r iterations: back near 0!</text>
+
+                <line x1="340" y1="190" x2="340" y2="30" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <text x="300" y="24" fill="#93c5fd" font-size="10">3r: peaks again</text>
+            </svg>
+            <figcaption>Success probability vs. Grover iteration count is periodic, not monotonic — iterating twice the optimal count can land you back near 0% success, not 100%. Stopping at the right count is essential, not optional.</figcaption>
+        </div>
+        <div class="box warn"><span class="lbl">Common mistake</span>It's tempting to assume "more iterations = more amplification, so just run extra iterations to be safe." That's backwards — because the rotation doesn't stop at 90°, extra iterations past the optimum can drive the success probability back down toward zero, not hold it near its peak. Grover's algorithm needs the iteration count computed in advance (from N and M) and run <em>exactly</em> that many times — it is not a "the more the better" algorithm.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — optimal iterations for N=16, M=1 vs. M=4</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Compute r = round((π/4)√(N/M)) for both cases and compare.</p>
+        <ol>
+            <li><strong>M=1 (one marked item out of 16):</strong> r ≈ (π/4)√(16/1) = (π/4)(4) = π ≈ 3.14 → round to <strong>r = 3</strong> iterations.</li>
+            <li><strong>M=4 (four marked items out of 16):</strong> the asymptotic estimate gives r ≈ (π/4)√(16/4) = (π/4)(2) = π/2 ≈ 1.57, which naively rounds to r = 2 — but check the <em>exact</em> geometry before trusting that: θ₀ = arcsin(√(4/16)) = arcsin(1/2) = 30°, so after just k=1 iteration the rotation angle is (2k+1)θ₀ = 90°, giving success probability sin²(90°) = 1 — certainty, already. A second iteration (k=2) pushes the angle to 150°, dropping success probability to sin²(150°) = 25% — overshooting past the optimum. So the true optimal count here is <strong>r = 1</strong>, not 2: naive rounding of the asymptotic formula overshoots.</li>
+            <li><strong>Compare:</strong> quadrupling the number of marked items (M: 1→4) doesn't just roughly halve the needed iteration count — it drops r from 3 all the way to 1 (a 3× reduction), because rounding the asymptotic estimate (1.57→2) overshoots past the exact optimum. The lesson: use (π/4)√(N/M) for a ballpark, then check the EXACT angle (2k+1)θ₀ (and its neighbors) before rounding, since rounding the wrong way overshoots and success probability drops back down.</li>
+            <li><strong>Sanity check against §5.1's bound:</strong> even M=1's r=3 is comfortably O(√16)=O(4) — well within the proven lower-bound regime, not beating it.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: watch success probability oscillate with iteration count</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Reuse Lecture 4's N=8, single-marked-item circuit, but sweep the iteration count from 0 to 6 and print the marked-state probability at each step — confirm it peaks near the optimal r=2 and then falls back down, exactly as the oscillation figure predicts.</p>
+        <pre><span class="c"># grover_overshoot.py — Lecture 5</span>
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import Statevector
+
+n = 3
+marked = "101"
+
+def oracle(qc):
+    for i, b in enumerate(reversed(marked)):
+        if b == '0': qc.x(i)
+    qc.h(n - 1); qc.mcx(list(range(n - 1)), n - 1); qc.h(n - 1)
+    for i, b in enumerate(reversed(marked)):
+        if b == '0': qc.x(i)
+
+def diffusion(qc):
+    qc.h(range(n)); qc.x(range(n))
+    qc.h(n - 1); qc.mcx(list(range(n - 1)), n - 1); qc.h(n - 1)
+    qc.x(range(n)); qc.h(range(n))
+
+for iterations in range(0, 7):
+    qc = QuantumCircuit(n)
+    qc.h(range(n))
+    for _ in range(iterations):
+        oracle(qc)
+        diffusion(qc)
+    sv = Statevector.from_instruction(qc)
+    p_marked = sv.probabilities_dict()[marked]
+    print(f"iterations={iterations:2d}  P(marked)={p_marked:.3f}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Expected output: P(marked) rises from 0.125 (iteration 0, uniform) to a peak near iteration 2 (close to 1.0), then <em>falls</em> again at iterations 3–4 before rising a second time near iteration 5–6 — a visible oscillation confirming that running Grover's algorithm "a little extra for safety" can actively hurt your odds.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Grover closes out the "search and decision" half of this course. The remaining weeks pivot to a different quantum primitive entirely: the <strong>quantum Fourier transform</strong>, which doesn't search a list at all — it extracts periodic structure directly from a quantum state's phases. Week 6 builds the QFT circuit itself; Week 7 uses it for phase estimation; Week 8 shows that phase estimation is the engine inside Shor's factoring algorithm. The oracle-query framing from Weeks 1–5 mostly steps aside — QFT-based algorithms reason about unitaries and eigenphases instead.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 5 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The BBBV theorem establishes that for unstructured search…</div>
+            <div class="opt"><b>A.</b> classical algorithms are always faster than quantum ones</div>
+            <div class="opt"><b>B.</b> no quantum algorithm can do better than Ω(√N) queries — a proven lower bound</div>
+            <div class="opt"><b>C.</b> Grover's algorithm can be improved to O(log N)</div>
+            <div class="opt"><b>D.</b> the problem is undecidable</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> BBBV proves Ω(√N) is a hard floor for any quantum algorithm on generic unstructured search — Grover's algorithm is asymptotically optimal, not just currently the best known.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> With M marked items out of N, the optimal Grover iteration count scales as…</div>
+            <div class="opt"><b>A.</b> √(N/M)</div>
+            <div class="opt"><b>B.</b> N/M</div>
+            <div class="opt"><b>C.</b> M/N</div>
+            <div class="opt"><b>D.</b> independent of M</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> More marked items means the starting angle θ₀ is already larger, so less rotation (fewer iterations, scaling as √(N/M)) is needed to reach the marked subspace.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Running Grover's algorithm for significantly more iterations than the computed optimum r will…</div>
+            <div class="opt"><b>A.</b> always increase success probability further</div>
+            <div class="opt"><b>B.</b> have no effect on success probability</div>
+            <div class="opt"><b>C.</b> rotate the state past the marked axis, which can lower success probability</div>
+            <div class="opt"><b>D.</b> make the oracle stop working</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Each iteration is a fixed rotation that doesn't stop at the marked axis — overshooting past it swings success probability back down, sometimes close to its starting value.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> For N=16 with M=1 marked item, the optimal iteration count r ≈ (π/4)√(N/M) rounds to…</div>
+            <div class="opt"><b>A.</b> 16</div>
+            <div class="opt"><b>B.</b> 1</div>
+            <div class="opt"><b>C.</b> 3</div>
+            <div class="opt"><b>D.</b> 8</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> (π/4)√(16/1) = (π/4)(4) = π ≈ 3.14, rounding to 3 iterations — matching the worked example.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> For N=16 with M=4 marked items, compared to M=1, the optimal iteration count is roughly…</div>
+            <div class="opt"><b>A.</b> the same</div>
+            <div class="opt"><b>B.</b> four times larger</div>
+            <div class="opt"><b>C.</b> four times smaller</div>
+            <div class="opt"><b>D.</b> about half as large</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The asymptotic formula r ∝ √(N/M) suggests roughly half the iterations when M quadruples — but checking the exact geometry (§5.3) shows the true optimum drops even further for N=16: r=3 at M=1, down to r=1 at M=4 (not r=2, which overshoots). Of the choices given, "about half as large" is the closest — the exact drop is more than half, a reminder to always check the exact angle rather than trust the rounded asymptotic estimate.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Stated the <b>BBBV lower bound</b>: Ω(√N) is provably optimal for quantum unstructured search.</li>
+            <li>Derived the <b>multiple-marked-item</b> iteration formula r ≈ (π/4)√(N/M).</li>
+            <li>Explained why <b>over-iterating</b> rotates past the marked axis and can lower success probability.</li>
+            <li>Computed optimal iterations for <b>N=16</b> at both M=1 (r=3) and M=4 (r=1) — and saw why naively rounding the asymptotic formula (which suggests r=2) overshoots the exact optimum.</li>
+            <li>Simulated the <b>oscillating success probability</b> across a sweep of iteration counts in Qiskit.</li>
+        </ul>
+        <p class="next-up">Next up — Week 6: the quantum Fourier transform, the circuit that powers phase estimation and (eventually) Shor's algorithm.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l04-grover-amplitude-amplification.html"><div class="dir">← Week 4</div><div class="ttl">Grover's Algorithm I: Amplitude Amplification</div></a>
+        <a href="l06-qft.html" class="next"><div class="dir">Week 6 →</div><div class="ttl">The Quantum Fourier Transform (QFT)</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Quantum Algorithms</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

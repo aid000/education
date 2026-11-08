@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C2 · Lecture 8 — Superdense Coding &amp; Circuit Equivalences</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C2 Qubits, Gates &amp; Circuits</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>Superdense Coding &amp; Circuit Equivalences</h1>
+        <p class="sub">Teleportation spends entanglement plus 2 classical bits to move 1 qubit of quantum information. Superdense coding spends the exact same entanglement to move 2 classical bits using only 1 qubit — the mirror image.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the superdense coding protocol: shared Bell pair, Alice's encoding gate, Bob's Bell measurement.</li>
+            <li>Explain the explicit duality between superdense coding and teleportation.</li>
+            <li>Derive and use the circuit equivalences HXH=Z and HZH=X.</li>
+            <li>Show that conjugating CNOT by Hadamards on both qubits swaps its control and target.</li>
+            <li>Build and verify a superdense coding circuit in Qiskit.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>The Superdense Coding Protocol</h2>
+        <p>Alice and Bob pre-share a Bell pair |Φ⁺⟩ = (|00⟩+|11⟩)/√2, exactly as in teleportation — Alice holds qubit A, Bob holds qubit B. Alice wants to send Bob <strong>two classical bits</strong> (b₁,b₂), using only a single qubit transmission. She encodes her two bits by applying one of four gates to her qubit A alone:</p>
+        <div class="eq">(b₁,b₂) = (0,0) → apply I &nbsp;&nbsp; (1,0) → apply Z &nbsp;&nbsp; (0,1) → apply X &nbsp;&nbsp; (1,1) → apply ZX<small>This is the exact same four-gate table as Lecture 7's teleportation correction — same gates, same structure, now used to <em>encode</em> rather than <em>correct</em>.</small></div>
+        <p>Applying one of these four gates to just Alice's half of a shared Bell pair transforms the whole two-qubit state into one of the four distinct, mutually orthogonal Bell states. Alice then physically sends qubit A to Bob. Bob, now holding both A and B, performs a Bell measurement — CNOT(A→B) then H on A, then measure both — exactly Lecture 7's Bell-measurement recipe. The measured outcome identifies which of the four Bell states Alice produced, which identifies which gate she applied, which identifies the two bits (b₁,b₂).</p>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>Why Only One Qubit Needs to Travel</h2>
+        <p>The striking part: Alice sends <em>one qubit</em>, yet Bob recovers <em>two classical bits</em> of information — double the information capacity a single unentangled qubit transmission would normally carry by itself (a single qubit measured once yields at most one classical bit). The pre-shared entanglement is what makes the extra capacity possible: the four Bell states are perfectly distinguishable from each other by a joint measurement on <em>both</em> qubits, even though no single qubit alone, measured by itself, could tell you which of the four was prepared.</p>
+        <div class="eq">1 shared Bell pair + 1 transmitted qubit &nbsp;⟹&nbsp; 2 recovered classical bits<small>Without the pre-shared entanglement, sending one qubit can carry at most one classical bit (by the Holevo bound, previewed here and not derived) — superdense coding's extra capacity is entirely a loan against the entanglement spent setting up the Bell pair in advance.</small></div>
+    </section>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>The Teleportation/Superdense-Coding Duality</h2>
+        <p>Place the two protocols side by side and the symmetry is exact:</p>
+        <div class="eq">Teleportation: 1 Bell pair + 2 classical bits &nbsp;⟹&nbsp; moves 1 qubit of quantum information<br>Superdense coding: 1 Bell pair + 1 qubit &nbsp;⟹&nbsp; moves 2 classical bits of information<small>Each protocol trades the resource the other protocol delivers. Both spend exactly one Bell pair; each then exchanges the smaller-looking resource (2 classical bits, or 1 qubit) for the other protocol's larger-looking payoff (1 qubit of quantum info, or 2 classical bits).</small></div>
+        <p>Both protocols also share the identical four-gate table from §8.1 and Lecture 7 §7.3 — not a coincidence, but a reflection of the same underlying fact: the four Bell states are related to each other by exactly the four single-qubit Pauli operations {I, X, Z, ZX}, and both protocols are, at heart, about using those four operations to label one of four distinguishable joint states.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>Think of the shared Bell pair as a pre-paid, two-way courier contract. Teleportation uses that contract to ship a fragile package (the unknown quantum state) that can't be duplicated along the way, paying with two postage stamps (classical bits) at delivery. Superdense coding uses the <em>same</em> contract in reverse: it ships one small, ordinary parcel (a single qubit) but the courier's pre-existing route doubles its carrying capacity, delivering two stamps' worth of classical information for the price of shipping one parcel.</div>
+    </section>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>Circuit Equivalences</h2>
+        <p>Beyond the two named protocols, this week introduces a small toolkit of <strong>circuit equivalences</strong> — identities that let you rewrite one circuit fragment as a different, equivalent one, useful for simplifying circuits or matching them to a target gate set (Lecture 3's compilation theme, now at the identity level). The first pair conjugates a Pauli gate by Hadamards:</p>
+        <div class="eq">HXH = Z &nbsp;&nbsp;&nbsp;&nbsp; HZH = X<small>Conjugating a Pauli gate by H swaps the roles of X and Z — a direct circuit-level restatement of Lecture 2 §2.2's observation that H swaps the Z-basis and X-basis.</small></div>
+        <p>The second is a two-qubit identity: conjugating CNOT by Hadamards on <em>both</em> qubits swaps which one is the control and which is the target:</p>
+        <div class="eq">(H⊗H) · CNOT(control=A,target=B) · (H⊗H) = CNOT(control=B,target=A)<small>This is a genuinely useful rewiring tool: if your hardware's native CNOT only runs in one direction (control on a specific physical qubit), this identity lets a compiler simulate the reverse-direction CNOT using four extra H gates instead of needing new hardware.</small></div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't assume these equivalences mean H, X, and Z "don't really matter" or are interchangeable. HXH=Z is an equivalence between two different <em>circuits</em> (one gate vs. three gates) that happen to compute the <em>same</em> overall unitary — X and Z remain distinct gates with distinct physical meanings; it's specific sandwiched combinations that collapse to something simpler.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — proving HXH=Z by direct matrix multiplication</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Confirm the circuit equivalence HXH = Z using the matrices from Lectures 1 and 2.</p>
+        <ol>
+            <li><strong>Write the matrices:</strong> H = (1/√2)[1,1;1,−1], X = [0,1;1,0].</li>
+            <li><strong>Compute XH first</strong> (rightmost gate applied first, per Lecture 1 §1.1's circuit-order convention — here just computing the product, reading right to left as "H then X"): XH = (1/√2)[0,1;1,0]·[1,1;1,−1] = (1/√2)[1,−1;1,1].</li>
+            <li><strong>Compute H(XH):</strong> (1/√2)[1,1;1,−1] · (1/√2)[1,−1;1,1] = (1/2)[ (1+1), (−1+1) ; (1−1), (−1−1) ] = (1/2)[2,0;0,−2] = [1,0;0,−1].</li>
+            <li><strong>Compare to Z:</strong> [1,0;0,−1] is exactly Z from Lecture 1 §1.3. ✓ HXH = Z confirmed by direct computation.</li>
+            <li><strong>Sanity check via basis states:</strong> HXH|0⟩ should equal Z|0⟩=|0⟩. Trace it: H|0⟩=|+⟩, X|+⟩=|+⟩ (X fixes |+⟩, since |+⟩ is an X-eigenstate with eigenvalue +1 — a fact worth remembering from Course 1 §2), H|+⟩=|0⟩. ✓ matches Z|0⟩=|0⟩ exactly.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: superdense coding in Qiskit — project checkpoint</h3>
+        <p style="font-size:.9rem; color:var(--text2);"><strong>Project checkpoint (Week 8):</strong> verify that superdense coding correctly transmits all four 2-bit messages, alongside the teleportation circuit from Lecture 7.</p>
+        <pre><span class="c"># superdense_coding.py — Lecture 8 / Project checkpoint</span>
+from qiskit import QuantumCircuit
+from qiskit_aer import AerSimulator
+
+def superdense_circuit(b1, b2):
+    qc = QuantumCircuit(2, 2)
+    qc.h(0); qc.cx(0, 1)        <span class="c"># share a Bell pair: qubit 0 = Alice, qubit 1 = Bob</span>
+    if b1: qc.z(0)               <span class="c"># Alice's encoding, per the Section 8.1 table</span>
+    if b2: qc.x(0)
+    qc.cx(0, 1); qc.h(0)         <span class="c"># Bob's Bell measurement (reverse of the sharing step)</span>
+    qc.measure([0, 1], [0, 1])
+    return qc
+
+sim = AerSimulator()
+for b1 in (0, 1):
+    for b2 in (0, 1):
+        qc = superdense_circuit(b1, b2)
+        counts = sim.run(qc, shots=100).result().get_counts()
+        print(f"sent ({b1},{b2}) -> decoded {counts}")   <span class="c"># should always decode to the single matching bitstring</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Each of the four (b₁,b₂) pairs should decode deterministically to a single matching bitstring every time — unlike the Lecture 5 Bell-state measurement, this result has <em>zero</em> randomness, since Bob is distinguishing four orthogonal states perfectly, not reading out a probabilistic superposition.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Superdense coding closes the loop on the two-qubit entangling protocols this course builds toward. Lecture 9 turns to multi-qubit generalizations — GHZ states extend the Bell-pair idea to three or more qubits, and the swap test is another named circuit trick worth having in your toolkit, previewing the kind of circuit-level cleverness Course 3's algorithms (Deutsch-Jozsa, Grover) will lean on heavily.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Superdense coding lets Alice send Bob…</div>
+            <div class="opt"><b>A.</b> 2 classical bits, using 1 transmitted qubit plus a pre-shared Bell pair</div>
+            <div class="opt"><b>B.</b> 1 qubit of quantum information, using 2 classical bits</div>
+            <div class="opt"><b>C.</b> an unlimited number of classical bits</div>
+            <div class="opt"><b>D.</b> nothing, without any entanglement</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> That's the defining feature: one transmitted qubit, leveraging a pre-shared Bell pair, carries two classical bits — double the usual one-qubit-one-bit capacity. Option B describes teleportation instead.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Bob decodes Alice's two bits by…</div>
+            <div class="opt"><b>A.</b> measuring his qubit alone, before Alice's qubit arrives</div>
+            <div class="opt"><b>B.</b> performing a Bell measurement on both qubits together once Alice's qubit arrives</div>
+            <div class="opt"><b>C.</b> guessing randomly</div>
+            <div class="opt"><b>D.</b> applying a CLONE gate</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The four possible encoded states are only distinguishable from each other by a joint (Bell) measurement on both qubits together — no measurement of either qubit alone reveals the message.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> The duality between teleportation and superdense coding is best summarized as…</div>
+            <div class="opt"><b>A.</b> teleportation moves 1 qubit using a Bell pair + 2 classical bits; superdense coding moves 2 classical bits using a Bell pair + 1 qubit</div>
+            <div class="opt"><b>B.</b> they are literally the same protocol with no differences</div>
+            <div class="opt"><b>C.</b> neither protocol uses entanglement</div>
+            <div class="opt"><b>D.</b> superdense coding requires no classical communication at all</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Each protocol spends one Bell pair and trades the resource the other protocol delivers — a genuine, exact symmetry between the two.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The circuit equivalence HXH equals…</div>
+            <div class="opt"><b>A.</b> X</div>
+            <div class="opt"><b>B.</b> I</div>
+            <div class="opt"><b>C.</b> Z</div>
+            <div class="opt"><b>D.</b> H</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Conjugating X by Hadamards gives Z — direct matrix multiplication (or the basis-swap argument from Lecture 2) confirms this.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Conjugating a CNOT gate by Hadamards on both qubits, (H⊗H)·CNOT·(H⊗H), produces…</div>
+            <div class="opt"><b>A.</b> the identity, erasing the CNOT entirely</div>
+            <div class="opt"><b>B.</b> the same CNOT, completely unchanged</div>
+            <div class="opt"><b>C.</b> a different two-qubit gate unrelated to CNOT</div>
+            <div class="opt"><b>D.</b> a CNOT gate with control and target swapped</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> This identity lets a compiler simulate a reverse-direction CNOT using Hadamards and a forward-direction CNOT — useful when hardware only natively supports one control/target orientation.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Stated the <b>superdense coding</b> protocol: encode 2 bits onto a shared Bell pair's qubit, decode via Bell measurement.</li>
+            <li>Explained the exact <b>duality</b> between superdense coding and Lecture 7's teleportation.</li>
+            <li>Derived the circuit equivalences <b>HXH=Z</b> and <b>HZH=X</b> by direct matrix multiplication.</li>
+            <li>Showed that Hadamard-conjugating a <b>CNOT</b> swaps its control and target.</li>
+            <li>Built and verified a superdense coding circuit in <b>Qiskit</b> — this week's project checkpoint.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: GHZ states, the swap test, and a small "circuit zoo" of other named multi-qubit circuits.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-quantum-teleportation.html"><div class="dir">← Week 7</div><div class="ttl">Quantum Teleportation</div></a>
+        <a href="l09-circuit-zoo.html" class="next"><div class="dir">Week 9 →</div><div class="ttl">Building a Small "Circuit Zoo"</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Qubits, Gates &amp; Circuits</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

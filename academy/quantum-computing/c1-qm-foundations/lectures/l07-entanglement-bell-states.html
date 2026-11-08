@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C1 · Lecture 7 — Entanglement &amp; Bell States</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C1 QM Foundations</a> / Lecture 7</div>
+        <span class="wk-tag">Week 7 · Lecture 7</span>
+        <h1>Entanglement &amp; Bell States</h1>
+        <p class="sub">Some two-qubit states refuse to be described as "qubit A does this, qubit B does that." That failure to split apart is entanglement — and it is physically real.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the definition of entanglement: a state is entangled iff it cannot be written as a tensor product of two single-qubit states.</li>
+            <li>Write down the four Bell states and recognize them as maximally entangled.</li>
+            <li>Explain the correlations a Bell state produces under measurement, and why they defy classical intuition.</li>
+            <li>Describe, at a sketch level, how Bell's inequality rules out "hidden variable" explanations for these correlations.</li>
+            <li>Build a Bell state in QuTiP and verify its reduced single-qubit state is not pure.</li>
+        </ul>
+    </div>
+
+    <!-- 7.1 -->
+    <section class="lec">
+        <h2><span class="n">7.1</span>Defining Entanglement</h2>
+        <p>Lecture 6 showed that most two-qubit states cannot be factored back into |ψ⟩⊗|φ⟩. That failure to factor is not a minor mathematical inconvenience — it is the definition of one of the most important phenomena in quantum mechanics:</p>
+        <div class="eq">|Ψ⟩ is entangled &nbsp;⟺&nbsp; |Ψ⟩ ≠ |ψ⟩ ⊗ |φ⟩ for any single-qubit |ψ⟩, |φ⟩<small>A state is entangled precisely when no "qubit A is in this state, qubit B is in that state" description exists.</small></div>
+        <p>This is a statement about the <em>whole</em> state, not about either qubit individually. When a two-qubit state is entangled, there is no well-defined pure state you can assign to qubit A alone or qubit B alone — the two qubits' fates are tied together in a way that only the joint description captures. Lecture 8 makes this precise with the density-matrix language; for now, focus on recognizing entanglement and its physical consequences.</p>
+    </section>
+
+    <!-- 7.2 -->
+    <section class="lec">
+        <h2><span class="n">7.2</span>The Four Bell States</h2>
+        <p>The most extreme, maximally entangled two-qubit states are the four <strong>Bell states</strong> (also called EPR pairs, after Einstein, Podolsky, and Rosen):</p>
+        <div class="eq">|Φ⁺⟩ = (|00⟩ + |11⟩)/√2 &nbsp;&nbsp; |Φ⁻⟩ = (|00⟩ − |11⟩)/√2<br>|Ψ⁺⟩ = (|01⟩ + |10⟩)/√2 &nbsp;&nbsp; |Ψ⁻⟩ = (|01⟩ − |10⟩)/√2<small>All four are normalized, orthogonal to each other, and form a complete alternative basis for the two-qubit space.</small></div>
+        <p>Take |Φ⁺⟩ as the running example. It says the two qubits are <em>simultaneously</em> "both 0" and "both 1" — with zero amplitude on the mixed outcomes |01⟩ and |10⟩. No single-qubit state assigned to either qubit alone can reproduce that structure; the correlation lives only in the joint description.</p>
+    </section>
+
+    <!-- 7.3 -->
+    <section class="lec">
+        <h2><span class="n">7.3</span>Correlated Measurement Outcomes</h2>
+        <p>Suppose Alice holds qubit A and Bob holds qubit B of the state |Φ⁺⟩ = (|00⟩ + |11⟩)/√2, and they are light-years apart. Each of them individually measures 0 with probability 1/2 and 1 with probability 1/2 — exactly like a fair coin. But if Alice tells Bob her result, something classical coins can never do shows up: <strong>Bob's result is always identical to Alice's.</strong> If Alice got 0, Bob is guaranteed 0; if Alice got 1, Bob is guaranteed 1 — every single time, no matter the distance between them.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 400 210" role="img" aria-label="Two entangled qubits far apart, each measured independently, producing perfectly correlated outcomes">
+                <rect x="20" y="20" width="150" height="60" rx="8" fill="none" stroke="#a78bfa" stroke-width="2"/>
+                <text x="95" y="44" fill="#c4b5fd" font-size="12" text-anchor="middle" font-family="monospace">Qubit A (Alice)</text>
+                <text x="95" y="64" fill="#b7a4d0" font-size="10" text-anchor="middle">|Φ⁺⟩ = (|00⟩+|11⟩)/√2</text>
+
+                <rect x="230" y="20" width="150" height="60" rx="8" fill="none" stroke="#a78bfa" stroke-width="2"/>
+                <text x="305" y="44" fill="#c4b5fd" font-size="12" text-anchor="middle" font-family="monospace">Qubit B (Bob)</text>
+                <text x="305" y="64" fill="#b7a4d0" font-size="10" text-anchor="middle">shared entangled pair</text>
+
+                <line x1="170" y1="50" x2="230" y2="50" stroke="#c084fc" stroke-width="2" stroke-dasharray="5,4"/>
+                <text x="200" y="40" fill="#c084fc" font-size="9" text-anchor="middle">entangled</text>
+
+                <line x1="95" y1="80" x2="95" y2="112" stroke="#b7a4d0" stroke-width="2"/>
+                <line x1="305" y1="80" x2="305" y2="112" stroke="#b7a4d0" stroke-width="2"/>
+                <rect x="70" y="112" width="50" height="34" rx="6" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <text x="95" y="134" fill="#fbbf24" font-size="15" text-anchor="middle">⏲</text>
+                <rect x="280" y="112" width="50" height="34" rx="6" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                <text x="305" y="134" fill="#fbbf24" font-size="15" text-anchor="middle">⏲</text>
+
+                <line x1="95" y1="146" x2="95" y2="168" stroke="#34d399" stroke-width="2"/>
+                <line x1="305" y1="146" x2="305" y2="168" stroke="#34d399" stroke-width="2"/>
+                <rect x="60" y="168" width="70" height="30" rx="6" fill="none" stroke="#34d399" stroke-width="2"/>
+                <text x="95" y="188" fill="#6ee7b7" font-size="12" text-anchor="middle" font-family="monospace">outcome 0</text>
+                <rect x="270" y="168" width="70" height="30" rx="6" fill="none" stroke="#34d399" stroke-width="2"/>
+                <text x="305" y="188" fill="#6ee7b7" font-size="12" text-anchor="middle" font-family="monospace">outcome 0</text>
+                <text x="200" y="202" fill="#b7a4d0" font-size="10" text-anchor="middle">(or both 1 — never mixed. P = 1/2 each way, always matched.)</text>
+            </svg>
+            <figcaption>Each qubit alone is a 50/50 coin, but the two outcomes are perfectly correlated across any distance — the signature of entanglement, not a signal being sent between them.</figcaption>
+        </figure>
+        <p>This is <em>not</em> a signal traveling from Alice to Bob — nothing is sent, and no information can be transmitted faster than light this way (Alice can't choose what Bob sees). It is a pre-existing correlation baked into the joint state before either measurement happens. Classically, you could try to explain this with a "hidden instruction" shared in advance — e.g. two coins pre-agreed to always land the same way. §7.4 explains why that classical explanation fails.</p>
+    </section>
+
+    <!-- 7.4 -->
+    <section class="lec">
+        <h2><span class="n">7.4</span>Bell's Inequality: Ruling Out Hidden Variables</h2>
+        <p>Could the correlations in §7.3 just be due to some shared classical "hidden variable" agreed upon when the pair was created — like two coins pre-set to match? John Bell showed this hypothesis makes a falsifiable prediction. If measurement outcomes come from <em>any</em> local hidden-variable theory, the correlations measured along three different directions must satisfy an inequality (Bell's inequality) relating them.</p>
+        <div class="eq">|P(a,b) − P(a,c)| ≤ 1 + P(b,c)<small>P(x,y) is the measured correlation between detectors oriented along directions x and y. Any local hidden-variable theory must obey this bound. (Bell's original 1964 form of this inequality was derived for the singlet state |Ψ⁻⟩, not |Φ⁺⟩ — the exact numbers differ between Bell states, but every Bell state violates some such inequality.)</small></div>
+        <p>Quantum mechanics predicts specific correlation values for a Bell pair measured at particular angle combinations that <strong>violate</strong> this inequality — and when the experiment is actually run, the measured correlations match the quantum prediction, not the classical bound. This has been confirmed experimentally many times, for |Φ⁺⟩ and the other Bell states alike, each with its own violating angle combination. The conclusion: the correlations in Bell states are not explainable by any pre-agreed classical instruction set. The entanglement is physically real, not a stand-in for unmeasured classical information.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't picture entanglement as "the qubits secretly decided their outcomes in advance and we just didn't know yet" (a hidden-variable story). Bell's inequality violation rules that out directly — the correlation genuinely does not exist until measurement, yet is still perfectly matched between the two qubits.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — showing a Bell state can't be factored</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">Prove algebraically that |Φ⁺⟩ = (|00⟩ + |11⟩)/√2 cannot be written as |ψ⟩⊗|φ⟩ for any single-qubit states |ψ⟩ = a|0⟩+b|1⟩, |φ⟩ = c|0⟩+d|1⟩.</p>
+        <ol>
+            <li><strong>Assume it factors:</strong> |ψ⟩⊗|φ⟩ = ac|00⟩ + ad|01⟩ + bc|10⟩ + bd|11⟩.</li>
+            <li><strong>Match coefficients</strong> to |Φ⁺⟩'s amplitudes: ac = 1/√2, &nbsp;ad = 0, &nbsp;bc = 0, &nbsp;bd = 1/√2.</li>
+            <li><strong>From ad = 0:</strong> either a = 0 or d = 0. But ac = 1/√2 ≠ 0 forces a ≠ 0, so d = 0.</li>
+            <li><strong>Plug d = 0 into the fourth equation:</strong> bd = 1/√2 becomes b·0 = 1/√2, i.e. 0 = 1/√2 — a flat contradiction.</li>
+            <li><strong>Conclusion:</strong> no values of a,b,c,d can satisfy all four equations simultaneously — |Φ⁺⟩ cannot be factored into any |ψ⟩⊗|φ⟩. It is entangled.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: build a Bell state and probe its subsystem</h3>
+        <p style="font-size:.9rem; color:var(--text2);">QuTiP can build a Bell state directly and compute the <strong>reduced</strong> state of just one qubit with <code>ptrace()</code> (partial trace — fully explained in Lecture 8).</p>
+        <pre><span class="c"># bell_state.py — Lecture 7</span>
+import numpy as np
+from qutip import basis, tensor
+
+ket0, ket1 = basis(2, 0), basis(2, 1)
+
+phi_plus = (tensor(ket0, ket0) + tensor(ket1, ket1)).unit()   <span class="c"># |00> + |11>, normalized</span>
+print("Bell state norm:", phi_plus.norm())                    <span class="c"># 1.0</span>
+
+<span class="c"># full 2-qubit state is pure: its density matrix rho = |phi&gt;&lt;phi| squares to itself</span>
+rho_full = phi_plus * phi_plus.dag()
+print("Full state is pure:", (rho_full * rho_full - rho_full).norm() < 1e-9)   <span class="c"># True</span>
+
+<span class="c"># reduced state of qubit A alone, tracing out qubit B</span>
+rho_A = rho_full.ptrace(0)
+print(rho_A)                                                   <span class="c"># NOT a pure-state density matrix!</span>
+print("Qubit A alone is pure:", (rho_A * rho_A - rho_A).norm() < 1e-9)   <span class="c"># False</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">The full two-qubit state is pure, but qubit A <em>by itself</em> is not — tracing out an entangled partner always leaves a mixed state behind. Lecture 8 explains exactly why, and what "mixed" means.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The hands-on result above — a pure two-qubit state whose single-qubit piece is not pure — is not a bug. It's the mathematical fingerprint of entanglement, and Lecture 8 builds the exact tool (the density operator and the partial trace) needed to describe it properly. Entanglement is also the resource behind quantum teleportation, superdense coding, and quantum error correction — topics that return in later Academy courses once you have gates and circuits (Course 2) to actually create and manipulate these states on real hardware.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 7 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> A two-qubit state is entangled exactly when…</div>
+            <div class="opt"><b>A.</b> both amplitudes on |01⟩ and |10⟩ are zero</div>
+            <div class="opt"><b>B.</b> it has exactly two nonzero amplitudes</div>
+            <div class="opt"><b>C.</b> it cannot be written as |ψ⟩⊗|φ⟩ for any single-qubit |ψ⟩, |φ⟩</div>
+            <div class="opt"><b>D.</b> the two qubits were created at the same time</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Entanglement is defined purely by the failure to factor into a tensor product of single-qubit states — nothing about timing or which amplitudes happen to be zero.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Which of these is one of the four Bell states?</div>
+            <div class="opt"><b>A.</b> (|00⟩ + |11⟩)/√2</div>
+            <div class="opt"><b>B.</b> |00⟩</div>
+            <div class="opt"><b>C.</b> (|0⟩+|1⟩)/√2 ⊗ |0⟩</div>
+            <div class="opt"><b>D.</b> |01⟩</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> (|00⟩+|11⟩)/√2 is |Φ⁺⟩, one of the four Bell states. The others (B, D) are unentangled basis states; C is manifestly a product state.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Two qubits share the state |Φ⁺⟩ = (|00⟩+|11⟩)/√2. Alice measures hers and gets 1. What does Bob get if he measures his?</div>
+            <div class="opt"><b>A.</b> 0, with certainty</div>
+            <div class="opt"><b>B.</b> 0 or 1, 50/50, independent of Alice's result</div>
+            <div class="opt"><b>C.</b> A value that depends on how far apart they are</div>
+            <div class="opt"><b>D.</b> 1, with certainty</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> |Φ⁺⟩ only has amplitude on |00⟩ and |11⟩ — if Alice's outcome is 1, the state has collapsed to |11⟩, so Bob is guaranteed 1 too, regardless of distance.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Bell's inequality is significant because experiments show it is…</div>
+            <div class="opt"><b>A.</b> satisfied, confirming hidden-variable theories</div>
+            <div class="opt"><b>B.</b> violated, ruling out local hidden-variable explanations of entanglement</div>
+            <div class="opt"><b>C.</b> irrelevant to real quantum systems</div>
+            <div class="opt"><b>D.</b> only testable in principle, never in a real lab</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Measured correlations violate Bell's inequality and match the quantum prediction instead, ruling out any local hidden-variable ("secretly pre-agreed") explanation of the correlations.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> In the Lecture 7 hands-on, after tracing out qubit B from the pure Bell state, qubit A's reduced state is…</div>
+            <div class="opt"><b>A.</b> still a pure state, identical to before</div>
+            <div class="opt"><b>B.</b> undefined — you cannot trace out a qubit</div>
+            <div class="opt"><b>C.</b> exactly |0⟩</div>
+            <div class="opt"><b>D.</b> not pure — it is a mixed state</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Even though the full two-qubit state is pure, tracing out an entangled partner leaves qubit A in a mixed state — the signature of entanglement that Lecture 8 explains in full.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Defined <b>entanglement</b>: a state that cannot be written as a tensor product of single-qubit states.</li>
+            <li>Wrote the four <b>Bell states</b> and recognized them as maximally entangled.</li>
+            <li>Traced through the <b>correlated-measurement</b> thought experiment and why it isn't a classical signal.</li>
+            <li>Sketched how <b>Bell's inequality</b> violations rule out local hidden-variable explanations.</li>
+            <li>Built a Bell state in <b>QuTiP</b> and confirmed its reduced single-qubit state is mixed, not pure.</li>
+        </ul>
+        <p class="next-up">Next up — Week 8: density matrices, mixed states, and the partial trace — the exact machinery behind the "not pure" result you just saw.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l06-multi-qubit-tensor-product.html"><div class="dir">← Week 6</div><div class="ttl">Multi-Qubit Systems &amp; the Tensor Product</div></a>
+        <a href="l08-density-matrices-mixed-states.html" class="next"><div class="dir">Week 8 →</div><div class="ttl">Density Matrices &amp; Mixed States</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 QM Foundations</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

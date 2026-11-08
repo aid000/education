@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Final Exam — Noise, Error Correction &amp; NISQ</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C4 Noise, Error Correction &amp; NISQ</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C4 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from decoherence through error mitigation and the capstone.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Decoherence &amp; Noise Channels (Wks 1-3) <b>5</b></span>
+            <span class="wchip">Error Correction Basics (Wk 4) <b>4</b></span>
+            <span class="wchip">Stabilizer Formalism (Wks 5-6) <b>5</b></span>
+            <span class="wchip">Fault Tolerance &amp; NISQ Reality (Wks 7-8) <b>6</b></span>
+            <span class="wchip">Error Mitigation &amp; Capstone (Wks 9-10) <b>5</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ DECOHERENCE & NOISE CHANNELS (Weeks 1-3) ============ -->
+    <div class="exam-sec">Decoherence &amp; Noise Channels · Weeks 1–3</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>1.</span> An "open quantum system" is one that is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> perfectly isolated from any environment</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> in a pure state by definition</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> measured continuously</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> coupled to an uncontrolled environment, so its evolution alone is no longer unitary</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Coupling to an environment is exactly what breaks the closed-system unitary picture used in C1–C3.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>2.</span> T1 and T2 differ because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> T1 measures energy relaxation (population decay), T2 measures dephasing (loss of relative phase)</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> T2 is always longer than 2·T1</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> T1 only applies to classical bits</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> T2 only applies when the qubit is measured</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> T1 is how fast population decays toward the ground state; T2 is how fast relative phase randomizes — and T2 ≤ 2·T1, never the reverse.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> The Kraus-operator form ρ → Σᵢ KᵢρKᵢ† generalizes unitary evolution because it allows…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> negative probabilities</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> ρ to lose its trace-1 property</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> a sum over several possible operators, each occurring with some probability, instead of one certain unitary</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> only pure states to evolve</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Setting all but one Kᵢ to zero recovers ordinary unitary evolution — Kraus form is strictly more general.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> Which pair of Kraus operators defines the bit-flip channel with flip probability p?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> K₀=√(1−p)·I, K₁=√p·Z</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> K₀=I, K₁=X</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> K₀=√p·I, K₁=√(1−p)·X</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> K₀=√(1−p)·I, K₁=√p·X</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> With probability p, X is applied (a bit flip); with probability (1−p), nothing happens — and the completeness relation Σᵢ Kᵢ†Kᵢ=I holds for every p.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>5.</span> Applying the same depolarizing channel repeatedly to a state causes fidelity to the ideal state to decay…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> linearly with the number of applications</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> roughly geometrically (multiplicatively) with the number of applications</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> not at all — fidelity stays constant</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> only after exactly 100 applications</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Fₙ ≈ (1−p)ⁿ — each application multiplies the surviving fidelity by roughly (1−p) again, so small per-step losses compound into large losses over many operations.</div>
+    </div>
+
+    <!-- ============ ERROR CORRECTION BASICS (Week 4) ============ -->
+    <div class="exam-sec">Error Correction Basics: the Repetition Code · Week 4</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>6.</span> The 3-qubit bit-flip repetition code encodes a logical qubit as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> α|000⟩ + β|111⟩, an entangled state across three physical qubits</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> three independent, unentangled copies of α|0⟩+β|1⟩</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> a classical bit with no quantum information at all</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> |0⟩ on all three qubits, always</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Encoding entangles the three qubits — this is not cloning, which the no-cloning theorem forbids.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>7.</span> Syndrome measurement in the repetition code avoids collapsing the logical state by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> measuring each data qubit directly, one at a time</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> measuring only pairwise parities between data qubits, via ancillas, never the data qubits themselves</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> never measuring anything at all</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> measuring the logical qubit in the X basis</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Parity checks reveal whether pairs of qubits agree or disagree without revealing the overall α,β superposition.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>8.</span> The repetition code offers zero protection against phase-flip (Z) errors because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> its parity checks measure agreement in the computational (Z) basis, which a phase-flip never changes</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> the code only has two data qubits</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> Z errors never occur in practice</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> phase-flip errors are stronger than bit-flip errors</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A Z error changes relative phase, not computational-basis population, so Z-basis parity checks see nothing wrong.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>9.</span> Compared to doing nothing, the repetition code reduces the logical bit-flip failure probability because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> it eliminates all noise entirely</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> it only works when p=0</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> the logical qubit only fails when two or more of the three physical qubits flip simultaneously, less likely than a single flip for p &lt; 1/2</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> it triples the physical error rate, which happens to help</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Majority vote recovers from any single flip, so failure requires at least two simultaneous flips — roughly 3p²(1−p)+p³, smaller than p for p &lt; 1/2.</div>
+    </div>
+
+    <!-- ============ STABILIZER FORMALISM (Weeks 5-6) ============ -->
+    <div class="exam-sec">Stabilizer Formalism · Weeks 5–6</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>10.</span> An operator S "stabilizes" a codespace when…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> S collapses every codeword to a single basis state</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> S has no eigenvalues</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> S is anti-Hermitian</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> S|ψ⟩ = +1|ψ⟩ for every state |ψ⟩ in the codespace</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Every valid codeword is a +1 eigenstate of every stabilizer in the group.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>11.</span> In stabilizer language, the 3-qubit repetition code's two generators are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> Z₁Z₂ and Z₂Z₃</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> X₁X₂ and X₂X₃</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> Y₁Y₂ and Y₂Y₃</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> Z₁ and Z₃ individually</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Z₁Z₂ and Z₂Z₃ are exactly the pairwise parity checks rewritten as stabilizer generators.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>12.</span> Generators of a stabilizer group are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> the logical operators of the code</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> randomly chosen operators with no structure</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> a small set of stabilizers whose products build the entire stabilizer group</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> always exactly one operator, regardless of code size</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> For an n-qubit code encoding k logical qubits, (n−k) independent generators suffice to generate the full group.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>13.</span> In the surface code, data qubits sit on…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> only the corners of the lattice</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> the edges of a 2D lattice, with vertex (Z-type) and plaquette (X-type) stabilizers surrounding them</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> a single 1D line, exactly like the repetition code</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> ancilla qubits exclusively</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Each vertex hosts a Z-type stabilizer over its surrounding edges; each face hosts an X-type stabilizer over its bordering edges.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>14.</span> The surface code protects against both bit-flip and phase-flip errors because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> X-type (plaquette) stabilizers catch Z errors and Z-type (vertex) stabilizers catch X errors, covering both error types</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> phase-flip errors cannot occur on a 2D lattice</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> it never requires any stabilizer measurement</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> it uses only Z-type stabilizers, like the repetition code</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Each error type anticommutes with the opposite stabilizer type, so having both stabilizer types everywhere on the lattice catches both error types.</div>
+    </div>
+
+    <!-- ============ FAULT TOLERANCE & NISQ REALITY (Weeks 7-8) ============ -->
+    <div class="exam-sec">Fault Tolerance &amp; NISQ Reality · Weeks 7–8</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>15.</span> The threshold theorem's central conclusion is that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> error correction never works regardless of hardware quality</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> below a critical physical error rate, scaling up a code drives the logical error rate arbitrarily close to zero</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> the threshold is always exactly 50%</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> only classical codes have a threshold</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> This is the precise statement behind why fault-tolerant quantum computing is believed possible in principle.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>16.</span> Above the threshold, scaling up a code's size…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> still drives logical error toward zero, just more slowly</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> has no effect on the logical error rate</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> makes the logical error rate worse, since correction introduces more error than it removes</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> removes the need for any stabilizer measurement</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Above threshold, every additional layer of correction introduces more errors than it fixes — the cure becomes worse than the disease.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>17.</span> Realistic threshold estimates for practical codes and architectures fall roughly in the range…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> 10⁻⁸ to 10⁻⁶</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> 10⁻³ to 10⁻²</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> 0.4 to 0.5</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Depending on the code and hardware, p_th is typically estimated around one error in a thousand to one in a hundred per physical operation.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>18.</span> On today's good superconducting hardware, the dominant error source is typically…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> single-qubit gates, at error rates around 50%</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> classical control electronics, which have zero error</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> idle time with no gates at all</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> two-qubit gates, at error rates around 10⁻³</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Entangling two-qubit gates are harder to execute cleanly than single-qubit rotations, making them the dominant error contributor on most current hardware.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>19.</span> Readout error is distinct from gate error and decoherence because it…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> corrupts the quantum state before any gate runs</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> is identical in mechanism to T1 relaxation</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> only happens in simulation, never on real hardware</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> occurs at the measurement stage, misclassifying an already-correct quantum state into the wrong classical bit</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Readout error happens after all quantum evolution is done — the state itself can be fine, and the detector still occasionally mis-reports the outcome.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>20.</span> Why isn't "best gates sit near the threshold" the same as "fault tolerance is practical today"?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> Fault tolerance requires every operation on every qubit — idle time, readout, crosstalk, drift included — to stay safely under threshold simultaneously at large scale, which current devices don't achieve</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> The threshold theorem has never been experimentally tested</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> Thresholds only apply to classical bits</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> Gate errors are actually zero on all current hardware</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The theorem's promise is real, but it demands a safety margin across every operation at scale that today's hardware hasn't yet reached.</div>
+    </div>
+
+    <!-- ============ ERROR MITIGATION & CAPSTONE (Weeks 9-10) ============ -->
+    <div class="exam-sec">Error Mitigation &amp; Capstone · Weeks 9–10</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>21.</span> Zero-noise extrapolation works by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> reducing the hardware's natural noise to zero before measuring</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> adding extra physical qubits to cancel noise</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> deliberately amplifying noise to several higher levels, then extrapolating back to the zero-noise limit</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> running the circuit only once, at the hardware's natural noise level</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> ZNE never achieves literally zero noise — it estimates the zero-noise answer by fitting a trend through deliberately noisier runs.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>22.</span> A confusion matrix, used in readout-error correction, records…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> the gate error rate of every two-qubit gate</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> the T1/T2 times of every qubit</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> the number of logical qubits in the code</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> the probability of reading outcome j when the true prepared state was i</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Calibration means preparing each known basis state and recording how often the detector misreports it as something else.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>23.</span> The key distinction between error mitigation and error correction is that mitigation…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> requires more physical qubits than correction</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> is identical to correction, just renamed</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> can only be applied to classical bits</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> needs no extra qubits or encoding — just extra classical post-processing on the same circuit's results</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Mitigation leaves the quantum circuit unchanged and works entirely on the classical output; correction spends real physical qubits and gates.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>24.</span> In the capstone's logical-vs-physical error rate sweep, "code wins" at a given noise strength means…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> no noise model was applied</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> the physical error rate is exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> the measured logical error rate is lower than the uncorrected physical error rate at that same noise strength</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> the logical error rate exceeds the physical error rate</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> "Code wins" means the code's logical failure rate sits below the break-even diagonal P_logical=p — a direct, simulated instance of the threshold theorem's qualitative promise.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>25.</span> Course 5 (Variational &amp; Hybrid Algorithms) connects to this course because it…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> ignores noise entirely, assuming perfect hardware</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> uses short, noise-tolerant circuits paired with classical optimization — a practical strategy for today's noisy, intermediate-scale hardware</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> requires full fault tolerance before any circuit can run</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> replaces quantum computing with purely classical algorithms</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> VQE/QAOA-style hybrid algorithms are the dominant near-term approach precisely because they're designed around the NISQ-era noise this course spent ten weeks characterizing.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C4 Syllabus</div></a>
+        <a href="../lectures/l01-open-systems-and-decoherence.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Noise &amp; QEC</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

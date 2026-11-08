@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C3 · Lecture 10 — Capstone: QFT Phase Estimation + Grover Search in Qiskit</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+        .worked table { width: 100%; border-collapse: collapse; font-size: .86rem; margin-top: 8px; }
+        .worked th, .worked td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        .worked th { color: var(--accent2); font-size: .76rem; text-transform: uppercase; letter-spacing: .4px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .ms-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+        .ms { font-size: .76rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 11px; color: var(--text2); }
+        .ms b { color: var(--green); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C3 Quantum Algorithms</a> / Lecture 10</div>
+        <span class="wk-tag">Week 10 · Lecture 10 · Capstone</span>
+        <h1>Capstone: QFT Phase Estimation + Grover Search in Qiskit</h1>
+        <p class="sub">Ten weeks of theory, two working circuits. Build both, run both, and look back at what the whole arc actually established.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Combine Weeks 4–5's Grover search and Weeks 6–7's QFT/phase-estimation into one Qiskit project.</li>
+            <li>Build and run a complete Grover search circuit for a chosen N, verifying the result against theory.</li>
+            <li>Build and run a complete QPE circuit estimating an unknown phase, verifying the result against theory.</li>
+            <li>Produce the project deliverable: circuit diagrams, measured results, and a query-count comparison.</li>
+            <li>Recap the full ten-week arc and connect it to Course 4's noise and error-correction material.</li>
+        </ul>
+    </div>
+
+    <!-- 10.1 -->
+    <section class="lec">
+        <h2><span class="n">10.1</span>The Project, Restated</h2>
+        <p>The course project — introduced in Week 1, checkpointed in Weeks 4 and 8 — asks for two things: a working Grover search circuit, and a working QFT-based phase-estimation circuit, each verified against the theory from their respective weeks, assembled into a short report. Today's lecture <em>is</em> that assembly: both circuits, rebuilt cleanly, run side by side, with the comparisons the report needs already worked out.</p>
+        <p>Nothing here is conceptually new. Every gate, every formula, every piece of Qiskit code below is lifted directly from Weeks 4, 5, 6, and 7 — today's job is synthesis: seeing the two halves of the course sitting next to each other, built by the same hands, in one script.</p>
+    </section>
+
+    <!-- 10.2 -->
+    <section class="lec">
+        <h2><span class="n">10.2</span>Part A — Grover Search, Built Clean</h2>
+        <p>Recall the shape from Week 4: start in the uniform superposition H<sup>⊗n</sup>|0⟩<sup>⊗n</sup>, apply the Grover iteration G = D·U<sub>f</sub> exactly r ≈ (π/4)√(N/M) times (Week 5's corrected, M-aware formula), then measure. Today's version runs it for N=16 (n=4 qubits) with M=1 marked item, cleanly separated into its own function so it composes with Part B below without variable collisions.</p>
+        <div class="eq">N = 16, M = 1 &nbsp;⟹&nbsp; r ≈ (π/4)√16 = π ≈ 3.14 &nbsp;→&nbsp; round to r = 3 iterations<small>Same formula as Week 5's worked example, just at a slightly larger N for a cleaner capstone demonstration.</small></div>
+    </section>
+
+    <!-- 10.3 -->
+    <section class="lec">
+        <h2><span class="n">10.3</span>Part B — Phase Estimation, Built Clean</h2>
+        <p>Recall the shape from Week 7: H<sup>⊗t</sup> on a t-qubit counting register, controlled-U<sup>(2ᵏ)</sup> applications encoding the target phase θ via phase kickback, then an inverse QFT to decode. Today's version targets θ = 3/8 (binary 0.011, needing t=3 ancilla qubits for exact recovery) — deliberately a slightly less trivial phase than Week 7's θ=1/4, to show the same machinery generalizing cleanly to a 3-bit target.</p>
+        <div class="eq">θ = 3/8 = 0.011₂, t = 3 ancilla qubits &nbsp;⟹&nbsp; exact recovery expected, m = 011₂ = 3<small>3/8 is exactly 3-bit representable, so — exactly as in Week 7's worked example — the circuit should return m=3 with certainty, giving θ_est = 3/8 exactly.</small></div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — the project's query-count comparison table</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">The report's required "query-count comparison" is just this lecture's two target sizes plugged into the formulas from Weeks 4–5 and 7.</p>
+        <table>
+            <tr><th>Circuit</th><th>Classical cost</th><th>Quantum cost</th><th>Result</th></tr>
+            <tr><td>Grover search, N=16, M=1</td><td>up to 15 queries</td><td>3 Grover iterations</td><td>marked item found, high probability</td></tr>
+            <tr><td>Phase estimation, θ=3/8, t=3</td><td>N/A — not a query-complexity problem</td><td>1 run, t=3 ancilla qubits</td><td>θ_est = 3/8, exact</td></tr>
+        </table>
+        <ol style="margin-top:14px;">
+            <li><strong>Grover row:</strong> classical worst case for N=16 unstructured search is up to 15 queries (check every item but the last); quantum needs 3 Grover iterations (each iteration = 1 oracle query), confirmed in the hands-on below.</li>
+            <li><strong>Phase estimation row:</strong> there is no meaningful "classical query count" for this problem — estimating an eigenphase isn't a query-complexity question the way search is. The honest comparison point instead is ancilla count vs. precision: t=3 ancillas gives exact recovery of a 3-bit θ, matching Week 7's §7.3 scaling (1/2ᵗ precision).</li>
+            <li><strong>Report takeaway:</strong> these are genuinely different kinds of speedup (query-complexity reduction for Grover, vs. a precision/resource trade-off for QPE) — stating that distinction explicitly in the project report is itself evidence of having understood Week 9's complexity-zoo material, not just having run two circuits.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: the full capstone script — Grover + QPE, side by side</h3>
+        <p style="font-size:.9rem; color:var(--text2);">This is the deliverable circuit code for the project. Run both parts, confirm both results match the worked example above, then write up the report (circuit diagrams — use <code>qc.draw()</code> — plus these printed results, plus the comparison table).</p>
+        <pre><span class="c"># capstone.py — Lecture 10 / Course Project</span>
+import numpy as np
+from qiskit import QuantumCircuit
+from qiskit.circuit.library import QFT
+from qiskit.quantum_info import Statevector
+
+<span class="c"># ---------- Part A: Grover search, N=16, M=1 ----------</span>
+def grover_search(n, marked):
+    def oracle(qc):
+        for i, b in enumerate(reversed(marked)):
+            if b == '0': qc.x(i)
+        qc.h(n - 1); qc.mcx(list(range(n - 1)), n - 1); qc.h(n - 1)
+        for i, b in enumerate(reversed(marked)):
+            if b == '0': qc.x(i)
+    def diffusion(qc):
+        qc.h(range(n)); qc.x(range(n))
+        qc.h(n - 1); qc.mcx(list(range(n - 1)), n - 1); qc.h(n - 1)
+        qc.x(range(n)); qc.h(range(n))
+    qc = QuantumCircuit(n)
+    qc.h(range(n))
+    r = round((np.pi / 4) * np.sqrt(2**n))
+    for _ in range(r):
+        oracle(qc); diffusion(qc)
+    return qc, r
+
+n, marked = 4, "0110"           <span class="c"># N = 2^4 = 16</span>
+qc_grover, r = grover_search(n, marked)
+probs = Statevector.from_instruction(qc_grover).probabilities_dict()
+print(f"[Grover] N=16, marked={marked}, r={r} iterations -> P(marked) = {probs[marked]:.3f}")
+
+<span class="c"># ---------- Part B: phase estimation, theta = 3/8, t=3 ----------</span>
+def phase_estimation(t, theta):
+    qc = QuantumCircuit(t + 1)
+    qc.x(t)                     <span class="c"># eigenstate |1> of the phase gate</span>
+    qc.h(range(t))
+    for k in range(t):
+        qc.cp(2 * np.pi * theta * 2**k, k, t)
+    qc.append(QFT(t, inverse=True), range(t))
+    return qc
+
+t, theta = 3, 3/8
+qc_qpe = phase_estimation(t, theta)
+probs_qpe = Statevector.from_instruction(qc_qpe).probabilities_dict(qargs=range(t))
+best = max(probs_qpe, key=probs_qpe.get)
+m = int(best, 2)
+print(f"[QPE] theta=3/8, t=3 -> measured m={best} ({m}), theta_est = {m}/{2**t} = {m / 2**t}")</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Expected output: the Grover line reports P(marked) well above 0.9 after 3 iterations on N=16 — confirming the search succeeded with the predicted iteration count; the QPE line reports m=3 with theta_est = 0.375 = 3/8 exactly, confirming exact phase recovery — both results matching the worked example's comparison table precisely.</p>
+    </div>
+
+    <div class="ms-row">
+        <span class="ms"><b>Project due ✓</b> Both circuits built, run, and verified — submit circuit diagrams + these results + the comparison table as your final report.</span>
+    </div>
+
+    <!-- 10.4 -->
+    <section class="lec">
+        <h2><span class="n">10.4</span>Looking Back: the Full Ten-Week Arc</h2>
+        <p>Week 1 opened with the smallest possible example: one oracle, one qubit, one trick (phase kickback) turning a 2-query classical problem into a 1-query quantum one. Weeks 2–3 scaled that exact trick to n bits (Deutsch-Jozsa), then repurposed it again to extract a hidden linear structure outright (Bernstein-Vazirani), with Simon's problem as a bridge toward genuinely hard period-finding. Weeks 4–5 left that whole oracle-promise framework behind for unstructured search, trading exponential-but-artificial speedups for a modest-but-provably-optimal and genuinely general one: Grover's √N.</p>
+        <p>Weeks 6–8 introduced an entirely different primitive — the QFT — and built it up from a circuit (Week 6) into a measurement protocol for eigenphases (Week 7, phase estimation) into the engine behind the single most consequential result in the course (Week 8, Shor's algorithm breaking RSA-style cryptography's core assumption). Week 9 stepped back to assess all of it honestly through the lens of BQP, correcting the overclaims popular coverage tends to make. And today closes the loop by actually building the two pieces — Grover and QFT/QPE — that the project asked for from day one.</p>
+        <div class="box analogy"><span class="lbl">Analogy</span>If Course 2 taught you the alphabet of quantum circuits — individual gates, how they compose — this course taught you the first few real sentences: specific, named algorithms that say something nontrivial using that alphabet. Just as learning a few well-chosen sentences in a new language teaches you more about its grammar than memorizing vocabulary alone, these five algorithms (Deutsch-Jozsa, Bernstein-Vazirani, Grover, QFT/QPE, Shor) are the backbone vocabulary of quantum algorithm design — nearly every later quantum algorithm you'll encounter reuses pieces of this toolkit.</div>
+    </section>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading — Course 4</h3>
+        <p>Every algorithm in this course was analyzed on a perfect, noiseless quantum computer — the Qiskit <code>Statevector</code> simulator used throughout never drops a qubit, never decoheres, never makes a gate error. Real hardware does all three, constantly, and that gap is exactly why Shor's algorithm (exponentially faster, in principle) hasn't broken RSA in practice yet: today's devices are nowhere near able to run it at a cryptographically meaningful size without errors overwhelming the computation. <strong>Course 4, Noise, Error Correction &amp; NISQ</strong>, picks up precisely here — what noise actually does to a qubit, how quantum error correction fights back, and what's realistically achievable on today's "noisy intermediate-scale quantum" (NISQ) devices before fault tolerance arrives. If BQP's promise is real, Course 4 is about the engineering standing between here and there.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 10 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> In the capstone's Grover search circuit for N=16 with M=1 marked item, the number of iterations run is…</div>
+            <div class="opt"><b>A.</b> 16</div>
+            <div class="opt"><b>B.</b> 3</div>
+            <div class="opt"><b>C.</b> 1</div>
+            <div class="opt"><b>D.</b> 8</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> r ≈ (π/4)√(16/1) = π ≈ 3.14, rounding to 3 iterations — the same formula from Week 5, applied at a slightly larger N.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In the capstone's phase-estimation circuit targeting θ=3/8 with t=3 ancilla qubits, the expected measured integer m is…</div>
+            <div class="opt"><b>A.</b> 3, giving θ_est = 3/8 exactly</div>
+            <div class="opt"><b>B.</b> 0</div>
+            <div class="opt"><b>C.</b> a uniformly random 3-bit integer</div>
+            <div class="opt"><b>D.</b> 8</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> θ=3/8 = 0.011₂ is exactly 3-bit representable, so with t=3 ancillas the circuit returns m=3 with certainty — exact recovery, as in Week 7's worked example.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> Comparing the Grover and phase-estimation parts of the project, the honest statement about their "speedup" is…</div>
+            <div class="opt"><b>A.</b> both reduce a classical query count by the same factor</div>
+            <div class="opt"><b>B.</b> Grover's speedup is a reduction in query complexity; QPE's benefit is better framed as a precision-vs-ancilla-count trade-off, not a query-count comparison</div>
+            <div class="opt"><b>C.</b> neither circuit offers any advantage over a classical approach</div>
+            <div class="opt"><b>D.</b> QPE also needs O(√N) queries, like Grover</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Search and phase estimation are different kinds of problems — one is a query-complexity comparison, the other a resource/precision trade-off — and conflating them misrepresents what each circuit actually demonstrates.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> Across the ten-week arc, which best describes the shift between Weeks 1–5 and Weeks 6–8?</div>
+            <div class="opt"><b>A.</b> no shift — every week used the identical circuit</div>
+            <div class="opt"><b>B.</b> Weeks 1–5 covered error correction; Weeks 6–8 covered oracle problems</div>
+            <div class="opt"><b>C.</b> Weeks 1–5 built on the H<sup>⊗n</sup>-oracle/search framework; Weeks 6–8 introduced the QFT as a distinct primitive, used for phase estimation and ultimately Shor's algorithm</div>
+            <div class="opt"><b>D.</b> Weeks 6–8 returned to the Deutsch problem exclusively</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The course's two major "halves" are the oracle/search family (Weeks 1–5) and the QFT/phase-estimation family (Weeks 6–8), which the capstone deliberately brings together in one project.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Every circuit in this course was simulated on a perfect, noiseless simulator. Course 4 exists specifically to address…</div>
+            <div class="opt"><b>A.</b> teaching the same algorithms again with different notation</div>
+            <div class="opt"><b>B.</b> how noise and hardware error affect real quantum computations, and how error correction addresses that gap</div>
+            <div class="opt"><b>C.</b> proving P = NP</div>
+            <div class="opt"><b>D.</b> replacing Qiskit with a different simulator</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> The gap between "Shor's algorithm works in principle" and "Shor's algorithm breaks real cryptography today" is exactly noise and error — Course 4's subject.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned — and what the whole course established</h2>
+        <ul>
+            <li>Built and verified a <b>Grover search circuit</b> (N=16, M=1, r=3) and a <b>phase-estimation circuit</b> (θ=3/8, t=3) — the course project, complete.</li>
+            <li>Produced the required <b>query-count comparison</b>, correctly distinguishing query-complexity speedups from precision trade-offs.</li>
+            <li>Recapped the full <b>ten-week arc</b>: oracle tricks (Wks 1–3) → unstructured search (Wks 4–5) → QFT and its applications (Wks 6–8) → honest assessment (Wk 9) → synthesis (Wk 10).</li>
+            <li>Named the five algorithms that form this course's backbone vocabulary: <b>Deutsch-Jozsa, Bernstein-Vazirani, Grover, QFT/QPE, Shor</b>.</li>
+            <li>Connected forward to <b>Course 4</b>: noise, error correction, and what's realistically achievable on today's NISQ hardware.</li>
+        </ul>
+        <p class="next-up">Course 3 complete. Continue to Course 4 — Noise, Error Correction &amp; NISQ — to see what stands between the algorithms built here and running them on real, imperfect hardware.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l09-complexity-zoo-bqp.html"><div class="dir">← Week 9</div><div class="ttl">The Complexity Zoo: BQP and What "Quantum Speedup" Means</div></a>
+        <a href="../../c4-noise-error-correction/index.html" class="next"><div class="dir">Course 4 →</div><div class="ttl">Noise, Error Correction &amp; NISQ</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Quantum Algorithms</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

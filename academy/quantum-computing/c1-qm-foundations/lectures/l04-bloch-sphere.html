@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C1 · Lecture 4 — The Bloch Sphere</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        details.install { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+        details.install summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: .88rem; }
+        details.install p { margin: 12px 0 4px; font-size: .84rem; color: var(--text2); }
+        details.install p:first-of-type { margin-top: 14px; }
+        details.install pre { margin: 4px 0; }
+        details.install code { font-family: 'SF Mono','Fira Code',monospace; color: var(--accent2); }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C1 QM Foundations</a> / Lecture 4</div>
+        <span class="wk-tag">Week 4 · Lecture 4</span>
+        <h1>The Bloch Sphere</h1>
+        <p class="sub">Every single-qubit pure state — infinitely many complex amplitude pairs — collapses onto exactly one point on a plain, ordinary sphere. This is the picture everything else in the course secretly points back to.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>Write a general single-qubit pure state as |ψ⟩ = cos(θ/2)|0⟩ + e<sup>iφ</sup>sin(θ/2)|1⟩.</li>
+            <li>Identify the polar angle θ and azimuthal angle φ and locate them on the sphere.</li>
+            <li>Explain why global phase leaves the Bloch point fixed while relative phase (φ) moves it.</li>
+            <li>Identify the poles (|0⟩, |1⟩) and the equator (equal-superposition states) on the sphere.</li>
+            <li>Convert given amplitudes (α, β) into Bloch coordinates (θ, φ) by hand.</li>
+            <li>Plot a qubit state on a Bloch sphere using QuTiP — the Week 4 project checkpoint.</li>
+        </ul>
+    </div>
+
+    <!-- 4.1 -->
+    <section class="lec">
+        <h2><span class="n">4.1</span>From Two Amplitudes to Two Angles</h2>
+        <p>A general qubit state |ψ⟩ = α|0⟩ + β|1⟩ has two complex amplitudes — four real numbers — constrained by one equation, normalization. Lecture 1's global-phase discussion removes one more real degree of freedom (an overall phase is never observable). What's left is exactly <strong>two real numbers</strong>, and it turns out any normalized qubit state can always be written as:</p>
+        <div class="eq">|ψ⟩ = cos(θ/2)|0⟩ + e<sup>iφ</sup>sin(θ/2)|1⟩<small>θ ∈ [0, π] is the polar angle; φ ∈ [0, 2π) is the azimuthal angle. This parametrization is automatically normalized for any θ, φ.</small></div>
+        <p>These are precisely the two angles that locate a point on the surface of an ordinary unit sphere — the <span class="key">Bloch sphere</span>. θ measures how far "south" from the north pole you are; φ measures how far you've rotated around the vertical axis. Every single-qubit pure state is one point on this sphere, and every point on this sphere is some single-qubit pure state.</p>
+    </section>
+
+    <!-- 4.2 -->
+    <section class="lec">
+        <h2><span class="n">4.2</span>Global Phase Doesn't Move the Point — Relative Phase Does</h2>
+        <p>Lecture 1, §1.4 distinguished an unobservable global phase e<sup>iφ₀</sup>|ψ⟩ from a physically real relative phase between α and β. The Bloch sphere makes that distinction geometric: multiplying the <em>whole</em> state by e<sup>iφ₀</sup> changes nothing in the parametrization above (cos(θ/2) and sin(θ/2) stay real and non-negative by convention, and φ is defined relative to the |0⟩ amplitude) — the point on the sphere doesn't move at all. But changing φ — the phase <em>between</em> the two amplitudes — spins the point around the vertical (z) axis. This is why φ, and only φ, survives as a meaningful coordinate: it's the relative phase, dressed up as an angle you can literally point to.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't say "the state has a phase of e<sup>iφ₀</sup>" as if that alone told you anything physical — a lone global phase is invisible on the Bloch sphere and invisible to every measurement. Only ask "what is the phase <em>of β relative to α</em>?" That's the φ that actually appears in the formula above and the only phase that ever moves the point.</div>
+    </section>
+
+    <!-- 4.3 -->
+    <section class="lec">
+        <h2><span class="n">4.3</span>Reading the Sphere: Poles and Equator</h2>
+        <p>Two landmarks orient everything else on the sphere:</p>
+        <div class="eq">θ = 0 : |ψ⟩ = |0⟩ &nbsp;(north pole) &nbsp;&nbsp;&nbsp;&nbsp; θ = π : |ψ⟩ = |1⟩ &nbsp;(south pole)<small>At the poles, sin(θ/2) or cos(θ/2) vanishes — φ becomes undefined/irrelevant, exactly as it should: the poles are single points, with no "around" left to rotate through.</small></div>
+        <p>The <strong>equator</strong>, θ = π/2, is the set of <em>equal</em>-superposition states cos(π/4)|0⟩ + e<sup>iφ</sup>sin(π/4)|1⟩ = (|0⟩ + e<sup>iφ</sup>|1⟩)/√2 — every one of them gives 50/50 measurement probabilities in the Z basis, and they differ from each other <em>only</em> by relative phase φ. The two eigenvectors of X found in Lecture 2's worked example, (|0⟩±|1⟩)/√2, sit at φ = 0 and φ = π on this equator — directly across the sphere from one another, which is exactly why measuring Z on either gives 50/50 odds while measuring X on either gives a certain outcome.</p>
+        <figure class="fig">
+            <svg viewBox="0 0 340 320" role="img" aria-label="A Bloch sphere with the z-axis running from the north pole state ket-zero to the south pole state ket-one, the equator shown as a flattened ellipse, and a state vector drawn at polar angle theta from the z-axis and azimuthal angle phi around the equator">
+                <!-- sphere outline -->
+                <circle cx="170" cy="165" r="105" fill="none" stroke="#a78bfa" stroke-width="2"/>
+                <!-- equator ellipse -->
+                <ellipse cx="170" cy="165" rx="105" ry="28" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="5,4"/>
+                <!-- z axis -->
+                <line x1="170" y1="58" x2="170" y2="272" stroke="#b7a4d0" stroke-width="1.5"/>
+                <text x="170" y="40" fill="#6ee7b7" font-size="15" text-anchor="middle" font-family="monospace">|0⟩</text>
+                <text x="170" y="296" fill="#93c5fd" font-size="15" text-anchor="middle" font-family="monospace">|1⟩</text>
+                <!-- phi reference axis (phi = 0 direction) -->
+                <line x1="170" y1="165" x2="275" y2="165" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="286" y="169" fill="#60a5fa" font-size="10" text-anchor="middle">φ=0</text>
+                <!-- projection of state vector onto equatorial plane -->
+                <line x1="170" y1="165" x2="238" y2="186" stroke="#c4b5fd" stroke-width="1.3" stroke-dasharray="2,3"/>
+                <line x1="238" y1="85" x2="238" y2="186" stroke="#b7a4d0" stroke-width="1.1" stroke-dasharray="3,3"/>
+                <!-- state vector -->
+                <line x1="170" y1="165" x2="238" y2="85" stroke="#c4b5fd" stroke-width="2.5"/>
+                <polygon points="238,85 230,96 244,97" fill="#c4b5fd"/>
+                <text x="252" y="76" fill="#c4b5fd" font-size="13" font-family="monospace">|ψ⟩</text>
+                <!-- theta arc -->
+                <path d="M170,129 A36,36 0 0,1 193,138" fill="none" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="190" y="118" fill="#fbbf24" font-size="12" font-family="monospace">θ</text>
+                <!-- phi arc -->
+                <path d="M220,165 A50,50 0 0,1 218,180" fill="none" stroke="#34d399" stroke-width="1.5"/>
+                <text x="222" y="183" fill="#34d399" font-size="12" font-family="monospace">φ</text>
+            </svg>
+            <figcaption>The Bloch sphere. θ (amber) is measured down from the north pole |0⟩; φ (green) is measured around the equator from a fixed reference axis. The dashed drop line shows the state vector's projection onto the equatorial plane, which is where φ is actually read off.</figcaption>
+        </figure>
+    </section>
+
+    <!-- 4.4 -->
+    <section class="lec">
+        <h2><span class="n">4.4</span>Converting Amplitudes to Bloch Coordinates</h2>
+        <p>Given a normalized state α|0⟩ + β|1⟩, first use the global-phase freedom to make α real and non-negative (always possible — multiply the whole state by e<sup>−i·arg(α)</sup>, which doesn't move the Bloch point). Then read off:</p>
+        <div class="eq">θ = 2·arccos(|α|) &nbsp;&nbsp;&nbsp;&nbsp; φ = arg(β) − arg(α)<small>Equivalently θ = 2·arcsin(|β|). φ is the phase of β relative to the (now real) α — exactly the relative phase from §4.2.</small></div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — amplitudes to Bloch coordinates</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A qubit is in state |ψ⟩ = (√3/2)|0⟩ + (1/2)e<sup>iπ/3</sup>|1⟩. Find its Bloch coordinates (θ, φ).</p>
+        <ol>
+            <li><strong>Check normalization:</strong> |√3/2|² + |1/2|² = 3/4 + 1/4 = 1 ✓.</li>
+            <li><strong>α is already real and non-negative</strong> (√3/2 &gt; 0), so no global-phase adjustment is needed.</li>
+            <li><strong>Polar angle:</strong> θ = 2·arccos(|α|) = 2·arccos(√3/2) = 2·(π/6) = <strong>π/3</strong> (60°).</li>
+            <li><strong>Azimuthal angle:</strong> α's phase is 0, β's phase is π/3, so φ = arg(β) − arg(α) = π/3 − 0 = <strong>π/3</strong> (60°).</li>
+            <li><strong>Sanity check:</strong> cos(θ/2) = cos(π/6) = √3/2 ✓ and sin(θ/2) = sin(π/6) = 1/2 ✓ — both amplitude magnitudes match exactly.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: plotting a qubit on the Bloch sphere</h3>
+        <p style="font-size:.9rem; color:var(--text2);">QuTiP ships a <code>Bloch</code> helper that draws the sphere and plots a state's vector directly — this is also this week's <strong>project checkpoint</strong>: build a single-qubit state and render its Bloch plot for your report.</p>
+        <pre><span class="c"># bloch_plot.py — Lecture 4 / Project checkpoint</span>
+import numpy as np
+from qutip import basis, Bloch
+
+theta, phi = np.pi/3, np.pi/3                 <span class="c"># from the worked example above</span>
+psi = (np.cos(theta/2) * basis(2, 0)
+       + np.exp(1j*phi) * np.sin(theta/2) * basis(2, 1))
+
+b = Bloch()
+b.add_states(psi)
+b.show()                                      <span class="c"># opens an interactive 3D plot</span>
+<span class="c"># b.save('qubit_bloch.png')                  # or save a PNG for your project report</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Plot all three Pauli eigenstates together — <code>basis(2,0)</code>, <code>basis(2,1)</code>, and (basis(2,0)+basis(2,1)).unit() — and confirm visually that the first two sit at the poles and the third sits on the equator, exactly as §4.3 described. For the project, plot two or three single-qubit states of your choosing and include the image in your report.</p>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>The Bloch sphere isn't just a pretty picture — it's the geometric engine behind every single-qubit gate. Next lecture shows that unitary time evolution <em>rotates</em> the Bloch vector rigidly around some axis, at a rate set by the Hamiltonian — so "applying a gate" and "spinning a point on a sphere" become literally the same operation. Multi-qubit states (Week 6 onward) no longer fit on a single sphere — that visualization is special to one qubit — but every reduced single-qubit piece of a larger system still has its own Bloch point, and tracking how that point shrinks toward the sphere's center is exactly how Week 8's mixed states will be visualized.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 4 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> Multiplying a qubit state by a global phase e<sup>iφ₀</sup>…</div>
+            <div class="opt"><b>A.</b> rotates the Bloch point around the z-axis</div>
+            <div class="opt"><b>B.</b> changes θ but not φ</div>
+            <div class="opt"><b>C.</b> has no effect on the Bloch-sphere point at all</div>
+            <div class="opt"><b>D.</b> moves the point to the opposite pole</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Global phase is unobservable; the Bloch point is built only from θ and the <em>relative</em> phase φ, neither of which a global phase touches.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> In |ψ⟩ = cos(θ/2)|0⟩ + e<sup>iφ</sup>sin(θ/2)|1⟩, θ and φ are called the…</div>
+            <div class="opt"><b>A.</b> azimuthal angle and polar angle, respectively</div>
+            <div class="opt"><b>B.</b> radial distance and tangential angle, respectively</div>
+            <div class="opt"><b>C.</b> polar angle and radial distance, respectively</div>
+            <div class="opt"><b>D.</b> polar angle and azimuthal angle, respectively</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> θ (measured down from the north pole) is the polar angle; φ (measured around the equator) is the azimuthal angle — standard spherical-coordinate naming.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> States on the Bloch sphere's equator (θ = π/2)…</div>
+            <div class="opt"><b>A.</b> are equal superpositions of |0⟩ and |1⟩, differing from each other only by relative phase φ</div>
+            <div class="opt"><b>B.</b> are all identical to |0⟩</div>
+            <div class="opt"><b>C.</b> cannot be normalized</div>
+            <div class="opt"><b>D.</b> cannot be prepared in a lab</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Every equatorial state is (|0⟩ + e<sup>iφ</sup>|1⟩)/√2 for some φ — all give 50/50 odds measuring Z, but they are physically distinct states, distinguished only by their relative phase.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> The north pole (θ = 0) of the Bloch sphere corresponds to…</div>
+            <div class="opt"><b>A.</b> an equal superposition state</div>
+            <div class="opt"><b>B.</b> the state |0⟩</div>
+            <div class="opt"><b>C.</b> the state |1⟩</div>
+            <div class="opt"><b>D.</b> an undefined state</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> At θ = 0, cos(θ/2) = 1 and sin(θ/2) = 0, leaving |ψ⟩ = |0⟩ exactly — the north pole is |0⟩, the south pole (θ = π) is |1⟩.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> A state has |α| = √3/2 (α real, positive). What is its polar angle θ?</div>
+            <div class="opt"><b>A.</b> 30°</div>
+            <div class="opt"><b>B.</b> 90°</div>
+            <div class="opt"><b>C.</b> 60°</div>
+            <div class="opt"><b>D.</b> 120°</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> θ = 2·arccos(√3/2) = 2·30° = 60° — exactly the worked example above.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Wrote any single-qubit pure state as |ψ⟩ = cos(θ/2)|0⟩ + e<sup>iφ</sup>sin(θ/2)|1⟩ — the <b>Bloch-sphere</b> parametrization.</li>
+            <li>Confirmed <b>global phase</b> leaves the Bloch point fixed while <b>relative phase</b> (φ) rotates it around the equator.</li>
+            <li>Located the <b>poles</b> (|0⟩, |1⟩) and the <b>equator</b> (equal superpositions) on the sphere.</li>
+            <li>Converted amplitudes (α, β) into Bloch coordinates (θ, φ) by hand.</li>
+            <li>Plotted a qubit state in QuTiP's <b>Bloch</b> helper — this week's project checkpoint.</li>
+        </ul>
+        <p class="next-up">Next up — Week 5: unitary time evolution as rigid rotation of the Bloch vector, and the Schrödinger equation that generates it.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l03-observables-and-measurement.html"><div class="dir">← Week 3</div><div class="ttl">Observables &amp; Measurement</div></a>
+        <a class="next" href="l05-unitary-evolution-schrodinger.html"><div class="dir">Week 5 →</div><div class="ttl">Unitary Evolution &amp; the Schrödinger Equation</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 QM Foundations</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>

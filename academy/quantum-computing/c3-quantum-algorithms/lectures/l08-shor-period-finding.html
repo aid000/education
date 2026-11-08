@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Computing C3 · Lecture 8 — Shor's Period-Finding Subroutine</title>
+    <style>
+        :root {
+            --bg: #110a1a; --surface: #1a1029; --surface2: #251636; --border: #34204a;
+            --text: #f0eaf8; --text2: #b7a4d0; --accent: #a78bfa; --accent2: #c4b5fd;
+            --green: #34d399; --amber: #fbbf24; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 100; transition: width .1s; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #20123a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 820px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .wk-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); background: rgba(167,139,250,.14); border: 1px solid rgba(167,139,250,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+        .objectives { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin: 32px 0; }
+        .objectives h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-bottom: 10px; }
+        .objectives ul { margin-left: 18px; }
+        .objectives li { font-size: .92rem; margin-bottom: 5px; }
+
+        section.lec { margin: 40px 0; }
+        section.lec > h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; padding-top: 8px; }
+        section.lec > h2 .n { color: var(--accent); font-weight: 800; margin-right: 8px; }
+        section.lec p { margin-bottom: 14px; font-size: .96rem; }
+        section.lec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; color: var(--accent2); }
+        .eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-family: 'SF Mono','Fira Code',monospace; font-size: .92rem; color: var(--accent2); text-align: center; }
+        .eq small { display:block; color: var(--text2); font-family: inherit; font-size: .76rem; margin-top: 6px; }
+        strong { color: #fff; }
+        .key { color: var(--accent2); font-weight: 600; }
+
+        .box { border-radius: 12px; padding: 16px 20px; margin: 18px 0; font-size: .9rem; }
+        .box.analogy { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.25); }
+        .box.warn { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.28); color: #f0e1a7; }
+        .box .lbl { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+        .box.analogy .lbl { color: var(--blue); }
+        .box.warn .lbl { color: var(--amber); }
+
+        .worked { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 20px 0; }
+        .worked .lbl { font-weight: 700; color: var(--green); font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+        .worked ol { margin-left: 18px; font-size: .92rem; }
+        .worked li { margin-bottom: 6px; }
+
+        .hands { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+        .hands h3 { color: var(--green); margin-top: 0; }
+        pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: 'SF Mono','Fira Code',monospace; font-size: .82rem; color: var(--text); line-height: 1.6; margin: 10px 0; }
+        pre .c { color: #8a72b0; }
+
+        .fig { margin: 22px 0; text-align: center; }
+        .fig svg { max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+        .fig figcaption { font-size: .78rem; color: var(--text2); margin-top: 8px; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
+        .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
+        .recap ul { list-style: none; margin: 0; }
+        .recap li { font-size: .92rem; padding: 6px 0 6px 26px; position: relative; }
+        .recap li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .recap li b { color: var(--accent2); }
+        .recap .next-up { font-size: .86rem; color: var(--text2); margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+        .ext { background: linear-gradient(135deg, #16223a, #182742); border: 1px solid #2a466b; border-radius: 12px; padding: 20px 22px; margin: 28px 0; }
+        .ext h3 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .ext p { font-size: .88rem; color: #c3d6ee; }
+
+        .ms-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+        .ms { font-size: .76rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 11px; color: var(--text2); }
+        .ms b { color: var(--green); }
+
+        .quiz { margin: 48px 0 24px; }
+        .quiz > h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+        .quiz > .section-sub { color: var(--text2); font-size: .9rem; margin-bottom: 20px; }
+        .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .q .qn { font-weight: 700; margin-bottom: 10px; font-size: .96rem; }
+        .q .qn span { color: var(--accent); }
+        .q .opt { font-size: .9rem; padding: 5px 0 5px 4px; color: var(--text2); }
+        .q .opt b { color: var(--text); }
+        .q details { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+        .q summary { cursor: pointer; color: var(--accent2); font-size: .84rem; font-weight: 600; }
+        .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
+        .q details .ans { color: var(--green); font-weight: 700; }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+        .lec-nav a.disabled { opacity: .45; pointer-events: none; }
+        .lec-nav a.next { text-align: right; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quantum Computing</a> / <a href="../index.html">C3 Quantum Algorithms</a> / Lecture 8</div>
+        <span class="wk-tag">Week 8 · Lecture 8</span>
+        <h1>Shor's Period-Finding Subroutine</h1>
+        <p class="sub">Factoring an integer turns out to be a disguised period-finding problem — and period-finding is QPE pointed at the right unitary.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- OBJECTIVES -->
+    <div class="objectives">
+        <h2>🎯 Learning Objectives</h2>
+        <ul>
+            <li>State the classical number-theory reduction: factoring N reduces to finding the period r of aˣ mod N.</li>
+            <li>Describe how QPE estimates the phase of a modular-exponentiation unitary to find r.</li>
+            <li>Explain the role of continued fractions in extracting r from a phase estimate.</li>
+            <li>Describe how gcd computations recover the factors of N once r is known.</li>
+            <li>Explain, at a high level, why this breaks RSA-style cryptography.</li>
+        </ul>
+    </div>
+
+    <!-- 8.1 -->
+    <section class="lec">
+        <h2><span class="n">8.1</span>From Factoring to Period-Finding (a Classical Reduction)</h2>
+        <p>Shor's algorithm's genius move is almost entirely classical number theory, with the quantum part doing one specific sub-task. The reduction, stated without derivation: to factor a composite N, pick a random a coprime to N (gcd(a,N)=1), and consider the function f(x) = aˣ mod N. This function is <strong>periodic</strong> — there is a smallest positive integer r (the <em>order</em> of a modulo N) such that f(x+r) = f(x) for all x. Standard number theory (again, stated, not derived here) shows that once you know r, you can usually recover a nontrivial factor of N via a gcd computation.</p>
+        <div class="eq">f(x) = aˣ mod N is periodic with period r &nbsp;&nbsp;(f(x+r) = f(x) for all x)<small>This is the exact same "hidden period" shape as Simon's problem from Week 3 — not a coincidence; Simon's problem was historically a stepping stone toward exactly this idea.</small></div>
+        <p>So the entire factoring problem reduces to: <strong>find r, the period of aˣ mod N.</strong> Classically, finding r for a large N is believed to be hard (no known classical algorithm does it in polynomial time) — this classical hardness is exactly what RSA-style cryptography leans on. The quantum speedup lives entirely in this one subroutine.</p>
+    </section>
+
+    <!-- 8.2 -->
+    <section class="lec">
+        <h2><span class="n">8.2</span>QPE Finds r by Estimating a Phase</h2>
+        <p>Define the unitary U<sub>a,N</sub> : |y⟩ ↦ |ay mod N⟩ (modular multiplication by a). This unitary's eigenstates have eigenvalues of the form e<sup>2πik/r</sup> for integers k = 0,…,r−1 — the period r is baked directly into the <em>denominator</em> of the eigenphase. Run Week 7's QPE circuit with this U<sub>a,N</sub>: the counting register, after the inverse QFT, yields a measured value m such that m/2<sup>t</sup> is a close estimate of some k/r.</p>
+        <div class="eq">QPE on U_{a,N} → phase estimate θ_est ≈ k/r, for some unknown integer k<small>QPE doesn't directly hand you r — it hands you an estimate of a fraction k/r, with k also unknown. Recovering r from that estimate is a classical post-processing step, next.</small></div>
+        <p>This is exactly Week 7's machinery, with no new quantum ideas — the only new work is constructing the controlled modular-multiplication circuit for U<sub>a,N</sub>, which is a (nontrivial, but classical-logic-translatable) arithmetic circuit, not a new quantum primitive.</p>
+    </section>
+
+    <!-- 8.3 -->
+    <section class="lec">
+        <h2><span class="n">8.3</span>Continued Fractions and gcd: the Classical Clean-Up</h2>
+        <p>Given the estimate θ_est ≈ k/r, the <strong>continued fraction algorithm</strong> (a purely classical, efficient method for finding the "simplest" fraction close to a given decimal) recovers candidate values of r from θ_est — essentially, it finds small-denominator fractions that best approximate θ_est, and r is extracted as (or a divisor of) one of those denominators. A few repeats of the whole QPE-plus-continued-fractions process (different random a, or verifying candidate r values) reliably pin down the true r with high probability.</p>
+        <div class="eq">Once r is known: compute d = gcd(a^(r/2) − 1, N) &nbsp;(assuming r is even and a^(r/2) ≠ −1 mod N)<small>d is very likely a nontrivial factor of N — this gcd step is the final, purely classical, polynomial-time computation that turns "we know r" into "we know a factor of N."</small></div>
+        <p>Chained together — random a, QPE finds θ_est, continued fractions extract r, gcd extracts a factor — this whole pipeline runs in time polynomial in log N, versus the best known classical factoring algorithms, which run in time <em>sub-exponential but still super-polynomial</em> in log N. That gap is Shor's algorithm's headline result.</p>
+    </section>
+
+    <!-- 8.4 -->
+    <section class="lec">
+        <h2><span class="n">8.4</span>Why This Breaks RSA</h2>
+        <p>RSA-style public-key cryptography's security rests on a single computational assumption: that factoring a large N = p·q (product of two large primes) is classically intractable. Every piece of that assumption's hardness — the absence of a known efficient classical factoring algorithm — is exactly what Shor's algorithm defeats, given a sufficiently large, sufficiently error-corrected quantum computer. This isn't a vague "quantum computers are powerful" claim; it's a specific, concrete algorithm with a proven polynomial-time complexity for a problem underlying a huge fraction of deployed internet cryptography (TLS key exchange, digital signatures, and more all commonly rely on RSA or closely related hard problems).</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>It's tempting to read "Shor's algorithm breaks RSA" as "all encryption is broken" or "this already works today." Neither is true. First, not all cryptography relies on factoring — post-quantum cryptographic schemes based on different (believed quantum-resistant) hard problems already exist and are being deployed specifically because of this threat. Second, running Shor's algorithm on cryptographically relevant N (thousands of bits) requires a quantum computer with far more qubits and far lower error rates than anything that exists today — this is a motivational, forward-looking result (why the field invests in error correction, Course 4's topic), not a description of a capability that exists right now.</div>
+    </section>
+
+    <!-- WORKED EXAMPLE -->
+    <div class="worked">
+        <div class="lbl">✦ Worked Example — tiny factoring walkthrough, N=15, a=7</div>
+        <p style="font-size:.92rem; margin-bottom:10px;">A toy-sized instance small enough to trace by hand (no real quantum speedup at this size, but the pipeline is identical).</p>
+        <ol>
+            <li><strong>Pick a=7</strong> (coprime to N=15: gcd(7,15)=1 ✓). Compute 7ˣ mod 15 for x=0,1,2,…: 1, 7, 4, 13, 1, 7, 4, 13, … — the sequence repeats with period <strong>r=4</strong>.</li>
+            <li><strong>(QPE's job, conceptually):</strong> on real hardware, QPE applied to U<sub>7,15</sub> would return a phase estimate close to k/4 for some k ∈ {0,1,2,3}; continued fractions would extract the denominator r=4 from that estimate.</li>
+            <li><strong>Check r is even:</strong> r=4 is even ✓. Compute a^(r/2) mod N = 7² mod 15 = 49 mod 15 = 4. Confirm 4 ≠ −1 mod 15 (i.e. 4 ≠ 14) ✓ — the algorithm proceeds.</li>
+            <li><strong>Compute the gcd:</strong> d = gcd(7² − 1, 15) = gcd(48, 15) = gcd(48,15). 48 = 3·15+3, gcd(15,3)=3. So d=3.</li>
+            <li><strong>Factor found:</strong> 3 divides 15, and 15/3 = 5 — both prime. N=15 = 3 × 5, recovered entirely from the period r=4, exactly as the pipeline in §8.3 predicts.</li>
+        </ol>
+    </div>
+
+    <!-- HANDS ON -->
+    <div class="hands">
+        <h3>🛠️ Hands-On: classical period-finding + gcd pipeline for N=15</h3>
+        <p style="font-size:.9rem; color:var(--text2);">Simulating the full quantum circuit for even N=15 is possible but heavy; this exercise runs the <em>classical</em> half of the pipeline directly (finding r by brute force, the part QPE replaces efficiently at scale) so you can see exactly what the quantum subroutine is standing in for. <strong>Project checkpoint:</strong> if you want the full quantum circuit, Qiskit's textbook examples include a complete Shor's-algorithm implementation for N=15 — optional stretch goal this week.</p>
+        <pre><span class="c"># shor_classical_half.py — Lecture 8</span>
+from math import gcd
+
+def find_period(a, N):
+    <span class="c"># brute-force period finding -- QPE does this step efficiently on a quantum computer</span>
+    x, r = a % N, 1
+    while x != 1:
+        x = (x * a) % N
+        r += 1
+    return r
+
+def shor_factor(N, a):
+    r = find_period(a, N)
+    print(f"a={a}, N={N} -> period r={r}")
+    if r % 2 != 0:
+        print("r is odd -- pick a different a and retry")
+        return None
+    candidate = pow(a, r // 2, N)
+    if candidate == N - 1:
+        print("a^(r/2) = -1 mod N -- pick a different a and retry")
+        return None
+    d = gcd(candidate - 1, N)
+    print(f"gcd(a^(r/2)-1, N) = {d}")
+    return d
+
+d = shor_factor(15, 7)
+print("nontrivial factor of 15:", d, "-> 15 /", d, "=", 15 // d)</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Expected output: period r=4, gcd computation yields d=3, and 15/3=5 — matching the worked example exactly. The brute-force <code>find_period</code> here is the one step Shor's algorithm replaces with QPE to get a polynomial-time runtime for large N; everything after it (continued fractions in the real algorithm, gcd here) is genuinely classical and fast either way.</p>
+    </div>
+
+    <div class="ms-row">
+        <span class="ms"><b>Project checkpoint ✓</b> QFT + phase estimation circuit verified — the QPE machinery from Week 7, now understood as Shor's period-finding engine.</span>
+    </div>
+
+    <!-- EXTENSION -->
+    <div class="ext">
+        <h3>🔗 Where this is heading</h3>
+        <p>Shor's algorithm is the most dramatic speedup in this course — exponential, for a practically important problem. Week 9 steps back and asks an honest question about everything covered so far: what kind of speedup did each algorithm <em>actually</em> deliver, and for what kind of problem? The answer varies a lot — Deutsch-Jozsa and Bernstein-Vazirani's exponential/linear speedups apply to somewhat artificial oracle promises; Grover's quadratic speedup is genuinely generic but "only" quadratic; Shor's exponential speedup is for a real, important problem but needs hardware far beyond today's. Week 9 puts all of that into the formal language of complexity classes (BQP) so you can state precisely what's been shown.</p>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="quiz">
+        <h2>❓ Lecture 8 Quiz</h2>
+        <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
+
+        <div class="q">
+            <div class="qn"><span>Q1.</span> The classical number-theory reduction underlying Shor's algorithm states that factoring N reduces to…</div>
+            <div class="opt"><b>A.</b> finding the period r of f(x) = aˣ mod N for a random a coprime to N</div>
+            <div class="opt"><b>B.</b> sorting a list of N elements</div>
+            <div class="opt"><b>C.</b> computing N² directly</div>
+            <div class="opt"><b>D.</b> searching an unstructured database of size N</div>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Once the period r of the modular exponentiation function is known, a short gcd computation usually yields a nontrivial factor of N — this reduction is purely classical number theory.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q2.</span> Within Shor's algorithm, quantum phase estimation is applied to…</div>
+            <div class="opt"><b>A.</b> the Grover diffusion operator</div>
+            <div class="opt"><b>B.</b> a randomly chosen classical bit string</div>
+            <div class="opt"><b>C.</b> the identity matrix</div>
+            <div class="opt"><b>D.</b> a modular-multiplication unitary U_{a,N} : |y⟩ ↦ |ay mod N⟩</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> This unitary's eigenphases are of the form k/r, so QPE applied to it yields an estimate from which the period r can be extracted.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q3.</span> After QPE produces a phase estimate close to k/r, the classical continued-fraction algorithm is used to…</div>
+            <div class="opt"><b>A.</b> measure the eigenstate directly</div>
+            <div class="opt"><b>B.</b> recover candidate values of the period r from the estimate</div>
+            <div class="opt"><b>C.</b> replace the need for a quantum computer entirely</div>
+            <div class="opt"><b>D.</b> compute gcd(a, N)</div>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> Continued fractions find small-denominator fractions close to the phase estimate; the denominator found is (a divisor of) the sought period r.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q4.</span> In the N=15, a=7 worked example, the period r of 7ˣ mod 15 and the resulting nontrivial factor are…</div>
+            <div class="opt"><b>A.</b> r=2, factor 5</div>
+            <div class="opt"><b>B.</b> r=15, factor 1</div>
+            <div class="opt"><b>C.</b> r=4, factor 3</div>
+            <div class="opt"><b>D.</b> r=3, factor 15</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> 7ˣ mod 15 cycles 1,7,4,13,1,… with period r=4; gcd(7²−1, 15) = gcd(48,15) = 3, a nontrivial factor of 15=3×5.</p></details>
+        </div>
+
+        <div class="q">
+            <div class="qn"><span>Q5.</span> Shor's algorithm threatens RSA-style cryptography because…</div>
+            <div class="opt"><b>A.</b> it proves factoring is impossible</div>
+            <div class="opt"><b>B.</b> it eliminates the need for any cryptography at all</div>
+            <div class="opt"><b>C.</b> it already runs on today's hardware for cryptographically relevant key sizes</div>
+            <div class="opt"><b>D.</b> RSA's security relies on classical factoring being intractable, and Shor's algorithm factors in polynomial time on a sufficiently large quantum computer</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> RSA leans on classical factoring's believed hardness; Shor's algorithm defeats exactly that assumption given enough qubits and low enough error rates — a motivational, forward-looking result, not something current hardware can do at cryptographic scale.</p></details>
+        </div>
+    </div>
+
+    <div class="recap">
+        <h2>✓ What you learned</h2>
+        <ul>
+            <li>Stated the <b>classical reduction</b>: factoring N reduces to finding the period r of aˣ mod N.</li>
+            <li>Showed how <b>QPE estimates a phase k/r</b> from the modular-exponentiation unitary U_{a,N}.</li>
+            <li><b>Continued fractions</b> extract candidate r values; a <b>gcd computation</b> extracts the factor.</li>
+            <li>Traced the full pipeline by hand for <b>N=15, a=7</b>, recovering factors 3 and 5.</li>
+            <li>Explained, at a high level, why this result motivates post-quantum cryptography.</li>
+        </ul>
+        <p class="next-up">Next up — Week 9: the complexity zoo — BQP, and an honest accounting of what kind of speedup each algorithm in this course actually delivered.</p>
+    </div>
+
+    <!-- LECTURE NAV -->
+    <div class="lec-nav">
+        <a href="l07-quantum-phase-estimation.html"><div class="dir">← Week 7</div><div class="ttl">Quantum Phase Estimation (QPE)</div></a>
+        <a href="l09-complexity-zoo-bqp.html" class="next"><div class="dir">Week 9 →</div><div class="ttl">The Complexity Zoo: BQP and What "Quantum Speedup" Means</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Quantum Algorithms</a> · <a href="../../index.html">Quantum Computing</a> · <a href="../../../index.html">Academy</a></p>
+</footer>
+
+<script>
+    const bar = document.getElementById('progress');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+        bar.style.width = scrolled + '%';
+    });
+</script>
+
+</body>
+</html>
