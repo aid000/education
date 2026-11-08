@@ -264,17 +264,15 @@
 
     <div class="hands">
         <h3>🛠️ Hands-On: PDN / IR-drop analysis in OpenROAD</h3>
-        <p>OpenROAD's <code>analyze_power_grid</code> (PDNSim) reports the voltage drop across the power grid for a placed design. Run it for both the static and the dynamic (vectorless) cases, then read the worst-drop and worst-current numbers.</p>
+        <p>OpenROAD's <code>analyze_power_grid</code> (PDNSim) reports the <strong>static</strong> voltage drop across the power grid for a placed design — it solves the PDN as a resistive network under average/peak current draw. Run it after PDN insertion and read the worst-drop and worst-current numbers.</p>
         <pre><span class="c"># inside the OpenROAD shell, after placement + PDN insertion</span>
 read_db design.odb
 set_pdnsim_net_voltage -net VDD -voltage 0.80
 
-<span class="c"># static IR drop — average current</span>
-analyze_power_grid -net VDD -outfile static_ir.rpt
-
-<span class="c"># dynamic IR drop — transient switching</span>
-analyze_power_grid -net VDD -dynamic -outfile dynamic_ir.rpt</pre>
-        <p>Open the reports and find <code>Worstcase voltage</code> and <code>Average IR drop</code>. Compare static vs. dynamic — the dynamic worst-drop should be larger. Where the drop is worst (usually the die center), the fix is more straps, wider metal, or more decaps nearby.</p>
+<span class="c"># static IR drop — resistive drop under average/peak current</span>
+analyze_power_grid -net VDD -outfile static_ir.rpt -enable_em</pre>
+        <p>Open the report and find <code>Worstcase voltage</code> and <code>Average IR drop</code>. Where the drop is worst (usually the die center or far from power pads), the fix is more straps, wider metal, or more decaps nearby.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>PDNSim's <code>analyze_power_grid</code> is a <strong>static</strong> IR-drop analysis only — there is no <code>-dynamic</code> flag. It solves the PDN as a fixed resistive network against a given current draw; it does not simulate the transient, cycle-by-cycle switching current that causes dynamic (vectorless) IR drop. True dynamic IR-drop analysis needs a time-based current waveform (often extracted from gate-level simulation or vectorless activity estimation) driven through the PDN — that capability is a more advanced topic typically handled by commercial signoff tools (e.g., Voltus, RedHawk), not by this free/open toolchain.</div>
     </div>
 
     <!-- QUIZ -->

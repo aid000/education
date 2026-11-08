@@ -99,13 +99,20 @@
             <figcaption>NPN BJT: a small base current I<sub>B</sub> controls a much larger collector current I<sub>C</sub> = βI<sub>B</sub>. The emitter arrow marks the NPN type.</figcaption>
         </figure>
         <p>Its three regions: <strong>cutoff</strong> (off — no base drive, no I<sub>C</sub>), <strong>active</strong> (amplifying — I<sub>C</sub> = βI<sub>B</sub>), and <strong>saturation</strong> (fully on — a closed switch). Amplifiers live in active; digital switches swing between cutoff and saturation.</p>
+
+        <h3>Designing a DC Bias Point (the Q-point)</h3>
+        <p>Before a BJT can amplify an AC signal, it has to be parked at a stable DC operating point in the <em>active</em> region — its <span class="key">quiescent point</span> or <strong>Q-point</strong>: a steady (I<sub>C</sub>, V<sub>CE</sub>) pair that sits comfortably away from both cutoff and saturation so the AC signal has room to swing symmetrically around it. The common <strong>voltage-divider bias</strong> topology sets that point with four resistors — R₁, R₂ forming a Thévenin divider at the base, R<sub>E</sub> in the emitter leg, and R<sub>C</sub> in the collector leg:</p>
+        <div class="eq">V<sub>TH</sub> = V<sub>CC</sub>·R₂/(R₁+R₂) &nbsp;&nbsp; R<sub>TH</sub> = R₁∥R₂<small>Thévenin-equivalent source seen by the base</small></div>
+        <div class="eq">I<sub>B</sub> = (V<sub>TH</sub> − V<sub>BE</sub>) / (R<sub>TH</sub> + (β+1)R<sub>E</sub>) &nbsp;&nbsp; I<sub>C</sub> = βI<sub>B</sub> &nbsp;&nbsp; V<sub>CE</sub> = V<sub>CC</sub> − I<sub>C</sub>R<sub>C</sub> − I<sub>E</sub>R<sub>E</sub></div>
+        <p style="font-size:.9rem;">Worked example — V<sub>CC</sub> = 10 V, β = 100, V<sub>BE</sub> = 0.7 V, R₁ = 75 kΩ, R₂ = 17 kΩ, R<sub>E</sub> = 1 kΩ, R<sub>C</sub> = 4 kΩ: V<sub>TH</sub> ≈ 1.85 V, R<sub>TH</sub> ≈ 13.9 kΩ, so I<sub>B</sub> ≈ 10 µA, I<sub>C</sub> ≈ <strong>1.0 mA</strong>, and V<sub>CE</sub> ≈ <strong>5.0 V</strong> — roughly mid-supply, which maximizes how far the collector voltage can swing in either direction once an AC signal is coupled in.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>The simpler single-resistor base bias used in the Ngspice sweep below (just R<sub>B</sub> from V<sub>CC</sub> to the base) sets I<sub>B</sub> — and hence I<sub>C</sub> and V<sub>CE</sub> — directly proportional to β. Since β varies lecture-to-lecture, part-to-part, and with temperature, that Q-point is <em>not</em> stable. Voltage-divider bias is preferred in real designs because R<sub>E</sub>'s feedback makes I<sub>C</sub> nearly independent of β — that's <em>why</em> it's the standard topology, not just one option among many.</div>
     </section>
 
     <section class="lec">
         <h2><span class="n">10.3</span>The MOSFET — the Chip's Workhorse</h2>
         <p>The <strong>MOSFET</strong> has terminals <strong>gate</strong> (G), <strong>drain</strong> (D), <strong>source</strong> (S). Unlike the current-controlled BJT, it is <span class="key">voltage-controlled</span>: a voltage on the (insulated) gate forms a conducting channel between drain and source. An n-channel MOSFET turns on once the gate-source voltage exceeds the <span class="key">threshold voltage</span> V<sub>th</sub>.</p>
         <figure class="fig">
-            <svg viewBox="0 0 300 170" role="img" aria-label="N-channel MOSFET symbol with gate, drain, and source terminals; the gate is separated from the channel by a gap indicating its insulation">
+            <svg viewBox="0 0 300 170" role="img" aria-label="N-channel MOSFET symbol with gate, drain, and source terminals; the gate is separated from the channel by a gap indicating its insulation, and an arrow on the source lead points into the channel to mark it as N-channel">
                 <line x1="55" y1="85" x2="95" y2="85" stroke="#67e8f9" stroke-width="2"/>
                 <line x1="95" y1="55" x2="95" y2="115" stroke="#67e8f9" stroke-width="2.5"/>
                 <line x1="108" y1="50" x2="108" y2="72" stroke="#67e8f9" stroke-width="3"/>
@@ -115,12 +122,13 @@
                 <line x1="150" y1="58" x2="150" y2="28" stroke="#67e8f9" stroke-width="2"/>
                 <line x1="108" y1="112" x2="150" y2="112" stroke="#67e8f9" stroke-width="2"/>
                 <line x1="150" y1="112" x2="150" y2="142" stroke="#67e8f9" stroke-width="2"/>
+                <polygon points="132,105 132,119 119,112" fill="#67e8f9"/>
                 <text x="40" y="89" fill="#94a8bc" font-size="12">G</text>
                 <text x="156" y="30" fill="#94a8bc" font-size="12">D</text>
                 <text x="156" y="144" fill="#94a8bc" font-size="12">S</text>
                 <text x="170" y="90" fill="#22d3ee" font-size="11">on when V_GS &gt; V_th</text>
             </svg>
-            <figcaption>n-channel MOSFET: the insulated gate's voltage forms a channel between drain and source. It conducts once V<sub>GS</sub> exceeds the threshold V<sub>th</sub>.</figcaption>
+            <figcaption>n-channel MOSFET: the insulated gate's voltage forms a channel between drain and source. The arrow on the source lead points inward (into the device) — the standard mark for an N-channel device; a P-channel symbol would point the arrow outward. It conducts once V<sub>GS</sub> exceeds the threshold V<sub>th</sub>.</figcaption>
         </figure>
         <p>Because the gate is insulated, it draws almost no steady current — so MOSFETs are tiny, low-power, and pack by the billions. That's why they, not BJTs, are the building block of digital chips (and the subject of Courses 2 and 3).</p>
         <div class="box warn"><span class="lbl">Common mistake</span>Keep the control mechanisms straight: the <strong>BJT is current-controlled</strong> (I<sub>C</sub> = βI<sub>B</sub>, base draws current); the <strong>MOSFET is voltage-controlled</strong> (gate voltage vs V<sub>th</sub>, gate draws ~no current). Saying "base voltage times β" or "gate current" mixes the two models.</div>
@@ -128,7 +136,8 @@
 
     <section class="lec">
         <h2><span class="n">10.4</span>Two Jobs, and the Road Ahead</h2>
-        <p>Every transistor does one of two jobs. As an <strong>amplifier</strong> (e.g. the common-emitter stage), a small input swing produces a larger, <em>inverted</em> output swing — the analog heart of sensors and audio. As a <strong>switch</strong> (cutoff ↔ saturation/on), it represents a logic 0 or 1 — the digital heart of every gate and memory cell.</p>
+        <p>Every transistor does one of two jobs. As an <strong>amplifier</strong> (e.g. the common-emitter stage), a small input swing produces a larger, <em>inverted</em> output swing — the analog heart of sensors and audio. As a <strong>switch</strong>, it toggles between fully off and fully on to represent a logic 0 or 1 — the digital heart of every gate and memory cell.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>"Fully on" doesn't mean the same region for both devices, and the names aren't interchangeable. A <strong>BJT</strong> switch toggles between <strong>cutoff</strong> (off) and <strong>saturation</strong> (on — both junctions forward-biased, V<sub>CE</sub> pinned near ~0.2 V regardless of load). A <strong>MOSFET</strong> switch toggles between <strong>cutoff</strong> (off) and <strong>triode</strong> (on — the channel acts resistively, V<sub>DS</sub> small). For the MOSFET, "<strong>saturation</strong>" means something else entirely: it's the <em>active</em>, current-source-like region (analogous to the BJT's active region) used for amplifying, not switching. So "MOSFET saturation" ≠ "BJT saturation" — don't reuse the BJT's switch-on name for the MOSFET's on-state.</div>
         <p>That switch is where this whole course has been heading. In <strong>Course 2 (Fabrication)</strong> you'll build a MOSFET physically, layer by layer; in <strong>Course 3 (Architecture)</strong> you'll wire millions of them into logic gates, an ALU, and a CPU. The circuits intuition from these ten weeks is the foundation for both.</p>
     </section>
 
@@ -154,7 +163,7 @@ Vin 3 0 0
 .model Qmod NPN (BF=100)
 .dc Vin 0 3 0.05
 .end</pre>
-        <p>Run <code>plot v(2)</code> vs Vin. Expected: as the input rises and turns the transistor on, the collector voltage v(2) <em>falls</em> from ~5 V toward ~0 — an inverted, amplified output (the common-emitter signature).</p>
+        <p>Run <code>plot v(2)</code> vs Vin. Expected: as the input rises and turns the transistor on, the collector voltage v(2) <em>falls</em> — an inverted output (the common-emitter signature). But don't expect a big swing here: with I<sub>B</sub> = (3 V − 0.7 V) / 100 kΩ ≈ 23 µA and I<sub>C</sub> = βI<sub>B</sub> ≈ 2.3 mA, the collector sits at V<sub>C</sub> = V<sub>CC</sub> − I<sub>C</sub>R<sub>C</sub> = 5 V − (2.3 mA)(1 kΩ) ≈ <strong>2.7 V</strong> at V<sub>in</sub> = 3 V — not near 0 V. That's because the small-signal gain here is only |A<sub>v</sub>| ≈ βR<sub>C</sub>/R<sub>B</sub> = (100)(1 kΩ)/(100 kΩ) ≈ 1: this R<sub>B</sub>/R<sub>C</sub> ratio makes a weak amplifier, not a strong one. (To get the collector near 0 V — saturation — you'd need a much larger β·R<sub>C</sub>/R<sub>B</sub>, i.e. more base drive per volt or a bigger collector resistor.)</p>
     </div>
 
     <div class="quiz">
@@ -193,12 +202,12 @@ Vin 3 0 0
             <details><summary>Show answer</summary><p><span class="ans">B.</span> BJT: base current controls collector current. MOSFET: gate voltage controls the channel (gate draws ~no current).</p></details>
         </div>
         <div class="q">
-            <div class="qn"><span>Q5.</span> Used as a digital switch, a transistor swings between which two regions?</div>
+            <div class="qn"><span>Q5.</span> Used as a digital switch, a BJT swings between which two regions?</div>
             <div class="opt"><b>A.</b> active and breakdown</div>
             <div class="opt"><b>B.</b> cutoff (off) and saturation/on</div>
             <div class="opt"><b>C.</b> forward and reverse</div>
             <div class="opt"><b>D.</b> resonance and damping</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> A switch is fully off (cutoff) or fully on (saturation) — representing logic 0 and 1. Amplifiers instead stay in the active region.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> A BJT switch is fully off (cutoff) or fully on (saturation) — representing logic 0 and 1. Amplifiers instead stay in the active region. (A MOSFET switch toggles cutoff ↔ <em>triode</em> instead — "saturation" means the MOSFET's active/amplifying region, not its on-state.)</p></details>
         </div>
     </div>
 
@@ -208,7 +217,8 @@ Vin 3 0 0
             <li>A transistor's <b>third terminal</b> independently controls a larger current — enabling amplification and switching.</li>
             <li>The <b>BJT</b> is current-controlled (I<sub>C</sub> = βI<sub>B</sub>) with cutoff / active / saturation regions.</li>
             <li>The <b>MOSFET</b> is voltage-controlled (on when V<sub>GS</sub> &gt; V<sub>th</sub>), insulated gate, low power — the chip workhorse.</li>
-            <li>Two jobs: <b>amplifier</b> (common-emitter, inverting) and <b>switch</b> (cutoff ↔ saturation = logic 0/1).</li>
+            <li>Two jobs: <b>amplifier</b> (common-emitter, inverting) and <b>switch</b> — BJT toggles cutoff ↔ saturation; MOSFET toggles cutoff ↔ <b>triode</b> (its "saturation" means something else — the active/amplifying region).</li>
+            <li>Designed a BJT <b>Q-point</b> with voltage-divider bias — stable I<sub>C</sub>, V<sub>CE</sub> largely independent of β.</li>
             <li>This is the bridge to <b>Course 2 (fabrication)</b> and <b>Course 3 (architecture)</b>.</li>
         </ul>
         <p class="next-up">That's all ten weeks — you've gone from charge and Ohm's law to the transistor. 🎉</p>
@@ -216,7 +226,7 @@ Vin 3 0 0
 
     <div class="finish">
         <h3>🏁 Course complete — final steps</h3>
-        <p><b>Project report due this week:</b> submit your op-amp filter + diode rectifier simulation (built across weeks 1, 4, 8) with schematics, plots, and analysis.</p>
+        <p><b>Project report due this week:</b> submit your op-amp filter + diode rectifier simulation (built across weeks 1, 4, 8, and 9) with schematics, plots, and analysis.</p>
         <p>Then take the <a href="../exam/final-exam.html">comprehensive Final Exam →</a> (25 questions across all ten weeks, self-graded).</p>
     </div>
 

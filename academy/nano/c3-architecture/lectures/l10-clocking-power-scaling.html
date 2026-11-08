@@ -63,22 +63,22 @@
     <div class="objectives">
         <h2>🎯 Learning Objectives</h2>
         <ul>
-            <li>Explain how the clock synchronizes every sequential element, and why its period is bounded by the critical path plus setup time.</li>
+            <li>Explain how the clock synchronizes every sequential element, and why its period is bounded by the launching flip-flop's clock-to-Q delay, the critical path, and the setup time.</li>
             <li>Describe clock distribution (the clock tree / H-tree) and how skew and jitter erode the timing budget.</li>
-            <li>Split total power into dynamic (∝ C·V²·f) and static (leakage) components.</li>
-            <li>Explain the "power wall" — why power density, not transistor count, capped frequency and forced multicore.</li>
-            <li>Compute the maximum clock frequency from a given critical-path delay and setup time.</li>
+            <li>Split total power into dynamic (= α·C·V²·f, with α the switching activity factor) and static (leakage) components.</li>
+            <li>Explain the "power wall" — why power density, not transistor count, capped frequency and forced multicore, ending the Dennard-scaling era.</li>
+            <li>Compute the maximum clock frequency from a given clock-to-Q delay, critical-path delay, and setup time.</li>
         </ul>
     </div>
 
     <!-- 10.1 -->
     <section class="lec">
         <h2><span class="n">10.1</span>The Clock</h2>
-        <p>A synchronous chip runs on a <strong>clock</strong> — a global square-wave signal that ticks at a fixed rate and tells every <span class="key">sequential element</span> (every flip-flop) when to capture its next value. On each rising edge, data launched by one flip-flop must have travelled through the combinational logic and arrived — and settled — at the next flip-flop before that edge.</p>
-        <p>For this to work, the <span class="key">clock period</span> T<sub>clk</sub> must be long enough to cover the <em>longest</em> combinational path between any two flip-flops — the <span class="key">critical path</span> — plus the setup time the capturing flip-flop needs to latch a stable value:</p>
-        <div class="eq">T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub><small>t<sub>pd</sub> = longest combinational (critical-path) delay; t<sub>setup</sub> = flip-flop setup time. The clock frequency is f = 1 / T<sub>clk</sub>.</small></div>
+        <p>A synchronous chip runs on a <strong>clock</strong> — a global square-wave signal that ticks at a fixed rate and tells every <span class="key">sequential element</span> (every flip-flop) when to capture its next value. On each rising edge, the <strong>launching flip-flop</strong> first takes its own delay to produce a new, valid Q output; that signal must then travel through the combinational logic and arrive — and settle — at the <strong>capturing flip-flop</strong> before the next edge.</p>
+        <p>For this to work, the <span class="key">clock period</span> T<sub>clk</sub> must cover <em>three</em> delays in sequence: the time for the launching flip-flop's output to become valid after its own clock edge (the <span class="key">clock-to-Q delay</span>, t<sub>pcq</sub>), the <em>longest</em> combinational path between the two flip-flops — the <span class="key">critical path</span> (t<sub>pd</sub>) — and the setup time the capturing flip-flop needs to latch a stable value (t<sub>setup</sub>):</p>
+        <div class="eq">T<sub>clk</sub> ≥ t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub><small>t<sub>pcq</sub> = launching flip-flop's clock-to-Q delay; t<sub>pd</sub> = longest combinational (critical-path) delay; t<sub>setup</sub> = capturing flip-flop's setup time. The clock frequency is f = 1 / T<sub>clk</sub>.</small></div>
         <figure class="fig">
-            <svg viewBox="0 0 360 200" role="img" aria-label="Two flip-flops, a launch flip-flop and a capture flip-flop, with combinational logic between them, both clocked by the same clock; the timing relation T_clk is at least t_pd plus t_setup is labeled">
+            <svg viewBox="0 0 360 200" role="img" aria-label="Two flip-flops, a launch flip-flop and a capture flip-flop, with combinational logic between them, both clocked by the same clock; the timing relation T_clk is at least t_pcq plus t_pd plus t_setup is labeled">
                 <!-- launch FF -->
                 <rect x="30" y="55" width="56" height="60" rx="5" fill="#1c2c3e" stroke="#67e8f9" stroke-width="2"/>
                 <text x="58" y="80" fill="#e8f0f8" font-size="12" text-anchor="middle">FF1</text>
@@ -96,6 +96,7 @@
                 <line x1="228" y1="85" x2="272" y2="85" stroke="#22d3ee" stroke-width="2"/>
                 <polygon points="272,85 264,81 264,89" fill="#22d3ee"/>
                 <polygon points="130,85 122,81 122,89" fill="#22d3ee"/>
+                <text x="104" y="75" fill="#fbbf24" font-size="8" text-anchor="middle">t_pcq</text>
                 <!-- clock distribution to both FFs -->
                 <line x1="58" y1="170" x2="58" y2="115" stroke="#fbbf24" stroke-width="2"/>
                 <line x1="302" y1="170" x2="302" y2="115" stroke="#fbbf24" stroke-width="2"/>
@@ -105,9 +106,9 @@
                 <circle cx="180" cy="170" r="3" fill="#fbbf24"/>
                 <text x="180" y="190" fill="#fbbf24" font-size="11" text-anchor="middle">clk</text>
                 <!-- timing relation -->
-                <text x="180" y="30" fill="#67e8f9" font-size="12" text-anchor="middle" font-family="monospace">T_clk ≥ t_pd + t_setup</text>
+                <text x="180" y="30" fill="#67e8f9" font-size="12" text-anchor="middle" font-family="monospace">T_clk ≥ t_pcq + t_pd + t_setup</text>
             </svg>
-            <figcaption>One clock drives both flip-flops. Data launched by FF1 must cross the combinational logic (delay t<sub>pd</sub>) and settle at FF2 before the next edge — so T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub>.</figcaption>
+            <figcaption>One clock drives both flip-flops. After its own clock edge, FF1 takes t<sub>pcq</sub> (clock-to-Q delay) to produce a valid output, which must then cross the combinational logic (delay t<sub>pd</sub>) and settle at FF2 before the next edge — so T<sub>clk</sub> ≥ t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub>.</figcaption>
         </figure>
         <p>Shorten the critical path and you can shorten the period — i.e. raise the clock frequency. That is why so much of architecture is a hunt for the slowest path and ways to break it up.</p>
         <div class="box analogy"><span class="lbl">Analogy</span>The clock is the drummer keeping the whole band in time. Set the tempo too fast and the slowest player — the critical path — can't keep up: a note lands late and the music falls apart. That late note is a <em>timing violation</em>. The band can only play as fast as its slowest member can reliably keep up.</div>
@@ -158,8 +159,8 @@
         <h2><span class="n">10.3</span>Power</h2>
         <p>A chip's total power splits into two parts:</p>
         <div class="eq">P<sub>total</sub> = P<sub>dynamic</sub> + P<sub>static</sub></div>
-        <p><strong>Dynamic power</strong> is burned every time a node switches — charging and discharging its capacitance. It scales with how much capacitance you switch (C), the square of the supply voltage (V²), and how often you switch (the frequency f):</p>
-        <div class="eq">P<sub>dynamic</sub> ∝ C · V² · f<small>Because of the V² term, lowering the supply voltage is the single most powerful knob for cutting power.</small></div>
+        <p><strong>Dynamic power</strong> is burned every time a node switches — charging and discharging its capacitance. It scales with how much capacitance you switch (C), the square of the supply voltage (V²), how often you switch (the frequency f), and the fraction of that capacitance that actually toggles in a given cycle — the <span class="key">activity factor</span> α:</p>
+        <div class="eq">P<sub>dynamic</sub> = α · C · V² · f<small>α (0 ≤ α ≤ 1) is the switching activity factor — not every node flips every cycle, so α scales C down to the capacitance that actually switches. Because of the V² term, lowering the supply voltage is still the single most powerful knob for cutting power.</small></div>
         <p><strong>Static power</strong> is <span class="key">leakage</span> — current that trickles through transistors even when they aren't switching. As transistors shrank, leakage grew from negligible to a major fraction of the budget.</p>
         <figure class="fig">
             <svg viewBox="0 0 320 200" role="img" aria-label="A stacked bar splitting total chip power into a large dynamic switching portion and a smaller static leakage portion">
@@ -170,48 +171,48 @@
                 <!-- dynamic bar (large) -->
                 <rect x="110" y="70" width="90" height="100" fill="#22d3ee" opacity="0.85"/>
                 <text x="155" y="124" fill="#0a121a" font-size="12" text-anchor="middle" font-weight="bold">dynamic</text>
-                <text x="155" y="140" fill="#0a121a" font-size="10" text-anchor="middle">∝ C·V²·f</text>
+                <text x="155" y="140" fill="#0a121a" font-size="10" text-anchor="middle">= α·C·V²·f</text>
                 <!-- static bar (small) on top -->
                 <rect x="110" y="40" width="90" height="30" fill="#fbbf24" opacity="0.85"/>
                 <text x="155" y="59" fill="#0a121a" font-size="11" text-anchor="middle" font-weight="bold">static (leakage)</text>
                 <!-- label -->
                 <text x="155" y="186" fill="#94a8bc" font-size="11" text-anchor="middle">total chip power</text>
             </svg>
-            <figcaption>Total power = dynamic (switching, ∝ C·V²·f) + static (leakage). Dynamic usually dominates, but leakage became significant as transistors shrank.</figcaption>
+            <figcaption>Total power = dynamic (switching, = α·C·V²·f) + static (leakage). Dynamic usually dominates, but leakage became significant as transistors shrank.</figcaption>
         </figure>
-        <p>Here is the twist that reshaped the whole industry. As frequency and transistor counts climbed, the power crammed into each square millimetre — the <span class="key">power density</span> — rose faster than chips could be cooled. It was <em>power</em>, not the supply of transistors, that became the binding limit. This is the <span class="key">power wall</span>.</p>
+        <p>For decades, <span class="key">Dennard scaling</span> kept this manageable: as transistors shrank, voltage and current scaled down with them, so power <em>density</em> stayed roughly constant even as frequency rose — smaller, faster, and no hotter per unit area. Here is the twist that reshaped the whole industry: around the mid-2000s, Dennard scaling broke down (voltage stopped scaling down as fast, mainly because leakage set a floor on how low V could go), so as frequency and transistor counts kept climbing, the power crammed into each square millimetre — the <span class="key">power density</span> — rose faster than chips could be cooled. It was <em>power</em>, not the supply of transistors, that became the binding limit. This is the <span class="key">power wall</span>.</p>
     </section>
 
     <!-- 10.4 -->
     <section class="lec">
         <h2><span class="n">10.4</span>Techniques &amp; the Road Ahead</h2>
-        <p>Designers fight the power wall with several techniques. <strong>Clock gating</strong> shuts off the clock to blocks that aren't doing work, killing their dynamic power (no switching ⟹ no C·V²·f). <strong>Pipelining</strong> chops a long critical path into shorter stages, so each stage's t<sub>pd</sub> is smaller and the clock can run faster without raising voltage. And when single-core frequency stalled at the wall, the industry went <strong>multicore</strong> — many slower, cooler cores instead of one ever-faster one.</p>
+        <p>Designers fight the power wall with several techniques. <strong>Clock gating</strong> shuts off the clock to blocks that aren't doing work, driving their activity factor α to zero and killing their dynamic power (no switching ⟹ no α·C·V²·f). <strong>Pipelining</strong> chops a long critical path into shorter stages, so each stage's t<sub>pd</sub> is smaller and the clock can run faster without raising voltage. And when single-core frequency stalled at the wall, the industry went <strong>multicore</strong> — many slower, cooler cores instead of one ever-faster one.</p>
         <p>Scaling brings one more headache: as wires get thinner and longer relative to gates, <span class="key">interconnect delay</span> grows and can dominate gate delay — so where signals go matters as much as the logic itself.</p>
         <p>That is exactly the boundary of this course. In <strong>Course 4 (VLSI Design)</strong> you'll size and lay out the transistors behind these gates; in <strong>Course 5 (Physical Design)</strong> you'll place cells and route the interconnect — including the clock tree — to actually meet timing and power on silicon.</p>
-        <div class="box warn"><span class="lbl">Common mistake</span>Three things to keep straight. The clock period is set by the <strong>slowest (critical) path</strong>, not the average path. Dynamic power scales as <strong>C·V²·f</strong> — so <em>lowering voltage</em> (the squared term) buys the most. And it was the <strong>power wall</strong> — power density, not running out of transistors — that capped clock frequencies around ~3–4 GHz and drove the shift to multicore.</div>
+        <div class="box warn"><span class="lbl">Common mistake</span>Three things to keep straight. The clock period is set by the <strong>slowest (critical) path</strong> (plus clock-to-Q and setup overhead), not the average path. Dynamic power scales as <strong>α·C·V²·f</strong> — so <em>lowering voltage</em> (the squared term) buys the most, and α (not every node switches every cycle) is why real circuits draw far less than the "every node toggles" worst case. And it was the <strong>power wall</strong> — power density outrunning Dennard scaling, not running out of transistors — that capped clock frequencies around ~3–4 GHz and drove the shift to multicore.</div>
     </section>
 
     <div class="worked">
         <div class="lbl">✦ Worked Example</div>
-        <p style="font-size:.92rem; margin-bottom:10px;">A pipeline stage has a longest combinational path delay of 2 ns, and the capturing flip-flop needs a setup time of 0.2 ns. Find the maximum clock frequency, and state how you'd go faster.</p>
+        <p style="font-size:.92rem; margin-bottom:10px;">A launching flip-flop has a clock-to-Q delay of 0.1 ns, the pipeline stage's longest combinational path delay is 2 ns, and the capturing flip-flop needs a setup time of 0.2 ns. Find the maximum clock frequency, and state how you'd go faster.</p>
         <ol>
-            <li><strong>Minimum period:</strong> T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub> = 2 ns + 0.2 ns = <strong>2.2 ns</strong>.</li>
-            <li><strong>Maximum frequency:</strong> f<sub>max</sub> = 1 / T<sub>clk</sub> = 1 / 2.2 ns ≈ <strong>455 MHz</strong>.</li>
-            <li><strong>To go faster:</strong> you must shorten the critical path — e.g. by <em>pipelining</em> (splitting the 2 ns logic into shorter stages), since raising voltage to push frequency only worsens the C·V²·f power.</li>
+            <li><strong>Minimum period:</strong> T<sub>clk</sub> ≥ t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub> = 0.1 ns + 2 ns + 0.2 ns = <strong>2.3 ns</strong>.</li>
+            <li><strong>Maximum frequency:</strong> f<sub>max</sub> = 1 / T<sub>clk</sub> = 1 / 2.3 ns ≈ <strong>435 MHz</strong>.</li>
+            <li><strong>To go faster:</strong> you must shorten the critical path — e.g. by <em>pipelining</em> (splitting the 2 ns logic into shorter stages), since raising voltage to push frequency only worsens the α·C·V²·f power. (t<sub>pcq</sub> and t<sub>setup</sub> are fixed properties of the flip-flop, not something you can "pipeline away.")</li>
         </ol>
     </div>
 
     <div class="hands">
         <h3>🛠️ Hands-On: f<sub>max</sub> from the critical path (paper)</h3>
-        <p>No simulator needed — this is the calculation every timing report boils down to. On paper, take a critical-path delay and a setup time and compute the maximum clock frequency.</p>
-        <pre><span class="c">* Given a critical-path delay t_pd and setup time t_setup:</span>
-T_clk(min) = t_pd + t_setup
+        <p>No simulator needed — this is the calculation every timing report boils down to. On paper, take a clock-to-Q delay, a critical-path delay, and a setup time, and compute the maximum clock frequency.</p>
+        <pre><span class="c">* Given clock-to-Q delay t_pcq, critical-path delay t_pd, and setup time t_setup:</span>
+T_clk(min) = t_pcq + t_pd + t_setup
 f_max      = 1 / T_clk(min)
 
-<span class="c">; Example: t_pd = 3.3 ns, t_setup = 0.2 ns</span>
-T_clk(min) = 3.3 ns + 0.2 ns = 3.5 ns
-f_max      = 1 / 3.5 ns ≈ 286 MHz</pre>
-        <p>Now try your own: if t<sub>pd</sub> = 1.8 ns and t<sub>setup</sub> = 0.2 ns, what is f<sub>max</sub>? (Answer: 1 / 2.0 ns = 500 MHz.) Then ask: what would pipelining the path in two do to f<sub>max</sub>?</p>
+<span class="c">; Example: t_pcq = 0.1 ns, t_pd = 3.3 ns, t_setup = 0.2 ns</span>
+T_clk(min) = 0.1 ns + 3.3 ns + 0.2 ns = 3.6 ns
+f_max      = 1 / 3.6 ns ≈ 278 MHz</pre>
+        <p>Now try your own: if t<sub>pcq</sub> = 0.1 ns, t<sub>pd</sub> = 1.8 ns, and t<sub>setup</sub> = 0.2 ns, what is f<sub>max</sub>? (Answer: 1 / 2.1 ns ≈ 476 MHz.) Then ask: what would pipelining the path in two do to f<sub>max</sub>?</p>
     </div>
 
     <div class="quiz">
@@ -219,19 +220,19 @@ f_max      = 1 / 3.5 ns ≈ 286 MHz</pre>
         <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
         <div class="q">
             <div class="qn"><span>Q1.</span> The clock period must be at least…</div>
-            <div class="opt"><b>A.</b> the critical (longest) path delay plus the setup time</div>
+            <div class="opt"><b>A.</b> the launching flip-flop's clock-to-Q delay, plus the critical (longest) path delay, plus the setup time</div>
             <div class="opt"><b>B.</b> the average path delay</div>
             <div class="opt"><b>C.</b> one gate delay</div>
             <div class="opt"><b>D.</b> the wire length</div>
-            <details><summary>Show answer</summary><p><span class="ans">A.</span> Data must cross the slowest combinational path and settle before the next edge, so T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub> — set by the critical path, not the average.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> After its own clock edge the launching flip-flop takes t<sub>pcq</sub> to produce a valid output; that signal must cross the slowest combinational path (t<sub>pd</sub>) and settle before the next edge's setup window (t<sub>setup</sub>), so T<sub>clk</sub> ≥ t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub> — set by the critical path, not the average.</p></details>
         </div>
         <div class="q">
             <div class="qn"><span>Q2.</span> Dynamic (switching) power is proportional to…</div>
             <div class="opt"><b>A.</b> V only</div>
-            <div class="opt"><b>B.</b> C·V²·f</div>
+            <div class="opt"><b>B.</b> α·C·V²·f</div>
             <div class="opt"><b>C.</b> f² only</div>
             <div class="opt"><b>D.</b> the transistor count alone</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> P<sub>dynamic</sub> ∝ C·V²·f. The squared voltage term is why lowering the supply voltage is the most effective way to cut power.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">B.</span> P<sub>dynamic</sub> = α·C·V²·f, where α is the activity factor (the fraction of that capacitance that actually switches each cycle). The squared voltage term is why lowering the supply voltage is the most effective way to cut power.</p></details>
         </div>
         <div class="q">
             <div class="qn"><span>Q3.</span> Clock skew is…</div>
@@ -250,22 +251,22 @@ f_max      = 1 / 3.5 ns ≈ 286 MHz</pre>
             <details><summary>Show answer</summary><p><span class="ans">B.</span> Power per unit area outran cooling, capping single-core frequency (~3–4 GHz) and driving the move to many cooler cores.</p></details>
         </div>
         <div class="q">
-            <div class="qn"><span>Q5.</span> If the critical path is 2 ns and setup is 0.2 ns, the maximum clock frequency is about…</div>
+            <div class="qn"><span>Q5.</span> If the clock-to-Q delay is 0.1 ns, the critical path is 2 ns, and setup is 0.2 ns, the maximum clock frequency is about…</div>
             <div class="opt"><b>A.</b> 2 GHz</div>
             <div class="opt"><b>B.</b> 500 MHz</div>
-            <div class="opt"><b>C.</b> 455 MHz (1 / 2.2 ns)</div>
+            <div class="opt"><b>C.</b> 435 MHz (1 / 2.3 ns)</div>
             <div class="opt"><b>D.</b> 220 MHz</div>
-            <details><summary>Show answer</summary><p><span class="ans">C.</span> T<sub>clk</sub> ≥ 2 + 0.2 = 2.2 ns, so f<sub>max</sub> = 1 / 2.2 ns ≈ 455 MHz.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> T<sub>clk</sub> ≥ 0.1 + 2 + 0.2 = 2.3 ns, so f<sub>max</sub> = 1 / 2.3 ns ≈ 435 MHz.</p></details>
         </div>
     </div>
 
     <div class="recap">
         <h2>✓ What you learned</h2>
         <ul>
-            <li>The <b>clock</b> synchronizes every flip-flop, and its period is bounded by the <b>critical path + setup time</b> (T<sub>clk</sub> ≥ t<sub>pd</sub> + t<sub>setup</sub>).</li>
+            <li>The <b>clock</b> synchronizes every flip-flop, and its period is bounded by <b>clock-to-Q + critical path + setup time</b> (T<sub>clk</sub> ≥ t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub>).</li>
             <li>Clock distribution uses a balanced <b>clock tree / H-tree</b>; <b>skew and jitter</b> eat into the timing budget and limit speed.</li>
-            <li>Total power = <b>dynamic</b> (∝ C·V²·f) + <b>static</b> (leakage); lowering voltage helps most.</li>
-            <li>The <b>power wall</b> — power density, not transistor count — capped frequency and forced the shift to <b>multicore</b>.</li>
+            <li>Total power = <b>dynamic</b> (= α·C·V²·f, α the activity factor) + <b>static</b> (leakage); lowering voltage helps most.</li>
+            <li><b>Dennard scaling</b> once kept power density flat as transistors shrank; its breakdown created the <b>power wall</b> — power density, not transistor count — which capped frequency and forced the shift to <b>multicore</b>.</li>
             <li><b>Clock gating, pipelining,</b> and multicore manage power; interconnect delay grows with scaling — bridging to Courses 4 &amp; 5.</li>
         </ul>
         <p class="next-up">That's all ten weeks of architecture — from CMOS transistors to logic gates, sequential logic, an ALU, a datapath, and a working CPU. 🎉</p>
@@ -273,7 +274,7 @@ f_max      = 1 / 3.5 ns ≈ 286 MHz</pre>
 
     <div class="finish">
         <h3>🏁 Course complete — final steps</h3>
-        <p><b>Project due this week:</b> submit your <b>8-bit ALU + simple CPU in Verilog</b> — built across the course — together with its testbench and synthesis notes (resource usage and max-frequency report).</p>
+        <p><b>Project due this week:</b> submit your <b>8-bit ALU + simple CPU in Verilog</b> — built across the course — together with its testbench and simulation notes: waveform screenshots from GTKWave showing correct operation, a walkthrough of how you verified each instruction/ALU op, and a worked T<sub>clk</sub>/f<sub>max</sub> calculation for your design's critical path (by hand, from the datapath you built, as covered in §10.1 — synthesis-based timing reports are out of scope for this course's Icarus Verilog + GTKWave toolchain and belong to the synthesis tools used in Course 4).</p>
         <p>Then take the <a href="../exam/final-exam.html">comprehensive Final Exam →</a> covering all ten weeks of architecture, self-graded.</p>
         <p>This caps Course 3 and bridges directly to <b>Course 4 (VLSI Design)</b>, where you'll size and lay out the transistors behind these gates.</p>
     </div>
