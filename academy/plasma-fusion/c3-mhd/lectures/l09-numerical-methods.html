@@ -65,6 +65,34 @@
         .disc h3 { color: var(--violet); margin-bottom: 8px; }
         .disc p { font-size: .9rem; color: #ddd0e8; }
 
+        /* ── DISCUSSION WIDGET (interactive) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 24px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #1a0d0a; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .draft-banner { background: linear-gradient(135deg, #2a1f10, #3a2c0d); border: 1px solid #6b5316; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
         .recap { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 12px; padding: 20px 22px; margin: 40px 0 24px; }
         .recap h2 { font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--green); margin-bottom: 12px; }
         .recap ul { list-style: none; margin: 0; }
@@ -193,9 +221,9 @@ print("Unstable (dt = 1.5 * dt_cfl):", run_wave(1.5*dt_cfl, 300))
 
 <span class="c"># --- actual output ---</span>
 <span class="c"># dt_max (CFL=1) = 1.2797e-09 s</span>
-<span class="c"># Stable   (dt = 0.5 * dt_cfl): 0.4761   (started at amplitude 1.0 -- pulse spread, still finite)</span>
-<span class="c"># Unstable (dt = 1.5 * dt_cfl): inf      (blew up to ~1.9e234 by step 300, then overflowed)</span></pre>
-        <p style="font-size:.88rem; color:var(--text2);">A timestep just 50% over the CFL limit is enough to turn a smooth, physically sensible Gaussian pulse into a numerical overflow within 300 steps — there is no "a little bit unstable."</p>
+<span class="c"># Stable   (dt = 0.5 * dt_cfl): 0.4761       (started at amplitude 1.0 -- pulse spread, still finite)</span>
+<span class="c"># Unstable (dt = 1.5 * dt_cfl): 1.929e+234   (started at amplitude 1.0 -- huge but still a finite float by step 300, not actually inf)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">A timestep just 50% over the CFL limit is enough to turn a smooth, physically sensible Gaussian pulse into a ~10²³⁴-amplitude runaway within 300 steps — not literally infinite yet (double-precision floats only overflow past ~1.8×10³⁰⁸), but a few hundred more steps of the same exponential growth would get it there. There is no "a little bit unstable."</p>
     </div>
 
     <!-- DISCUSSION 3 -->
@@ -203,6 +231,43 @@ print("Unstable (dt = 1.5 * dt_cfl):", run_wave(1.5*dt_cfl, 300))
         <h3>💬 Discussion 3 — explicit vs. implicit: is the CFL limit a law of physics, or a choice?</h3>
         <p>The CFL condition as derived here is a property of <em>explicit</em> time-stepping schemes specifically — it is not a fundamental limit on simulating MHD itself. Implicit schemes (which solve a linear system coupling the whole grid at the new time step, rather than updating point-by-point from old values) can remain stable at far larger Δt, sometimes unconditionally. Given that CFL-limited timesteps forced a billion-plus steps to simulate one second of a tokamak in the worked example, why doesn't every MHD code simply switch to an implicit scheme and sidestep the problem entirely? What would you guess is the catch — what does an implicit scheme have to sacrifice in exchange for removing the CFL constraint on Δt?</p>
     </div>
+
+    <!-- ════════════════ DISCUSSION WIDGET (interactive) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 3 · Week 9</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="pf-c3-l9-d3">
+            <p class="disc-prompt" id="prompt-pf-c3-l9-d3">Given that CFL-limited timesteps forced a billion-plus explicit steps to simulate one second of a tokamak, why doesn't every MHD code simply switch to an implicit scheme and sidestep the problem entirely? What's the catch — what does an implicit scheme have to sacrifice in exchange for removing the CFL constraint on Δt?</p>
+
+            <textarea id="ans-pf-c3-l9-d3" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-pf-c3-l9-d3">Not saved yet</span>
+                <span class="toast" id="toast-pf-c3-l9-d3"></span>
+            </div>
+
+            <div class="disc-model" id="model-pf-c3-l9-d3" hidden>
+                <h4>Model response</h4>
+                <p>The catch is per-step cost and complexity, not accuracy for free. An explicit scheme's update rule is purely local — each grid point's new value depends only on its old neighbors, so one step is a handful of cheap array operations. An implicit scheme instead couples every point on the grid together into one large (sparse) linear system that has to be solved — by matrix factorization or an iterative solver — at every single timestep. That per-step solve is far more expensive and harder to implement and parallelize efficiently than the explicit update, so removing the CFL limit trades "many cheap steps" for "fewer, much more expensive steps."</p>
+                <p>There's a second catch beyond raw cost: a larger Δt that's merely <em>stable</em> is not automatically <em>accurate</em>. If the physics itself is evolving on a fast timescale (e.g. a real fast-magnetosonic transient you actually care about resolving), you still want a small Δt for accuracy regardless of what stability allows — so the apparent advantage shrinks for problems where the fast dynamics matter physically, not just numerically. This is exactly why many production MHD codes use <em>semi-implicit</em> schemes: treat only the stiff, CFL-limiting piece (the fast wave) implicitly, and the rest explicitly, getting most of the stability benefit without paying full price for a fully implicit solve.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Identifies the cost: implicit schemes solve a large coupled (linear) system every step, not a cheap local update</li>
+                    <li>Frames it as a genuine trade-off (fewer, costlier steps) rather than a free removal of the CFL limit</li>
+                    <li>Mentions accuracy (not just stability) as a reason small Δt may still be needed, and/or the semi-implicit compromise used in practice</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
 
     <!-- EXTENSION -->
     <div class="ext">
@@ -226,11 +291,11 @@ print("Unstable (dt = 1.5 * dt_cfl):", run_wave(1.5*dt_cfl, 300))
 
         <div class="q">
             <div class="qn"><span>Q2.</span> The CFL condition for 1-D MHD is Δt ≤ C·Δx/v_max. What should v_max be?</div>
-            <div class="opt"><b>A.</b> The slowest speed in the problem, since that's what you care about physically</div>
-            <div class="opt"><b>B.</b> The fast magnetosonic speed — the fastest signal the discretized MHD equations can carry</div>
+            <div class="opt"><b>A.</b> The fast magnetosonic speed — the fastest signal the discretized MHD equations can carry</div>
+            <div class="opt"><b>B.</b> The slowest speed in the problem, since that's what you care about physically</div>
             <div class="opt"><b>C.</b> Always exactly the speed of light</div>
             <div class="opt"><b>D.</b> Zero</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> Numerical stability is set by the fastest signal present, which in ideal MHD is always the fast magnetosonic speed (Lecture 7). (A) using a slower speed would under-constrain Δt and the scheme would blow up. (C) MHD uses the non-relativistic, pre-Maxwell ordering (Lecture 2); light speed is irrelevant here. (D) would make the scheme useless.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> Numerical stability is set by the fastest signal present, which in ideal MHD is always the fast magnetosonic speed (Lecture 7). (B) using a slower speed would under-constrain Δt and the scheme would blow up. (C) MHD uses the non-relativistic, pre-Maxwell ordering (Lecture 2); light speed is irrelevant here. (D) would make the scheme useless.</p></details>
         </div>
 
         <div class="q">
@@ -246,18 +311,18 @@ print("Unstable (dt = 1.5 * dt_cfl):", run_wave(1.5*dt_cfl, 300))
             <div class="qn"><span>Q4.</span> In the Python demo, a timestep 50% above the CFL limit caused the simulated field to…</div>
             <div class="opt"><b>A.</b> Remain exactly the same as the stable case</div>
             <div class="opt"><b>B.</b> Decay smoothly to zero</div>
-            <div class="opt"><b>C.</b> Grow exponentially and overflow to a non-finite value within a few hundred steps</div>
+            <div class="opt"><b>C.</b> Grow exponentially to an enormous (though still finite) value within a few hundred steps</div>
             <div class="opt"><b>D.</b> Oscillate with a slightly longer period but stay bounded</div>
-            <details><summary>Show answer</summary><p><span class="ans">C.</span> The demo showed the amplitude reaching ~10²³⁴ by step 300, overflowing to "inf" — the hallmark exponential blow-up of a CFL-violating explicit scheme. (A, B, D) all understate how dramatically and quickly CFL violation destroys a simulation.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The demo showed the amplitude reaching ~1.9×10²³⁴ by step 300 — a huge but still-finite double-precision float, not literally "inf" yet, though a few hundred more steps of the same exponential growth would get it there — the hallmark exponential blow-up of a CFL-violating explicit scheme. (A, B, D) all understate how dramatically and quickly CFL violation destroys a simulation.</p></details>
         </div>
 
         <div class="q">
             <div class="qn"><span>Q5.</span> Why do many production MHD codes use implicit or semi-implicit time-stepping specifically for the fast magnetosonic wave?</div>
             <div class="opt"><b>A.</b> Because the fast wave is scientifically unimportant and can be ignored</div>
-            <div class="opt"><b>B.</b> Because the fast speed (often dominated by v_A) sets an extremely restrictive CFL limit under explicit schemes, forcing impractically many timesteps to simulate realistic physical times</div>
+            <div class="opt"><b>B.</b> Because explicit schemes cannot represent magnetic fields at all</div>
             <div class="opt"><b>C.</b> Because implicit schemes are always less accurate and used only for convenience</div>
-            <div class="opt"><b>D.</b> Because explicit schemes cannot represent magnetic fields at all</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> As the worked example showed, the fast speed's CFL limit can force well over a billion timesteps to reach one second of physical time — implicit methods trade per-step cost for freedom from that restriction. (A) the fast wave is physically essential, not ignorable. (C) implicit methods are a legitimate, widely used approach, not a lesser one. (D) explicit schemes handle B perfectly well; the issue is purely about timestep size.</p></details>
+            <div class="opt"><b>D.</b> Because the fast speed (often dominated by v_A) sets an extremely restrictive CFL limit under explicit schemes, forcing impractically many timesteps to simulate realistic physical times</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> As the worked example showed, the fast speed's CFL limit can force well over a billion timesteps to reach one second of physical time — implicit methods trade per-step cost for freedom from that restriction. (A) the fast wave is physically essential, not ignorable. (C) implicit methods are a legitimate, widely used approach, not a lesser one. (B) explicit schemes handle B perfectly well; the issue is purely about timestep size.</p></details>
         </div>
     </div>
 
@@ -291,6 +356,53 @@ print("Unstable (dt = 1.5 * dt_cfl):", run_wave(1.5*dt_cfl, 300))
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my MHD tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

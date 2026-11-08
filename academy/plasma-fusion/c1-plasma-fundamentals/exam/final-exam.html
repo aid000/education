@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C1 · Final Exam — Plasma Fundamentals</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C1 Plasma Fundamentals</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C1 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from Debye shielding to the capstone drift simulator.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Debye length &amp; plasma frequency <b>5</b></span>
+            <span class="wchip">Single-particle motion &amp; drifts <b>6</b></span>
+            <span class="wchip">Mirrors &amp; invariants <b>3</b></span>
+            <span class="wchip">Collisions <b>2</b></span>
+            <span class="wchip">Fluid vs kinetic <b>2</b></span>
+            <span class="wchip">Sheaths &amp; boundaries <b>3</b></span>
+            <span class="wchip">Diagnostics <b>2</b></span>
+            <span class="wchip">Capstone integration <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ WEEK 1: WHAT IS A PLASMA ============ -->
+    <div class="exam-sec">What Is a Plasma? Debye Shielding · Week 1</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>1.</span> Holding T_e fixed, doubling the electron density n_e changes the Debye length λ_D by a factor of about…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> 2</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> 0.71 (1/√2)</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> 0.5</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> 1.41 (√2)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> λ_D = √(ε₀k_BT_e/n_ee²) ∝ 1/√n_e, so doubling n_e scales λ_D by 1/√2 ≈ 0.71.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>2.</span> A gas satisfies λ_D ≪ L (criterion 1) but has a plasma parameter N_D ≈ 0.5. Which of the following is true?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> It is a textbook plasma, since criterion 1 alone is sufficient</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> It is definitely not ionized at all</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> The collective, statistical treatment underlying Debye shielding breaks down, since N_D ≫ 1 is required for that smooth-fluid picture</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> N_D has no bearing on whether the gas behaves as a plasma</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> All three plasma criteria matter independently. With only ~1 particle per Debye sphere, shielding is dominated by noisy individual close encounters rather than a smooth collective response — the "plasma" description of Lecture 1 requires N_D ≫ 1 too.</div>
+    </div>
+
+    <!-- ============ WEEK 2: PLASMA FREQUENCY & PARAMETER ============ -->
+    <div class="exam-sec">The Plasma Frequency &amp; Plasma Parameter · Week 2</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>3.</span> For n_e = 4×10¹⁸ m⁻³, the electron plasma frequency ω_pe is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> 1.13×10¹¹ rad/s</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> 5.64×10¹⁰ rad/s</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> 2.26×10¹¹ rad/s</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> 1.13×10⁹ rad/s</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> ω_pe ≈ 56.4·√n_e[m⁻³] = 56.4·√(4×10¹⁸) ≈ 56.4×(2×10⁹) ≈ 1.13×10¹¹ rad/s.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> Quadrupling the electron density n_e (holding everything else fixed) changes ω_pe by a factor of…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> 4</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> 1/2</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> 16</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> 2</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> ω_pe ∝ √n_e, so quadrupling n_e scales ω_pe by √4 = 2.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>5.</span> The requirement N_D ≫ 1 (many particles per Debye sphere) is essential because it is exactly what licenses…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> ignoring the magnetic field entirely</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> treating the plasma's charge as a smooth, continuous density rather than a swarm of discrete particles</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> a plasma having exactly zero temperature</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> the existence of the plasma frequency itself</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Both the Debye-shielding and plasma-oscillation derivations implicitly treat charge as a smooth fluid density — valid only when many particles populate the relevant volume, exactly what N_D ≫ 1 guarantees.</div>
+    </div>
+
+    <!-- ============ WEEK 3: SINGLE-PARTICLE MOTION ============ -->
+    <div class="exam-sec">Single-Particle Motion in E and B Fields · Week 3</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>6.</span> An electron with v_⊥ = 3×10⁵ m/s gyrates in B = 0.2 T. Its Larmor radius r_L is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> 85.3 µm</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> 0.853 µm</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> 8.53 µm</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> 15.6 mm</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> r_L = m_ev_⊥/(eB) = (9.11×10⁻³¹ × 3×10⁵)/(1.602×10⁻¹⁹ × 0.2) ≈ 8.53×10⁻⁶ m = 8.53 µm.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>7.</span> At the same B field, the ratio of the electron cyclotron frequency to the proton cyclotron frequency, ω_c,e/ω_c,p, is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> 1836</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> 1/1836</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> 43</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> 1/43</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> ω_c = qB/m is independent of energy, so ω_c,e/ω_c,p = m_p/m_e ≈ 1836. (The √(m_p/m_e) ≈ 43 figure is the Larmor-radius ratio at equal energy, a different comparison.)</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> Uniform E = 2000 V/m and B = 0.1 T, mutually perpendicular. The E×B drift speed is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> 2×10² m/s</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> 2×10⁻² m/s</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> 2×10⁶ m/s</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> 2×10⁴ m/s</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> v_E = E/B = 2000/0.1 = 2×10⁴ m/s — charge- and mass-independent, so ions and electrons drift together.</div>
+    </div>
+
+    <!-- ============ WEEK 4: GUIDING-CENTER DRIFTS ============ -->
+    <div class="exam-sec">Guiding-Center Drifts · Week 4</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>9.</span> Unlike the E×B drift, the grad-B drift v_∇B…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> is zero for all charged particles</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> depends explicitly on the particle's charge, so ions and electrons drift in opposite directions</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> only occurs in a perfectly uniform field</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> does positive work on the particle</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> v_∇B = (mv_⊥²/2qB³)B×∇B carries an explicit q, flipping direction with charge sign and generating a current — unlike the charge-blind E×B drift.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>10.</span> The curvature drift v_R scales with the particle's velocity components as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> v_⊥ (linear)</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> independent of velocity</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> v_∥² (quadratic in the parallel speed)</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> v_⊥² (quadratic in the perpendicular speed)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> v_R ∝ mv_∥²/(qB²R_c) — it comes from motion <em>along</em> the curved field line, so it depends on v_∥², not the perpendicular speed that drives grad-B drift.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>11.</span> A 200 eV (perpendicular KE) proton sits in B₀ = 0.5 T with a grad-B scale length L_B = 0.4 m. The grad-B drift speed v_∇B is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> 1000 m/s</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> 500 m/s</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> 2000 m/s</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> 100 m/s</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> v_⊥ = √(2KE/m_p) ≈ 1.957×10⁵ m/s, r_L = v_⊥/ω_c ≈ 4.09×10⁻³ m, v_∇B = ½v_⊥r_L/L_B ≈ 1000 m/s.</div>
+    </div>
+
+    <!-- ============ WEEK 5: MAGNETIC MIRRORS ============ -->
+    <div class="exam-sec">Magnetic Mirrors &amp; Adiabatic Invariants · Week 5</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> A magnetic mirror has B_min = 0.2 T and B_max = 2.0 T. The loss-cone half-angle θ_loss is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> 45°</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> 5.7°</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> 26.6°</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> 18.4°</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> R_m = B_max/B_min = 10, θ_loss = arcsin(√(1/R_m)) = arcsin(√0.1) ≈ 18.4°.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>13.</span> For that same mirror (R_m = 10), the fraction of an isotropic midplane population that falls inside the loss cone and escapes (both cones combined) is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> 29.3%</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> 5.1%</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> 50%</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> 10.6%</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Lost fraction = 1 − cos(θ_loss) = 1 − cos(18.4°) ≈ 5.1%.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>14.</span> A particle sits well outside the loss cone (safely trapped) in a magnetic mirror with no collisions present. After many bounce periods, this particle…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> will have drifted into the loss cone purely from bouncing itself, since every bounce carries some small risk of escape</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> will certainly have escaped, since all finite mirror ratios eventually leak 100% of particles</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> remains trapped indefinitely — bouncing alone conserves μ and total energy and cannot push it into the loss cone; only collisions (which scatter pitch angle) can do that</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> escapes only once its energy exceeds some fixed threshold</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The loss-cone fraction (e.g. the ~0.5% at R_m = 100) is the fraction of an isotropic population that starts inside the cone and escapes essentially immediately — not a per-bounce attrition rate on already-trapped particles. Bouncing conserves μ and energy exactly, so without collisions a trapped particle stays trapped forever; collisions are what continuously refill the loss cone.</div>
+    </div>
+
+    <!-- ============ WEEK 6: COLLISIONS ============ -->
+    <div class="exam-sec">Collisions &amp; Cross-Sections · Week 6</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>15.</span> Tripling the electron temperature T_e (holding density fixed) changes the electron-ion collision frequency ν_ei by a factor of about…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> 0.19 (falls to about 19% of its original value)</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> 3 (triples)</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> 1/3</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> 5.2 (grows)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> ν_ei ∝ T_e^(−3/2), so tripling T_e scales ν_ei by 3^(−3/2) ≈ 0.192 — faster electrons spend less time near any ion and are deflected less.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> A plasma process is well-approximated as "collisionless" precisely when…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> the density is exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> the mean free path is shorter than the device size</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> the plasma parameter N_D is small</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> the collision frequency is much smaller than the frequency of the process of interest (e.g. ω_pe τ_coll ≫ 1)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> "Collisionless" is always relative to a timescale: if the process of interest completes many times before a collision randomizes velocity, collisions can be neglected for that process.</div>
+    </div>
+
+    <!-- ============ WEEK 7: FLUID VS KINETIC ============ -->
+    <div class="exam-sec">Fluid vs Kinetic Descriptions · Week 7</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>17.</span> Which fluid quantity is the <em>first</em> velocity moment of the distribution function f(r,v,t)?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> pressure P</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> flow velocity u</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> density n</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> the magnetic field</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Density is the zeroth moment (∫f d³v), flow velocity u is the first moment (∫v f d³v, normalized by n), and pressure is the second moment. The magnetic field isn't a moment of f at all.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>18.</span> The "closure problem" in fluid plasma theory refers to the fact that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> plasmas cannot be described by moments at all</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> only the zeroth moment (density) ever needs solving</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> each moment's evolution equation depends on the next-higher moment, so the hierarchy must be truncated by an added physical assumption</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> the magnetic field closes the moment hierarchy automatically</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Density's equation needs flow, flow's needs pressure, pressure's needs heat flux, and so on — a finite fluid model requires an extra closure assumption to cut the chain off somewhere.</div>
+    </div>
+
+    <!-- ============ WEEK 8: PLASMA SHEATHS ============ -->
+    <div class="exam-sec">Plasma Sheaths &amp; Boundaries · Week 8</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>19.</span> A floating surface in a hydrogen plasma with T_e = 8 eV sits at a floating potential V_f of approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> −22.7 V</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> +22.7 V</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> −8 V</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> −2.8 V</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> V_f = −(T_e/2)ln(m_i/2πm_e) ≈ −2.84×T_e[eV] ≈ −22.7 V for T_e = 8 eV.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> The Bohm sheath criterion requires ions to enter the sheath at a speed of at least…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> the ion thermal speed √(k_BT_i/m_i)</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> the speed of light</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> zero — any speed suffices</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> the ion sound speed c_s = √(k_BT_e/m_i), using the electron temperature</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The Bohm speed uses T_e, not T_i, because electron pressure drives the presheath field that accelerates ions up to c_s before they reach the sheath edge.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>21.</span> If the sheath potential drop ΔV increases by a factor of 16 (holding T_e fixed), the Child–Langmuir sheath thickness s increases by a factor of about…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> 16 (linear growth)</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> 8 (sublinear — the 3/4-power growth is slower than linear)</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> 256</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> 4</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> s ~ λ_D(ΔV/T_e)^(3/4), and 16^(3/4) = 8 — growing sublinearly (slower than proportionally) with the potential drop, not faster than linearly.</div>
+    </div>
+
+    <!-- ============ WEEK 9: DIAGNOSTICS ============ -->
+    <div class="exam-sec">Diagnostics — Measuring a Plasma · Week 9</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>22.</span> In a Langmuir probe's I-V trace, the ion-saturation region (flat, negative current) occurs when the probe voltage is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> far above the plasma potential</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> exactly at the plasma potential</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> far below the plasma potential, repelling nearly all electrons</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> oscillating rapidly</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> At strongly negative bias, the probe repels essentially all electrons and collects only the Bohm ion flux — the flat "ion saturation" current.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>23.</span> To extract n_e from a Langmuir probe's ion-saturation current I_isat = 0.6 n_e e A c_s, you must first…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> determine T_e (e.g. from the exponential region's slope), since c_s = √(k_BT_e/m_i) requires it</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> assume T_e = 0</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> measure the magnetic field</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> measure the plasma's physical temperature with a thermometer</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> c_s appears explicitly in the Bohm current formula, so T_e (typically from the exponential-region fit) must be known before n_e can be solved for.</div>
+    </div>
+
+    <!-- ============ WEEK 10: CAPSTONE ============ -->
+    <div class="exam-sec">Capstone: Particle-Drift Simulator · Week 10</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> For a uniform field B = Bẑ, the correct guiding-center transform that removes a particle's gyration from its position r is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> R_gc = r + (ẑ×v)/ω_c</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> R_gc = r × (ẑ×v)/ω_c</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> R_gc = r (no transform needed)</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> R_gc = r − (ẑ×v)/ω_c</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The particle's displacement from its guiding center is exactly the gyro-radius vector ρ = (ẑ×v)/ω_c, so subtracting it from r removes the gyration to leading order.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>25.</span> The capstone's direct numerical integration of the Lorentz force, compared against the analytic E×B and grad-B drift formulas, demonstrates…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> that the analytic formulas are wrong</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> that the analytic drift formulas are leading-order approximations whose accuracy and regime of validity (e.g. r_L/L_B ≪ 1) can be checked directly against an independent, first-principles solution of the same equation of motion</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> that magnetic fields do work on particles</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> nothing beyond what Lectures 3 and 4 already proved analytically</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Direct numerical integration makes no guiding-center approximation at all, so comparing it to the analytic drift formulas is a genuine, independent check of both the formulas and the specific regime in which they hold.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C1 Syllabus</div></a>
+        <a href="../lectures/l01-what-is-a-plasma.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Plasma Fundamentals</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

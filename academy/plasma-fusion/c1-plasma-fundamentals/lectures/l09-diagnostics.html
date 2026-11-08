@@ -90,6 +90,34 @@
         .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
         .q details .ans { color: var(--green); font-weight: 700; }
 
+        /* ── DISCUSSION (interactive) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .disc-actions .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .disc-actions .btn:active { transform: translateY(1px); }
+        .disc-actions .btn-primary { background: var(--accent); color: #2a0a0d; border-color: var(--accent); }
+        .disc-actions .btn-primary:hover { background: var(--accent2); }
+        .disc-actions .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .disc-actions .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
         .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
         .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
         .lec-nav a:hover { border-color: var(--accent); }
@@ -149,8 +177,10 @@
             <text x="130" y="195" fill="#fda4af" font-size="10">ion saturation</text>
             <text x="245" y="105" fill="#fda4af" font-size="10">exponential (electron retardation) → slope gives T_e</text>
             <text x="370" y="25" fill="#fda4af" font-size="10">electron saturation</text>
-            <line x1="220" y1="30" x2="220" y2="200" stroke="#60a5fa" stroke-width="1" stroke-dasharray="3 3"/>
-            <text x="220" y="212" fill="#60a5fa" font-size="10" text-anchor="middle">V_f</text>
+            <!-- V_f marker placed where the curve crosses I=0 (the horizontal axis at y=130), per its definition -->
+            <line x1="247" y1="30" x2="247" y2="200" stroke="#60a5fa" stroke-width="1" stroke-dasharray="3 3"/>
+            <circle cx="247" cy="130" r="3.5" fill="#60a5fa"/>
+            <text x="247" y="212" fill="#60a5fa" font-size="10" text-anchor="middle">V_f (I=0)</text>
         </svg>
         <figcaption>The Langmuir probe I-V curve: ion-saturation current sets n_e (via the Bohm current), and the slope of the exponential region sets T_e — a single sweep recovers both.</figcaption>
     </figure>
@@ -206,7 +236,7 @@ def probe_current(V, Vp=0.0):
     cs = np.sqrt(Te_true*e/mp)
     I_isat = 0.6*n_e_true*e*A*cs
     I_esat = I_isat * 50                            <span class="c"># electrons saturate much higher (mass ratio effect)</span>
-    I_e = np.minimum(I_esat, I_isat*np.exp((V-Vp)/Te_true))
+    I_e = np.minimum(I_esat, I_esat*np.exp((V-Vp)/Te_true))  <span class="c"># I_esat is the prefactor: I_e(Vp)=I_esat exactly</span>
     return I_e - I_isat                             <span class="c"># net collected current (ion current taken as constant -I_isat)</span>
 
 V = np.linspace(-15, 5, 400)
@@ -228,11 +258,42 @@ print(f"true  n_e = {n_e_true:.2e} m^-3,  fitted n_e = {n_e_fit:.3e} m^-3")
         <p style="font-size:.88rem; color:var(--text2);">Because this synthetic trace has no measurement noise, the fit recovers the input exactly — in a real lab trace, noise in I(V) is what ultimately limits how precisely T_e and n_e can be determined from a single sweep.</p>
     </div>
 
-    <!-- DISCUSSION 3 -->
-    <div class="disc">
-        <h3>💬 Discussion 3</h3>
-        <p>Every diagnostic perturbs the plasma it measures, in some way. Compare a Langmuir probe and interferometry directly: what does each <em>cost</em> you — in terms of invasiveness, spatial resolution, what quantity it actually measures (local vs. line-integrated), and what it physically touches or doesn't touch? Is there a plasma regime where you'd have no choice but to use one over the other?</p>
+    <!-- ════════════════ DISCUSSION 3 (interactive) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 3 · Week 9</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="pf-c1-l9-d3">
+            <p class="disc-prompt" id="prompt-pf-c1-l9-d3">Every diagnostic perturbs the plasma it measures, in some way. Compare a Langmuir probe and interferometry directly: what does each <em>cost</em> you — in terms of invasiveness, spatial resolution, what quantity it actually measures (local vs. line-integrated), and what it physically touches or doesn't touch? Is there a plasma regime where you'd have no choice but to use one over the other?</p>
+
+            <textarea id="ans-pf-c1-l9-d3" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-pf-c1-l9-d3">Not saved yet</span>
+                <span class="toast" id="toast-pf-c1-l9-d3"></span>
+            </div>
+
+            <div class="disc-model" id="model-pf-c1-l9-d3" hidden>
+                <h4>Model response</h4>
+                <p>A Langmuir probe is <strong>invasive</strong>: a physical electrode sits inside the plasma, draws current, and perturbs the local sheath it's trying to measure. In exchange, it gives genuinely <strong>local</strong> information — n_e and T_e right at the probe tip, with spatial resolution set only by the probe's own size — and it's cheap and simple. Microwave interferometry is the opposite trade: it's <strong>non-invasive</strong> (the beam never touches the plasma, so it perturbs nothing), but it can only report the <strong>line integral</strong> ∫n_e dl along the entire beam chord — all local structure along that path is averaged away unless you add many chords and do tomography.</p>
+                <p>Regime where you have no choice: a hot, dense fusion-grade plasma (a tokamak core, or anywhere near the plasma-facing edge of a burning plasma) would simply vaporize a probe on contact, so interferometry (or another non-invasive method) is the only option. Conversely, in a cool, low-density lab discharge where a probe survives fine and you need the actual local profile (not just a line-averaged number), the probe gives richer information that interferometry alone cannot provide.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Compares invasiveness: probe perturbs/touches the plasma; interferometry doesn't</li>
+                    <li>Compares what's measured: local point value (probe) vs. line-integrated ∫n_e dl (interferometry)</li>
+                    <li>Names a regime that forces one choice over the other (e.g. a probe vaporizing in a hot/dense fusion plasma)</li>
+                </ul>
+            </div>
+        </div>
     </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
 
     <!-- EXTENSION -->
     <div class="ext">
@@ -257,28 +318,28 @@ print(f"true  n_e = {n_e_true:.2e} m^-3,  fitted n_e = {n_e_fit:.3e} m^-3")
         <div class="q">
             <div class="qn"><span>Q2.</span> To extract T_e from a Langmuir probe trace, you should…</div>
             <div class="opt"><b>A.</b> read the ion-saturation current directly</div>
-            <div class="opt"><b>B.</b> take the inverse of the slope of ln(I_e) vs. V in the exponential region</div>
-            <div class="opt"><b>C.</b> measure the probe's physical temperature</div>
+            <div class="opt"><b>B.</b> measure the probe's physical temperature</div>
+            <div class="opt"><b>C.</b> take the inverse of the slope of ln(I_e) vs. V in the exponential region</div>
             <div class="opt"><b>D.</b> use the electron-saturation current alone</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> The electron current in the retardation region follows I_e ∝ exp(eV/k_BT_e), so plotting ln(I_e) vs. V and inverting the slope gives T_e directly in eV.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> The electron current in the retardation region follows I_e ∝ exp(eV/k_BT_e), so plotting ln(I_e) vs. V and inverting the slope gives T_e directly in eV.</p></details>
         </div>
 
         <div class="q">
             <div class="qn"><span>Q3.</span> Why can't you compute n_e directly from the ion-saturation current without a separate T_e measurement?</div>
             <div class="opt"><b>A.</b> I_isat doesn't depend on n_e at all</div>
-            <div class="opt"><b>B.</b> The Bohm current formula I_isat = 0.6 n_e e A c_s contains c_s = √(k_BT_e/m_i), which requires T_e</div>
-            <div class="opt"><b>C.</b> Ion-saturation current only depends on probe area</div>
-            <div class="opt"><b>D.</b> It actually can be computed directly, no T_e needed</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> The Bohm speed c_s appears explicitly in the ion-saturation formula, so T_e must be known (typically from the exponential-region fit) before n_e can be solved for.</p></details>
+            <div class="opt"><b>B.</b> Ion-saturation current only depends on probe area</div>
+            <div class="opt"><b>C.</b> It actually can be computed directly, no T_e needed</div>
+            <div class="opt"><b>D.</b> The Bohm current formula I_isat = 0.6 n_e e A c_s contains c_s = √(k_BT_e/m_i), which requires T_e</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The Bohm speed c_s appears explicitly in the ion-saturation formula, so T_e must be known (typically from the exponential-region fit) before n_e can be solved for.</p></details>
         </div>
 
         <div class="q">
             <div class="qn"><span>Q4.</span> Microwave interferometry measures…</div>
-            <div class="opt"><b>A.</b> the local electron density at one exact point</div>
-            <div class="opt"><b>B.</b> the density integrated along the entire beam's path through the plasma</div>
+            <div class="opt"><b>A.</b> the density integrated along the entire beam's path through the plasma</div>
+            <div class="opt"><b>B.</b> the local electron density at one exact point</div>
             <div class="opt"><b>C.</b> the ion temperature only</div>
             <div class="opt"><b>D.</b> the magnetic field strength</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> The phase shift Δφ ∝ ∫n_e dl is a line integral along the whole beam chord — interferometry is inherently a line-integrated, not local, density diagnostic (unlike a Langmuir probe).</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">A.</span> The phase shift Δφ ∝ ∫n_e dl is a line integral along the whole beam chord — interferometry is inherently a line-integrated, not local, density diagnostic (unlike a Langmuir probe).</p></details>
         </div>
 
         <div class="q">
@@ -321,6 +382,53 @@ print(f"true  n_e = {n_e_true:.2e} m^-3,  fitted n_e = {n_e_fit:.3e} m^-3")
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my plasma-physics tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

@@ -194,8 +194,8 @@ def tau_E_scaling(Ip_MA, n19, B_T, P_MW, R_m):
 
 <span class="c"># ================================================================= DEMO
 if __name__ == "__main__":</span>
-    print("=== Design point: n=1e20 m^-3, T=13 keV, tau_E=3.0 s (assumed) ===")
-    n, T, tau = 1.0e20, 13.0, 3.0
+    print("=== Design point: n=1e20 m^-3, T=13 keV, tau_E=1.43 s (assumed, Q=10 target) ===")
+    n, T, tau = 1.0e20, 13.0, 1.43
     tp, margin, ignited = ignition_report(n, T, tau)
     print(f"triple product = {tp:.3e} keV s/m^3  (threshold {IGNITION_TRIPLE:.1e})")
     print(f"margin = x{margin:.2f}   {'IGNITION' if ignited else 'sub-ignition'}")
@@ -217,11 +217,11 @@ if __name__ == "__main__":</span>
     print(f"triple product (scaled tau_E) = {tp2:.3e} keV s/m^3,  margin x{margin2:.2f}  "
           f"{'IGNITION' if ignited2 else 'sub-ignition'}")</pre>
         <p style="font-size:.88rem; color:var(--text2);"><strong>Verified end-to-end output of the script above</strong> (run exactly as written, no edits):</p>
-        <pre><span class="c">=== Design point: n=1e20 m^-3, T=13 keV, tau_E=3.0 s (assumed) ===
-triple product = 3.900e+21 keV s/m^3  (threshold 3.0e+21)
-margin = x1.30   IGNITION
-fusion gain Q  = inf
-alpha self-heating fraction f_alpha = 139.6%
+        <pre><span class="c">=== Design point: n=1e20 m^-3, T=13 keV, tau_E=1.43 s (assumed, Q=10 target) ===
+triple product = 1.859e+21 keV s/m^3  (threshold 3.0e+21)
+margin = x0.62   sub-ignition
+fusion gain Q  = 9.99
+alpha self-heating fraction f_alpha = 66.5%
 
 === Estimate tau_E instead from device parameters (scaling law) ===
 Device: Ip=15.0 MA  n19=10.0  B=5.3 T  P=50.0 MW  R=6.2 m
@@ -232,9 +232,9 @@ triple product (scaled tau_E) = 4.823e+21 keV s/m^3,  margin x1.61  IGNITION</sp
     <!-- 10.3 -->
     <section class="lec">
         <h2><span class="n">10.3</span>Reading the Output</h2>
-        <p>Walk through what the script actually told you. At n=10²⁰ m⁻³, T=13 keV, τ_E=3 s, the triple product (3.90×10²¹ keV·s/m³) clears the ignition benchmark by a margin of ×1.30 — consistent with the fact that this is exactly the ITER-target point from Lecture 9. The fusion-gain function returns <code>inf</code> because at this design point the alpha power density <em>alone</em> already exceeds the loss power density (f<sub>α</sub>=139.6% &gt; 100%) — meaning no external heating is needed at all, the signature of an over-ignited steady-state point in this reduced model. A real time-dependent plasma at f<sub>α</sub>&gt;100% would in practice keep heating up (or need active cooling/control) rather than sit in a fixed steady state — this course's 0-D model flags the condition rather than evolving it in time.</p>
-        <p>The second block shows the calculator's other mode: instead of assuming τ_E, <em>estimate</em> it from device parameters via Lecture 6's scaling law. The two τ_E values (3.0 s assumed vs 3.71 s from scaling) are close but not identical — exactly what you'd expect, since the assumed value was itself chosen to be representative of an ITER-like discharge, and the scaling law independently predicts a similar number from first principles.</p>
-        <div class="box warn"><span class="lbl">Common mistake</span>Don't treat an <code>inf</code> fusion gain as "impossible" or a bug. It is the mathematically correct limit of Q = P_fusion/P_aux when P_aux→0 — exactly Lecture 5's ignition limit (f_α→1). A real design would use this signal to back off (lower n or T) rather than interpret it as an error.</div>
+        <p>Walk through what the script actually told you. At n=10²⁰ m⁻³, T=13 keV, τ_E=1.43 s — the confinement time that actually produces Q=10 at this n and T (verified by python3: brentq on Q(τ_E)=10 gives τ_E≈1.430 s) — the triple product (1.86×10²¹ keV·s/m³) sits <em>below</em> the ignition benchmark, margin ×0.62, and the fusion gain comes out to Q≈9.99 with f<sub>α</sub>≈66.5%, matching the ITER-target point from Lecture 9 and the f<sub>α</sub>≈0.665 solved for in Lecture 5. This is the correct, internally consistent picture: <strong>ITER's Q=10 design target is sub-ignition by design</strong> — a high-gain operating point, not a self-sustaining one.</p>
+        <p>The second block shows the calculator's other mode: instead of assuming τ_E, <em>estimate</em> it from device parameters via Lecture 6's scaling law, using the same ITER-like device numbers (Ip=15 MA, n̄e19=10, B=5.3 T, P=50 MW, R=6.2 m). That independent estimate gives τ_E≈3.71 s — noticeably <em>higher</em> than the 1.43 s assumed for the Q=10 target — and plugging it back into the triple product gives margin ×1.61, <strong>above</strong> ignition. The gap between the two τ_E values is the point, not a discrepancy to explain away: it shows that this device's confinement capability, per the scaling law, is good enough to reach actual ignition if fully exploited, while its official Q=10 target deliberately operates in a lower-performance, non-igniting regime — exactly the kind of margin a real control room wants before attempting a harder-to-control, self-sustaining burn.</p>
+        <div class="box warn"><span class="lbl">Common mistake</span>Don't assume a device's Q=10 design target and its ignition status have to agree. They are different thresholds (Lecture 4/9): Q=10 means strong alpha self-heating (f_α≈66.5%) but is still short of f_α=1 (true ignition). A device can be deliberately operated below its own ignition curve, at a lower τ_E than its hardware could in principle support, precisely to keep Q at a chosen, controllable value rather than letting the plasma run away to a fully self-sustaining state.</div>
     </section>
 
     <!-- 10.4 -->
@@ -256,30 +256,30 @@ triple product (scaled tau_E) = 4.823e+21 keV s/m^3,  margin x1.61  IGNITION</sp
         <p class="section-sub">5 questions · click "Show answer" to check yourself.</p>
 
         <div class="q">
-            <div class="qn"><span>Q1.</span> Running the capstone script at n=1×10²⁰ m⁻³, T=13 keV, τ_E=3.0 s gives a triple product of…</div>
+            <div class="qn"><span>Q1.</span> Running the capstone script at n=1×10²⁰ m⁻³, T=13 keV, τ_E=1.43 s (the value that gives Q=10) gives a triple product of…</div>
             <div class="opt"><b>A.</b> 3.00×10²¹ keV·s/m³ exactly at threshold</div>
-            <div class="opt"><b>B.</b> 3.90×10²¹ keV·s/m³, a margin of ×1.30 over the 3×10²¹ benchmark</div>
-            <div class="opt"><b>C.</b> 7.50×10²⁰ keV·s/m³, sub-ignition</div>
+            <div class="opt"><b>B.</b> 7.50×10²⁰ keV·s/m³, sub-ignition</div>
+            <div class="opt"><b>C.</b> 1.86×10²¹ keV·s/m³, a margin of ×0.62 under the 3×10²¹ benchmark</div>
             <div class="opt"><b>D.</b> 8.22×10²¹ keV·s/m³</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> n×T×τ_E = 1×10²⁰×13×3.0 = 3.90×10²¹ keV·s/m³, verified by the script's printed output — margin ×1.30. (A) is the threshold itself, not this design's value. (C) is the JET-class value from Lecture 9. (D) is the NIF-class ICF value from Lecture 8/9.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> n×T×τ_E = 1×10²⁰×13×1.43 ≈ 1.86×10²¹ keV·s/m³, verified by the script's printed output — margin ×0.62, sub-ignition despite Q=10. (A) is the threshold itself, not this design's value. (B) is the JET-class value from Lecture 9. (D) is the NIF-class ICF value from Lecture 8/9.</p></details>
         </div>
 
         <div class="q">
-            <div class="qn"><span>Q2.</span> The script reports fusion gain Q as <code>inf</code> at the design point because…</div>
-            <div class="opt"><b>A.</b> of a division-by-zero bug that should be fixed</div>
-            <div class="opt"><b>B.</b> the alpha power density alone already exceeds the loss power density (f_α&gt;100%), so P_aux≤0 and no external heating is mathematically required</div>
-            <div class="opt"><b>C.</b> the fusion power density is zero</div>
-            <div class="opt"><b>D.</b> the triple product is below threshold</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> This is the correct mathematical limit of Q=P_fusion/P_aux as P_aux→0⁺ — the ignition limit from Lecture 5, not a bug. (A) mischaracterizes correct limiting behavior as an error. (C) P_fusion is large and positive here. (D) the triple product is well above threshold at this point (margin ×1.30).</p></details>
+            <div class="qn"><span>Q2.</span> The script reports fusion gain Q≈9.99 (not infinite) at the design point even though the alpha self-heating fraction f_α≈66.5% is already substantial, because…</div>
+            <div class="opt"><b>A.</b> the fusion power density is actually zero at this point</div>
+            <div class="opt"><b>B.</b> the triple product is above threshold here</div>
+            <div class="opt"><b>C.</b> P_aux is still clearly positive (f_α is well below 100%, so external heating is still supplying roughly a third of the loss power) — Q only diverges to infinity in the f_α→1 limit, which this point has not reached</div>
+            <div class="opt"><b>D.</b> of a division-by-zero bug that should be fixed</div>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Q=P_fusion/P_aux stays finite as long as P_aux&gt;0; only at f_α=1 (alphas supplying 100% of the loss power, P_aux→0) does Q diverge — Lecture 5's ignition limit. At f_α≈66.5%, P_aux is still roughly a third of P_loss, giving a large but finite Q≈10. (A) P_fusion is large and positive here. (B) the triple product is actually below threshold (margin ×0.62). (D) there is no bug — this is the correct, non-divergent regime.</p></details>
         </div>
 
         <div class="q">
-            <div class="qn"><span>Q3.</span> The scaling-law-estimated τ_E (3.71 s) and the originally assumed τ_E (3.0 s) at the same design point differ because…</div>
+            <div class="qn"><span>Q3.</span> The scaling-law-estimated τ_E (3.71 s) and the assumed Q=10-target τ_E (1.43 s) at the same n and T differ because…</div>
             <div class="opt"><b>A.</b> one of the two calculations contains an error</div>
-            <div class="opt"><b>B.</b> they are two independent estimates — one assumed directly, one predicted from device parameters via the Lecture 6 scaling law — and landing close together is a consistency check, not a required identity</div>
-            <div class="opt"><b>C.</b> τ_E cannot be both assumed and predicted in the same script</div>
-            <div class="opt"><b>D.</b> the scaling law only applies to ICF devices</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> The calculator supports both workflows precisely so you can cross-check an assumed τ_E against what device parameters would predict; close agreement here reflects that the assumed value was chosen to be representative of an ITER-like discharge, not a mathematical requirement that they match exactly. (A) both numbers are independently verified and correct for what they each compute. (C) the script explicitly supports both modes. (D) the scaling law in Lecture 6 was developed for magnetic confinement (tokamak-style) devices.</p></details>
+            <div class="opt"><b>B.</b> τ_E cannot be both assumed and predicted in the same script</div>
+            <div class="opt"><b>C.</b> the scaling law only applies to ICF devices</div>
+            <div class="opt"><b>D.</b> they represent two different operating choices, not a discrepancy — the scaling law predicts what this device's hardware can in principle sustain (enough to actually ignite, margin ×1.61), while 1.43 s is the deliberately lower, more conservative value chosen to hit the controllable Q=10 target instead</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> The gap is the point: per the Lecture 6 scaling law, this ITER-like device's hardware could in principle sustain enough confinement to clear the ignition threshold, but operating it at the lower, deliberately chosen τ_E=1.43 s instead targets the controllable Q=10 design point — a real engineering choice, not an error. (A) both numbers are independently verified and correct for what they each compute. (B) the script explicitly supports both modes. (C) the scaling law in Lecture 6 was developed for magnetic confinement (tokamak-style) devices.</p></details>
         </div>
 
         <div class="q">
@@ -305,7 +305,7 @@ triple product (scaled tau_E) = 4.823e+21 keV s/m^3,  margin x1.61  IGNITION</sp
         <h2>✓ What you learned</h2>
         <ul>
             <li>Assembled every module from <b>Lectures 1-9</b> (Q-values, reactivity, power balance, triple product, fusion gain, confinement scaling) into one <b>verified, runnable calculator</b>.</li>
-            <li>Interpreted a full run: triple product (×1.30 margin), an <code>inf</code> fusion gain signaling ignition, f_α=139.6%, and a scaling-law τ_E estimate (3.71 s) cross-checking the assumed value.</li>
+            <li>Interpreted a full run at the Q=10 target point (τ_E=1.43 s): triple product ×0.62 margin (sub-ignition), finite fusion gain Q≈9.99, f_α≈66.5% — and a scaling-law τ_E estimate (3.71 s) showing this device's hardware could in principle push well past ignition (×1.61 margin) if operated at full confinement instead of the more conservative Q=10 target.</li>
             <li>Delivered the course project: the calculator applied across device classes, with a report tracing each result back to its underlying physics.</li>
             <li>Closed out C4 — ready for Course 5's tokamak/stellarator engineering and full reactor power-balance modeling.</li>
         </ul>

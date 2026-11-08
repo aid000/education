@@ -189,7 +189,7 @@
             <li><strong>Compressed density:</strong> n = 1000 × 2.41×10²⁸ ≈ <strong>2.41×10³¹ m⁻³</strong>.</li>
             <li><strong>Ion sound speed at T=5 keV:</strong> c_s = √(T/m_i) with T=5 keV=8.01×10⁻¹⁶ J and m_i≈2.5 u=4.15×10⁻²⁷ kg: c_s=√(8.01×10⁻¹⁶/4.15×10⁻²⁷)≈4.39×10⁵ m/s.</li>
             <li><strong>Disassembly time:</strong> τ_E ≈ R/c_s = 3.0×10⁻⁵ m / 4.39×10⁵ m/s ≈ <strong>6.8×10⁻¹¹ s</strong> (≈68 picoseconds).</li>
-            <li><strong>Triple product:</strong> nτ_E ≈ 2.41×10³¹ × 6.8×10⁻¹¹ ≈ 1.65×10²¹ s/m³; nTτ_E ≈ 1.65×10²¹ × 5 ≈ <strong>8.2×10²¹ keV·s/m³</strong> — comfortably above the ≈3×10²¹ ignition benchmark, consistent with ICF experiments operating near (and, in record shots, above) the ignition threshold.</li>
+            <li><strong>Triple product:</strong> nτ_E ≈ 2.41×10³¹ × 6.8×10⁻¹¹ ≈ 1.65×10²¹ s/m³; nTτ_E ≈ 1.65×10²¹ × 5 ≈ <strong>8.2×10²¹ keV·s/m³</strong> — above ignition, but the honest comparison is against the ignition curve's own value <em>at T=5 keV</em> (≈6.3×10²¹ keV·s/m³, Lecture 4/9's curve — itself much larger than the flat ≈3×10²¹ benchmark, since 5 keV sits well below the curve's ≈13-14 keV minimum), giving a margin of only ≈1.3×, not the misleadingly large ≈2.7× you'd get by comparing against the flat benchmark number out of its valid T-range. Still above ignition, but only just.</li>
         </ol>
     </div>
 
@@ -200,7 +200,20 @@
         <pre><span class="c"># confinement_compare.py — Lecture 8</span>
 import numpy as np
 
-IGNITION_TRIPLE = 3.0e21   <span class="c"># keV s/m^3, this course's benchmark</span>
+<span class="c"># T-dependent ignition threshold (Lecture 4's actual curve, not a flat number) —
+# scoring each point against its OWN temperature matters: a flat ~3e21 benchmark
+# is only valid near the curve's 13-14 keV minimum and badly understates the
+# threshold at temperatures far from it (e.g. ICF's 5 keV hot spot).</span>
+def sigmav_DT(T_keV):
+    BG, mrc2 = 34.3827, 1124656.0
+    C1,C2,C3,C4,C5,C6,C7 = 1.17302e-9,1.51361e-2,7.51886e-2,4.60643e-3,1.35e-2,-1.0675e-4,1.366e-5
+    T = T_keV
+    theta = T/(1 - (T*(C2+T*(C4+T*C6)))/(1+T*(C3+T*(C5+T*C7))))
+    xi = (BG**2/(4*theta))**(1/3)
+    return C1*theta*np.sqrt(xi/(mrc2*T**3))*np.exp(-3*xi)*1e-6
+
+def ignition_threshold(T_keV, E_ALPHA_KEV=3500.0):
+    return 12*T_keV**2/(sigmav_DT(T_keV)*E_ALPHA_KEV)
 
 def icf_tau_and_triple(R_m, T_keV, compression, n_liquid_m3=2.41e28, m_i_amu=2.5):
     n = compression * n_liquid_m3
@@ -222,16 +235,17 @@ print(f"ICF:  n={n_icf:.2e} m^-3  tau_E={tau_icf:.2e} s  triple={triple_icf:.2e}
 triple_mcf = mcf_triple(1e20, 13.0, 3.0)
 print(f"MCF:  n=1.0e20 m^-3  tau_E=3.0 s         triple={triple_mcf:.2e} keV s/m^3")
 
-for label, t in [("ICF", triple_icf), ("MCF", triple_mcf)]:
-    verdict = "IGNITION" if t >= IGNITION_TRIPLE else "sub-ignition"
-    print(f"{label}: {verdict} (margin x{t/IGNITION_TRIPLE:.2f})")
+for label, t, T in [("ICF", triple_icf, 5.0), ("MCF", triple_mcf, 13.0)]:
+    thr = ignition_threshold(T)
+    verdict = "IGNITION" if t >= thr else "sub-ignition"
+    print(f"{label}: threshold@{T:.0f}keV={thr:.2e}  {verdict} (margin x{t/thr:.2f})")
 
 <span class="c"># Verified output:
 # ICF:  n=2.41e+31 m^-3  tau_E=6.83e-11 s  triple=8.23e+21 keV s/m^3
 # MCF:  n=1.0e20 m^-3  tau_E=3.0 s         triple=3.90e+21 keV s/m^3
-# ICF: IGNITION (margin x2.74)
-# MCF: IGNITION (margin x1.30)</span></pre>
-        <p style="font-size:.88rem; color:var(--text2);">Both cross the same threshold despite n and τ_E differing by eleven orders of magnitude each — the entire point of this lecture, now verified in code.</p>
+# ICF: threshold@5keV=6.28e+21  IGNITION (margin x1.31)
+# MCF: threshold@13keV=2.79e+21  IGNITION (margin x1.40)</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Both cross their own, correctly T-dependent threshold despite n and τ_E differing by eleven orders of magnitude each — the entire point of this lecture, now verified in code. Note the margins (×1.31, ×1.40) are much tighter than you'd get by comparing both against the flat ≈3×10²¹ benchmark out of context (which would overstate ICF's margin at ≈×2.74, since 5 keV sits far from the benchmark's valid 13-14 keV range).</p>
     </div>
 
     <!-- EXTENSION -->
@@ -257,10 +271,10 @@ for label, t in [("ICF", triple_icf), ("MCF", triple_mcf)]:
         <div class="q">
             <div class="qn"><span>Q2.</span> In inertial confinement fusion, the confinement time τ_E is set by…</div>
             <div class="opt"><b>A.</b> the strength of an external magnetic field</div>
-            <div class="opt"><b>B.</b> how long the fuel's own inertia keeps it assembled before a rarefaction wave disassembles it</div>
+            <div class="opt"><b>B.</b> the laser pulse's total energy</div>
             <div class="opt"><b>C.</b> the plasma current's decay time</div>
-            <div class="opt"><b>D.</b> the laser pulse's total energy</div>
-            <details><summary>Show answer</summary><p><span class="ans">B.</span> There is no confining field in ICF — the fuel holds together only as long as its own inertia resists the disassembly ("rarefaction") wave, roughly R/c_s. (A)/(C) are MCF concepts. (D) pulse energy affects how much compression is achieved, not directly the disassembly-time formula.</p></details>
+            <div class="opt"><b>D.</b> how long the fuel's own inertia keeps it assembled before a rarefaction wave disassembles it</div>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> There is no confining field in ICF — the fuel holds together only as long as its own inertia resists the disassembly ("rarefaction") wave, roughly R/c_s. (A)/(C) are MCF concepts. (B) pulse energy affects how much compression is achieved, not directly the disassembly-time formula.</p></details>
         </div>
 
         <div class="q">
@@ -287,7 +301,7 @@ for label, t in [("ICF", triple_icf), ("MCF", triple_mcf)]:
             <div class="opt"><b>B.</b> MCF is strictly simpler than ICF because it has no instabilities to worry about</div>
             <div class="opt"><b>C.</b> both face genuinely hard, distinct engineering problems in their own regime, with no decisive physics advantage for either</div>
             <div class="opt"><b>D.</b> only one of the two approaches has ever demonstrated net fusion power in any sense</div>
-            <details><summary>Show answer</summary><p><span class="ans">C.</span> As flagged in Section 8.4's common mistake, each approach has its own hard, unsolved problem (MHD stability/heat exhaust for MCF; implosion symmetry for ICF) and neither has a clear-cut physics edge over the other. (A)/(B) both wrongly declare one approach simpler or more advanced. (D) both approaches have reported scientific-breakeven-level results in different contexts; the claim as stated oversimplifies a nuanced, evolving record.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> As flagged in Section 8.4's common mistake, each approach has its own hard, unsolved problem (MHD stability/heat exhaust for MCF; implosion symmetry for ICF) and neither has a clear-cut physics edge over the other — that judgment is about engineering maturity and difficulty, not about who has cleared Q=1 first. (A)/(B) both wrongly declare one approach simpler or more advanced. (D) is actually the historically accurate record as of this course's cited numbers, not a safe thing to lump together as "both": NIF's December 2022 ICF shot was a genuine Q&gt;1 (ignition-class) result, while this course's own cited MCF record, JET, reached only Q≈0.67 (Lecture 5) — below scientific breakeven. So ICF (NIF) has demonstrated Q&gt;1 and MCF (JET) has not; that specific, narrower fact doesn't change which answer is "most accurate" about the two approaches' engineering challenges in general, but it must not be misstated as "both have reported scientific-breakeven-level results."</p></details>
         </div>
     </div>
 

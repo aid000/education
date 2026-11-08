@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Final Exam — Magnetohydrodynamics</title>
+    <style>
+        :root {
+            --bg: #1a0d0a; --surface: #261310; --surface2: #341c16; --border: #4a2820;
+            --text: #f8ece6; --text2: #d0a99a; --accent: #fb7185; --accent2: #fda4af;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #3a160f 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Plasma &amp; Fusion</a> / <a href="../index.html">C3 Magnetohydrodynamics</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C3 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from the MHD approximation to the capstone solver.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted across all ten weeks:</span>
+            <span class="wchip">MHD approximation <b>2</b></span>
+            <span class="wchip">MHD equations <b>2</b></span>
+            <span class="wchip">Frozen-in flux <b>3</b></span>
+            <span class="wchip">Equilibria/pinches <b>3</b></span>
+            <span class="wchip">Pressure/tension/beta <b>2</b></span>
+            <span class="wchip">Alfvén waves <b>3</b></span>
+            <span class="wchip">Magnetosonic waves <b>3</b></span>
+            <span class="wchip">Instabilities <b>3</b></span>
+            <span class="wchip">Numerical methods <b>2</b></span>
+            <span class="wchip">Capstone <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ MHD APPROXIMATION (Week 1) ============ -->
+    <div class="exam-sec">The MHD Approximation · Week 1</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> What is the key simplification a fluid (MHD) description makes relative to a kinetic description?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> It tracks only a few moments of the particle distribution (density, bulk velocity, pressure) instead of the full distribution function f(x,v,t)</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> It ignores the magnetic field entirely</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> It assumes the plasma has no particles at all</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> It requires more variables than the kinetic description</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> MHD replaces f(x,v,t) with position-space fields — density, velocity, pressure, B — discarding the detailed shape of the velocity distribution. (B) B is central to MHD. (C) MHD still describes a real particle fluid, via moments. (D) MHD uses dramatically fewer variables, which is its appeal.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>2.</span> A deuterium plasma has B = 3 T, T<sub>i</sub> = 8 keV, and macroscopic scale L = 0.6 m. Using ρ<sub>i</sub> = v<sub>th</sub>/Ω<sub>ci</sub> with v<sub>th</sub> = √(2T<sub>i</sub>/m<sub>i</sub>), L/ρ<sub>i</sub> ≈ 98.5. What does this tell you?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> MHD is a poor approximation here</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> The spatial scale-separation condition for MHD is well satisfied</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> The plasma has no magnetic field</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> The ion cyclotron frequency is exactly zero</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> L/ρ<sub>i</sub> ≈ 98.5 ≫ 1 means macroscopic structures are far larger than a single gyro-orbit — exactly the regime where the fluid approximation is legitimate. (A) is the opposite conclusion. (C, D) are not supported by this ratio.</div>
+    </div>
+
+    <!-- ============ MHD EQUATIONS (Week 2) ============ -->
+    <div class="exam-sec">The MHD Equations · Week 2</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> Why can the displacement current be dropped from Ampère's law in MHD, leaving J = ∇×B/μ₀?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> Because electric fields never exist in a plasma</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> Because the plasma is always in a vacuum</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> Because MHD flow speeds are non-relativistic (≪ c), making the displacement-current term negligible compared to the current term</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> Because magnetic fields do not exist in MHD</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> This "pre-Maxwell" ordering holds because the velocities and wave speeds considered are tiny compared to light speed. (A) electric fields do exist, e.g. E = −v×B. (B, D) are both false — B and a real conducting fluid are central to MHD.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> A plasma has gradient scale L = 2 m, flow speed v = 3×10⁵ m/s, and resistivity η = 2×10⁻⁶ Ω·m. Using S = μ₀Lv/η, the Lundquist number is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> 3.8</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> 3.8×10²</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> 3.8×10⁹</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> 3.8×10⁵</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> S = (4π×10⁻⁷)(2)(3×10⁵)/(2×10⁻⁶) ≈ 3.77×10⁵ — advection dominates by a wide margin, so the field is nearly frozen in. (A, B, C) are off by many orders of magnitude.</div>
+    </div>
+
+    <!-- ============ FROZEN-IN FLUX (Week 3) ============ -->
+    <div class="exam-sec">Ideal MHD &amp; Frozen-In Flux · Week 3</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> Alfvén's theorem, built on frozen-in flux, says that two fluid elements starting on the same field line…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> Remain on a common field line for all time under ideal MHD, however the line is stretched or bent</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> Always end up on different field lines after any motion</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> Must have the same velocity forever</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> Must be the same distance apart forever</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> This is a topological statement: connectivity is preserved even as length, shape, and separation all change. (B) is the opposite. (C, D) overstate the theorem — only topological connection is fixed.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>6.</span> Since τ<sub>η</sub> ∝ L² while τ<sub>A</sub> ∝ L, the Lundquist number S = τ<sub>η</sub>/τ<sub>A</sub> scales as L¹. If a lengthscale L shrinks by a factor of 10⁵ (keeping η and the flow speed fixed), S itself collapses by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> 10 orders of magnitude</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> 5 orders of magnitude</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> 2.5 orders of magnitude</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> It does not change at all</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> S ∝ L¹ (not L²) because the extra power of L in τ<sub>η</sub> is cancelled by τ<sub>A</sub>'s own L-dependence — so S falls by exactly the same factor L shrinks by: log₁₀(10⁵) = 5. (A) confuses S's scaling with τ<sub>η</sub>'s L² scaling alone. (C, D) do not match L¹ scaling.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> Magnetic reconnection is possible despite the frozen-in theorem because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> The frozen-in theorem is simply wrong</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> The reconnecting plasma has no resistivity at all</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> Reconnection happens in thin current layers where the local length scale is small enough that resistive diffusion becomes important again, even though S is huge in the bulk plasma</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> Reconnection does not actually change which fluid elements share a field line</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Shrinking the relevant length scale collapses the local Lundquist number, letting the diffusive term matter locally even while the bulk volume stays essentially ideal. (A) the theorem holds wherever ideal MHD genuinely applies. (B) all real plasmas have finite resistivity. (D) reconnection is defined by exactly this topological change.</div>
+    </div>
+
+    <!-- ============ MHD EQUILIBRIA & PINCHES (Week 4) ============ -->
+    <div class="exam-sec">MHD Equilibria &amp; the Pinch · Week 4</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> In the θ-pinch equilibrium, the force-balance equation reduces to pure pressure balance, d/dr(p + B_z²/2μ₀) = 0, with no tension term at all. Why?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> Because B_z is actually zero in a θ-pinch</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> Because the plasma has no pressure in a θ-pinch</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> Because Ampère's law does not apply to straight fields</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> Because B_z(r) is a straight (axial, uncurled) field with zero curvature, so magnetic tension vanishes identically</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Tension is a pure curvature effect; a straight B_z contributes zero tension however strong it is, leaving only the pressure-gradient balance. (A, B, C) all misstate the setup.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>9.</span> A θ-pinch has centerline thermal pressure p₀ = 1.5×10⁵ Pa and zero pressure at the edge. Pressure balance B_edge²/2μ₀ = p₀ requires an edge axial field B_edge = √(2μ₀p₀) of approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> 0.614 T</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> 1.228 T</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> 0.307 T</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> 6.14 T</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> B_edge = √(2 × 4π×10⁻⁷ × 1.5×10⁵) ≈ 0.614 T. (B, C, D) are off by simple factors of 2, ½, or 10.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>10.</span> What distinguishes the Z-pinch's force-balance equation from the θ-pinch's?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> The Z-pinch has no current at all</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> The Z-pinch's azimuthal field B_θ(r) is intrinsically curved, adding a magnetic-tension (−B_θ²/μ₀r) term absent from the θ-pinch's purely pressure-balanced equation</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> The θ-pinch equation includes gravity; the Z-pinch's does not</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> The two equations are identical in every respect</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> B_θ wraps around the axis with finite radius of curvature, so it always carries a tension (hoop-stress) contribution that B_z(r) in a θ-pinch never does. (A, C, D) all misstate the comparison.</div>
+    </div>
+
+    <!-- ============ PRESSURE, TENSION & BETA (Week 5) ============ -->
+    <div class="exam-sec">Magnetic Pressure, Tension &amp; Plasma Beta · Week 5</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> Which statement about plasma beta β = 2μ₀p/B² is most accurate?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> β tells you directly whether magnetic pressure or magnetic tension dominates a given equilibrium's force balance</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> β is undefined for any plasma with B ≠ 0</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> β compares thermal pressure to magnetic pressure specifically; whether pressure or tension dominates the field's own force balance is a separate, geometry-dependent question, since both scale as B²/μ₀</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> β only applies to fusion-relevant plasmas, not space plasmas</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> β is specifically a thermal-vs-magnetic-pressure ratio. Magnetic pressure and tension are a separate internal split of the field's own force, both of order B²/μ₀ — β is silent on which of those two wins. (A) conflates two different comparisons. (B, D) are both false.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> A plasma has n = 8×10¹⁸ m⁻³, T = 300 eV, B = 0.8 T. β = 2μ₀p/B² ≈ 1.51×10⁻³. This plasma is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> Thermally dominated</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> Impossible, since β cannot be less than 1</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> In exact balance between B_z and B_θ</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> Strongly magnetically dominated (β ≪ 1)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> β ≈ 1.5×10⁻³ ≪ 1 means B²/2μ₀ ≫ p — the field dominates the dynamics by nearly three orders of magnitude. (A) is the opposite case. (B, C) are not implied by this number.</div>
+    </div>
+
+    <!-- ============ ALFVÉN WAVES (Week 6) ============ -->
+    <div class="exam-sec">Alfvén Waves · Week 6</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>13.</span> The restoring force for the shear Alfvén wave is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> Magnetic tension — the field line resisting being bent</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> Thermal pressure</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> Gravity</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> Electric charge repulsion</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The wave carries zero density/pressure perturbation; only the magnetic-tension piece of J×B appears in its momentum equation. (B, C, D) play no role in this derivation.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>14.</span> A deuterium plasma has n = 3×10¹⁹ m⁻³ and B = 2.5 T. Using v_A = B/√(μ₀ρ) with ρ = n·m_i (m_i = 2m_p), v_A is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> 7.04×10³ m/s</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> 7.04×10⁶ m/s</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> 7.04×10⁹ m/s</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> 2.50×10⁶ m/s</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> ρ = (3×10¹⁹)(2×1.673×10⁻²⁷) ≈ 1.00×10⁻⁷ kg/m³, so v_A = 2.5/√(4π×10⁻⁷ × 1.00×10⁻⁷) ≈ 7.04×10⁶ m/s. (A, C, D) are off by orders of magnitude or use the wrong quantity.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> For propagation at angle θ to B₀, the shear Alfvén wave obeys ω = kv_A cos θ. At θ = 90° (perpendicular propagation)…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> The wave speed doubles</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> The wave becomes a sound wave</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> ω → 0 — the shear Alfvén wave does not propagate at all</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> Nothing changes; ω = kv_A regardless of angle</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> cos(90°) = 0, so ω = 0 for any k — the shear Alfvén wave vanishes exactly perpendicular to the field. (A) the opposite happens. (B) a different branch (fast magnetosonic) takes over, not sound. (D) the angle dependence is essential.</div>
+    </div>
+
+    <!-- ============ MAGNETOSONIC WAVES (Week 7) ============ -->
+    <div class="exam-sec">Magnetosonic Waves · Week 7</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> How does the fast magnetosonic speed compare to v_A and c_s in general?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> It is always strictly less than both</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> It equals c_s exactly at every angle</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> It is unrelated to either speed</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> It always exceeds or equals both, equaling the larger of the two exactly at θ = 0°</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Constructive (in-phase) compression of magnetic and thermal pressure means v_fast ≥ max(v_A, c_s), with equality only at θ=0° where the fast branch reduces exactly to the larger of the two. (A, B, C) all misstate the relationship.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> A plasma has v_A = 6×10⁶ m/s, c_s = 1.5×10⁶ m/s. At θ = 90° (perpendicular propagation), the fast magnetosonic speed is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> 6.18×10⁶ m/s</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> 6.00×10⁶ m/s</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> 1.50×10⁶ m/s</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> 7.50×10⁶ m/s</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> At θ=90°, v_fast = √(v_A²+c_s²) = √(36+2.25)×10⁶ ≈ 6.18×10⁶ m/s. (B) is just v_A alone. (C) is just c_s alone. (D) is v_A+c_s, not the quadrature sum.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> At θ = 0° (propagation along B₀) with v_A &gt; c_s, the fast and slow magnetosonic speeds become…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> Both equal to √(v_A²+c_s²)</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> v_fast = v_A and v_slow = c_s — pure Alfvén and pure sound waves, fully decoupled</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> v_fast = c_s and v_slow = v_A, regardless of which is larger</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> Both exactly zero</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> At θ=0 the discriminant becomes |v_A²−c_s²|, splitting the roots into exactly the larger and smaller of v_A and c_s — here v_A&gt;c_s, so fast=v_A, slow=c_s. (A, D) don't match the θ=0 limit. (C) reverses the assignment.</div>
+    </div>
+
+    <!-- ============ MHD INSTABILITIES (Week 8) ============ -->
+    <div class="exam-sec">MHD Instabilities: Kink &amp; Sausage · Week 8</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> The Kruskal–Shafranov safety factor is q(a) = aB_z/(RB_θ(a)). What does a LARGE q physically mean?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> The field is mostly B_θ, tightly wound</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> Many short-way (poloidal) turns occur per one long-way (toroidal) turn</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> The field is mostly B_z, gently twisted — many long-way (toroidal) turns occur per one short-way (poloidal) turn</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> The plasma current is exactly zero</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> q is the number of long-way (axial/toroidal) turns per single short-way (azimuthal/poloidal) turn; large q means B_z dominates and the field winds the long way many times before completing one short-way loop. (A, B) describe the small-q (1/q) regime instead. (D) q depends on field geometry, not the presence of current.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> A screw pinch has a = 0.2 m, R = 0.9 m, B_z = 1.6 T, and B_θ(a) = 0.55 T. The safety factor q(a) = aB_z/(RB_θ(a)) is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> 1.85 — kink-stable</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> 0.65 — kink-stable</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> 1.85 — kink-unstable</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> 0.65 — kink-unstable</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> q(a) = (0.2×1.6)/(0.9×0.55) ≈ 0.65, below the q=1 Kruskal–Shafranov threshold, so this configuration is kink-unstable. (A, C) invert the ratio. (B) gets the value right but the stability verdict backwards.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>21.</span> Is a purely azimuthal-field (B_θ-only) pinch always sausage (m=0) unstable, regardless of current profile?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> Only for a skin-current pinch; a sufficiently diffuse current/pressure profile (such as the Bennett pinch) can be m=0-stable per Kadomtsev's criterion, even with no axial field</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> Yes, always, with no exceptions for any profile</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> No, a B_θ-only pinch is never sausage-unstable</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> Sausage instability only affects pinches that also carry an axial field</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The unconditional runaway argument is exact only for current concentrated in a thin skin sheath; a diffuse profile's pressure gradient supplies part of the restoring response a skin current lacks, so it can be stable. (B, C, D) all overstate or invert the rule.</div>
+    </div>
+
+    <!-- ============ NUMERICAL METHODS (Week 9) ============ -->
+    <div class="exam-sec">Numerical Methods for 1-D MHD · Week 9</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> A grid has Δx = 0.005 m and the fast magnetosonic speed is 4×10⁶ m/s. The maximum stable timestep (C=1), Δt_max = Δx/v, is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> 1.25×10⁻⁶ s</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> 1.25×10⁻⁹ s</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> 1.25×10⁹ s</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> 0.80×10⁻⁹ s</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Δt_max = 0.005/4×10⁶ = 1.25×10⁻⁹ s. (A, C) are off by orders of magnitude. (D) inverts the ratio.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> In the Lecture 9 CFL-violation demo, after 300 timesteps with Δt = 1.5×Δt_CFL, the field amplitude reaches roughly…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> Exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> Exactly infinity — a literal floating-point overflow</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> An enormous but still-finite value, ~1.9×10²³⁴ — not literally "inf" yet, though a few hundred more steps of the same growth would get it there</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> The same amplitude as the stable run</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Double-precision floats only overflow past ~1.8×10³⁰⁸; ~1.9×10²³⁴ is enormous but still representable, a huge-but-finite waypoint on the same exponential blow-up. (A, D) understate the runaway. (B) overstates it — it is not yet a true overflow at step 300.</div>
+    </div>
+
+    <!-- ============ CAPSTONE (Week 10) ============ -->
+    <div class="exam-sec">Capstone: Equilibrium &amp; Wave Solver · Week 10</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> A Bennett pinch has centerline pressure p₀ = 8×10⁴ Pa. The exact Bennett-profile edge-field coefficient B₁ = √(2μ₀p₀) is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> 0.224 T</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> 0.897 T</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> 1.794 T</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> 0.448 T</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> B₁ = √(2 × 4π×10⁻⁷ × 8×10⁴) ≈ 0.448 T. (A, B, C) are off by simple factors of 2 or 4.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>25.</span> Which single equation from Lecture 4 underlies both the capstone's equilibrium solver (Part A) and, indirectly, the wave solver's background state (Part B)?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> The static force-balance equation, ∇p = J×B</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> The CFL condition</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> Ohm's law</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> The ideal gas law alone</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> ∇p = J×B is the equilibrium Part A solves exactly (the Bennett profile), and it also defines the uniform background state Part B then perturbs with a wave. (B) CFL governs the numerical timestep, not the physical equilibrium. (C) Ohm's law underlies the induction equation, not the static force balance. (D) the gas law is one piece of the pressure closure, not the organizing equation.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C3 Syllabus</div></a>
+        <a href="../lectures/l01-mhd-approximation.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 Magnetohydrodynamics</a> · <a href="../../index.html">Plasma &amp; Fusion</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
