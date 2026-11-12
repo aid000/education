@@ -93,6 +93,33 @@
         .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
         .q details .ans { color: var(--green); font-weight: 700; }
 
+        /* ── DISCUSSION (interactive) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(192,132,252,.12); border: 1px solid rgba(192,132,252,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #11132a; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
         .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
         .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
         .lec-nav a:hover { border-color: var(--accent); }
@@ -100,6 +127,8 @@
         .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
         .lec-nav a.disabled { opacity: .45; pointer-events: none; }
         .lec-nav a.next { text-align: right; }
+
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
 
         footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
         footer a { color: var(--accent2); text-decoration: none; }
@@ -182,7 +211,7 @@
         </figure>
         <p>Written out, the matrix element between sites m and n is:</p>
         <div class="eq">H(m,n) = eps if m = n;&nbsp; -t if |m - n| = 1;&nbsp; 0 otherwise<small>A real symmetric tridiagonal matrix. Its size grows with N, but it stays sparse: only ~3N nonzero entries, not N-squared.</small></div>
-        <p>Because H is real and symmetric, its eigenvalues are real (they are physical energies) and its eigenvectors are orthogonal — exactly the structure we exploited in earlier weeks. The sparsity is what lets us push to enormous N: a million-site chain has a million eigenvalues but only ~3 million nonzeros, so <span class="key">sparse</span> solvers (Week 4) handle it easily.</p>
+        <p>Because H is real and symmetric, its eigenvalues are real (they are physical energies) and its eigenvectors are orthogonal — exactly the structure we exploited in earlier weeks. The sparsity is what lets us push to enormous N: a million-site chain has a million eigenvalues but only ~3 million nonzeros, so <span class="key">sparse</span> storage (Week 6) plus a Lanczos/<code>eigsh</code> solver (Week 7) handle it easily.</p>
     </section>
 
     <!-- 9.3 -->
@@ -298,7 +327,7 @@ main = eps * np.ones(N)
 off  = -t  * np.ones(N - 1)
 H = sp.diags([off, main, off], offsets=[-1, 0, 1], format="csr")
 
-<span class="c"># lowest-k eigenvalues with a sparse solver (Week 4 toolset)</span>
+<span class="c"># lowest-k eigenvalues with a sparse solver (Week 6/7 toolset: CSR storage + Lanczos/eigsh)</span>
 vals = spla.eigsh(H, k=6, which="SA", return_eigenvectors=False)
 print("lowest 6 energies (eV):", np.sort(vals))
 
@@ -313,17 +342,6 @@ plt.xlabel("level index m"); plt.ylabel("energy (eV)")
 plt.title(f"1D tight-binding band, N={N}, width 4t={4*t} eV")
 plt.legend(); plt.show()</pre>
         <p style="font-size:.88rem; color:var(--text2);">Try it: rerun with N = 6, 50, 500. The dots are always trapped in the same [&minus;2t, +2t] window and trace the same cosine — they just pack denser as N grows, exactly the discrete-to-band crossover. Then change t and watch the whole band widen or narrow by 4t.</p>
-    </div>
-
-    <!-- DISCUSSION -->
-    <div class="ext">
-        <h3>💬 Discussion</h3>
-        <p>A single carbon atom has sharply defined electron energy levels. A diamond crystal — astronomically many of the same carbon atoms — is a transparent <em>insulator</em> with a large band gap, while graphite (also pure carbon) conducts. Using the tight-binding picture, explain how identical atoms can yield such different electronic behavior. In your answer, address: (1) what physically sets the bandwidth, (2) why "more atoms" does not simply mean "more energy," and (3) what extra ingredient beyond a single 1D chain you would need to predict a band gap.</p>
-        <details>
-            <summary>Show a model response</summary>
-            <p style="font-size:.88rem; color:#ddcdf0; margin-top:10px;">The key realization is that electronic behavior is governed by <em>hopping geometry</em>, not by the number of atoms. (1) The <strong>bandwidth is set by the hopping integral t</strong> — how much an electron's orbital on one atom overlaps its neighbor's. In our 1D chain the band is 4t wide regardless of N; carbon's bonds in diamond vs. graphite have different geometries and orbital overlaps, so their effective t's and band shapes differ. (2) Adding atoms keeps the band within the <em>same</em> energy window (set by t) but packs more discrete levels into it — N atoms give N levels of spacing ~4t/N, which is why a macroscopic crystal has a continuum, not higher energies. The energy span is fixed by coupling strength, not system size. (3) A single one-orbital 1D chain produces just <em>one</em> band and therefore no gap. To get a gap you need either <strong>more than one orbital (or atom) per unit cell</strong> — e.g. a two-site basis with alternating hoppings, which splits the single band into two with a gap between them — or higher dimensionality. Diamond's gap arises from its multi-orbital, 3D bonding; graphite's conduction comes from bands that touch at special points so there is no gap. So "same atoms, different solids" reduces to "different lattices and orbital overlaps, hence different t's and band structures."</p>
-            <p style="font-size:.84rem; color:var(--green); margin-top:10px;">✓ Self-check rubric: A strong answer (a) ties bandwidth to hopping t, not to N; (b) explains that more atoms means denser levels in a fixed window, not larger energies; (c) identifies that a gap requires more than one band — i.e. a multi-site/multi-orbital unit cell or higher dimensionality — rather than just a longer chain.</p>
-        </details>
     </div>
 
     <!-- EXTENSION -->
@@ -395,6 +413,43 @@ plt.legend(); plt.show()</pre>
         <p class="next-up">Next up — Week 10 Capstone: assemble everything into a full 1D Schrodinger solver, where the same tridiagonal matrix carries a real potential.</p>
     </div>
 
+    <!-- ════════════════ DISCUSSION (interactive) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 3 · Week 9</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="c3-l9-d3">
+            <p class="disc-prompt" id="prompt-c3l9">A finite lattice has discrete levels, yet we speak of continuous energy bands. How does the band picture emerge as the lattice grows, and what sets the gaps?</p>
+
+            <textarea id="ans-c3l9" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-c3l9">Not saved yet</span>
+                <span class="toast" id="toast-c3l9"></span>
+            </div>
+
+            <div class="disc-model" id="model-c3l9" hidden>
+                <h4>Model response</h4>
+                <p>A finite chain of N identical atoms is not a continuum — it has exactly N discrete eigenvalues, E_m = ε − 2t·cos(mπ/(N+1)) for m = 1,…,N. These are not approximations; they are exact samples of the very same cosine dispersion E(k) = ε − 2t·cos(ka) that the infinite chain obeys, with the boundary conditions quantizing which k-values are allowed. As N grows, the number of samples packed into the fixed window [ε − 2t, ε + 2t] grows too, so the level spacing shrinks like ~4t/N. For a macroscopic crystal with N ~ 10²³, the levels are so close together that they are indistinguishable from a continuum for any practical measurement — "the band" is simply what a dense-enough sampling of discrete levels looks like.</p>
+                <p>The gaps are set by the hopping integral t, not by the number of atoms: the bandwidth is always 4t for this simple one-orbital chain, so a stronger neighbor-to-neighbor coupling spreads the levels over a wider window while a weaker coupling compresses them, but adding more atoms only packs the same window denser — it never widens it. A genuine gap <em>between</em> bands, like the one separating diamond's filled and empty states, cannot come from a single-orbital 1D chain at all, since that always gives one band and no gap; it requires more than one orbital or atom per unit cell (a dimerized two-site basis with alternating hoppings, for instance, splits one band into two with a gap between them) or higher dimensionality, which is exactly how real band gaps in insulators and semiconductors arise.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>States that N atoms give exactly N discrete levels sampling the cosine dispersion E(k) = ε − 2t·cos(ka), and that growing N packs more samples into the same fixed-width window — that density is the band</li>
+                    <li>Identifies that the bandwidth (4t) is set by the hopping integral t, not by the atom count N — explicitly rejecting "more atoms = wider band"</li>
+                    <li>Explains that a true band gap requires more than a single-orbital 1D chain — e.g. a multi-site/multi-orbital unit cell (dimerization) or higher dimensionality — not just a longer chain</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
     <!-- LECTURE NAV -->
     <div class="lec-nav">
         <a href="l08-schrodinger-1d.html"><div class="dir">← Week 8</div><div class="ttl">The Schrodinger Equation (1D)</div></a>
@@ -413,6 +468,53 @@ plt.legend(); plt.show()</pre>
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my computational physics tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

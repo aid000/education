@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Final Exam — PDEs &amp; Field Simulations</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: var(--red); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C4 PDEs &amp; Fields</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C4 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from PDE classification to Maxwell's equations on a grid.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">PDE types &amp; finite differences <b>3</b></span>
+            <span class="wchip">Explicit diffusion &amp; CFL/stability <b>6</b></span>
+            <span class="wchip">Implicit methods &amp; boundary conditions <b>6</b></span>
+            <span class="wchip">Wave equation <b>3</b></span>
+            <span class="wchip">Poisson/Laplace &amp; relaxation <b>3</b></span>
+            <span class="wchip">Maxwell's equations, FDTD &amp; capstone <b>4</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ PDE CLASSIFICATION & FINITE DIFFERENCES (Weeks 1-2) ============ -->
+    <div class="exam-sec">PDE Classification &amp; Finite Differences · Weeks 1–2</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> For a linear second-order PDE with discriminant D = B² − 4AC, a PDE with D = 0 is classified as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> parabolic</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> elliptic</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> hyperbolic</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> nonlinear</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The heat equation (A=α, B=0, C=0) gives D=0 — parabolic. D&lt;0 is elliptic, D&gt;0 is hyperbolic, and the sign of D says nothing about linearity.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>2.</span> Which statement about boundary-value vs. initial-value problems is correct?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> Elliptic PDEs are initial-value problems marched forward in time</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> Elliptic PDEs have no time variable, so they are boundary-value problems solved over the whole domain at once</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> Hyperbolic PDEs need no initial conditions at all</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> Parabolic PDEs are solved all at once with no marching</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> With no time derivative, an elliptic PDE's interior is fixed entirely by data on the boundary, solved globally in one shot. Parabolic and hyperbolic problems march forward from initial data instead.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> The five-point Laplacian stencil in 2D assigns which weights (before dividing by h²) to the center and its four neighbors?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> center +4, neighbors −1</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> center −2, neighbors +1</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> center −4, neighbors +1</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> center 0, neighbors +1</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Summing the 1D second-derivative stencils along x and y gives center −4 and +1 on each of the four neighbors, all over h². Option B is the 1D second-derivative stencil, not the 2D Laplacian.</div>
+    </div>
+
+    <!-- ============ EXPLICIT DIFFUSION & THE CFL/STABILITY LIMIT (Weeks 3-4) ============ -->
+    <div class="exam-sec">Explicit Diffusion &amp; the CFL/Stability Limit · Weeks 3–4</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> The FTCS update for the 1D heat equation is called "explicit" because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> it is exact, with no truncation error</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> it requires solving a tridiagonal system each step</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> it is unconditionally stable for any Δt</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> each new value u<sub>i</sub><sup>n+1</sup> is computed directly from already-known values at time level n, with no system to solve</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> "Explicit" means the future value is given by a direct formula in known quantities — no linear solve. It is an approximation (not exact) and only conditionally stable (r ≤ 1/2), unlike implicit schemes.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> With diffusion number r = αΔt/Δx², the stability condition for explicit FTCS is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> r ≤ 1/2</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> r ≤ 1</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> r ≤ 2</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> there is no limit on r</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Von Neumann analysis gives amplification factor G = 1 − 4r·sin²(kΔx/2); requiring G ≥ −1 for the worst-case mode yields r ≤ 1/2, i.e. Δt ≤ Δx²/(2α).</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>6.</span> Von Neumann analysis of FTCS gives amplification factor G = 1 − 4r·sin²(kΔx/2). The mode that first violates stability as r increases is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> the smoothest mode, kΔx → 0</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> the highest-frequency mode, kΔx = π, where sin² = 1</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> a mode with negative wavenumber</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> all modes become unstable simultaneously at the same r</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The jagged, point-to-point sawtooth mode (kΔx = π) hits sin² = 1 first and drives G below −1 before any smoother mode does — exactly why blow-ups look like alternating +/− spikes.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> You halve Δx on an explicit heat solver to improve spatial resolution. The largest stable Δt…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> stays the same</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> is halved</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> drops to one quarter, since the limit scales with Δx²</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> doubles</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Since Δt ≤ Δx²/(2α), halving Δx multiplies the bound by (1/2)² = 1/4 — the brutal dx² penalty that motivates implicit methods.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> Running explicit FTCS with r = 0.8 (exceeding the stability limit) produces a solution that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> is identical to r = 0.4, since r only affects speed</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> slowly drifts upward with no oscillation</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> remains bounded but less accurate</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> erupts into growing point-to-point (sawtooth) oscillations because the self-weight (1−2r) has gone negative</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> At r &gt; 1/2 the center weight (1−2r) in the weighted-average form goes negative, so a hot point overshoots colder than its neighbors — an oscillation that grows every step.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>9.</span> The general CFL (Courant) condition for an explicit scheme is fundamentally a statement that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> the numerical domain of dependence of a grid point must contain the true physical domain of dependence — information cannot be asked to skip over a grid cell in one step</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> the time step must equal the grid spacing</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> round-off error must stay below machine epsilon</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> the scheme must be at least second-order accurate</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> CFL is about information, not accuracy or round-off: an explicit stencil only sees nearby cells, so the true physical signal may not outrun that reach.</div>
+    </div>
+
+    <!-- ============ IMPLICIT METHODS & BOUNDARY CONDITIONS (Weeks 5-6) ============ -->
+    <div class="exam-sec">Implicit Methods &amp; Boundary Conditions · Weeks 5–6</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>10.</span> The defining difference between an implicit and an explicit scheme for the heat equation is that an implicit scheme…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> uses a coarser time step by definition</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> evaluates the spatial derivative at the new time level n+1, coupling all the new unknowns so they must be solved together</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> ignores boundary conditions</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> is always cheaper per step</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Implicit schemes evaluate u<sub>xx</sub> at level n+1, so the unknowns are coupled and must be solved together — more expensive per step, not less, and boundaries still matter.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> Backward Euler (BTCS) for the 1D heat equation has amplification factor G = 1/(1 + 4r·sin²(kΔx/2)). This means it is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> unstable for r &gt; 1/2, just like FTCS</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> exact, with zero truncation error</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> unconditionally stable (|G| ≤ 1 for every Δt and every mode), though only first-order accurate in time</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> stable only when Δt is extremely small</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The denominator is always ≥ 1, so |G| ≤ 1 for any r — unconditional stability. This is about stability, not accuracy: backward Euler is still only first-order in time.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> The Crank-Nicolson scheme is best described as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> identical to FTCS but with a smaller time step</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> a purely explicit scheme requiring no linear solve</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> only first-order accurate in space</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> the average of forward and backward Euler, giving second-order accuracy in time while remaining unconditionally stable</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Centering the spatial term at the midpoint n+1/2 cancels the leading O(Δt) error, giving O(Δt²+Δx²) accuracy while keeping |G| ≤ 1 for all r.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>13.</span> A single implicit step for the 1D heat equation requires solving a tridiagonal linear system. Despite needing a solve, this costs only O(N) work because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> the Thomas algorithm exploits the tridiagonal structure — each node couples only to its immediate neighbors</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> the matrix is dense and a direct O(N³) solve is avoided by luck</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> NumPy caches the result from the previous time step</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> the boundary conditions eliminate the need to solve anything</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The matrix is tridiagonal (not dense), and the Thomas algorithm — a specialized Gaussian elimination — solves it in O(N) with one forward and one backward sweep.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>14.</span> For a Neumann (zero-flux) boundary condition, using the ghost-point construction u(−1) = u(1) instead of the one-sided difference (u₁ − u₀)/h matters because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> the ghost point saves memory by avoiding extra storage</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> the ghost point gives a centered, second-order boundary derivative, so global accuracy is not dragged down to first order by the one-sided form</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> the one-sided form is unconditionally unstable</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> the ghost point is only needed for Dirichlet conditions</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The one-sided difference is only O(h); a scheme's global order equals its worst local order, so a first-order boundary caps an otherwise second-order interior. The ghost point restores O(h²) at the edge.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> A steady 1D Poisson problem with Neumann conditions on both ends of the domain has what issue?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> It always has a unique solution</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> It cannot be expressed as a matrix system A·u = b</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> The solution is non-unique — defined only up to an additive constant — because the matrix is singular, unless a value or the mean is pinned</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> It is unconditionally unstable in time</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Only derivatives are constrained, so adding any constant to a solution gives another valid solution — the matrix is singular until one value (or the mean) is anchored.</div>
+    </div>
+
+    <!-- ============ THE WAVE EQUATION (Week 7) ============ -->
+    <div class="exam-sec">The Wave Equation · Week 7</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> For a string under tension T with mass per unit length ρ, the wave speed in ∂²u/∂t² = c²∂²u/∂x² is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> c = T/ρ</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> c = ρ/T</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> c = sqrt(T·ρ)</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> c = sqrt(T/ρ)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Newton's law on a string segment gives ρ·u<sub>tt</sub> = T·u<sub>xx</sub>, so c² = T/ρ and c = sqrt(T/ρ). Option C is the string's impedance Z, not its wave speed.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> The leapfrog (CTCS) scheme for the wave equation links three time levels (n−1, n, n+1). What extra step is required to begin the simulation?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> A special starter step that uses the initial velocity to construct the missing level u⁻¹ (or u¹) via a centered approximation</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> Nothing — the scheme is self-starting from u⁰ alone</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> A matrix inversion to find u⁻¹</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> Setting all values to zero for the first two steps</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> With only u⁰ known, the first step uses the initial velocity v(x) in a centered approximation to supply the missing past level — after that, leapfrog runs on its own.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> A right-moving pulse on a string reflects off a fixed (Dirichlet, u=0) end. The reflected pulse is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> upright and unchanged in sign</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> inverted (flipped sign), since a fixed end is the Z₂ → ∞ limit giving reflection coefficient R = −1</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> completely absorbed with no reflection</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> doubled in amplitude</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A clamped end must push back, flipping the sign of the returning pulse (R = −1). A free (Neumann) end instead reflects it upright (R = +1).</div>
+    </div>
+
+    <!-- ============ POISSON/LAPLACE & RELAXATION (Week 8) ============ -->
+    <div class="exam-sec">Poisson/Laplace &amp; Relaxation · Week 8</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> In the discrete Laplace equation on a square grid, an interior value φ(i,j) satisfying ∇²φ = 0 equals…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> the sum of its four nearest neighbors</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> the maximum of its four nearest neighbors</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> the average of its four nearest neighbors</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> the value of the nearest boundary node</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The five-point stencil for ∇²φ = 0 rearranges to φ(i,j) = ¼(sum of 4 neighbors) — the average, not the sum (off by ¼).</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> Compared to Jacobi iteration, Gauss-Seidel converges roughly twice as fast because it…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> changes the boundary conditions each sweep</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> solves the system exactly in a single sweep</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> requires two separate copies of the grid</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> uses freshly updated neighbor values within the same sweep instead of only old values</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Gauss-Seidel reuses just-computed values as it sweeps, letting news propagate across the grid within one pass; Jacobi (which needs two grid copies) uses only old values.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>21.</span> For a large N×N grid, Successive Over-Relaxation (SOR) with the optimal relaxation factor ω reduces the number of sweeps needed to converge from O(N²) (Jacobi/Gauss-Seidel) down to about…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> O(N)</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> O(N²) still — no real improvement</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> O(N³)</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> O(1), independent of grid size</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Optimal SOR needs only O(N) sweeps versus O(N²) for Jacobi/Gauss-Seidel — turning ten thousand sweeps into a few hundred, the big classical speedup.</div>
+    </div>
+
+    <!-- ============ MAXWELL'S EQUATIONS, FDTD & CAPSTONE SYNTHESIS (Weeks 9-10) ============ -->
+    <div class="exam-sec">Maxwell's Equations, FDTD &amp; Capstone Synthesis · Weeks 9–10</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> On the Yee grid, E and H are stored at points offset by half a cell in both space and time. The purpose of this staggering is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> to halve the memory required for the field arrays</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> so that a centered (second-order) spatial difference of one field lands exactly where the other field is stored, needing no interpolation</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> to make the FDTD scheme implicit and therefore unconditionally stable</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> because Maxwell's equations physically require E and H to exist at different locations</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Every derivative needed is a clean centered difference of values that already exist on the grid — no interpolation, no extra memory, and FDTD remains explicit and only conditionally stable.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> In 1D FDTD, the Courant number is S = cΔt/Δx. Choosing Δt so that S = 1.3 causes…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> the pulse to correctly propagate at 1.3c</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> the simulation to run 30% slower but otherwise correctly</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> the simulation to go unstable: the physical signal would have to outrun the numerical domain of dependence, so errors amplify and the fields blow up</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> no change at all, since S only affects numerical dispersion</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> S &gt; 1 violates the CFL condition — the grid cannot support a signal outrunning the light cone, so the scheme responds with exponential blow-up within a few dozen steps.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> In going from a 1D to a 2D (or 3D) FDTD grid, the stable Courant number tightens from S ≤ 1 to S ≤ 1/√2 (2D) or 1/√3 (3D) because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> the speed of light changes with dimension</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> higher dimensions require implicit time-stepping</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> it is an arbitrary safety margin with no physical basis</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> the grid becomes anisotropic — a wave traveling diagonally is the worst case, needing the physical light cone to stay inside the numerical domain of dependence along every direction, not just the axes</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A diagonal wave covers √2 (or √3) times the axis spacing between the grid samples it uses, so no single Δt matches the light cone in every direction at once — the diagonal is the worst case the bound must protect.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>25.</span> In the capstone's diagnostic philosophy, a secular (sustained) <em>rise</em> in a conserved or monotonic quantity — total heat in an insulated box, or EM field energy in a lossless PEC box — most likely indicates…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> the simulation is working correctly, since fields naturally grow over time</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> nothing — conserved quantities are expected to drift slowly regardless of implementation</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> the time step was chosen for best accuracy, not stability</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> a violated stability condition or an incorrectly implemented boundary condition, since a correct scheme should keep that quantity flat or monotonically decaying</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Pretty color maps lie; conserved quantities don't. A rising diagnostic in a closed, lossless system is an instant red flag for a CFL violation or a leaking/mis-implemented boundary.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C4 Syllabus</div></a>
+        <a href="../lectures/l01-pdes-three-types.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 PDEs &amp; Fields</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 · Final Exam — ODEs &amp; Classical Dynamics</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C2 ODEs &amp; Dynamics</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C2 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from Euler's method and Runge-Kutta to symplectic integrators, N-body dynamics, and chaos.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">ODEs, IVPs &amp; Euler Error · Wks 1–2 <b>4</b></span>
+            <span class="wchip">Runge-Kutta &amp; Adaptive Stepping · Wks 3–4 <b>6</b></span>
+            <span class="wchip">Phase Space &amp; Stiffness · Wks 5–6 <b>6</b></span>
+            <span class="wchip">Symplectic Integration &amp; N-Body · Wks 7–8 <b>5</b></span>
+            <span class="wchip">Chaos &amp; Capstone · Wks 9–10 <b>4</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ ODES, IVPS & EULER ERROR (Weeks 1-2) ============ -->
+    <div class="exam-sec">ODEs, IVPs &amp; Euler Error · Weeks 1–2</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> A physics student has the second-order equation for a pendulum's swing, θ″ = −(g/L)·sin θ. To hand this to a general-purpose numerical ODE solver such as RK4, the first step is to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> introduce ω = θ′ and rewrite the system as the first-order pair θ′ = ω, ω′ = −(g/L)·sin θ</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> integrate both sides directly to get θ(t) in closed form</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> discard the sin θ term and treat the equation as linear</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> solve for θ using only the initial angle, ignoring ω</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Naming the angular velocity as a new state variable turns one second-order equation into two coupled first-order ones — the form every standard solver expects. No closed-form solution exists in general, and dropping sin θ or ω would discard real physics.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>2.</span> Why does the IVP dy/dt = f(t, y) require an initial condition y(t₀) = y₀ before it can be considered "solved"?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> Without it, f(t, y) has no numerical value anywhere</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> The differential equation alone defines a whole family of solution curves (a slope field); the initial condition selects the one curve that passes through y₀</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> It converts the ODE from first order to second order</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> Only nonlinear equations need an initial condition</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> f(t, y) plants a slope arrow at every point in the (t, y) plane; infinitely many curves stay tangent to that field. y(t₀) = y₀ drops you onto one specific point and picks out the single curve through it. Linear ODEs need initial data too, and order is unaffected.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> The local truncation error committed by a single explicit-Euler step, assuming the starting value is exact, scales as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> O(1), independent of the step size h</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> O(h)</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> O(h²), governed by the solution's curvature y″</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> O(h⁴)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Euler keeps the Taylor series through the linear term and drops (h²/2)y″ — that dropped term is the local truncation error, O(h²). O(h) (B) is the global error after ~1/h steps accumulate it; the error clearly shrinks with h, ruling out (A).</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> Applying explicit Euler to y′ = −λy with λ &gt; 0 real, the numerical solution stays bounded only when the step size satisfies…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> h &gt; 2/λ</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> h = 1/λ exactly</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> any h &gt; 0, since the true solution decays</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> h &lt; 2/λ</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The update multiplies by (1 − λh); stability needs |1 − λh| &lt; 1, i.e. h &lt; 2/λ. (A) is exactly the unstable regime, and (C) is the classic trap — the method can blow up with growing oscillations even though the true answer decays smoothly.</div>
+    </div>
+
+    <!-- ============ RUNGE-KUTTA & ADAPTIVE STEPPING (Weeks 3-4) ============ -->
+    <div class="exam-sec">Runge-Kutta &amp; Adaptive Stepping · Weeks 3–4</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>5.</span> In the classical fourth-order Runge-Kutta method (RK4), the four slope estimates k₁, k₂, k₃, k₄ are combined in the final update with weights…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> 1 : 1 : 1 : 1, divided by 4 (a plain average)</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> 1 : 2 : 2 : 1, divided by 6</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> 1 : 3 : 3 : 1, divided by 8</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> 1 : 4 : 1 : 0, divided by 6</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> y_(n+1) = y_n + (h/6)(k₁ + 2k₂ + 2k₃ + k₄) — the two midpoint slopes count double, matching Simpson's rule. A plain average would not match the Taylor series through h⁴, and 1:3:3:1 are binomial coefficients, not RK4's.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>6.</span> RK4's local (per-step) truncation error is O(h⁵). Crossing a fixed time interval requires about 1/h steps, so the resulting global error is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> O(h²)</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> O(h³)</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> O(h⁴)</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> O(h⁵), unchanged from the local error</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Summing ~1/h per-step errors of size O(h⁵) accumulates to roughly (1/h)·O(h⁵) = O(h⁴) — one order is always lost going from local to global for a one-step method. (D) ignores that accumulation entirely.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>7.</span> A Butcher tableau for an explicit Runge-Kutta method fully specifies…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> only how many function evaluations the method performs</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> the exact closed-form solution of the ODE being solved</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> the machine round-off error of the hardware running the integration</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> the stage time-offsets (c), the inner stage coefficients (a), and the final averaging weights (b)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The tableau is a complete recipe: when each slope is sampled (c), how earlier slopes feed later stages (a), and how they're blended (b). Euler, midpoint, and RK4 are all just different tableaus; (A) only counts stages, and (B)/(C) are unrelated.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>8.</span> An embedded Runge-Kutta pair such as Dormand-Prince RK45 estimates the local error of a step essentially for free by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> combining the same shared stage slopes two different ways — once with 5th-order weights and once with 4th-order weights — and taking the difference</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> running the entire integration twice from two random seeds and comparing</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> comparing the numerical result to the exact analytic solution</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> measuring how long the CPU takes to complete the step</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Both solutions reuse the same stage evaluations; only the weights differ, so the error estimate costs almost nothing extra. ODE solving is deterministic (no seeds, ruling out B), and an exact solution (C) is generally unavailable — that's the whole reason to estimate.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>9.</span> In the adaptive step-size controller, a trial step is rejected and retried with a smaller h whenever…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> the estimated error is far below the tolerance</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> the step size happens to equal exactly 0.1</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> the estimated local error exceeds the scaled tolerance (err &gt; tol)</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> the right-hand side f returns a negative number</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> err &gt; tol means the step overshot the accuracy target, so it's discarded and retried smaller. (A) describes acceptance with room to grow h; (B) is an arbitrary number; (D) is irrelevant — the sign of f says nothing about step error.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>10.</span> For an embedded pair of order p = 4 (such as RK45), the step-size update formula h_new = h·S·(tol/err)^(1/(p+1)) uses the exponent…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> 1/2</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> 1/4</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> 1/8</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> 1/5</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The exponent is 1/(p+1) = 1/(4+1) = 1/5, because the local error of an order-p method scales as h^(p+1). (B) wrongly uses 1/p instead of 1/(p+1).</div>
+    </div>
+
+    <!-- ============ PHASE SPACE & STIFFNESS (Weeks 5-6) ============ -->
+    <div class="exam-sec">Phase Space &amp; Stiffness · Weeks 5–6</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>11.</span> In a phase portrait of an autonomous system dy/dt = f(y), two distinct trajectories can never cross one another because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> f(y) assigns exactly one velocity arrow to each point in phase space, so a single state has only one possible future</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> energy is always conserved in every such system</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> the plot would look too cluttered otherwise</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> trajectories are always straight lines</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Determinism forbids two futures from one state. (B) is false — damped systems lose energy yet still don't cross; (C) is aesthetic, not a law; (D) is false in general.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>12.</span> A fixed point's Jacobian has eigenvalues λ = −0.4 ± 3i. This fixed point is classified as a…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> saddle point</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> stable spiral (nudges decay while rotating)</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> source (unstable node)</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> center with closed orbits</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Negative real part (−0.4) means nudges decay; the nonzero imaginary part means they also rotate — an inward spiral. A saddle needs mixed-sign real parts, a source needs positive real parts, and a center needs real part exactly zero.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>13.</span> A system of ODEs is called stiff when…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> its Jacobian is exactly singular</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> it has no closed-form analytic solution</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> its solution is discontinuous in time</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> it contains processes evolving on widely separated timescales, forcing an explicit solver into impractically tiny steps</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Stiffness is the coexistence of fast and slow timescales (a large stiffness ratio of Jacobian eigenvalues), which caps an explicit step at the fast rate. A singular Jacobian (A) or lack of a closed form (B) are unrelated, and stiff solutions are typically smooth, not discontinuous (C).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>14.</span> For the linear test equation y′ = λy with Re(λ) &lt; 0, forward (explicit) Euler stays numerically stable only when the step size h satisfies…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> |1 + hλ| &lt; 1, i.e. h &lt; 2/|λ|</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> h is unconditionally fine for any size, since the true solution decays</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> h &gt; |λ|</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> h must equal exactly 1/|λ|</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The amplification factor is 1 + hλ; stability needs |1 + hλ| &lt; 1, i.e. h &lt; 2/|λ|. Forward Euler is <em>not</em> unconditionally stable (that describes backward Euler, B), and C/D are not real stability conditions.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>15.</span> Backward (implicit) Euler applied to y′ = λy gives the amplification factor R(z) = 1/(1 − hλ). This method is called A-stable because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> its stability region is a small disk of radius 1</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> |R| &lt; 1 for every Re(λ) &lt; 0 and any step size h &gt; 0 — its stability region is the entire left half-plane</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> it requires no Jacobian to implement</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> it is always more accurate per step than any explicit method</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A-stability means every decaying mode is stable for any step size — the full left half-plane of z = hλ. (A) describes forward Euler's small bounded disk; (C) is false for nonlinear problems (implicit methods need the Jacobian for Newton iteration); (D) confuses stability with accuracy — backward Euler is only first order.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>16.</span> Your explicit RK45 solver is taking thousands of tiny steps on a problem whose solution looks smooth, and it warns that it cannot meet the requested tolerance. The appropriate fix is to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> lower the requested tolerance until the warning disappears</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> manually force a larger step size and hope for the best</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> switch to an implicit method such as BDF or Radau, ideally supplying the analytic Jacobian</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> add more points to the output time array</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> These are textbook symptoms of stiffness; an implicit solver with a large enough stability region removes the step-size cap entirely (Radau is fully A-stable; SciPy's BDF is A-stable at the low orders it mostly uses and the weaker A(&alpha;)-stable at higher orders). (A) hides the problem by accepting a worse answer, (B) would make an explicit method blow up, and (D) only changes output sampling, not the internal steps.</div>
+    </div>
+
+    <!-- ============ SYMPLECTIC INTEGRATION & N-BODY (Weeks 7-8) ============ -->
+    <div class="exam-sec">Symplectic Integration &amp; N-Body · Weeks 7–8</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> Integrating a planet's orbit with RK4 over millions of periods, the total energy does not stay constant — it drifts steadily in one direction. This happens because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> RK4 is not symplectic, so it fails to preserve the phase-space geometry of Hamiltonian flow, even though its per-step accuracy is excellent</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> RK4's local truncation error is actually larger than Euler's</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> RK4 cannot represent inverse-square forces correctly</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> RK4 requires complex-number arithmetic that introduces round-off</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> RK4 has excellent local accuracy (O(h⁵) local error) but does not respect the geometric structure of Hamiltonian flow, so energy accumulates a systematic drift over many periods. (B) is false, and (C)/(D) are irrelevant — RK4 handles such forces fine with ordinary real arithmetic.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> The velocity-Verlet / leapfrog update is built from alternating "kick" (update velocity at fixed position) and "drift" (update position at fixed velocity) sub-steps. Geometrically, each of these sub-steps is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> a rotation that changes the enclosed phase-space area</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> a shear map with unit Jacobian determinant, so it exactly preserves phase-space area</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> a random perturbation of the state</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> a projection that discards one coordinate</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A drift updates x at fixed v and a kick updates v at fixed x; each is a shear with determinant 1, so their composition preserves area — the symplectic condition. (A) wrongly calls it a rotation, and (C)/(D) describe nothing the deterministic update actually does.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> Backward error analysis shows that a symplectic integrator like velocity-Verlet nearly exactly conserves a nearby "shadow" Hamiltonian H̃ = H + O(h²). The practical consequence is that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> the true energy H is conserved to machine precision, with zero error</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> the true energy H decays steadily to zero</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> the true energy H is kept bounded, oscillating within an O(h²) band rather than drifting away</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> only the angular momentum is bounded, never the energy</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Because H̃ is conserved and differs from the true H by only O(h²), the true energy cannot wander — it merely oscillates within a band of that width, for arbitrarily long runs. (A) overstates it (there is a small O(h²) offset), and (B)/(D) contradict the bounded-oscillation result.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> Direct summation of the gravitational force in an N-body simulation costs how much computational work per step, and why?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> O(N), since each body only feels the nearest neighbor</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> O(log N), using a lookup table</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> O(N³), because three spatial dimensions are involved</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> O(N²), because the acceleration on every body sums contributions from every other body, i.e. all ~N²/2 pairs</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> There are N(N−1)/2 ~ N²/2 distinct pairs and every one must be summed. (A) ignores gravity's long range, (B) is the cost of a tree method like Barnes-Hut, not direct summation, and (C) is not how the scaling works — it has nothing to do with spatial dimensionality.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>21.</span> In an N-body simulation, adding a small softening length ε inside the force law, a_i ∝ (r_j − r_i)/(|r_j − r_i|² + ε²)^(3/2), is done chiefly to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> keep the inverse-square force from diverging to infinity when two bodies pass very close together</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> make the total momentum conserved exactly</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> reduce the problem to an exactly solvable two-body system</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> speed up the simulation by skipping distant pairs</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> As separation → 0 the unsoftened force → ∞ and a fixed-step integrator takes a catastrophic kick; ε² floors the denominator so it stays finite. (B) is false — softening doesn't change the momentum bookkeeping — and (C)/(D) are unrelated to what softening actually does.</div>
+    </div>
+
+    <!-- ============ CHAOS & CAPSTONE (Weeks 9-10) ============ -->
+    <div class="exam-sec">Chaos &amp; Capstone · Weeks 9–10</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> The largest Lyapunov exponent λ of a dynamical system measures…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> the total energy stored in the system</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> the exponential rate at which two initially nearby trajectories separate, δ(t) ≈ δ₀·e^(λt); λ &gt; 0 is the signature of chaos</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> the number of fixed points the system has</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> the period of the system's oscillation</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> λ quantifies sensitive dependence directly: a positive λ means infinitesimally close starts diverge exponentially, the mathematical fingerprint of chaos. (A), (C), and (D) describe unrelated quantities.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> The Lorenz attractor's x, y, z variables and its famous two-lobed "butterfly" shape should be understood as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> literal spatial coordinates tracing the path of a physical particle moving through the air</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> a periodic orbit that exactly repeats every cycle</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> abstract amplitudes of convection modes plotted in state (phase) space, forming a bounded, aperiodic, fractal strange attractor</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> a single stable fixed point that the system eventually settles into</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> x, y, z are convection-mode amplitudes, not positions in real space; the trajectory wanders forever on a bounded, fractal, aperiodic surface. (A) misreads the axes, (B) is wrong because it never exactly repeats, and (D) is wrong because the foci are unstable — the system never settles.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> You know a chaotic system's initial state to relative precision δ₀, and its largest Lyapunov exponent is λ. The time until your prediction becomes useless (error reaches order 1) scales as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> directly proportional to 1/δ₀ — improving precision tenfold buys ten times longer prediction</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> directly proportional to λ — a larger λ gives a longer predictable horizon</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> independent of both δ₀ and λ</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> (1/λ)·ln(1/δ₀) — the horizon grows only logarithmically as precision improves</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Setting δ₀e^(λt) ≈ 1 and solving gives t ≈ (1/λ)·ln(1/δ₀). (A) is far too optimistic — the dependence is logarithmic, not linear; (B) has the relationship backwards (a larger λ <em>shortens</em> the horizon); (C) is wrong since both clearly matter.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>25.</span> In the course capstone, Track A (N-body) and Track B (double-pendulum chaos) each demand a specific diagnostic to prove the simulation is scientifically trustworthy. For Track A that diagnostic is energy and angular momentum plotted versus time, showing a bounded, non-drifting band; for Track B it is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> the log-separation between two nearby trajectories growing linearly with a slope equal to the estimated Lyapunov exponent, ideally obtained via Benettin renormalization to avoid saturation</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> a single plot of the pendulum's angle looking visually smooth</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> verifying the total energy decays to exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> counting how many times the pendulum completes a full rotation</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Track B's defining physics is sensitive dependence, so the headline diagnostic is the growth rate of ln(separation) between two nearby runs — its slope is the Lyapunov exponent, and Benettin renormalization keeps the measurement in the clean exponential regime instead of letting it saturate at the attractor's size. (B)–(D) are not scientific validation.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C2 Syllabus</div></a>
+        <a href="../lectures/l01-odes-ivp.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 ODEs &amp; Dynamics</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

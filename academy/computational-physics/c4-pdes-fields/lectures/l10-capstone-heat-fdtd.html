@@ -223,7 +223,7 @@
             <li><strong>Stability cap:</strong> dt &lt;= h<sup>2</sup>/(4 alpha) = 1.02x10<sup>-4</sup> / (4 x 1.0x10<sup>-5</sup>) ≈ 2.55 s. Use a safety factor 0.9: dt = 2.3 s.</li>
             <li><strong>Diffusion time scale:</strong> the plate equilibrates on tau ≈ L<sup>2</sup>/alpha = 1 / 1.0x10<sup>-5</sup> = 1.0x10<sup>5</sup> s. To reach near-steady state you need roughly tau/dt ≈ 1.0x10<sup>5</sup>/2.3 ≈ <strong>4.3x10<sup>4</sup> steps</strong>. (Explicit diffusion is step-hungry — this is exactly why Crank–Nicolson from 10.5 is the production choice.)</li>
             <li><strong>Conservation check (insulated subcase):</strong> if you temporarily insulate <em>all four</em> edges, total heat Q = sum(u) x h<sup>2</sup> must stay constant to ~10<sup>-12</sup> relative. Log it every 100 steps; a drift means a boundary is leaking.</li>
-            <li><strong>Monotone check (mixed BCs):</strong> with the 100 C Dirichlet edge active, heat flows <em>in</em>, so Q rises monotonically toward the steady profile (a linear ramp from the hot edge). The energy surrogate relaxes smoothly with no overshoot. If dt is set to 3.0 s (above the 2.55 s cap), the field instead develops a checkerboard that doubles in amplitude each step — the unmistakable explicit-diffusion blow-up.</li>
+            <li><strong>Monotone check (mixed BCs):</strong> with the 100 C Dirichlet edge active, heat flows <em>in</em>, so Q rises monotonically toward the steady profile. With only one Dirichlet edge and the other three insulated, heat has nowhere to escape, so the steady profile is <strong>uniform u = 100 C everywhere</strong> (not a ramp — a ramp would need a second, cooler Dirichlet edge to sustain a gradient). The energy surrogate relaxes smoothly with no overshoot. If dt is set to 3.0 s (above the 2.55 s cap), the field instead develops a checkerboard that doubles in amplitude each step — the unmistakable explicit-diffusion blow-up.</li>
         </ol>
     </div>
 
@@ -266,7 +266,7 @@ plt.subplot(1,2,1); plt.imshow(u, cmap='inferno'); plt.title('T(x,y)')
 plt.subplot(1,2,2); plt.plot(heat);  plt.title('total heat Q(t) -> steady')
 plt.tight_layout(); plt.savefig('capstone.png', dpi=120)
 print("final Q:", heat[-1], "  monotone increasing:", np.all(np.diff(heat) &gt;= -1e-9))</pre>
-        <p style="font-size:.88rem; color:var(--text2);">For <strong>Track B</strong>, swap the core for the 1D Yee leapfrog: <code>Ez[1:] -= (dt/(eps0*h))*(Hy[1:]-Hy[:-1])</code> then <code>Hy[:-1] -= (dt/(mu0*h))*(Ez[1:]-Ez[:-1])</code>, set <code>dt = 0.999*h/c</code> (Courant), log <code>U = 0.5*(eps0*Ez**2 + mu0*Hy**2).sum()*h</code>, and try a PEC wall (<code>Ez[0]=Ez[-1]=0</code>) versus a Mur ABC. Predict whether U is flat or decaying <em>before</em> you plot it.</p>
+        <p style="font-size:.88rem; color:var(--text2);">For <strong>Track B</strong>, swap the core for the 1D Yee leapfrog: <code>Hy[:-1] += (dt/(mu0*h))*(Ez[1:]-Ez[:-1])</code> then <code>Ez[1:] += (dt/(eps0*h))*(Hy[1:]-Hy[:-1])</code> — same H-then-E order and sign convention as the Lecture 9 leapfrog, and consistent with this lecture's own stated PDE (&part;E/&part;t = +(1/eps0)&part;H/&part;x). Set <code>dt = 0.999*h/c</code> (Courant), log <code>U = 0.5*(eps0*Ez**2 + mu0*Hy**2).sum()*h</code>, and try a PEC wall (<code>Ez[0]=Ez[-1]=0</code>) versus a Mur ABC. Predict whether U is flat or decaying <em>before</em> you plot it.</p>
     </div>
 
     <!-- EXTENSION -->
@@ -322,7 +322,7 @@ print("final Q:", heat[-1], "  monotone increasing:", np.all(np.diff(heat) &gt;=
             <div class="opt"><b>B.</b> sqrt(2)</div>
             <div class="opt"><b>C.</b> unchanged — dt is independent of h</div>
             <div class="opt"><b>D.</b> 4</div>
-            <details><summary>Show answer</summary><p><span class="ans">D.</span> Since dt &lt;= h<sup>2</sup>/(4 alpha), dt scales as h<sup>2</sup>; halving h cuts the allowed dt by 4, so a 2x finer grid costs roughly 4x more steps per unit time (and 8x total work in 2D). A and B mistake h<sup>2</sup> for a linear or sqrt dependence; C ignores the stability bound entirely.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">D.</span> Since dt &lt;= h<sup>2</sup>/(4 alpha), dt scales as h<sup>2</sup>; halving h cuts the allowed dt by 4, so you need roughly 4x more time steps. On this 2D plate, halving h also quadruples the number of grid points (2x finer in each of the 2 dimensions), so the total work scales by 4 (space) x 4 (time) = 16x. A and B mistake h<sup>2</sup> for a linear or sqrt dependence; C ignores the stability bound entirely.</p></details>
         </div>
     </div>
 
@@ -335,13 +335,13 @@ print("final Q:", heat[-1], "  monotone increasing:", np.all(np.diff(heat) &gt;=
             <li>To track a <b>conserved or monotonic diagnostic</b>: total heat Q(t) (flat if insulated, monotone otherwise) or field energy U(t) (bounded in a PEC box, decaying with an ABC).</li>
             <li>To package convergence, stability, and conservation into a <b>defensible deliverable</b> — a verified solver with a receipt, not a pretty picture.</li>
         </ul>
-        <p class="next-up">Next up — the Final Exam (currently being built): a synthesis of all four courses, from floating-point error budgets through ODE integrators and linear solvers to the PDE and field methods you just mastered.</p>
+        <p class="next-up">Next up — the Final Exam is live now: a synthesis of all four courses, from floating-point error budgets through ODE integrators and linear solvers to the PDE and field methods you just mastered.</p>
     </div>
 
     <!-- LECTURE NAV -->
     <div class="lec-nav">
         <a href="l09-maxwell-fdtd.html"><div class="dir">← Week 9</div><div class="ttl">Maxwell &amp; the FDTD Method</div></a>
-        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+        <a class="next" href="../exam/final-exam.html"><div class="dir">Final →</div><div class="ttl">Final Exam</div></a>
     </div>
 
 </div>

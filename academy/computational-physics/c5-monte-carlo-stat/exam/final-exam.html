@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Final Exam — Monte Carlo &amp; Statistical Physics</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C5 Monte Carlo &amp; Stat</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C5 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from pseudo-random numbers to Ising criticality and Lennard-Jones molecular dynamics.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        A score of 70% or higher is a pass.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Random numbers, MC integration &amp; random walks <b>5</b></span>
+            <span class="wchip">Markov chains &amp; Metropolis-Hastings <b>5</b></span>
+            <span class="wchip">Ising model &amp; phase transitions <b>6</b></span>
+            <span class="wchip">Autocorrelation &amp; error estimation <b>4</b></span>
+            <span class="wchip">Molecular dynamics, Lennard-Jones &amp; capstone <b>5</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ RANDOM NUMBERS, MC INTEGRATION & RANDOM WALKS (Weeks 1-3) ============ -->
+    <div class="exam-sec">Random Numbers, MC Integration &amp; Random Walks · Weeks 1–3</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> You set <code>np.random.default_rng(seed=7)</code> and run your Monte Carlo simulation twice. What happens?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> Both runs produce the identical sequence of numbers</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> The two runs produce completely independent, different streams</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> The second run errors because the seed is already in use</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> The seed only affects integer draws, not floats</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A fixed seed sets the generator's starting state, so the stream of "random" numbers is bit-for-bit identical on every run — the basis of reproducible stochastic computing.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>2.</span> A Monte Carlo estimate currently has a given standard error. About how many times more samples are needed to shrink that error by a factor of 10?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> 10×</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> 100×</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> &radic;10 &asymp; 3.16×</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> 1000×</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Error &prop; 1/&radic;N, so shrinking the error by a factor of 10 requires &radic;N to grow by 10, i.e. N to grow by 10&sup2; = 100.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> Importance sampling reduces the variance of a Monte Carlo integral estimate by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> always switching to the hit-or-miss estimator</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> rounding the integrand to fewer significant digits</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> drawing samples from a density p(x) shaped like the integrand and weighting by f(x)/p(x)</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> using more independent random number generators at once</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Sampling where f is large and correcting with the weight f/p keeps the estimator unbiased while collapsing the variance of the weighted integrand; the ideal p &prop; |f| drives the variance toward zero.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> For a simple symmetric 1D random walk of N unbiased &plusmn;1 steps, the root-mean-square displacement x<sub>rms</sub> scales as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> N</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> N&sup2;</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> log N</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> &radic;N</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> &lang;x<sub>N</sub>&sup2;&rang; = N because the cross terms &lang;s<sub>i</sub>s<sub>j</sub>&rang; vanish for independent steps, so x<sub>rms</sub> = &radic;&lang;x&sup2;&rang; = &radic;N — the hallmark of diffusive scaling.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> To estimate &pi; by hit-or-miss, you scatter points uniformly in the unit square and multiply the fraction landing inside the quarter circle by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> 4</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> &pi;</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> 2</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> 1</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The quarter circle has area &pi;/4 and the square has area 1, so the hit fraction estimates &pi;/4; multiplying by 4 recovers &pi;. Option B would require already knowing &pi;.</div>
+    </div>
+
+    <!-- ============ MARKOV CHAINS & THE METROPOLIS-HASTINGS ALGORITHM (Weeks 4-5) ============ -->
+    <div class="exam-sec">Markov Chains &amp; the Metropolis-Hastings Algorithm · Weeks 4–5</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>6.</span> The defining "memoryless" (Markov) property says the next state of a chain depends on…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> the entire past trajectory of visited states</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> only the current state</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> the initial state alone</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> the stationary distribution</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> P(X<sub>t+1</sub>|X<sub>t</sub>,X<sub>t-1</sub>,...) = P(X<sub>t+1</sub>|X<sub>t</sub>) — only the present state matters, never the path taken to reach it.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>7.</span> The detailed-balance condition for a Markov chain with transition matrix P and target distribution &pi; is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> &Sigma;<sub>i</sub> P<sub>ij</sub> = 1 for every j</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> P<sub>ij</sub> = P<sub>ji</sub> for every pair i, j</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> &pi;<sub>i</sub> P<sub>ij</sub> = &pi;<sub>j</sub> P<sub>ji</sub> for every pair i, j</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> all states have equal energy</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Detailed balance equates the per-pair probability fluxes &pi;<sub>i</sub>P<sub>ij</sub> = &pi;<sub>j</sub>P<sub>ji</sub>; summing over i proves it is sufficient (though not necessary) for &pi; to be stationary.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> Why is detailed balance such a useful design tool for sampling the Boltzmann distribution of a many-body system?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> it lets you compute the partition function Z exactly</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> it makes the chain converge in a single step</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> it removes the need for random numbers entirely</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> it only requires probability ratios, so the unknown Z cancels out</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The condition depends only on &pi;<sub>j</sub>/&pi;<sub>i</sub> = e<sup>-&beta;(E<sub>j</sub>-E<sub>i</sub>)</sup>, in which the intractable normalizer Z cancels — the key fact that makes statistical-physics simulation possible at all.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>9.</span> A proposed Metropolis move has &Delta;E = +1.0 at temperature kT = 2.0, with a symmetric proposal. The acceptance probability is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> 0.61</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> 1.00 (always accepted)</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> 0.00 (always rejected)</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> 2.00</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A = min(1, e<sup>-&Delta;E/kT</sup>) = min(1, e<sup>-1.0/2.0</sup>) = e<sup>-0.5</sup> &asymp; 0.61. Since &Delta;E &gt; 0 the move is not automatic, but it is also not vanishingly unlikely.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>10.</span> The purpose of discarding "burn-in" sweeps before measuring averages in a Metropolis simulation is to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> speed up the pseudo-random number generator</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> remove the bias introduced by an atypical starting configuration before averaging</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> guarantee that detailed balance holds</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> reduce the memory needed to store the chain</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The chain starts from an arbitrary, usually atypical, configuration; early samples are contaminated by that start, so they are discarded until the trace shows only fluctuation around a stable mean.</div>
+    </div>
+
+    <!-- ============ THE ISING MODEL & PHASE TRANSITIONS (Weeks 6-7) ============ -->
+    <div class="exam-sec">The Ising Model &amp; Phase Transitions · Weeks 6–7</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> In the Ising Hamiltonian E = -J &Sigma; s<sub>i</sub>s<sub>j</sub> with J &gt; 0, two neighboring spins that agree contribute…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> +J, because agreement is penalized</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> 0, because equal spins cancel</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> -J, because the model favors alignment</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> a value that depends on temperature T</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Agreeing spins give s<sub>i</sub>s<sub>j</sub> = +1, so the term is -J(+1) = -J, the low-energy state — the Hamiltonian itself contains no T; temperature enters only through the Boltzmann acceptance rule.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> A spin s<sub>i</sub> = +1 has four neighbors summing to S = -2. The energy change to flip it, &Delta;E = 2J s<sub>i</sub> S (J = 1), equals…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> +8</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> +4</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> 0</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> -4</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> &Delta;E = 2(1)(+1)(-2) = -4. Since &Delta;E &lt; 0, flipping this spin lowers the energy and the Metropolis rule accepts it unconditionally.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>13.</span> Why do we usually report &lang;|M|&rang; rather than &lang;M&rang; when detecting the ordered phase of the h = 0 Ising model?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> At h = 0 a finite-time run can tunnel between all-up and all-down, dragging &lang;M&rang; toward 0 even when ordered</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> |M| is simply faster to compute than M</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> Magnetization is only ever defined as a positive quantity</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> M can exceed 1 in magnitude, but |M| cannot</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The h = 0 Hamiltonian is symmetric under flipping every spin, so a long finite run occasionally tunnels between the two ordered states; the signed average washes toward 0 while &lang;|M|&rang; faithfully stays near 1 below T<sub>c</sub>.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>14.</span> For the 2D square-lattice Ising model (k<sub>B</sub> = J = 1), the exact critical temperature (Onsager) is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> 1.000</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> 2.269</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> 0.500</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> 5.400</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> T<sub>c</sub> = 2/ln(1+&radic;2) &asymp; 2.269 — one of the few exactly solved interacting models and the gold-standard benchmark for any Ising Monte Carlo code.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> Why do the magnetic susceptibility &chi; and specific heat C peak sharply at T<sub>c</sub>?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> the simulation runs out of memory there</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> the spins stop interacting with their neighbors at T<sub>c</sub></span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> fluctuations (the variances of m and E) become huge as the system teeters between phases</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> the temperature is at its highest value there</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> &chi; and C equal scaled variances of m and E (fluctuation-dissipation); near T<sub>c</sub> the system can't choose a phase, so those fluctuations explode. T<sub>c</sub> is a middling temperature, not the maximum one simulated.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> "Critical slowing down" near T<sub>c</sub> means that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> the computer's clock speed drops at high temperature</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> the magnetization goes to exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> the Metropolis acceptance rate falls to exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> consecutive Monte Carlo samples become highly correlated, so independent data takes far more sweeps</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> As the correlation length &xi; (and hence &tau; &prop; &xi;<sup>z</sup>) grows near T<sub>c</sub>, single-spin updates need many more sweeps to decorrelate — exactly where you most want good statistics.</div>
+    </div>
+
+    <!-- ============ AUTOCORRELATION & ERROR ESTIMATION (Week 8) ============ -->
+    <div class="exam-sec">Autocorrelation &amp; Error Estimation · Week 8</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> Why does the naive standard error &sigma;/&radic;N understate the true uncertainty of a Markov-chain Monte Carlo average?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> Successive samples are correlated, so the effective sample count is N/(2&tau;) &lt; N</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> NumPy uses single precision by default</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> The sample mean itself is statistically biased</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> The random number generator repeats too soon</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Each Metropolis step is a small perturbation of the last, so consecutive samples resemble each other; the chain carries only N/(2&tau;) independent-sample's worth of information, and the honest SE is &sigma;&radic;(2&tau;/N).</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> In a blocking (binning) analysis, which feature of the standard-error-vs-block-size curve gives the correct error bar?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> the value at block size 1</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> the plateau the curve reaches once blocks are effectively independent</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> the minimum of the curve</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> the point where the curve crosses zero</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> SE(b) rises as the block size grows past the correlation length and then flattens onto a plateau; that plateau is the correlation-corrected, honest standard error. It never dips to a minimum or crosses zero.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>19.</span> A chain has N = 800,000 samples and integrated autocorrelation time &tau; = 200. The effective number of independent samples is about…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> 800,000</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> 4,000</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> 2,000</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> 400,000</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> N<sub>eff</sub> = N/(2&tau;) = 800,000 / 400 = 2,000. The divisor is always 2&tau;, never &tau; alone and never the raw count N.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> A production run gives mean = -1.42 with a blocking-corrected standard error of 0.018. The best way to report the result is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> -1.4200000 &plusmn; 0.0180000</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> -1.42 (no uncertainty needed)</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> -1.4 &plusmn; 0.5</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> -1.420 &plusmn; 0.018</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Round the uncertainty to one or two significant figures and match the value's last digit to it. A fakes precision the data cannot support; B omits the uncertainty; C invents an error far larger than computed.</div>
+    </div>
+
+    <!-- ============ MOLECULAR DYNAMICS, LENNARD-JONES & THE CAPSTONE (Weeks 9-10) ============ -->
+    <div class="exam-sec">Molecular Dynamics, Lennard-Jones &amp; the Capstone · Weeks 9–10</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>21.</span> In the Lennard-Jones potential U(r) = 4&epsilon;[(&sigma;/r)<sup>12</sup> - (&sigma;/r)<sup>6</sup>], the r<sup>-12</sup> term physically represents…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> short-range Pauli repulsion of overlapping electron clouds</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> long-range van der Waals attraction</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> gravitational attraction between atoms</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> the kinetic energy of the atoms</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The steep r<sup>-12</sup> wall models the repulsion that stops electron clouds from overlapping. The -r<sup>-6</sup> term is the van der Waals attraction; gravity is utterly negligible at atomic scales.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>22.</span> Why is velocity-Verlet preferred over a higher-order Runge-Kutta integrator for long molecular-dynamics runs?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> It has exactly zero numerical error at every step</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> It is symplectic and time-reversible, so energy stays bounded instead of drifting</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> It does not require evaluating any forces</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> It allows an arbitrarily large timestep with no penalty</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Symplectic, time-reversible integrators keep total energy oscillating within a tight bound over millions of steps; Runge-Kutta is more accurate per step but slowly bleeds energy over a long run.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> A radial distribution function g(r) shows a tall sharp first peak, a weaker second peak, then settles to g(r) = 1 with no further structure. This is the fingerprint of…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> a dilute ideal gas</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> a perfect crystal with long-range order</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> a liquid: short-range order, no long-range order</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> a vacuum with no atoms</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> One or two decaying near peaks settling to 1 is the classic liquid signature: neighbors are organized locally but order is lost at distance. A gas is nearly featureless at g &asymp; 1; a solid keeps sharp peaks out to large r.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> What is the single most important capability that molecular dynamics has and standard Metropolis Monte Carlo lacks?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> It can compute the average potential energy</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> It samples the Boltzmann distribution</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> It only works for charged particles</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> It gives genuine time-dependent quantities such as diffusion coefficients</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> MD produces real trajectories, so dynamical quantities (diffusion coefficients, viscosity, spectra) follow directly. Average potential energy and Boltzmann sampling are static averages both methods can give; LJ models neutral atoms, not charges.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>25.</span> You measure the Ising susceptibility peak at T &asymp; 2.31 on an L = 16 lattice. Before quoting this as T<sub>c</sub>, what should you do?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> Repeat the measurement at larger L (e.g. 24, 32), note the peak drifts toward &asymp; 2.269, and report the finite-size trend</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> Accept 2.31 as the final answer with no further work</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> Switch to single-precision arithmetic to sharpen the peak</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> Reduce the number of equilibration sweeps to zero to save time</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Finite-size effects shift the peak by roughly 1/L; running several L and extrapolating recovers the Onsager value &asymp; 2.269. Precision does not affect the physics, and dropping equilibration corrupts the averages with transient data.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C5 Syllabus</div></a>
+        <a href="../lectures/l01-random-monte-carlo.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Monte Carlo &amp; Stat</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

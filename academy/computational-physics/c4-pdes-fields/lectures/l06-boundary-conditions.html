@@ -93,6 +93,33 @@
         .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
         .q details .ans { color: var(--green); font-weight: 700; }
 
+        /* ── DISCUSSION (interactive) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(192,132,252,.12); border: 1px solid rgba(192,132,252,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08121a; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
         .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
         .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
         .lec-nav a:hover { border-color: var(--accent); }
@@ -100,6 +127,8 @@
         .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
         .lec-nav a.disabled { opacity: .45; pointer-events: none; }
         .lec-nav a.next { text-align: right; }
+
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
 
         footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
         footer a { color: var(--accent2); text-decoration: none; }
@@ -187,7 +216,7 @@
         <p>For a steady 1-D diffusion problem -u<sub>xx</sub> = f on N+1 nodes, the interior row i is</p>
         <div class="eq">(-u(i-1) + 2 u(i) - u(i+1)) / h^2 = f(i)<small>The standard second-difference stencil, valid for interior nodes i = 1 .. N-1.</small></div>
         <p>A <strong>Dirichlet</strong> node is forced. Its matrix row becomes the identity row [0 … 1 … 0] with right-hand side equal to the prescribed value: row 0 reads u<sub>0</sub> = g. A <strong>Neumann</strong> node folds the ghost into the stencil. Substituting u<sub>-1</sub> = u<sub>1</sub> - 2hq into the boundary stencil collapses the two u<sub>1</sub> terms, giving a modified diagonal and a known term that moves to b:</p>
-        <div class="eq">(2 u(0) - 2 u(1)) / h^2 = f(0) + 2 q / h<small>The Neumann row: coefficient on u(1) doubles, and the flux q is absorbed into the right-hand side.</small></div>
+        <div class="eq">(2 u(0) - 2 u(1)) / h^2 = f(0) - 2 q / h<small>The Neumann row: coefficient on u(1) doubles, and the flux q is absorbed into the right-hand side.</small></div>
         <figure class="fig">
             <svg viewBox="0 0 500 260" role="img" aria-label="A 5 by 5 matrix A: the top row is a Dirichlet identity row, the bottom row is a modified Neumann row with a doubled off-diagonal, and the three middle rows are the standard tridiagonal stencil">
                 <text x="220" y="24" fill="#a5b4fc" font-size="13" text-anchor="middle">matrix A (rows = nodes 0..4)</text>
@@ -304,19 +333,6 @@ Ap[-1, 0]  = -1.0 / h**2     <span class="c"># wrap right neighbor of node N-1</
         <p>Boundary conditions only get richer from here. Next week the wave equation needs <em>non-reflecting</em> (absorbing) boundaries so outgoing waves don't bounce back and contaminate the domain — the same idea behind the perfectly matched layers used in electromagnetics and seismic imaging. In 2-D and 3-D field solvers the boundary becomes a curve or surface, and the ghost-point idea generalizes to <em>immersed-boundary</em> and finite-volume flux methods. The circulant structure of periodic BCs is the doorway to <strong>spectral methods</strong> later in this course, where the discrete Fourier transform turns derivatives into multiplications. And in the Plasma and Quantum tracks, periodic boxes are the standard cell for simulating bulk matter.</p>
     </div>
 
-    <!-- DISCUSSION -->
-    <div class="ext" style="background:linear-gradient(135deg,#161a30,#1b2140);border-color:#2a3052;">
-        <h3 style="color:var(--accent2);">💬 Discussion</h3>
-        <p style="color:#cfd4ee;">A colleague is simulating heat in a long metal bar and reports: "My interior scheme is fully second-order — I verified it against an exact solution on an infinite domain — but on my finite bar the convergence study stubbornly shows first-order accuracy, and the temperature near the insulated right end is always a little off." Nothing in the interior loop has changed. <strong>What is the most likely cause, how would you confirm it, and what is the fix?</strong> More broadly: why can a boundary touched by only one or two grid points dominate the accuracy of a scheme that runs over thousands of interior points?</p>
-        <details>
-            <summary>Show a model response</summary>
-            <p style="color:#cfd4ee;font-size:.9rem;margin-top:10px;">The symptom — globally first-order convergence despite a verified second-order interior, with the largest error parked at the insulated (Neumann) end — points straight at the <strong>boundary discretization</strong>. The most likely cause is a <em>one-sided</em>, first-order approximation of the zero-flux condition: <code>(u[1]-u[0])/h = 0</code>. Even though it touches only one node, its O(h) error feeds into the solution every step and propagates inward, so the <em>global</em> error inherits the worst order anywhere in the domain — a scheme is only as accurate as its weakest piece.</p>
-            <p style="color:#cfd4ee;font-size:.9rem;">To confirm it: run a refinement study and tabulate the error ratio as h halves. A clean second-order method quarters the error (ratio ~4); first order only halves it (ratio ~2). Then plot the spatial error and check whether it is concentrated at the boundary node — if it is, the interior is exonerated. The fix is to enforce the Neumann condition with a <strong>centered, ghost-point</strong> form, u(-1) = u(1) - 2hq, folded into the boundary stencil (or a second-order one-sided formula). After the fix the ratio should snap back to ~4.</p>
-            <p style="color:#cfd4ee;font-size:.9rem;">Why a one- or two-node boundary can dominate: order of accuracy is a statement about the <em>maximum</em> error over the domain, and errors do not stay local — they diffuse/advect inward through the same stencil that couples the interior. A first-order leak at the edge therefore caps the whole solution at first order, no matter how fine and elegant the interior is.</p>
-            <p style="color:var(--green);font-size:.86rem;margin-top:10px;"><strong>✓ Self-check rubric:</strong> Did you (1) identify the boundary (not the interior) as the culprit and name the first-order one-sided BC; (2) propose a concrete confirmation — refinement ratio test and/or spatial error plot localized at the boundary; (3) give the second-order ghost-point fix; and (4) articulate that global order = worst local order because boundary error propagates inward? Four for four is a complete answer.</p>
-        </details>
-    </div>
-
     <!-- QUIZ -->
     <div class="quiz">
         <h2>❓ Lecture 6 Quiz</h2>
@@ -380,6 +396,43 @@ Ap[-1, 0]  = -1.0 / h**2     <span class="c"># wrap right neighbor of node N-1</
         <p class="next-up">Next up — Week 7: the wave equation — second-order in time, the leapfrog scheme, and the absorbing boundaries that keep outgoing waves from bouncing back.</p>
     </div>
 
+    <!-- ════════════════ DISCUSSION (interactive) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 2 · Week 6</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="c4-l6-d2">
+            <p class="disc-prompt" id="prompt-c4l6">Dirichlet, Neumann, and periodic boundaries describe very different physical situations. Pick a real experiment and argue which boundary condition actually applies.</p>
+
+            <textarea id="ans-c4l6" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-c4l6">Not saved yet</span>
+                <span class="toast" id="toast-c4l6"></span>
+            </div>
+
+            <div class="disc-model" id="model-c4l6" hidden>
+                <h4>Model response</h4>
+                <p>Take a metal rod with one end clamped into a large ice-water bath and the other end wrapped in thick foam insulation. The ice-bath end is a <strong>Dirichlet</strong> boundary: the bath is so large that its own temperature barely moves no matter how much heat the rod dumps into it, so the right quantity to fix is the <em>value</em>, u = 0 °C, every step — exactly the "clamped to the ground" picture from this lecture. The insulated end is instead a <strong>Neumann</strong> boundary: the foam doesn't hold the temperature at any particular value, it blocks <em>flux</em>, so the correct condition is ∂u/∂x = 0, implemented numerically with the ghost-point mirror u[-1] = u[1] so the centered derivative at the wall stays second-order.</p>
+                <p>Periodic boundaries would be the wrong model for this rod — there is a real physical edge at each end, and forcing u(N) = u(0) would silently glue two unrelated ends together and inject reflections that don't exist in the lab. Periodic is the honest choice for a different experiment: simulating a small representative patch of an effectively infinite, uniform medium, such as electron density in a bulk crystal lattice or a slice of homogeneous turbulence — there is genuinely no wall, so np.roll-style wraparound avoids inventing one. One practical caution either way: with periodicity you must not double-count the shared node (u<sub>N</sub> and u<sub>0</sub> are the same point), which is a classic off-by-one that quietly shifts wave speed or leaks energy.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Picks a concrete experiment and correctly maps what is physically fixed (a reservoir's temperature vs. a flux-blocking insulator) to Dirichlet vs. Neumann</li>
+                    <li>Explains why periodic boundaries are right only when there is no real physical edge (bulk/uniform media), and wrong when an actual wall or reservoir exists</li>
+                    <li>Mentions a concrete implementation detail — the ghost-point mirror for Neumann, or the shared-node counting caution for periodic — that makes the choice more than just conceptual</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
     <!-- LECTURE NAV -->
     <div class="lec-nav">
         <a href="l05-implicit-crank-nicolson.html"><div class="dir">← Week 5</div><div class="ttl">Implicit Methods &amp; Crank-Nicolson</div></a>
@@ -398,6 +451,54 @@ Ap[-1, 0]  = -1.0 / h**2     <span class="c"># wrap right neighbor of node N-1</
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my computational physics tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        // URL prefill works for short text; clipboard is the reliable fallback for long answers.
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

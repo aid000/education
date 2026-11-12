@@ -264,7 +264,7 @@ a, b, exact = 0.0, 1.0, np.e - 1.0
 <span class="c"># --- 1. composite trapezoid at halved steps, measure order ---</span>
 def trap(n):
     x = np.linspace(a, b, n + 1)
-    return np.trapz(f(x), x)
+    return np.trapezoid(f(x), x)
 
 ns = [1, 2, 4, 8, 16, 32]
 errs = [abs(trap(n) - exact) for n in ns]
@@ -282,10 +282,29 @@ for i in range(1, len(errs)):
 better = (4 * trap(2) - trap(1)) / 3        <span class="c"># 2^p = 4 for p=2</span>
 print("Richardson error:", abs(better - exact))   <span class="c"># ~6e-4</span>
 
-<span class="c"># --- 3. Romberg = repeated Richardson on trapezoid ---</span>
-R = integrate.romberg(f, a, b, show=True)   <span class="c"># prints the table</span>
-print("Romberg error:", abs(R - exact))     <span class="c"># ~1e-13, near round-off floor</span></pre>
-        <p style="font-size:.88rem; color:var(--text2);">Try <code>integrate.romberg(f, a, b, show=True)</code> and read the printed triangular table: watch each column gain ~2 orders. Then replace <code>f = np.exp</code> with a function that has a kink (e.g. <code>np.abs</code>): the smooth even-power error expansion breaks, the measured order drops, and Romberg stops helping — a vivid lesson that extrapolation assumes smoothness.</p>
+<span class="c"># --- 3. Romberg = repeated Richardson on trapezoid, built by hand ---</span>
+<span class="c"># scipy.integrate.romberg was REMOVED in SciPy >= 1.15 (Jan 2025).</span>
+<span class="c"># For production work, use scipy.integrate.quad instead -- but printing</span>
+<span class="c"># the triangular table is the whole point of this lesson, so we build it:</span>
+levels = len(ns)                         <span class="c"># reuse ns = [1,2,4,8,16,32] from step 1</span>
+R = [[0.0] * levels for _ in range(levels)]
+for i in range(levels):
+    R[i][0] = trap(ns[i])                <span class="c"># column 0 = trapezoid at each step</span>
+for j in range(1, levels):
+    for i in range(j, levels):
+        R[i][j] = R[i][j-1] + (R[i][j-1] - R[i-1][j-1]) / (4**j - 1)
+
+print("Romberg table (col 0 = trapezoid, col 1 = Simpson, col 2 = order 6, ...):")
+for i in range(levels):
+    print("  ".join(f"{R[i][j]:.8f}" for j in range(i + 1)))
+
+Rbest = R[levels - 1][levels - 1]
+print("Romberg error:", abs(Rbest - exact))     <span class="c"># ~2e-16, at the round-off floor</span>
+
+<span class="c"># In production code, skip hand-rolled Romberg and just call quad:</span>
+quad_val, quad_err = integrate.quad(f, a, b)
+print("scipy.integrate.quad:", quad_val, " est. err:", quad_err)</pre>
+        <p style="font-size:.88rem; color:var(--text2);">Run the hand-rolled table above and watch each column gain ~2 orders, converging to round-off (~10⁻¹⁶) by the bottom-right entry. Then replace <code>f = np.exp</code> with a function that has a kink (e.g. <code>np.abs</code>): the smooth even-power error expansion breaks, the measured order drops, and Romberg stops helping — a vivid lesson that extrapolation assumes smoothness.</p>
     </div>
 
     <!-- EXTENSION -->
@@ -332,7 +351,7 @@ print("Romberg error:", abs(R - exact))     <span class="c"># ~1e-13, near round
             <div class="opt"><b>B.</b> a Monte-Carlo integral with random samples</div>
             <div class="opt"><b>C.</b> repeated Richardson extrapolation applied to the trapezoidal rule</div>
             <div class="opt"><b>D.</b> the midpoint rule on a uniform grid</div>
-            <details><summary>Show answer</summary><p><span class="ans">C.</span> Romberg builds a table whose first column is trapezoidal estimates at halved steps, then applies Richardson repeatedly (first column = Simpson, etc.). Gaussian quadrature (A) is a different scheme using optimal nodes (Week 7); Monte-Carlo (B) and the plain midpoint rule (D) are unrelated.</p></details>
+            <details><summary>Show answer</summary><p><span class="ans">C.</span> Romberg builds a table whose first column (column 0) is trapezoidal estimates at halved steps, then applies Richardson repeatedly (column 1 = Simpson, column 2 = order 6, etc.). Gaussian quadrature (A) is a different scheme using optimal nodes (Week 7); Monte-Carlo (B) and the plain midpoint rule (D) are unrelated.</p></details>
         </div>
 
         <div class="q">

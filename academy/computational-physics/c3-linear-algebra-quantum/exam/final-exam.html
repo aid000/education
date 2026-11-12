@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3 · Final Exam — Linear Algebra, Eigenvalues &amp; Quantum Systems</title>
+    <style>
+        :root {
+            --bg: #0d0f1f; --surface: #161a30; --surface2: #1f2440; --border: #2a3052;
+            --text: #e9ebf8; --text2: #a3a8c8; --accent: #818cf8; --accent2: #a5b4fc;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --violet: #c084fc; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #181c3a 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: var(--red); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Computational Physics</a> / <a href="../index.html">C3 LinAlg &amp; Quantum</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C3 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from vectors and matrices to the capstone Schrödinger solver.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Vectors &amp; eigenvalue basics (wk 1–2) <b>4</b></span>
+            <span class="wchip">Diagonalization &amp; power method (wk 3–4) <b>5</b></span>
+            <span class="wchip">SVD (wk 5) <b>3</b></span>
+            <span class="wchip">Sparse matrices &amp; Krylov methods (wk 6–7) <b>6</b></span>
+            <span class="wchip">Schrödinger equation &amp; tight-binding (wk 8–9) <b>5</b></span>
+            <span class="wchip">Capstone solver (wk 10) <b>2</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ VECTORS, MATRICES & EIGENVALUE BASICS (Weeks 1-2) ============ -->
+    <div class="exam-sec">Vectors, Matrices &amp; Eigenvalue Basics · Weeks 1–2</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>1.</span> The columns of a matrix that represents a linear transformation are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> the images of the standard basis vectors under the transformation — where e_x, e_y, … land</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> the eigenvalues of the transformation</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> always mutually orthogonal, regardless of the transformation</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> the inverse of the matrix's rows</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A linear map is fixed entirely by what it does to the basis; stacking the images of e_x, e_y, … as columns builds the matrix. Eigenvalues are scalars, not columns; orthogonal columns describe only special matrices like rotations.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>2.</span> A 2×2 rotation matrix R(θ) applied to a vector v preserves…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> nothing; it is equivalent to the zero matrix</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> doubles the length of every vector while preserving its direction</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> the length of every vector and the angles between vectors</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> only the x-component of any vector</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Rotations are orthogonal transformations: they preserve all lengths and the angles (and hence inner products) between vectors — the components themselves generally change.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>3.</span> For a Hermitian (or real symmetric) matrix A = A†, the spectral theorem guarantees…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> eigenvalues that are always zero</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> real eigenvalues, with eigenvectors of distinct eigenvalues mutually orthogonal</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> an eigenvector but no matching eigenvalue</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> complex eigenvalues with equal magnitude</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Hermiticity forces a real spectrum (needed since measured physical quantities are real) and an orthogonal eigenbasis for distinct eigenvalues — the backbone of why physics represents observables this way.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>4.</span> For an n×n matrix A, the eigenvalues are the roots of the characteristic equation det(A − λI) = 0. As a sanity check, the eigenvalues must…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> always equal the diagonal entries of A directly</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> multiply together to give the trace of A</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> be completely independent of the trace and determinant of A</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> sum to the trace of A and multiply to the determinant of A</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> These two cheap checks — eigenvalues summing to the trace and multiplying to the determinant — fall straight out of expanding the characteristic polynomial and catch most hand-computation errors.</div>
+    </div>
+
+    <!-- ============ DIAGONALIZATION, NORMAL MODES & THE POWER METHOD (Weeks 3-4) ============ -->
+    <div class="exam-sec">Diagonalization, Normal Modes &amp; the Power Method · Weeks 3–4</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>5.</span> In the diagonalization A = PDP⁻¹…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> A = PDP⁻¹ only exists if A is already diagonal</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> the columns of P are the eigenvectors of A, and the diagonal entries of D are the eigenvalues</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> P is always symmetric, regardless of A</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> D holds the eigenvectors and P holds the eigenvalues</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> By construction P = [v₁ … vₙ] stacks the eigenvectors as columns and D = diag(λ₁,…,λₙ). P equals the identity only in the special case A is already diagonal — it is not a general requirement.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>6.</span> For a mass-spring chain M ẍ = −K x with <em>unequal</em> masses, the normal-mode frequencies and shapes come from…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> the generalized eigenproblem K v = ω²M v, i.e. diagonalizing M⁻¹K</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> the eigenvalues of M alone, ignoring K entirely</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> the eigenvalues of the sum K + M</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> det(K) = 0 alone</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Trial motion v·cos(ωt) in M ẍ = −K x gives K v = ω²M v; solving the eigenproblem on K alone gives the wrong frequencies whenever the masses differ.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>7.</span> Substituting x = P q into a coupled system ẍ = −A x, where P's columns are A's eigenvectors, accomplishes what?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> it only works if A has zero trace</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> it enlarges the problem by adding new unknowns</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> it eliminates every eigenvalue from the dynamics</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> it decouples the system into n independent oscillators, one per eigenvalue</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Left-multiplying by P⁻¹ gives q̈ = −Dq, so each normal coordinate qₖ obeys its own independent q̈ₖ = −λₖqₖ — the entire point of diagonalizing before solving.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>8.</span> Power iteration (repeatedly multiplying a vector by A and renormalizing) converges to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> the trace of the matrix</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> the determinant of the matrix</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> the eigenvalue of largest magnitude, at a rate governed by |λ₂/λ₁|</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> the smallest eigenvalue in magnitude</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Every eigencomponent except the dominant one decays like (λᵢ/λ₁)ᵏ, so the iterate aligns with the dominant eigenvector; the ratio of the two largest eigenvalues sets how fast.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>9.</span> To target the eigenvalue closest to some value μ (not necessarily the dominant one), the standard technique is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> repeatedly solving (A − μI) y = x and normalizing — the eigenvalue nearest μ dominates</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> computing A⁻¹ explicitly once and multiplying forever after</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> running plain power iteration on A itself</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> setting μ equal to the trace of A</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> This is inverse iteration with a shift: (A − μI)⁻¹ amplifies 1/(λᵢ − μ), largest for whichever λᵢ is nearest μ, and you solve a linear system each step rather than forming the inverse.</div>
+    </div>
+
+    <!-- ============ SINGULAR VALUE DECOMPOSITION (Week 5) ============ -->
+    <div class="exam-sec">Singular Value Decomposition · Week 5</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>10.</span> In the SVD A = UΣVᵗ, the diagonal entries of Σ (the singular values) are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> always exactly equal to 1, because U and V are orthogonal</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> equal to the diagonal entries of A</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> the eigenvalues of A, which can be negative or complex</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> real, non-negative numbers equal to the square roots of the eigenvalues of AᵗA, sorted largest first</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Singular values are lengths — the semi-axes of the image ellipsoid — so they are always real and ≥ 0, equal to √λᵢ(AᵗA), never A's own (possibly negative/complex) eigenvalues.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>11.</span> By the Eckart–Young theorem, truncating the SVD after k terms to form the best rank-k approximation A_k leaves a spectral-norm error ‖A − A_k‖₂ equal to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> σ₁, the largest singular value, regardless of k</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> the sum of all the singular values</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> σ_(k+1), the first singular value you discarded</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> zero, for any choice of k</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Truncating after k terms leaves the dropped rank-one pieces; the largest of those, σ_(k+1)u_(k+1)v_(k+1)ᵗ, sets the 2-norm error exactly.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>12.</span> A 50×50 matrix has exactly 12 nonzero singular values. Its rank is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> 25</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> 12</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> 50</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> 38</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The rank of a matrix equals the number of nonzero singular values — the SVD reveals rank exactly, which is why it is the numerically trustworthy way to compute it.</div>
+    </div>
+
+    <!-- ============ SPARSE MATRICES & KRYLOV METHODS (Weeks 6-7) ============ -->
+    <div class="exam-sec">Sparse Matrices &amp; Krylov Methods · Weeks 6–7</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>13.</span> Matrices arising from discretized physical operators (Laplacians, lattice Hamiltonians, stiffness matrices) are sparse mainly because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> floating-point round-off drives most entries toward zero</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> every physics matrix is secretly diagonal</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> sparsity is a numerical convenience with no physical basis</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> physical couplings are local, so each site interacts with only a handful of neighbors, leaving most entries exactly zero</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Locality — a site coupling only to its neighbors — makes most off-diagonal entries structurally zero, not a round-off artifact; the matrix is sparse but not generally diagonal (a tridiagonal Laplacian still has off-diagonal bands).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>14.</span> In Compressed Sparse Row (CSR) format, the array <code>indptr</code> stores…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> the per-row boundaries marking where each row's nonzeros begin and end in the data array</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> the column index of each nonzero entry</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> the row and column of every nonzero, stored as explicit pairs</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> the value of each nonzero entry</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> <code>indptr</code> has length N+1; row i's nonzeros are <code>data[indptr[i]:indptr[i+1]]</code>. The values live in <code>data</code> (D), the column indices in <code>indices</code> (B), and explicit row/column pairs describe COO, not CSR (C).</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>15.</span> For a sparse matrix with nnz nonzero entries, one matrix–vector product A x costs about…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> O(N²)</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> O(nnz), proportional to the number of nonzero entries</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> O(log N)</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> O(N³)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> SpMV touches each nonzero once with a multiply-add, costing ~2·nnz — the single cheap operation every iterative solver and eigensolver is built around.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>16.</span> The m-th Krylov subspace K_m(A, v) is defined as the span of…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> all vectors orthogonal to v</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> the m columns of A containing the most nonzeros</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> the vectors v, Av, A²v, …, A^(m−1)v</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> the m eigenvectors with the largest eigenvalues</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> A Krylov subspace is built purely from repeated matrix–vector products on a starting vector — it is not the eigenvectors themselves, which are what the subspace approximates.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>17.</span> For a symmetric matrix, the Lanczos algorithm projects A onto its Krylov subspace, producing…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> the exact inverse of A</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> a diagonal matrix identical to A itself</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> a small tridiagonal matrix T_m whose eigenvalues (Ritz values) approximate A's extremal eigenvalues</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> a dense, nonsymmetric matrix unrelated to A's spectrum</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The three-term recurrence that symmetry allows makes T_m exactly tridiagonal; diagonalizing the tiny T_m is cheap, and its outer eigenvalues (Ritz values) converge to A's extremal eigenvalues long before m reaches N.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>18.</span> You need eigenvalues of a large sparse Hamiltonian near an interior target energy σ (deep inside the spectrum). The standard remedy with ARPACK/<code>eigsh</code> is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> request an enormous k and hope the middle eigenvalues eventually appear</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> shift-invert: pass <code>sigma=target</code>, so the eigenvalues nearest σ become the dominant ones of (A − σI)⁻¹</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> switch to a dense solver for the full matrix</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> increase the matrix size N until the target appears</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Shift-invert maps the eigenvalues closest to σ onto the largest-magnitude eigenvalues of (A − σI)⁻¹, which Lanczos finds quickly — brute-forcing a huge k wastes enormous work, and dense solves defeat the purpose at this scale.</div>
+    </div>
+
+    <!-- ============ THE SCHRÖDINGER EQUATION & TIGHT-BINDING (Weeks 8-9) ============ -->
+    <div class="exam-sec">The Schrödinger Equation &amp; Tight-Binding · Weeks 8–9</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>19.</span> After discretizing the 1D time-independent Schrödinger equation on a grid, the eigenvalues and eigenvectors of the resulting Hamiltonian matrix represent…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> eigenvalues are the allowed energies E; eigenvectors are the sampled wavefunctions ψ</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> eigenvalues are time steps; eigenvectors are forces</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> eigenvalues are positions; eigenvectors are momenta</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> eigenvalues are probabilities; eigenvectors are potentials</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Hψ = Eψ is literally an eigenvalue problem: each eigenvalue is an allowed energy level, and its matching eigenvector is ψ sampled on the grid.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> The finite-difference kinetic-energy matrix for the 1D Schrödinger equation is tridiagonal…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> because the potential V(x) couples every grid point to every other grid point</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> because <code>eigsh</code> requires tridiagonal input matrices</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> because small matrix entries are discarded to save memory</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> because the central second-difference stencil couples each grid point only to its two nearest neighbors, while V(x) is purely diagonal</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The stencil (ψ_(j-1) − 2ψ_j + ψ_(j+1))/h² touches only j and j±1, filling exactly three bands; V(x) is a multiplication operator and so enters only on the diagonal.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>21.</span> For the infinite square well of width L, the exact energy levels scale with the quantum number n as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> E_n ∝ √n</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> E_n ∝ n²</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> E_n ∝ n</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> E_n ∝ 1/n</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> E_n = n²π²ℏ²/(2mL²), so the levels go 1, 4, 9, 16, … — the classic benchmark used to validate any finite-difference Schrödinger solver.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>22.</span> Substituting a Bloch wave into the 1D tight-binding chain (on-site energy ε, hopping t) gives the dispersion relation…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> E(k) = ε·sin(ka), with width 2ε</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> E(k) = −t/(ka), diverging at k = 0</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> E(k) = ε + t·k, a linear band of unlimited width</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> E(k) = ε − 2t·cos(ka), a single band of total width 4t</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The two neighbor-hopping terms combine via e^(ika)+e^(−ika) = 2cos(ka), giving E(k) = ε − 2t·cos(ka); as k sweeps the Brillouin zone the energy spans a band of width 4t.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>23.</span> Adding more atoms to a 1D tight-binding chain (same ε, same hopping t) mainly does what to its spectrum?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> packs more discrete levels into the same fixed 4t-wide window, so they grow denser</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> shifts the entire band to higher energy</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> widens the band — more atoms means a larger 4t span</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> has no effect at all; the spectrum is identical regardless of chain length</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The bandwidth is set by the hopping t, not by the number of atoms; N atoms give N discrete levels E_m = ε − 2t·cos(mπ/(N+1)), sampling the same band more densely as N grows.</div>
+    </div>
+
+    <!-- ============ CAPSTONE: THE 1D SCHRÖDINGER SOLVER (Week 10) ============ -->
+    <div class="exam-sec">Capstone: The 1D Schrödinger Solver · Week 10</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>24.</span> The defining spectral signature your capstone solver should reproduce for the quantum harmonic oscillator is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> all energy levels exactly degenerate</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> energies proportional to 1/n²</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> equally spaced levels E_n = (n + ½)ħω, with a constant gap of ħω</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> energies proportional to n² — the infinite-square-well pattern</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The oscillator's signature is a uniform ladder with gap ħω; option D is the square-well pattern, not the oscillator's, and the other two describe no real bound-state spectrum here.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>25.</span> As you raise and widen the barrier of a symmetric double well, the tunneling splitting ΔE between the two lowest states…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> shrinks exponentially, since ΔE ∝ e^(−S/ħ) for the growing barrier action S</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> grows linearly with the barrier height</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> stays exactly constant, regardless of the barrier</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> oscillates randomly with no discernible trend</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A taller/wider barrier increases the action S under it, so the tunneling splitting falls off exponentially — directly measurable by raising the barrier parameter in the capstone solver and watching ΔE collapse.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C3 Syllabus</div></a>
+        <a href="../lectures/l01-vectors-matrices.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C3 LinAlg &amp; Quantum</a> · <a href="../../index.html">Computational Physics</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
