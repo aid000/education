@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Final Exam — Algorithmic Trading &amp; Backtesting</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C4 Algo Trading</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C4 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from the trading pipeline to the capstone portfolio.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Pipeline, strategies &amp; pairs trading <b>6</b></span>
+            <span class="wchip">Backtester &amp; performance metrics <b>6</b></span>
+            <span class="wchip">Transaction costs <b>3</b></span>
+            <span class="wchip">Overfitting &amp; walk-forward validation <b>7</b></span>
+            <span class="wchip">Portfolio &amp; capstone <b>3</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ PIPELINE, STRATEGIES & PAIRS TRADING (Weeks 1-4) ============ -->
+    <div class="exam-sec">Pipeline, Strategies &amp; Pairs Trading · Weeks 1–4</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>1.</span> Which of these is the correct order of the trading pipeline?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> signal → data → sizing → execution → evaluation → P&amp;L</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> data → execution → signal → P&amp;L → sizing → evaluation</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> data → signal → position sizing → execution → P&amp;L → evaluation</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> signal → sizing → data → execution → P&amp;L → evaluation</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Data feeds the signal, sizing turns the view into a position, execution applies real-world frictions, then P&amp;L is tallied and finally evaluated. The other orderings all place a stage before something it depends on.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>2.</span> What most clearly distinguishes a <em>strategy</em> from a raw <em>signal</em>?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> A strategy maps the signal through sizing, execution, and costs to a realized return; a signal is only a view</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> A strategy always uses machine learning; a signal does not</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> A strategy is guaranteed to be profitable; a signal may not be</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> A signal must be discrete while a strategy must be continuous</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The strategy is the full machine that converts a view into a sized, costed, realized P&amp;L stream. Machine learning is not required (B); a strategy is decidedly not guaranteed profitable (C); and neither signals nor strategies are bound to be discrete or continuous (D).</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>3.</span> The core empirical claim of a momentum strategy is that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> a price always returns to its long-run fair value</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> prices follow a perfect random walk with no exploitable structure</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> volatility predicts the level of future returns</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> the recent direction of a price has information about its near-future direction</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Momentum bets on continuation: the sign of the recent move predicts the sign of the next move. (A) is mean-reversion/valuation, the opposite idea; (B) would make momentum impossible by construction; (C) confuses risk with direction.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>4.</span> A strategy ranks 500 stocks by trailing 12-month return, buys the top 50, and short-sells the bottom 50. This is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> time-series momentum</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> cross-sectional momentum</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> a channel breakout</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> a mean-reversion strategy</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Ranking assets against each other and going long the winners / short the losers is cross-sectional momentum. Time-series momentum (A) judges each asset against its own zero return, not against peers; (C) is an extreme-price rule; (D) is the opposite bet.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>5.</span> A price has a 20-day rolling mean of 50 and a rolling standard deviation of 4. It currently trades at 42. Its z-score is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> +2.0</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> −0.5</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> −8.0</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> −2.0</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> z = (P − μ)/σ = (42 − 50)/4 = −8/4 = −2.0, two standard deviations cheap. +2.0 (A) flips the sign; −8.0 (C) forgets to divide by σ; −0.5 (B) inverts the ratio.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>6.</span> Why is cointegration a stronger screening criterion for a pairs trade than correlation alone?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> Correlation cannot be computed for stock prices</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> Cointegration guarantees both stocks will always rise together</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> Cointegration implies a stationary, mean-reverting spread, whereas high correlation can occur between two unrelated random walks whose gap drifts without bound</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> Correlation only applies to bonds, not stocks</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Cointegration is the structural claim that a linear combination of two non-stationary prices is itself stationary — a bounded, reverting spread. Correlation only describes co-movement and can be spuriously high between independent random walks. (A) and (D) are simply false; (B) confuses cointegration with a directional bet.</div>
+    </div>
+
+    <!-- ============ BACKTESTER & PERFORMANCE METRICS (Weeks 5-6) ============ -->
+    <div class="exam-sec">Backtester &amp; Performance Metrics · Weeks 5–6</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>7.</span> In a vectorized backtester, the single line that prevents look-ahead bias is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> position = signal.shift(1)</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> equity = (1 + strat_ret).cumprod()</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> returns = price.pct_change()</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> signal = (fast &gt; slow).astype(float)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Lagging the signal one bar means the position you hold during a bar was decided before that bar's return is known. (B) compounds into equity; (C) just computes asset returns; (D) builds the raw signal — none of these address timing.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> The per-bar strategy return is computed as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> the asset return alone, ignoring the position</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> the cumulative product of all past asset returns</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> the position at bar t times the asset return at bar t</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> the position you held entering the bar (w<sub>t−1</sub>) times the asset return r<sub>t</sub></span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Your P&amp;L over a bar is the position you already held times what the asset did during that bar. (C) uses the same-bar position, which is exactly the look-ahead bug; (A) drops the position entirely; (B) describes the equity curve, not a single-bar return.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>9.</span> Which is the strongest reason to choose an <em>event-driven</em> backtester design over a vectorized one?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> It runs faster on a decade of daily bars</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> It handles path-dependent logic (stops, state-based sizing) naturally and mirrors a live trading system</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> It can sweep thousands of parameter combinations in seconds</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> It avoids ever needing price data</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Walking bar by bar lets the strategy keep state, so stops and account-aware sizing are natural, and the same class can later trade live. (A) and (C) are advantages of the vectorized approach, which is the fast one; (D) is nonsense — every backtest needs data.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>10.</span> A strategy turns $100,000 into $121,000 over exactly 2 years. Its annualized return is closest to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> 21%</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> 42%</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> 10%</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> 10.5%</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Total return is 21%, so R<sub>ann</sub> = (1.21)<sup>1/2</sup> − 1 = 1.1 − 1 = 10% exactly. Dividing 21% by 2 gives 10.5% (D) — that ignores compounding, the classic error. 21% (A) is the total, not annualized; 42% (B) doubles it the wrong way.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>11.</span> The key difference between the Sortino ratio and the Sharpe ratio is that the Sortino…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> penalizes only downside (below-target) deviation, not upside volatility</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> uses return over maximum drawdown instead of volatility</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> ignores the risk-free rate entirely</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> can only be computed on monthly data</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Sortino replaces total volatility with downside deviation, so big upside moves no longer count as "risk." Return over max drawdown (B) is the Calmar ratio. Both Sharpe and Sortino subtract the risk-free rate (C is false), and frequency (D) is irrelevant to the definition.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> An equity curve peaks at $150,000, falls to $96,000, then recovers to a new high. The maximum drawdown over this episode is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> −56%</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> −54%</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> −24%</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> −36%</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Drawdown is measured from the prior high-water mark: 96,000 / 150,000 − 1 = 0.64 − 1 = −36%. Dividing by the trough instead of the peak (B) and other mis-arithmetic (A, C) are the common mistakes here.</div>
+    </div>
+
+    <!-- ============ TRANSACTION COSTS (Week 7) ============ -->
+    <div class="exam-sec">Transaction Costs · Week 7</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>13.</span> Which trade cost grows fastest as you increase the <em>size</em> of a single order relative to the market's liquidity?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> Fixed commission</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> Market impact</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> The bid–ask spread</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> The risk-free rate</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Market impact is the cost that punishes size — walking up the order book makes each extra share fill worse, rising roughly with √(Q/V). Commissions (A) and the spread (C) are largely fixed per trade regardless of size; the risk-free rate (D) is not a trading cost at all.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>14.</span> Inside a backtest, the standard per-period cost charged when the portfolio weight moves from w<sub>t−1</sub> to w<sub>t</sub> is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> c × w<sub>t</sub></span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> c divided by the Sharpe ratio</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> c × (w<sub>t</sub> + w<sub>t−1</sub>)</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> c × |w<sub>t</sub> − w<sub>t−1</sub>|</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> You pay for the amount you actually trade, which is the absolute change in position, |w<sub>t</sub> − w<sub>t−1</sub>|, times the cost rate. Charging on the level w<sub>t</sub> (A) or the sum (C) misstates turnover; (B) is dimensionally meaningless.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> A strategy earns a gross annual return of 12%, charges an all-in cost of c = 0.0010 per unit of turnover, and trades with annual turnover T = 100. Its approximate net return is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> 12%</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> 10%</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> 2%</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> −2%</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Cost drag = c × T = 0.0010 × 100 = 0.10 = 10%, so net return ≈ 12% − 10% = 2%. (A) ignores costs entirely; (B) is the drag itself, not the net return; (D) would need a higher cost rate or more turnover.</div>
+    </div>
+
+    <!-- ============ OVERFITTING & WALK-FORWARD VALIDATION (Weeks 8-9) ============ -->
+    <div class="exam-sec">Overfitting &amp; Walk-Forward Validation · Weeks 8–9</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>16.</span> You test 80 independent, genuinely worthless strategies and keep any that pass at the 5% significance level. About how many do you <em>expect</em> to pass by chance alone?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> about 4</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> about 40</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> exactly 1</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> 0 — worthless strategies never pass a significance test</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The expected count of false winners is N·α = 80 × 0.05 = 4. 40 (B) would be N·0.5; the count is an expectation, not a fixed value like exactly 1 (C); and (D) is wrong because the 5% threshold lets worthless rules pass by luck.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>17.</span> A strategy posts a Sharpe of 2.3 in-sample but 0.2 out-of-sample. The most likely diagnosis is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> the out-of-sample period happened to be a bull market</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> overfitting — the rules fit in-sample noise that did not recur</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> the Sharpe ratio formula was applied incorrectly</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> transaction costs were ignored in both windows</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A large positive in-sample-minus-out-of-sample gap is the signature of overfitting. A one-sided bull market (A) would not specifically crush only the out-of-sample Sharpe; a formula error (C) would not produce a clean strong-then-weak split; ignored costs (D) would lower both windows similarly, not just one.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>18.</span> Using a Bonferroni correction, if you searched 40 strategy variants and want an overall false-positive rate of 5%, each variant should be tested at roughly…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> p &lt; 0.05</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> p &lt; 0.25</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> p &lt; 0.00125</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> p &lt; 0.50</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Bonferroni uses α/N = 0.05/40 = 0.00125. Keeping 0.05 (A) ignores the search entirely; 0.25 (B) and 0.50 (D) loosen rather than tighten the bar, which is backwards.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>19.</span> A parameter-sensitivity plot shows performance that stays high across a wide band of lookback values rather than spiking at one. This is evidence the strategy is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> overfit and should be discarded</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> guaranteed to be profitable live</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> using too few parameters to be useful</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> more robust, because small parameter errors barely change the result</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A broad plateau means performance does not depend on hitting one magic value — the hallmark of robustness. A lonely spike would suggest overfitting (A), but a plateau is the opposite; no backtest guarantees live profit (B); and a flat, wide response is a virtue, not a sign of too few parameters (C).</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>20.</span> Why do simpler strategies with fewer free parameters tend to generalize better than heavily parameterized ones?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> Simpler strategies always have a higher in-sample Sharpe</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> Fewer parameters mean each one is estimated on more data, leaving less room for noise to masquerade as signal</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> Complex strategies cannot be coded in pandas</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> Regulators prohibit strategies with more than three parameters</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Data per parameter shrinks as parameters are added, so each one is pinned down by less information and mostly fits noise. In-sample performance is actually monotone in complexity (A is backwards — more knobs can only improve the fit to the past); (C) and (D) are simply false.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>21.</span> Why does ordinary shuffled k-fold cross-validation leak information on a price time series?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> It cannot handle missing values</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> It always overweights the most recent data</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> Shuffling can place future-dated rows into the training fold, letting the model learn from data that comes after the test rows</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> It uses too few folds to be statistically valid</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Shuffling destroys time order, so a training fold can contain timestamps later than test timestamps — pure look-ahead bias. (D) is about fold count, not the leak itself; (B) is the opposite of what shuffling does; (A) is an unrelated implementation detail.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>22.</span> Your label is the forward 10-day return. What does <em>purging</em> remove, and what does <em>embargoing</em> remove?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> Purging removes the test block itself; embargoing removes a random 10% of the training data</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> Purging removes the most volatile training rows; embargoing removes the calmest ones</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> Purging deletes synthetic data; embargoing deletes real data</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> Purging removes training rows whose forward-looking label overlaps the test block; embargoing removes a buffer of training rows just after the test block</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Purging drops training rows whose label window reaches into the test period (closing the backward leak); embargoing deletes a short buffer right after the test block so autocorrelation can't leak forward into later training rows. (A), (B), and (C) all describe deletions unrelated to label overlap or forward bleed.</div>
+    </div>
+
+    <!-- ============ PORTFOLIO & CAPSTONE (Week 10) ============ -->
+    <div class="exam-sec">Portfolio &amp; Capstone · Week 10</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>23.</span> Nine strategies are mutually uncorrelated, each with the same volatility and a Sharpe of 0.4, held in equal weight. The portfolio Sharpe is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> 1.2</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> 0.4</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> 3.6</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> 0.13</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> For N uncorrelated, equal-vol, equal-weight strategies, Sharpe scales as √N times the single Sharpe: √9 × 0.4 = 3 × 0.4 = 1.2. (B) ignores the diversification benefit entirely; (C) uses N instead of √N; (D) divides instead of multiplying.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>24.</span> Under inverse-volatility weighting across a set of strategies, which one receives the largest capital allocation?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> The one with the lowest volatility</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> The one with the highest past return</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> The one with the highest volatility</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> They all get equal capital by definition</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Weight is proportional to 1/σ, so the calmest strategy gets the most dollars, equalizing each strategy's risk contribution. (C) is backwards; (B) confuses risk weighting with return chasing; (D) describes equal-dollar weighting, the very thing risk budgeting replaces.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>25.</span> Which equity curve is the only legitimate one to put in a capstone performance report?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> The in-sample, gross-of-cost curve</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> The out-of-sample, net-of-cost walk-forward curve</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> The best single backtest run out of many tried</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> The full-sample curve fit with the optimal parameters</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Only the out-of-sample, net-of-cost curve reflects what you could actually have traded. (A) is inflated by overfitting and ignored costs; (C) is cherry-picking (selection bias); (D) fits and tests on the same data, the cardinal sin walk-forward exists to prevent.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C4 Syllabus</div></a>
+        <a href="../lectures/l01-trading-pipeline.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Algo Trading</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

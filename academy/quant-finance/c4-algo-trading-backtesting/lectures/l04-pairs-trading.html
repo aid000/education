@@ -248,9 +248,16 @@ import numpy as np, pandas as pd
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import coint
 
-<span class="c"># --- load two price series (replace with your own CSV / data feed) ---</span>
-<span class="c"># df has a DatetimeIndex and columns "A" and "B" (adjusted close prices)</span>
-df = pd.read_csv("pair_prices.csv", index_col=0, parse_dates=True).dropna()
+<span class="c"># --- synthesize a cointegrated pair in-memory (harder to get from a single live ticker) ---</span>
+rng = np.random.default_rng(7)
+n   = 750
+dates = pd.bdate_range("2021-01-04", periods=n)
+B = pd.Series(50 + np.cumsum(rng.normal(0, 0.5, n)), index=dates, name="B")   <span class="c"># B: a random walk</span>
+spread_true = np.zeros(n)                                                     <span class="c"># a stationary AR(1) spread</span>
+for i in range(1, n):
+    spread_true[i] = 0.90 * spread_true[i - 1] + rng.normal(0, 0.8)
+A = pd.Series(5.0 + 0.80 * B.values + spread_true, index=dates, name="A")      <span class="c"># A cointegrated with B</span>
+df = pd.DataFrame({"A": A, "B": B})
 A, B = df["A"], df["B"]
 
 <span class="c"># --- 1. cointegration test (Engle-Granger) ---</span>
@@ -268,11 +275,12 @@ mu   = spread.rolling(win).mean()
 sd   = spread.rolling(win).std()
 z    = (spread - mu) / sd
 
-<span class="c"># --- 4. signal: short spread at z&gt;=+2, long at z&lt;=-2, flat near 0 ---</span>
+<span class="c"># --- 4. signal: enter wide (|z|&gt;=2), hold, exit narrow (|z|&lt;0.5) ---</span>
 pos = pd.Series(0, index=z.index)
 pos[z &gt;=  2.0] = -1                              <span class="c"># short the spread</span>
 pos[z &lt;= -2.0] =  1                              <span class="c"># long the spread</span>
-pos = pos.where((z.abs() &gt; 0.5)).ffill().fillna(0)   <span class="c"># hold until exit band</span>
+pos = pos.replace(0, np.nan).ffill().fillna(0)   <span class="c"># carry the open position forward</span>
+pos[z.abs() &lt; 0.5] = 0                           <span class="c"># exit once we re-enter the band</span>
 
 <span class="c"># spread P&amp;L of holding the position from t-1 to t</span>
 pnl = pos.shift(1) * spread.diff()

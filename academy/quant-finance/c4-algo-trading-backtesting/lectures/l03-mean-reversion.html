@@ -100,6 +100,34 @@
         .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
         .q details .ans { color: var(--green); font-weight: 700; }
 
+        /* ── DISCUSSION (interactive) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #08121a; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
         .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
         .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
         .lec-nav a:hover { border-color: var(--accent); }
@@ -282,13 +310,23 @@ pip install statsmodels</pre>
 import numpy as np, pandas as pd
 import statsmodels.api as sm
 
-<span class="c"># price: a pandas Series of daily closes (from your Week-1 data loader)</span>
+<span class="c"># price: a synthetic daily series with an AR(1) mean-reverting deviation layered</span>
+<span class="c"># on a slow-drifting fair value (same in-memory synthesis style as Lecture 1's demo)</span>
+rng  = np.random.default_rng(0)
+n    = 1500
+fair = 100 * np.exp(np.cumsum(rng.normal(0.0001, 0.003, n)))   <span class="c"># slow-drifting fair value</span>
+dev  = np.zeros(n)
+for i in range(1, n):
+    dev[i] = 0.92 * dev[i - 1] + rng.normal(0, 0.6)             <span class="c"># AR(1) deviation, phi = 0.92</span>
+price = pd.Series(fair + dev)
+
 N = 20                                  <span class="c"># lookback window (bars)</span>
 mu  = price.rolling(N).mean()           <span class="c"># rolling mean  (no look-ahead)</span>
 sig = price.rolling(N).std()
 z   = (price - mu) / sig                <span class="c"># the z-score signal</span>
 
-<span class="c"># position: +1 long when very cheap, -1 short when very rich, hold until z crosses 0</span>
+<span class="c"># position: +1 long when very cheap, -1 short when very rich, hold until the NEXT</span>
+<span class="c"># opposite ±2 extreme fires (ffill carries the open trade forward between signals)</span>
 raw = pd.Series(0, index=price.index)
 raw[z &lt; -2.0] =  1
 raw[z &gt;  2.0] = -1
@@ -304,23 +342,12 @@ spread = (price - mu).dropna()
 lag    = spread.shift(1).dropna()
 delta  = (spread - spread.shift(1)).dropna()
 lag, delta = lag.align(delta, join="inner")
-beta   = sm.OLS(delta, sm.add_constant(lag)).fit().params[1]   <span class="c"># = -theta</span>
+beta   = sm.OLS(delta, sm.add_constant(lag)).fit().params.iloc[1]   <span class="c"># = -theta (positional, not label 1)</span>
 half_life = -np.log(2) / beta            <span class="c"># bars to close half the gap</span>
 
 print("half-life (bars):", round(half_life, 1))
 print("total return    :", round(equity.iloc[-1] - 1, 4))</pre>
         <p style="font-size:.88rem; color:var(--text2);">Two habits to internalize: the <code>.rolling(N)</code> statistics use only past data, and <code>pos.shift(1)</code> makes you trade on the bar <em>after</em> the signal — together they kill the most common backtest lie, look-ahead bias. Try N = 10, 20, 50 and watch how the half-life suggests which lookback fits the data. In the coming weeks you'll wrap this exact logic into <code>vectorbt</code>/<code>backtrader</code> and add the transaction costs that decide whether the edge survives.</p>
-    </div>
-
-    <!-- DISCUSSION -->
-    <div class="ext" style="background:linear-gradient(135deg,#1a1322,#1e1526); border-color:#3a2d52;">
-        <h3 style="color:var(--violet);">💬 Discussion</h3>
-        <p style="color:#cdc0e6;">A teammate shows you a mean-reversion backtest on a single stock with a glittering Sharpe ratio: buy whenever the 20-day z-score drops below −2, exit at z = 0. They want to deploy it live tomorrow with real capital. Before anyone clicks "go," <strong>what is the single most important question you would ask, and what one diagnostic would you run to answer it?</strong> Think about <em>which regime</em> the backtest period happened to live in, and how you'd know whether the edge is real or an artifact of a lucky range-bound stretch.</p>
-        <details style="margin-top:14px; background:rgba(0,0,0,.18); border:1px solid #3a2d52; border-radius:10px; padding:12px 16px;">
-            <summary style="cursor:pointer; color:var(--violet); font-weight:700; font-size:.9rem;">Show a model response</summary>
-            <p style="font-size:.9rem; color:#cdc0e6; margin-top:12px;">The most important question is: <strong>does this series actually mean-revert, and over what horizon?</strong> A beautiful backtest can come entirely from the stock having traded in a range during the test window — survivorship of a regime, not a genuine edge. The one diagnostic I would run is the <strong>half-life regression</strong> (the AR(1) fit, half-life = ln 2 / θ). If θ is reliably positive with a short half-life (say a few days to a couple of weeks), the reversion is structural and the chosen 20-day lookback is roughly compatible with it. If θ is near zero, negative, or the half-life is hundreds of bars, the "edge" is almost certainly an artifact and will reverse into a trend disaster the moment the stock starts repricing. I would also split the sample (in-sample vs. out-of-sample, and across a known trending period) and check whether the Sharpe survives outside the lucky range — and confirm the backtest used <code>shift(1)</code> with rolling stats so it isn't quietly peeking at the future.</p>
-            <p style="font-size:.86rem; color:#9d8ec0; margin-top:12px; border-top:1px solid #3a2d52; padding-top:10px;"><strong>✓ Self-check rubric — a strong answer should:</strong> (1) identify <em>regime dependence</em> as the core risk, not just "overfitting" in the abstract; (2) name a concrete reversion test (half-life / θ, or an ADF/stationarity test); (3) propose out-of-sample or trending-period validation; (4) flag look-ahead bias (rolling stats + shifting the signal) as a separate must-check.</p>
-        </details>
     </div>
 
     <!-- EXTENSION -->
@@ -392,6 +419,43 @@ print("total return    :", round(equity.iloc[-1] - 1, 4))</pre>
         <p class="next-up">Next up — Week 4: pairs trading &amp; cointegration, where the mean you revert to is two assets' statistical equilibrium rather than a single price's own average — the most disciplined form of mean reversion.</p>
     </div>
 
+    <!-- ════════════════ DISCUSSION (interactive) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 1 · Week 3</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="qf-c4-l3-d1">
+            <p class="disc-prompt" id="prompt-qfc4l3">Momentum and mean-reversion are opposite bets on the same price series. When does each one work, and how would you tell which regime you're in before you trade?</p>
+
+            <textarea id="ans-qfc4l3" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-qfc4l3">Not saved yet</span>
+                <span class="toast" id="toast-qfc4l3"></span>
+            </div>
+
+            <div class="disc-model" id="model-qfc4l3" hidden>
+                <h4>Model response</h4>
+                <p>These two styles are mirror images of the same signal with opposite sign (§3.2), and §3.4's regime table makes the payoff explicit: mean reversion wins in range-bound, choppy markets where price oscillates around a stable mean and every dip or rally snaps back; momentum wins in strong, persistent trends where the rolling mean lags behind price and every "oversold" or "overbought" reading just keeps extending. Trading the wrong style into the wrong regime is the fastest way to bleed money — mean reversion catches a falling knife in a trend, while momentum whipsaws on every false breakout in chop.</p>
+                <p>The regime itself isn't directly observable, so you estimate it. The half-life regression from §3.3 (Δx<sub>t</sub> = −θ(x<sub>t−1</sub> − μ) + ε<sub>t</sub>) is the sharpest tool: a positive θ with a short half-life (days, not months) says the series is genuinely pulled back to its mean — trade reversion. A θ near zero, negative, or a half-life of hundreds of bars means there's no real pull, and a long-horizon moving-average slope that keeps climbing or falling confirms you're in a trend — trade momentum, or at minimum sit out reversion entirely. A practical trend filter — only take reversion trades when the long MA is roughly flat — operationalizes this before every trade, and it's worth re-checking regularly since regimes themselves shift over time.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Cites §3.4's complementary regime table: reversion wins range-bound/choppy markets, momentum wins strong trends</li>
+                    <li>Names a concrete regime diagnostic — the half-life/θ regression (or a trend filter on a long moving average)</li>
+                    <li>Notes the pairing is dynamic: regimes shift over time, so the diagnostic must be re-checked, not assumed to hold forever</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
+
     <!-- LECTURE NAV -->
     <div class="lec-nav">
         <a href="l02-momentum.html"><div class="dir">← Week 2</div><div class="ttl">Momentum &amp; Trend-Following</div></a>
@@ -410,6 +474,53 @@ print("total return    :", round(equity.iloc[-1] - 1, 4))</pre>
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my algorithmic trading & backtesting tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

@@ -248,10 +248,9 @@
     <!-- HANDS ON -->
     <div class="hands">
         <h3>🛠️ Hands-On: solve Cournot in Python</h3>
-        <p style="font-size:.9rem; color:var(--text2);">We keep using the free QuantEcon + NumPy + nashpy stack from <strong>Week 1</strong> (the one-time install lives in Lecture 1's setup box — reuse that virtual environment). Cournot has a continuum of quantities, so instead of a payoff matrix we either solve the linear best-response system directly or discretize the quantity grid and hand it to nashpy.</p>
+        <p style="font-size:.9rem; color:var(--text2);">We keep using the free QuantEcon + NumPy stack from <strong>Week 1</strong> (the one-time install lives in Lecture 1's setup box — reuse that virtual environment). Cournot has a continuum of quantities, not a finite list of pure strategies, so this isn't a payoff-matrix problem for <code>nashpy</code> to enumerate — we solve the linear best-response system directly, then verify it numerically by <strong>iterating best responses</strong>: start from an arbitrary (q1, q2) and repeatedly have each firm best-respond to the rival's current quantity, exactly as Section 7.2's reaction functions describe.</p>
         <pre><span class="c"># cournot.py — Lecture 7</span>
 import numpy as np
-import nashpy as nash
 
 a, b, c = 100.0, 1.0, 20.0          <span class="c"># P = a - b*Q,  MC = c</span>
 
@@ -264,18 +263,19 @@ profit = (price - c) * q_star
 print(f"q* per firm = {q_star:.2f},  P = {price:.2f},  profit each = {profit:.1f}")
 <span class="c"># q* per firm = 26.67,  P = 46.67,  profit each = 711.1</span>
 
-<span class="c"># --- (2) discretize quantities and let nashpy find the pure NE ---</span>
-grid = np.arange(0, 51)             <span class="c"># candidate outputs 0..50</span>
-def payoff(qi, qj):
-    P = max(a - b * (qi + qj), 0)
-    return (P - c) * qi
-A = np.array([[payoff(qi, qj) for qj in grid] for qi in grid])   <span class="c"># firm 1</span>
-B = A.T                                                          <span class="c"># symmetric firm 2</span>
-game = nash.Game(A, B)
-for eq in game.support_enumeration():
-    i = int(np.argmax(eq[0])); j = int(np.argmax(eq[1]))
-    print("pure NE quantities:", grid[i], grid[j])               <span class="c"># -> 27 27 (nearest grid pt)</span></pre>
-        <p style="font-size:.88rem; color:var(--text2);">The closed-form and the grid search agree (27 ≈ 26.67). Try setting <code>B</code> for a Bertrand price grid where the best response is "rival's price minus one cent" and watch both prices collapse to <code>c</code> — the Bertrand paradox, simulated.</p>
+<span class="c"># --- (2) verify it numerically via best-response iteration ---</span>
+<span class="c"># Each firm's best response to the rival's CURRENT quantity is the</span>
+<span class="c"># reaction function from 7.2: (a-c)/(2b) - q_other/2.</span>
+def best_response(q_other):
+    return max((a - c) / (2 * b) - q_other / 2, 0)
+
+q1, q2 = 5.0, 45.0                  <span class="c"># start deliberately far from equilibrium</span>
+for t in range(15):
+    q1, q2 = best_response(q2), best_response(q1)      <span class="c"># simultaneous update</span>
+    print(f"round {t+1}: q1 = {q1:.3f}, q2 = {q2:.3f}")
+print(f"converged to q1 = {q1:.2f}, q2 = {q2:.2f}  (closed-form q* = {q_star:.2f})")
+<span class="c"># converges to 26.67, 26.67 within ~15 rounds, in well under a second</span></pre>
+        <p style="font-size:.88rem; color:var(--text2);">Starting from the lopsided guess (5, 45), best-response iteration converges to (26.67, 26.67) — matching the closed form — within about fifteen rounds and a fraction of a second. (A discretized payoff-matrix search with <code>nashpy</code>'s <code>support_enumeration</code> is tempting here, but its runtime is exponential in the number of strategies: even a modest 51-point quantity grid makes it hang rather than finish, so best-response iteration is the right numerical check for a continuous-strategy game like Cournot.) Try the same iteration on <strong>Bertrand</strong>: write <code>best_response(p_other)</code> as "rival's price minus one cent" and watch both prices collapse toward <code>c</code> — the Bertrand paradox, simulated.</p>
     </div>
 
     <!-- EXTENSION -->

@@ -100,6 +100,33 @@
         .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
         .q details .ans { color: var(--green); font-weight: 700; }
 
+        /* ── DISCUSSION (interactive) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #1a1402; border-color: var(--accent); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
         .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
         .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
         .lec-nav a:hover { border-color: var(--accent); }
@@ -277,7 +304,7 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
 
 <span class="c"># 1. download prices and make a STATIONARY series: daily log-returns</span>
-px  = yf.download("SPY", start="2018-01-01", end="2023-01-01")["Close"]
+px  = yf.download("SPY", start="2018-01-01", end="2023-01-01", multi_level_index=False)["Close"]
 ret = np.log(px).diff().dropna()           <span class="c"># prices are non-stationary; returns are not</span>
 
 <span class="c"># 2. read the fingerprints BEFORE fitting</span>
@@ -302,25 +329,6 @@ for p, q in [(1,0), (0,1), (1,1), (2,2)]:
     <div class="ext">
         <h3>🔗 Where this is heading</h3>
         <p>ARMA assumes a <em>stationary</em> input — but raw prices trend and wander. Next week we add the missing piece: the <strong>I</strong> (integrated) step that <em>differences</em> a series into stationarity, giving the full <strong>ARIMA</strong> model and a proper forecasting pipeline with confidence intervals. Later, when we find that the <em>variance</em> itself clusters and changes over time — calm days followed by calm, violent days by violent — we graduate to <strong>GARCH</strong> volatility models. The AR/MA/ARMA vocabulary you built here is the grammar underneath all of them, and it feeds directly into the signal-construction and backtesting work of the strategy courses.</p>
-    </div>
-
-    <!-- DISCUSSION -->
-    <div class="ext" style="background:linear-gradient(135deg,#101a14,#0f1f17); border-color:#234d3a;">
-        <h3 style="color:var(--green);">💬 Discussion</h3>
-        <p style="color:#c0e6d3;">The efficient-market hypothesis says past prices should not predict future prices — yet ARMA models are everywhere on trading desks. If daily equity returns really are close to white noise (no usable ACF/PACF structure), <strong>where and why do AR and MA models still earn their keep in quantitative finance?</strong> Be specific about the kind of series or horizon where you'd expect real predictable structure to survive.</p>
-        <details style="margin-top:12px;">
-            <summary style="cursor:pointer; color:var(--green); font-weight:600; font-size:.88rem;">Show a model response</summary>
-            <div style="font-size:.88rem; color:#c0e6d3; margin-top:10px;">
-                <p style="margin-bottom:10px;">Weak-form efficiency is about <em>price levels / directional returns</em> of liquid assets, and ARMA mostly confirms it there — the autocorrelations of daily large-cap returns are tiny and unstable, so an ARMA on raw returns rarely beats a no-change forecast after costs. But the same machinery pays off on series that are <em>not</em> simple returns:</p>
-                <ul style="margin-left:18px; margin-bottom:10px;">
-                    <li><strong>Mean-reverting spreads.</strong> A market-neutral spread (e.g., a cointegrated pair) is engineered to be stationary and AR(1)-like; |φ|&lt;1 gives a tradeable pull toward equilibrium — the statistical-arbitrage edge.</li>
-                    <li><strong>High-frequency / microstructure.</strong> At the tick scale, bid–ask bounce induces strong <em>negative</em> lag-1 autocorrelation — a textbook MA(1) signature exploited for execution and short-horizon prediction.</li>
-                    <li><strong>Transformed series.</strong> Returns are near-white, but their <em>magnitudes</em> (volatility) and order flow are strongly autocorrelated — ARMA on those drives risk and execution models (and motivates GARCH next).</li>
-                </ul>
-                <p>So ARMA earns its keep not by beating efficiency on liquid directional returns, but by modeling the stationary, structured series that markets do leave behind — spreads, volatility, microstructure, and macro/fundamental data.</p>
-                <p style="margin-top:12px; padding-top:10px; border-top:1px dashed #234d3a;"><strong>✓ Self-check rubric:</strong> A strong answer (1) distinguishes <em>which</em> series is near-white from those with real structure rather than blanket-claiming markets are predictable or not; (2) names at least one concrete predictable case (spreads, microstructure/bid–ask bounce, or volatility) with the AR-vs-MA reasoning; and (3) acknowledges transaction costs / out-of-sample stability as the real bar any edge must clear.</p>
-            </div>
-        </details>
     </div>
 
     <!-- QUIZ -->
@@ -386,6 +394,41 @@ for p, q in [(1,0), (0,1), (1,1), (2,2)]:
         <p class="next-up">Next up — Week 7: ARIMA &amp; forecasting — adding the integrated (differencing) step that handles trending prices, plus multi-step forecasts with confidence intervals.</p>
     </div>
 
+    <!-- ════════════════ DISCUSSION (interactive) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 2 · Week 6</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="qf-c2-l6-d2">
+            <p class="disc-prompt" id="prompt-qfc2l6">ARMA models capture linear structure in returns. Given how weak return autocorrelation is in liquid markets, where do ARMA models actually earn their keep?</p>
+
+            <textarea id="ans-qfc2l6" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-qfc2l6">Not saved yet</span>
+                <span class="toast" id="toast-qfc2l6"></span>
+            </div>
+
+            <div class="disc-model" id="model-qfc2l6" hidden>
+                <h4>Model response</h4>
+                <p>Weak-form efficiency is really a statement about <em>directional daily returns</em> of liquid, large-cap names — and ARMA mostly confirms it there: fitted φ and θ on raw daily returns are tiny and unstable, so an ARMA forecast rarely beats "expect no change" after costs. But §6.4's ACF/PACF logic applies to any series, not just raw returns, and several series that traders actually build have real, persistent structure. The clearest is a <strong>mean-reverting spread</strong>: once you construct a market-neutral pair (Week 9's territory), it is engineered to look AR(1)-like with |φ| meaningfully below 1, and that coefficient is the entire statistical-arbitrage edge — it tells you how fast the spread pulls back toward its long-run mean.</p>
+                <p>A second home for ARMA is <strong>microstructure</strong>: at the tick level, bid-ask bounce induces a strong <em>negative</em> lag-1 autocorrelation in trade prices — a textbook MA(1) signature with a clean cut-off, not noise. A third is applying ARMA not to returns themselves but to a <em>transform</em> of them — order flow, or the magnitude series |r<sub>t</sub>| that Lecture 3 showed is strongly autocorrelated even when r<sub>t</sub> is not. So ARMA earns its keep by modeling the stationary, structured series markets do leave behind — spreads, tick-level noise, and volatility proxies — rather than by beating efficiency on liquid directional returns themselves.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Distinguishes raw directional returns (near-white, ARMA adds little) from a series with real exploitable structure</li>
+                    <li>Names at least one concrete case — mean-reverting spreads (AR), bid-ask bounce (MA), or volatility/order flow — with the correct AR-vs-MA reasoning</li>
+                    <li>Acknowledges that any such edge still has to clear transaction costs and hold up out-of-sample before it is real</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <!-- LECTURE NAV -->
     <div class="lec-nav">
         <a href="l05-moving-averages.html"><div class="dir">← Week 5</div><div class="ttl">Moving Averages &amp; Smoothing</div></a>
@@ -404,6 +447,53 @@ for p, q in [(1,0), (0,1), (1,1), (2,2)]:
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my quantitative finance tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

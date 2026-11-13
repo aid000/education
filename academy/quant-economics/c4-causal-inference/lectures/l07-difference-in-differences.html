@@ -279,17 +279,42 @@ m = smf.ols("jobs ~ treat + post + treat:post", data=df).fit()
 print(m.params["treat:post"])        <span class="c"># -> 0.6  (the DiD effect)</span></pre>
         <p style="font-size:.88rem; color:var(--text2);">With a real multi-period panel you'd instead estimate an event study: regress the outcome on group and time fixed effects plus interactions of <code>treat</code> with each event-time dummy, omitting k = −1, then plot the coefficients.</p>
         <pre><span class="c"># event study with two-way fixed effects (many groups, many years)</span>
+<span class="c"># This reconstructs a bigger panel in the same spirit as the 2x2 example</span>
+<span class="c"># above (many regions, many years, one common policy date) so the snippet</span>
+<span class="c"># is self-contained.</span>
+import numpy as np, pandas as pd
 from linearmodels.panel import PanelOLS
 
-panel = panel.set_index(["region", "year"])   <span class="c"># MultiIndex = entity, time</span>
-<span class="c"># k = event time; reltime dummies omit k == -1 as the baseline</span>
-res = PanelOLS.from_formula(
-    "jobs ~ C(reltime) + EntityEffects + TimeEffects",
-    data=panel,
-).fit(cov_type="clustered", cluster_entity=True)
+rng = np.random.default_rng(7)
+regions = [f"region{i}" for i in range(10)]
+calendar_years = np.arange(2014, 2023)
+policy_year = 2018
+treat_regions = set(regions[:5])              <span class="c"># first 5 regions raised the wage</span>
 
-coefs = res.params.filter(like="reltime")      <span class="c"># plot these vs k</span>
-print(coefs)   <span class="c"># leads near 0 = parallel pre-trends; lags = dynamic effect</span></pre>
+rows = []
+for r in regions:
+    region_fe = rng.normal(20, 2)
+    treat = 1 if r in treat_regions else 0
+    for y in calendar_years:
+        year_fe = 0.1 * (y - 2014)             <span class="c"># common trend, both groups</span>
+        reltime = y - policy_year              <span class="c"># k = event time</span>
+        effect = 0.6 if (treat and reltime &gt;= 0) else 0.0   <span class="c"># true dynamic effect</span>
+        jobs = region_fe + year_fe + effect + rng.normal(0, 0.3)
+        rows.append((r, y, reltime, treat, jobs))
+panel = pd.DataFrame(rows, columns=["region", "year", "reltime", "treat", "jobs"])
+
+<span class="c"># manual event-time dummies for TREATED regions only; omit k = -1 as baseline</span>
+for k in range(-4, 5):
+    if k == -1:
+        continue
+    panel[f"k{k}"] = ((panel["reltime"] == k) & (panel["treat"] == 1)).astype(int)
+
+panel = panel.set_index(["region", "year"])    <span class="c"># MultiIndex = entity, time</span>
+dummy_cols = [c for c in panel.columns if c.startswith("k")]
+res = PanelOLS(panel["jobs"], panel[dummy_cols], entity_effects=True, time_effects=True).fit(
+    cov_type="clustered", cluster_entity=True)
+
+print(res.params)   <span class="c"># leads (k&lt;0) near 0 = parallel pre-trends; lags (k&gt;=0) = dynamic effect</span></pre>
         <p style="font-size:.88rem; color:var(--text2);">Clustering on entity (<code>cluster_entity=True</code>) handles the within-group serial correlation flagged in 7.3. Plot <code>coefs</code> against event time with their confidence intervals to get the figure above.</p>
     </div>
 

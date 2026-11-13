@@ -108,6 +108,35 @@
         .lec-nav a.disabled { opacity: .45; pointer-events: none; }
         .lec-nav a.next { text-align: right; }
 
+        /* ── DISCUSSION (interactive) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #1a1408; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
         footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
         footer a { color: var(--accent2); text-decoration: none; }
     </style>
@@ -143,7 +172,7 @@
         <h2><span class="n">9.1</span>Why Inventory Changes the Quote</h2>
         <p>In Week 8 a market maker posted a symmetric bid and ask around the mid-price and collected the spread on each round-trip. That works in a frictionless thought-experiment, but it ignores the single largest risk in the business: <strong>inventory</strong>. Every fill leaves you holding a position. Buy when someone sells to you, and you accumulate a long book; the moment the market gaps down, that inventory is a loss, not a fee earned.</p>
         <p>The core tension is this. A market maker earns money from the <span class="key">spread</span> — a steady stream of small edges — but is exposed to <span class="key">inventory risk</span>, the chance that the price moves against the position accumulated while providing liquidity. The spread income is roughly linear in how much you trade; the inventory risk grows with the <em>variance</em> of what you are holding. Quoting symmetrically lets inventory wander, and a wandering inventory has a variance that grows without bound over time.</p>
-        <p>The fix is to make quotes <strong>inventory-aware</strong>. If you are already long, you should be less eager to buy more and more eager to sell — so you raise both your bid and your ask, making your sells more attractive and your buys less so. If you are short, you do the reverse. The quote is no longer pinned to the mid; it is pinned to a price that <em>accounts for the position you are carrying</em>.</p>
+        <p>The fix is to make quotes <strong>inventory-aware</strong>. If you are already long, you should be less eager to buy more and more eager to sell — so you lower both your bid and your ask, making your sells more attractive and your buys less so. If you are short, you do the reverse. The quote is no longer pinned to the mid; it is pinned to a price that <em>accounts for the position you are carrying</em>.</p>
         <div class="box analogy"><span class="lbl">Analogy</span>Think of a grocer with a fridge full of milk nearing its sell-by date. They don't keep pricing milk at the "fair" shelf price — they mark it down to clear the shelf, accepting a thinner margin to avoid the bigger loss of spoilage. A market maker carrying a large long inventory does the same: shade prices to encourage the market to take the position off their hands before the next adverse move "spoils" it.</div>
     </section>
 
@@ -301,20 +330,42 @@ print("symmetric: final PnL %.2f, inventory std %.2f" % (pnl_sym,  inv_sym.std()
         <p>This lecture's continuous-time control problem is your first taste of <strong>stochastic optimal control</strong> — choosing actions through time to steer a random system, the same machinery behind optimal execution (splitting a large order to minimize market impact) and dynamic hedging. Next week's <strong>Market-Making Capstone</strong> ties §9.1–9.4 into a full backtested strategy with adverse-selection and impact effects layered on. Looking further, the reservation-price skew generalizes to <em>multi-asset</em> inventory control, where the risk penalty becomes the portfolio covariance Σ from the Markowitz machinery in Lecture 5 — and the γ knob you tuned here is the same risk-aversion dial that runs through every risk model in this course.</p>
     </div>
 
-    <!-- DISCUSSION -->
-    <div class="ext" style="background:linear-gradient(135deg,#1a1322,#221528);border-color:#4a3a66;">
-        <h3>💬 Discussion</h3>
-        <p style="color:#e0d4f5;">It is the final 30 minutes of the trading session and you are sitting on a large long inventory you have not been able to clear. The model says r drops toward the mid and the spread tightens as T − t → 0, telling you to quote more aggressively to flatten before the close. But a piece of news just hit and volatility is spiking. <strong>How should the conflict between "flatten before the close" and "volatility is rising" resolve in your quotes — and what does it reveal about the model's blind spots?</strong> Argue a position.</p>
-        <details style="margin-top:14px;">
-            <summary style="cursor:pointer;color:var(--violet);font-weight:600;font-size:.9rem;">Show a model response</summary>
-            <div style="margin-top:12px;font-size:.9rem;color:#cdc0e6;">
-                <p style="margin-bottom:10px;">The two effects push the spread in opposite directions and you must weigh them rather than trust either term alone. The closing-time effect (T − t → 0) shrinks the inventory-risk term and tightens the spread; the volatility spike inflates σ² and widens it. In the model these multiply inside the <em>same</em> γσ²(T−t) term, so the net effect on the <em>spread</em> depends on which moves faster — and a genuine vol spike usually dominates a small T − t, so the spread should actually <em>widen</em>, not tighten.</p>
-                <p style="margin-bottom:10px;">But the more important point is what to do with the <em>skew</em>, which is separate from the spread. The long inventory still needs to come down, and an aggressive ask (low relative to the mid) is the right tool to attract sellers-to-you off the book — the skew should stay strong. The resolution: keep, or even increase, the inventory skew to keep flattening, while <em>widening the overall spread</em> so you are not handing out free options into a volatile, possibly adversely-selected market. You flatten by leaning your quotes, not by quoting tight.</p>
-                <p style="margin-bottom:10px;">The blind spots this exposes: (1) the model treats σ as a known constant, but real volatility is stochastic and clusters — a single constant σ cannot represent "calm then sudden spike"; (2) it ignores <strong>adverse selection</strong> — right after news, the counterparties hitting your quotes are likelier to be informed, so naive fills are toxic; (3) it has no notion of a hard end-of-day risk limit, only a smooth penalty, so it may not flatten urgently enough when a real position cap looms.</p>
-                <p style="font-size:.85rem;color:var(--violet);"><strong>✓ Self-check rubric:</strong> A strong answer (1) distinguishes the <em>skew</em> decision from the <em>spread-width</em> decision rather than treating "quote aggressively" as one knob; (2) recognizes that a vol spike widens the spread while still keeping the inventory skew to flatten; and (3) names at least one structural blind spot — constant/known σ, adverse selection, or the absence of a hard risk limit.</p>
+    <!-- ════════════════ DISCUSSION (interactive) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 3 · Week 9</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="qf-c5-l9-d3">
+            <p class="disc-prompt" id="prompt-qfc5l9">A market maker quoting a tighter spread captures more flow but takes on more adverse selection. How should inventory and risk-aversion shift your quotes, and what does the Avellaneda–Stoikov reservation price capture?</p>
+
+            <textarea id="ans-qfc5l9" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
             </div>
-        </details>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-qfc5l9">Not saved yet</span>
+                <span class="toast" id="toast-qfc5l9"></span>
+            </div>
+
+            <div class="disc-model" id="model-qfc5l9" hidden>
+                <h4>Model response</h4>
+                <p>Inventory and risk-aversion act on two different knobs. Current inventory q sets the <em>skew</em>: the reservation price r = s − qγσ²(T−t) shifts below the mid when the book is long (q &gt; 0), making the ask more attractive so sells outpace buys and the position mean-reverts toward zero; a short book (q &lt; 0) shifts r above the mid and does the opposite. Risk aversion γ sets the <em>intensity</em> of both the skew and the overall spread: a higher γ widens the total spread γσ²(T−t) + (2/γ)ln(1+γ/κ) and steepens the skew, trading away flow for safety; a lower γ narrows the spread and lets inventory run further before it gets corrected, trading safety for volume.</p>
+                <p>The reservation price captures the maker's own risk-adjusted indifference point, not a forecast — it is the price at which you are equally happy holding your current inventory or trading one more unit. It bundles three things multiplicatively: how much risk you already carry (q), how averse you are to carrying it (γ), and how much that risk still matters (σ²(T−t), the variance of the price times how long you remain exposed). As the session closes, T−t → 0 and the skew vanishes, because there is no future left in which an open position can hurt you — the reservation price is purely about risk still outstanding, never about where the maker thinks the price is headed.</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>States the reservation price r = s − qγσ²(T−t): below the mid when long, above it when short, correctly identifying which side of the quote becomes more aggressive</li>
+                    <li>Explains γ's dual role — scaling both the inventory skew and the inventory-risk term of the spread — and the volume-vs-safety tradeoff it controls</li>
+                    <li>Clarifies that the reservation price is a risk-management device, not a directional forecast, and notes it vanishes as T−t → 0</li>
+                </ul>
+            </div>
+        </div>
     </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
 
     <!-- QUIZ -->
     <div class="quiz">
@@ -397,6 +448,53 @@ print("symmetric: final PnL %.2f, inventory std %.2f" % (pnl_sym,  inv_sym.std()
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my quant finance tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

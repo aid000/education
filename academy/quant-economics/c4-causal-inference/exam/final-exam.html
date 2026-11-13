@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4 · Final Exam — Causal Inference &amp; Policy Evaluation</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C4 Causal Inference</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C4 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from potential outcomes to a capstone policy study.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Potential outcomes/RCT/confounding <b>4</b></span>
+            <span class="wchip">Regression adjustment/matching <b>4</b></span>
+            <span class="wchip">Instrumental variables <b>4</b></span>
+            <span class="wchip">DiD/RDD <b>8</b></span>
+            <span class="wchip">Panel FE/capstone <b>5</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ POTENTIAL OUTCOMES, EXPERIMENTS & CONFOUNDING (Weeks 1-3) ============ -->
+    <div class="exam-sec">Potential Outcomes, Experiments &amp; Confounding · Weeks 1–3</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>1.</span> The individual treatment effect τ<sub>i</sub> = Y<sub>i</sub>(1) − Y<sub>i</sub>(0) cannot be computed from data because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> the effect is always zero</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> sample sizes are always too small</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> for any unit we only ever observe one of its two potential outcomes</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> treatment is always randomly assigned</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> A unit is either treated or not, so we see Y(1) or Y(0) but never both — the fundamental problem of causal inference. The other options are either false or irrelevant to why τ<sub>i</sub> itself is unobservable.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>2.</span> Under random assignment, the simple difference in group means is unbiased for the ATE because randomization makes treatment…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> statistically independent of the potential outcomes</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> equal to the potential outcomes</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> correlated with observed covariates only</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> assigned by the researcher's personal judgment</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> With {Y(1),Y(0)} ⊥ D, each group's mean equals the population's, so the observable difference in means equals the ATE. B is nonsensical, C describes selection on observables (a weaker, conditional case), and D is the opposite of random assignment.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>3.</span> In the decomposition E[Y|D=1] − E[Y|D=0] = ATT + selection bias, the selection-bias term equals…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> E[Y(1)|D=1] − E[Y(0)|D=1]</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> the variance of Y across the whole sample</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> zero whenever the data are observational</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> E[Y(0)|D=1] − E[Y(0)|D=0]</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Selection bias is the difference in the untreated-state outcomes between the two groups — whether they'd have differed even absent treatment. A is the ATT itself, not the bias; B is unrelated; C has it backwards — the bias is generically nonzero exactly in observational data.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>4.</span> A confounder X that opens a back-door path D ← X → Y is best addressed by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> ignoring X entirely</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> conditioning on X</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> conditioning on a mediator of the D → Y effect instead</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> conditioning on a collider caused jointly by D and Y</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Conditioning on a confounder on an open back-door path blocks the leak between D and Y. Conditioning on a mediator (C) throws away part of the real effect, and conditioning on a collider (D) opens a new spurious path — both create bias rather than remove it.</div>
+    </div>
+
+    <!-- ============ REGRESSION ADJUSTMENT & MATCHING (Weeks 4-5) ============ -->
+    <div class="exam-sec">Regression Adjustment &amp; Matching · Weeks 4–5</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> The assumption {Y(0),Y(1)} ⊥ D | X, nicknamed "selection on observables," says that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> once we condition on the observed covariates X, treatment is as good as randomly assigned</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> treatment was assigned by a true coin flip</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> there are no confounders of any kind in the data</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> the outcome must be a linear function of X</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Within each stratum of the observed X, treatment is "as good as random." B describes an actual experiment, a sufficient but stronger condition than what this assumption claims. C is false — confounders may exist, they just must all be measured. D is a modeling convenience, not an identification requirement.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>6.</span> The defining limitation of regression adjustment is that it…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> cannot be used when the treatment is binary</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> always requires more controls than matching does</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> cannot remove bias from a confounder that is unobserved</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> only works when the sample exceeds 1,000 observations</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Adjustment closes back-door paths only through measured X; a confounder you never recorded leaves residual bias the regression output cannot reveal. A, B, and D are all simply false.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>7.</span> The common-support (overlap) condition for matching and propensity-score methods requires that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> the propensity score perfectly predicts treatment</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> the treated and control groups are exactly the same size</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> every covariate is normally distributed</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> 0 &lt; e(X) &lt; 1 for every covariate value, so both groups exist at every X</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Overlap means every unit has a positive chance of either treatment status, so a counterfactual exists everywhere. A is actually the opposite — a near-perfect classifier destroys overlap. B and C are irrelevant to the condition.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>8.</span> Compared with regression adjustment, nearest-neighbor matching…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> always requires fewer observations to run</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> refuses to compare units with no close counterpart, whereas regression will extrapolate past the data's support</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> does not rely on the unconfoundedness assumption at all</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> requires every unit's propensity score to equal exactly 0.5</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Matching is nonparametric and declines to pair units with no comparable counterpart; regression extrapolates via its functional form instead. A and D are false, and C is wrong — both methods rest on the same selection-on-observables assumption.</div>
+    </div>
+
+    <!-- ============ INSTRUMENTAL VARIABLES (Week 6) ============ -->
+    <div class="exam-sec">Instrumental Variables · Week 6</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>9.</span> The exclusion restriction for an instrument Z — that Cov(Z, u) = 0 — is hard to test directly because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> it only applies when more than one instrument is available</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> it only holds once the first-stage F exceeds 10</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> the instrument Z must be a continuous variable for the test to apply</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> it is a statement about an unobserved error term, so it must be argued from how Z was generated rather than verified in the data</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Because u is never observed, Cov(Z,u)=0 cannot be checked with a statistic — it has to be defended with a narrative about the instrument's source. A, B, and C describe unrelated or false conditions.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>10.</span> Because the exclusion restriction cannot be tested, researchers typically defend it by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> arguing from the instrument's institutional or natural source (e.g., a lottery or an arbitrary cutoff) that no plausible channel to the outcome exists except through treatment</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> running additional regressions until the standard error shrinks</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> showing that the first-stage F-statistic exceeds 10</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> increasing the sample size until the exclusion restriction becomes testable</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A credible defense is a narrative argument grounded in how the instrument's variation was generated. C (the F-stat) tests relevance, not exclusion — a common confusion. B and D do nothing to an assumption about an unobserved error.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>11.</span> The IV estimate identifies the Local Average Treatment Effect, the average effect for…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> always-takers</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> compliers — those whose treatment status responds to the instrument</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> never-takers</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> the entire population, regardless of how they respond to the instrument</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Only compliers supply instrument-driven variation, so IV identifies their average effect. Always-takers (A) and never-takers (C) contribute no such variation, and IV does not generally recover the full-population ATE (D) under heterogeneous effects.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>12.</span> A weak instrument (first-stage F well below 10) is dangerous mainly because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> it guarantees the exclusion restriction is violated</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> it makes OLS unbiased</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> the IV estimate becomes high-variance and biased back toward the OLS estimate</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> it forces the treatment effect to equal zero</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Because β<sub>IV</sub> divides by the first-stage covariance, a near-zero first stage explodes the variance and re-introduces OLS-like bias. A is a separate (unrelated) condition, and B and D are simply false.</div>
+    </div>
+
+    <!-- ============ DIFFERENCE-IN-DIFFERENCES & REGRESSION DISCONTINUITY (Weeks 7-8) ============ -->
+    <div class="exam-sec">Difference-in-Differences &amp; Regression Discontinuity · Weeks 7–8</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>13.</span> The parallel-trends assumption behind difference-in-differences requires that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> the treated and control groups have identical outcome levels before treatment</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> treatment was randomly assigned to the two groups</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> the control group experiences no time trend at all</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> absent treatment, the treated group's average outcome would have changed by the same amount as the control group's</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Parallel trends is about counterfactual changes, not levels. A is wrong because DiD differences away any fixed level gap; B describes an RCT, not DiD; C is backwards — DiD relies on the control absorbing whatever common trend exists.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>14.</span> In the regression Y = β0 + β1·Treat + β2·Post + β3·(Treat×Post), the difference-in-differences estimate is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> β3, the coefficient on the interaction term</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> β1, the coefficient on Treat</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> β2, the coefficient on Post</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> β0, the control-group pre-period mean</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The double difference cancels everything but the interaction, so β3 is the treatment effect. β1 is just the fixed level gap and β2 is the common time trend — neither is the causal estimate.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>15.</span> In an event-study plot, pre-treatment lead coefficients that drift away from zero before the policy date most likely indicate…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> the post-treatment effect is unusually large</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> standard errors were clustered at the wrong level</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> the groups were already diverging before treatment, casting doubt on parallel trends</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> the control group was secretly treated early</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Non-zero leads signal a pre-trend: the groups were moving apart before the policy, so any post-period "effect" may just be that divergence continuing. A confuses leads with lags; B and D are unrelated to what leads measure.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>16.</span> Which of the following is a genuine threat to the validity of a DiD estimate?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> the control group has more units than the treatment group</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> units anticipate the policy and change behavior before it formally takes effect</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> the outcome is measured in percentage points rather than dollars</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> the treated and control groups had different outcome levels in the pre-period</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Anticipation contaminates the "before" period itself, violating the design — a real pitfall. A and C are irrelevant to identification, and D (a level gap) is harmless since DiD differences it away.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>17.</span> Regression discontinuity is credible at the cutoff only if…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> the running variable is itself randomly assigned to each unit</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> the outcome is linear in the running variable across the entire range</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> the treated and control groups are exactly the same size</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> all other determinants of the outcome vary continuously through the cutoff, so only treatment can jump there</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Continuity of the potential outcomes at the cutoff is the design's identifying assumption. The running variable need not be random (A); global linearity (B) is never required since RDD fits locally; and sample sizes (C) are irrelevant.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>18.</span> The causal effect in a sharp RDD is estimated as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> the slope of a single pooled regression line through all the data</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> the correlation between the running variable and the outcome</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> the size of the vertical jump in the outcome right at the cutoff, from separate local regressions on each side</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> the average outcome across the whole sample, above the cutoff minus below it</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The effect is the discontinuous jump at X = c, estimated from two separate local fits. A pooled line (A) confounds the jump with the overall trend, a correlation (B) is not causal here, and a full-range mean difference (D) compares units far from the cutoff.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>19.</span> The continuity assumption in an RDD would be violated if…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> units could manipulate the running variable to land just above the favorable side of the cutoff</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> the sample sizes above and below the cutoff happen to differ</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> the bandwidth is chosen with a data-driven MSE-optimal rule</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> a triangular kernel is used instead of a uniform one</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Manipulation of the running variable makes units just above and below the cutoff systematically different, breaking continuity. B, C, and D are routine design choices or incidental facts, not threats to the assumption.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> You re-estimate an RDD effect at half, the optimal, and double the bandwidth, and the estimate swings from 0.1 to 0.9. The right conclusion is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> the design is more credible because several bandwidths were tried</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> report the largest estimate, since wider bandwidths use more data</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> bandwidth has no real effect on an RDD estimate</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> the estimate is fragile and the result deserves strong skepticism</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A credible RDD is roughly stable across reasonable bandwidths; wild swings are a red flag, not reassurance. Cherry-picking the largest number (B) is exactly what sensitivity checks guard against, and bandwidth genuinely does shift estimates through the bias-variance trade-off (ruling out C).</div>
+    </div>
+
+    <!-- ============ PANEL FIXED EFFECTS & CAPSTONE POLICY DESIGN (Weeks 9-10) ============ -->
+    <div class="exam-sec">Panel Fixed Effects &amp; Capstone Policy Design · Weeks 9–10</div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>21.</span> Entity fixed effects remove bias from a confounder only if that confounder is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> strongly correlated with the outcome</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> constant over time for each entity</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> measured with some error</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> normally distributed</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The within transformation subtracts each entity's own mean, which cancels only a confounder that never changes over the panel. A confounder's strength (A), measurement error (C), and its distribution (D) are all beside the point.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>22.</span> A state adopts a job-training program precisely because its labor market was already starting to recover. A two-way fixed-effects regression of employment on the program indicator will…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> still be biased, because the time-varying, state-specific recovery is not absorbed by entity or time fixed effects</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> be unbiased, because entity fixed effects remove any confounder related to the state</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> be unbiased, because time fixed effects remove any confounder related to the year</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> automatically correct itself once standard errors are clustered by state</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Entity effects absorb only time-invariant traits and time effects absorb only shocks common to every unit; a confounder that is both state-specific <em>and</em> changing over time (the recovery coinciding with adoption) passes straight through both. B and C each describe only one half of what fixed effects can do, and clustering (D) fixes inference, not bias.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> Standard errors in a panel regression should usually be clustered by entity because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> clustering removes omitted-variable bias from the point estimate</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> it is required for the fixed-effects model to converge numerically</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> an entity's errors are correlated over time, so default standard errors understate the true uncertainty</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> clustering always increases the size of the estimated treatment effect</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Serial correlation within an entity violates the independence assumption behind classical standard errors, so ignoring it makes inference overconfident. A confuses inference with bias — fixed effects, not clustering, address bias — and B and D are simply false.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>24.</span> What should determine the choice of identification strategy (DiD, RDD, or IV) for a policy-evaluation capstone?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> whichever design yields the largest, most statistically significant effect</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> whichever method has the most available software support</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> trying all three designs and reporting the most convincing-looking one</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> how the policy actually assigned treatment to units</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The assignment mechanism dictates which identifying assumption is plausible, so it should drive the design choice. A and C describe specification-shopping, which invalidates inference, and B ignores the actual source of identification entirely.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>25.</span> A capstone using instrumental variables reports a point estimate without noting that it applies only to compliers, and uses classical (non-clustered) standard errors despite state-level treatment assignment. The report is best described as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> complete and ready to publish, since IV already handles state-level data correctly</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> incomplete — it should flag the LATE-vs-ATE gap and cluster standard errors at the level treatment was assigned</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> unnecessary — a point estimate alone is sufficient evidence of a causal effect</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> correct, because classical standard errors are always more conservative than clustered ones</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Honest reporting states whose effect was estimated (compliers, not everyone) and clusters at the level treatment was assigned (here, state) to avoid overstated significance. A and D are false claims about the mechanics, and C ignores that uncertainty is part of any real finding.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C4 Syllabus</div></a>
+        <a href="../lectures/l01-potential-outcomes.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C4 Causal Inference</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

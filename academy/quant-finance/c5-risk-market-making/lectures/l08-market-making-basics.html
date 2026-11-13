@@ -181,7 +181,7 @@
             <text x="438" y="59" fill="#93c5fd" font-size="11">ask</text>
             <!-- mid line (center) -->
             <line x1="60" y1="125" x2="430" y2="125" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6 4"/>
-            <text x="438" y="129" fill="#fcd34d" font-size="11">mid m</text>
+            <text x="438" y="129" fill="#fcd34d" font-size="11">mid</text>
             <!-- bid line (bottom) -->
             <line x1="60" y1="195" x2="430" y2="195" stroke="#60a5fa" stroke-width="2"/>
             <text x="438" y="199" fill="#93c5fd" font-size="11">bid</text>
@@ -275,8 +275,9 @@ p_inform  = 0.20         <span class="c"># prob a given fill is informed</span>
 
 mid = 50.0
 q   = 0                  <span class="c"># signed inventory (shares)</span>
-spread_pnl = 0.0         <span class="c"># gross half-spread captured</span>
-adverse    = 0.0         <span class="c"># losses to informed flow</span>
+spread_pnl    = 0.0      <span class="c"># gross half-spread captured</span>
+adverse       = 0.0      <span class="c"># diagnostic only: informed-flow losses (see note below)</span>
+inventory_pnl = 0.0      <span class="c"># mark-to-market P&amp;L on our inventory</span>
 
 for _ in range(n_steps):
     drift = 0.0
@@ -284,26 +285,31 @@ for _ in range(n_steps):
         informed = rng.random() &lt; p_inform
         if informed:
             <span class="c"># informed: trades in the direction the mid is about to move</span>
-            side = rng.choice([-1, 1])         <span class="c"># -1 = they sell to us (we go long)</span>
-            drift = -side * abs(rng.normal(0.09, 0.03))  <span class="c"># mid moves against us</span>
+            side = rng.choice([-1, 1])         <span class="c"># +1 = they buy from us (we go short)</span>
+            drift = side * abs(rng.normal(0.09, 0.03))   <span class="c"># mid moves WITH informed flow (against us)</span>
         else:
             side = rng.choice([-1, 1])         <span class="c"># uninformed: symmetric</span>
         q += -side                              <span class="c"># we take the opposite side of their trade</span>
         spread_pnl += half_sp                   <span class="c"># we earn the half-spread on the fill</span>
         if informed:
-            adverse += abs(drift)               <span class="c"># extra loss on the picked-off fill</span>
+            adverse += abs(drift)               <span class="c"># diagnostic: size of the informed move (not subtracted below)</span>
     <span class="c"># mid evolves: random noise + any informed drift</span>
     old_mid = mid
     mid += drift + rng.normal(0, sigma)
-    <span class="c"># inventory is marked to the new mid</span>
+    <span class="c"># inventory is marked to the new mid -- this already captures the</span>
+    <span class="c"># adverse-selection loss, since informed flow is what moved mid in the</span>
+    <span class="c"># first place (we're short right when drift is positive, or long right</span>
+    <span class="c"># when drift is negative)</span>
     inv_pnl_step = q * (mid - old_mid)
-    if _ == 0:
-        inventory_pnl = 0.0
-    inventory_pnl = locals().get('inventory_pnl', 0.0) + inv_pnl_step
+    inventory_pnl += inv_pnl_step
 
-total = spread_pnl - adverse + inventory_pnl
+<span class="c"># NOTE: `adverse` is NOT subtracted here -- it would double-count the</span>
+<span class="c"># informed-flow loss that inventory_pnl already marks to market.</span>
+<span class="c"># It's printed purely as a diagnostic: "how much of inventory_pnl's</span>
+<span class="c"># drag came specifically from informed fills."</span>
+total = spread_pnl + inventory_pnl
 print(f"gross spread capture : ${spread_pnl:8.2f}")
-print(f"adverse-selection cost: -${adverse:8.2f}")
+print(f"adverse-selection cost (diagnostic, included in inventory P&amp;L): -${adverse:8.2f}")
 print(f"inventory P&amp;L (signed): ${inventory_pnl:8.2f}")
 print(f"ending inventory      : {q:+d} shares")
 print(f"TOTAL P&amp;L             : ${total:8.2f}")</pre>

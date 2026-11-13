@@ -189,7 +189,7 @@
     <section class="lec">
         <h2><span class="n">8.3</span>Discrete Rebalancing, Gamma, and the Hedging Error</h2>
         <p>No one trades continuously. You rebalance at discrete moments — daily, hourly, on a tick. Between rebalances delta drifts away from its correct value, and the leftover gamma and theta terms no longer cancel. The mismatch over one step is the <span class="key">discrete-hedging P&amp;L</span>. For a trader who has <em>sold</em> an option and is delta-hedging it, the P&amp;L of the hedged book over a single step Δt during which the stock moves by ΔS is:</p>
-        <div class="eq">P&amp;L<sub>step</sub> ≈ (1/2) Γ [ (ΔS)² − σ²S²Δt ]<small>Selling the option ⇒ short gamma. You lose when the realized squared move (ΔS)² exceeds what was "paid for" via theta (σ²S²Δt), and gain when the market is quieter than implied.</small></div>
+        <div class="eq">P&amp;L<sub>step</sub> ≈ (1/2) Γ [ σ²S²Δt − (ΔS)² ]<small>Selling the option ⇒ short gamma, and Γ here is the option's own (positive) gamma. You gain when the realized squared move (ΔS)² is smaller than what was "paid for" via theta (σ²S²Δt), and lose when the market is wilder than implied.</small></div>
         <p>Read this carefully, because it is the soul of options trading. The term <code>σ²S²Δt</code> is the move the option's <strong>theta</strong> (time decay) charged for — the volatility <em>implied</em> in the price you sold at. The term <code>(ΔS)²</code> is the move that <em>actually happened</em> — the <em>realized</em> volatility. A delta hedger is therefore not betting on direction at all; they are betting on <strong>realized volatility versus implied volatility</strong>. Sell options (short gamma) and you profit when markets are calmer than implied and bleed when they're wilder. Buy options (long gamma) and it's the reverse.</p>
         <p>Now the error from hedging discretely. Each step contributes a random gamma term whose mean is roughly zero (you're as likely to over- as under-cover) but whose <em>variance</em> is non-zero. Summing over the life of the option, the standard deviation of the total hedging error scales like one over the square root of the number of rebalances:</p>
         <div class="eq">std(hedging error) ∝ 1 / √N<small>N = number of rebalances over the option's life. Hedge twice as often (N → 2N) and the typical replication error shrinks only by a factor of √2 ≈ 0.71 — the same √n law from Course 1.</small></div>
@@ -238,8 +238,8 @@
         <p style="font-size:.92rem; margin-bottom:10px;">You sold one at-the-money call and delta-hedged it. At today's price the option has gamma Γ = 0.04 per $, the stock is S = $100, and the implied (priced-in) volatility is σ = 20% annual. Over one trading day (Δt = 1/252 year), what hedged P&amp;L do you book if the stock (a) barely moves $0.30, or (b) jumps $2.50?</p>
         <ol>
             <li><strong>What theta charged for (the "break-even" squared move):</strong> σ²S²Δt = (0.20)²·(100)²·(1/252) = 0.04·10000·0.003968 ≈ <strong>1.587</strong> dollars².</li>
-            <li><strong>Quiet day, ΔS = $0.30:</strong> (ΔS)² = 0.09. Step P&amp;L ≈ ½·Γ·[(ΔS)² − σ²S²Δt] = ½·0.04·(0.09 − 1.587) = 0.02·(−1.497) ≈ <strong>+$0.030</strong>. Short gamma + calm market ⇒ you <em>collect</em> the time decay.</li>
-            <li><strong>Wild day, ΔS = $2.50:</strong> (ΔS)² = 6.25. Step P&amp;L ≈ 0.02·(6.25 − 1.587) = 0.02·(4.663) ≈ <strong>−$0.093</strong>. The realized move dwarfed the implied move ⇒ short gamma <em>bleeds</em>.</li>
+            <li><strong>Quiet day, ΔS = $0.30:</strong> (ΔS)² = 0.09. Step P&amp;L ≈ ½·Γ·[σ²S²Δt − (ΔS)²] = ½·0.04·(1.587 − 0.09) = 0.02·(1.497) ≈ <strong>+$0.030</strong>. Short gamma + calm market ⇒ you <em>collect</em> the time decay.</li>
+            <li><strong>Wild day, ΔS = $2.50:</strong> (ΔS)² = 6.25. Step P&amp;L ≈ 0.02·(1.587 − 6.25) = 0.02·(−4.663) ≈ <strong>−$0.093</strong>. The realized move dwarfed the implied move ⇒ short gamma <em>bleeds</em>.</li>
             <li><strong>The break-even move:</strong> the day is a wash when (ΔS)² = σ²S²Δt, i.e. |ΔS| = √1.587 ≈ <strong>$1.26</strong> — exactly one daily standard deviation (S·σ·√Δt = 100·0.20·√(1/252) ≈ 1.26). Move less than 1σ and you win; more and you lose.</li>
             <li><strong>The lesson:</strong> the hedger never cared which <em>direction</em> the stock went — both ±$2.50 cost the same because P&amp;L depends on (ΔS)². You are long/short <em>volatility</em>, paid via gamma, financed by theta.</li>
         </ol>
@@ -256,7 +256,7 @@ from scipy.stats import norm
 S0, K, r, sigma, T = 100.0, 100.0, 0.0, 0.20, 1.0   <span class="c"># 1-yr ATM call, r=0 for clarity</span>
 
 def bs_call(S, K, r, sigma, tau):                    <span class="c"># Black-Scholes price + delta</span>
-    if tau <= 0: return max(S - K, 0.0), 1.0*(S > K)
+    if tau <= 0: return np.maximum(S - K, 0.0), (S > K).astype(float)
     d1 = (np.log(S/K) + (r + 0.5*sigma**2)*tau) / (sigma*np.sqrt(tau))
     d2 = d1 - sigma*np.sqrt(tau)
     price = S*norm.cdf(d1) - K*np.exp(-r*tau)*norm.cdf(d2)
@@ -347,7 +347,7 @@ for N in [10, 50, 250, 1250]:
         <ul>
             <li><b>Replication</b> prices an option as the cost of a self-financing stock-and-cash portfolio that reproduces its payoff — pricing by building, not forecasting.</li>
             <li><b>Delta</b> (∂V/∂S) is the hedge ratio, and because delta drifts, the hedge must be <b>rebalanced dynamically</b> through time.</li>
-            <li><b>Discrete rebalancing</b> leaves a gamma/theta remainder: the step P&amp;L ≈ ½Γ[(ΔS)² − σ²S²Δt] is a bet on <b>realized vs. implied volatility</b>, not direction.</li>
+            <li><b>Discrete rebalancing</b> leaves a gamma/theta remainder: the step P&amp;L ≈ ½Γ[σ²S²Δt − (ΔS)²] is a bet on <b>realized vs. implied volatility</b>, not direction.</li>
             <li>The replication error shrinks only like <b>1/√N</b> in the number of rebalances — slow, and never zero at finite frequency.</li>
             <li><b>Transaction costs</b> (∝√N) oppose the error (∝1/√N), giving an <b>optimal rebalancing frequency N*</b> and real-world delta bands.</li>
         </ul>

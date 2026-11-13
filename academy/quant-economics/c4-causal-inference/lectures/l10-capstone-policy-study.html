@@ -146,10 +146,10 @@
         <h2><span class="n">10.2</span>Choosing the Strategy: DiD, RDD, or IV</h2>
         <p>You do not pick a method because it is fashionable — you pick it because of <strong>how the policy assigned treatment</strong>. The assignment mechanism dictates which assumption you can plausibly defend. Three questions sort almost any policy into a design:</p>
         <h3>Did the policy switch on at a date for some groups but not others?</h3>
-        <p>Then use <strong>difference-in-differences (DiD)</strong> (Week 8). Compare the before-to-after change in a treated group to the same change in an untreated comparison group. The estimate is the 2x2 difference of means, or equivalently the interaction coefficient in a two-way fixed-effects regression (Week 9):</p>
+        <p>Then use <strong>difference-in-differences (DiD)</strong> (Week 7). Compare the before-to-after change in a treated group to the same change in an untreated comparison group. The estimate is the 2x2 difference of means, or equivalently the interaction coefficient in a two-way fixed-effects regression (Week 9):</p>
         <div class="eq">Y_it = a + b*Treat_i + g*Post_t + d*(Treat_i x Post_t) + e_it<small>d (the DiD estimate) is the extra change in the treated group beyond what the control group experienced. Identifying assumption: parallel trends.</small></div>
         <h3>Was treatment assigned by crossing a sharp threshold of a running variable?</h3>
-        <p>Then use <strong>regression discontinuity (RDD)</strong> (Week 7). Units just above and just below the cutoff are nearly identical except for treatment, so the jump in the outcome at the cutoff is the local effect. Identification rests on smoothness: everything else must vary continuously through the threshold.</p>
+        <p>Then use <strong>regression discontinuity (RDD)</strong> (Week 8). Units just above and just below the cutoff are nearly identical except for treatment, so the jump in the outcome at the cutoff is the local effect. Identification rests on smoothness: everything else must vary continuously through the threshold.</p>
         <h3>Was there an outside nudge that shifted treatment but not the outcome directly?</h3>
         <p>Then use <strong>instrumental variables (IV)</strong> (Week 6). A valid instrument is relevant (it moves treatment) and satisfies the exclusion restriction (it touches the outcome only through treatment). The IV estimate is a Local Average Treatment Effect for compliers.</p>
         <figure class="fig">
@@ -238,8 +238,26 @@
 import numpy as np, pandas as pd
 import statsmodels.formula.api as smf
 
-<span class="c"># df: public panel with columns state, year, log_emp, treat (1 if state ever treated)</span>
-df = pd.read_csv("state_teen_employment.csv")
+<span class="c"># Synthetic state-year panel (no external file needed): 20 states, 2014-2021,</span>
+<span class="c"># half the states adopt the policy in 2018. True DiD effect baked in = -0.06.</span>
+rng = np.random.default_rng(10)
+states = [f"S{i:02d}" for i in range(20)]
+years = list(range(2014, 2022))
+treat_states = set(states[:10])   <span class="c"># first 10 states adopt the policy</span>
+
+rows = []
+for s in states:
+    state_fe = rng.normal(3.85, 0.05)       <span class="c"># time-invariant state baseline</span>
+    treat = 1 if s in treat_states else 0
+    for y in years:
+        year_fe = -0.01 * (y - 2014)        <span class="c"># common downward drift, all states</span>
+        post = 1 if y &gt;= 2018 else 0
+        did_effect = -0.06 * treat * post   <span class="c"># true causal effect</span>
+        log_emp = state_fe + year_fe + did_effect + rng.normal(0, 0.02)
+        rows.append((s, y, log_emp, treat))
+
+<span class="c"># df: panel with columns state, year, log_emp, treat (1 if state ever treated)</span>
+df = pd.DataFrame(rows, columns=["state", "year", "log_emp", "treat"])
 df["post"]  = (df["year"] &gt;= 2018).astype(int)
 df["did"]   = df["treat"] * df["post"]
 
@@ -261,7 +279,7 @@ print(ev.params.filter(like="treat"))</pre>
     <!-- EXTENSION -->
     <div class="ext">
         <h3>🔗 Where this is heading</h3>
-        <p>This capstone <em>is</em> the payoff — the deliverable is due this week and it's the artifact you carry forward. From here the natural next steps are heterogeneous and dynamic effects (modern staggered-adoption DiD estimators that fix the bias of naive two-way fixed effects when treatment timing varies), and machine-learning-assisted causal inference — double/debiased machine learning and causal forests — for high-dimensional controls and treatment-effect heterogeneity. Those build directly on the potential-outcomes scaffolding you've used all course, and they connect this track to the Causal ML and Quant Finance specializations, where the same "credible counterfactual" discipline governs strategy backtests and policy A/B tests alike. The Final Exam (building) will test the full C4 toolkit.</p>
+        <p>This capstone <em>is</em> the payoff — the deliverable is due this week and it's the artifact you carry forward. From here the natural next steps are heterogeneous and dynamic effects (modern staggered-adoption DiD estimators that fix the bias of naive two-way fixed effects when treatment timing varies), and machine-learning-assisted causal inference — double/debiased machine learning and causal forests — for high-dimensional controls and treatment-effect heterogeneity. Those build directly on the potential-outcomes scaffolding you've used all course, and they connect this track to the Quant Finance specialization, where the same "credible counterfactual" discipline governs strategy backtests and policy A/B tests alike. The <a href="../exam/final-exam.html">Final Exam</a> will test the full C4 toolkit.</p>
     </div>
 
     <!-- QUIZ -->
@@ -324,13 +342,13 @@ print(ev.params.filter(like="treat"))</pre>
             <li>Stress-tested the one key assumption with <b>pre-trends</b>, density/smoothness, or a <b>first-stage F</b>.</li>
             <li>Reported the effect with a clustered <b>confidence interval</b> and honest caveats — a reproducible, falsifiable deliverable.</li>
         </ul>
-        <p class="next-up">Next up — the Final Exam (building): a comprehensive test of the full C4 causal-inference toolkit, from potential outcomes through panel methods and your capstone design.</p>
+        <p class="next-up">Next up — the <a href="../exam/final-exam.html">Final Exam</a>: a comprehensive test of the full C4 causal-inference toolkit, from potential outcomes through panel methods and your capstone design.</p>
     </div>
 
     <!-- LECTURE NAV -->
     <div class="lec-nav">
         <a href="l09-panel-fixed-effects.html"><div class="dir">← Week 9</div><div class="ttl">Panel Methods &amp; Fixed Effects</div></a>
-        <a class="next disabled"><div class="dir">Final →</div><div class="ttl">Final Exam (building)</div></a>
+        <a class="next" href="../exam/final-exam.html"><div class="dir">Final →</div><div class="ttl">Final Exam</div></a>
     </div>
 
 </div>

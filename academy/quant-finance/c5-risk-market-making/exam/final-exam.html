@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C5 · Final Exam — Risk Management &amp; Market Making</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C5 Risk &amp; MM</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C5 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from the loss distribution to inventory-aware optimal quoting.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">VaR &amp; Expected Shortfall <b>8</b></span>
+            <span class="wchip">Kelly Criterion &amp; sizing <b>3</b></span>
+            <span class="wchip">Mean-Variance vs. Risk Parity <b>6</b></span>
+            <span class="wchip">Microstructure &amp; market-making <b>4</b></span>
+            <span class="wchip">Optimal quoting &amp; capstone <b>4</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ MEASURING RISK, VAR & EXPECTED SHORTFALL (Weeks 1–3) ============ -->
+    <div class="exam-sec">Measuring Risk, VaR &amp; Expected Shortfall · Weeks 1–3</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>1.</span> A stock has a daily volatility of 1%. Assuming independent daily returns, its approximate annual volatility (252 trading days) is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> about 5%</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> about 252%</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> about 1%</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> about 15.9%</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Volatility scales with √T, not T: 0.01 × √252 ≈ 0.01 × 15.87 ≈ 0.159. Multiplying by 252 instead (B) confuses variance scaling with standard-deviation scaling.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>2.</span> In risk management, the <em>loss</em> over a period is conventionally defined as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> L = V₀ − V₁, the negative of the change in value</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> L = V₁ − V₀, the raw change in value</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> L = |V₁ − V₀|</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> L = Var(R)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Risk managers flip the sign on purpose so that money lost is a positive number and the dangerous outcomes sit in the right tail. B leaves losses negative; C and D discard information or confuse a loss with a measure of spread.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>3.</span> A desk reports a "one-day 99% VaR of $3 million." What does this mean?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> The desk will lose exactly $3 million tomorrow</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> The average daily loss is $3 million</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> On about 1 day in 100, the loss is expected to exceed $3 million</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> The maximum possible loss is $3 million</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> VaR is the quantile the loss stays under on 99% of days, so it is exceeded on roughly the worst 1%. It is never an exact prediction (A), an average (B), nor a cap on the worst case (D) — the loss beyond VaR can run far larger.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>4.</span> A portfolio worth $8,000,000 has a daily return std σ = 1.25% and zero mean. Using the parametric method, the one-day 99% VaR (z₀.₉₉ = 2.326) is closest to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> $100,000</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> $232,600</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> $1,163,000</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> $23,260</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> VaR = z·σ·V = 2.326 × 0.0125 × $8,000,000 ≈ $232,600. A is just 1σ×V (forgets the z-score); C is roughly 5× too large; D is 10× too small.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>5.</span> Your one-day 95% VaR is $500,000. Under the square-root-of-time rule (i.i.d., zero-drift returns), the 4-day VaR is approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> $500,000</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> $2,000,000</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> $250,000</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> $1,000,000</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Scale by √t = √4 = 2, so $500,000 × 2 = $1,000,000. Multiplying by t directly (×4 = $2,000,000, B) is the classic error — variance scales with t, VaR scales with √t.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>6.</span> At the same confidence level α, how does Expected Shortfall (ES) compare to Value at Risk (VaR)?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> ES is always ≤ VaR</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> ES is always ≥ VaR, with a larger gap for heavier tails</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> ES equals VaR for every distribution</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> ES and VaR are unrelated quantities</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> ES averages every loss at or beyond the VaR cutoff, so it can't be smaller (A is backwards), and the gap widens as the tail gets heavier — they are tightly related (D is wrong), not equal in general (C).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>7.</span> Which axiom of a coherent risk measure does Value at Risk violate in general?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> Subadditivity</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> Monotonicity</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> Translation invariance</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> Positive homogeneity</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> VaR can charge more for a merged book than for its parts, breaking subadditivity and penalizing diversification. VaR satisfies the other three axioms, which is why it is so close to coherent yet fails the one that matters most.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> Two corporate bonds each independently default with probability 3% (losing the full $100 face value; otherwise losing $0). Using 95% VaR (the worst 5% as the tail), the VaR of a <em>single</em> bond held alone is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> $100, because the bond could default</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> $97, the expected surviving value</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> $3, matching the default probability in dollars</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> $0, because the 3% default event sits inside the "best" 95% of outcomes</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Since 3% &lt; 5%, the default event falls just outside the worst-5% tail boundary, so the 95th-percentile loss is $0. (Pooling two such bonds pushes the combined VaR above $0 — VaR's classic subadditivity failure.)</div>
+    </div>
+
+    <!-- ============ THE KELLY CRITERION & BET SIZING (Week 4) ============ -->
+    <div class="exam-sec">The Kelly Criterion &amp; Bet Sizing · Week 4</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>9.</span> The Kelly criterion maximizes long-run wealth growth by maximizing which quantity each round?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> The arithmetic expected return, E[r]</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> The probability of winning, p</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> The expected log-wealth, E[ln(1+r)]</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> The variance of returns, σ²</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Wealth compounds multiplicatively, so the long-run growth rate is the expected log-return. Maximizing arithmetic E[r] (A) leads to over-betting and ruin; p alone (B) ignores payoff size; variance (D) is not the objective.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>10.</span> A bet wins with probability p = 0.7 and pays net odds b = 3 (profit $3 per $1 staked on a win). The full Kelly fraction f* is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> 0.60</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> 0.70</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> 0.30</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> 0.90</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> f* = p − q/b = 0.7 − 0.3/3 = 0.7 − 0.1 = 0.60. B is just p (ignoring odds); C is just q; D over-states the edge.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>11.</span> For a continuous investment with excess mean μ and variance σ², betting exactly twice the Kelly fraction (2f* = 2μ/σ²) produces a long-run growth rate of…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> double the peak growth rate</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> the peak growth rate μ²/(2σ²)</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> negative infinity</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Plugging f = 2μ/σ² into g = fμ − ½f²σ² gives 2μ²/σ² − 2μ²/σ² = 0 — the edge and the volatility tax cancel exactly, despite a genuinely favorable bet.</div>
+    </div>
+
+    <!-- ============ MEAN-VARIANCE OPTIMIZATION & RISK PARITY (Weeks 5–6) ============ -->
+    <div class="exam-sec">Mean-Variance Optimization &amp; Risk Parity · Weeks 5–6</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> Two assets, each with volatility σ, are combined 50/50, giving portfolio variance ½σ²(1 + ρ). For which correlation ρ is the diversification benefit greatest?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> ρ = +1</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> ρ = 0</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> ρ = +0.5</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> ρ = −1</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> ½σ²(1+ρ) is smallest when ρ is most negative; at ρ = −1 the variance collapses to zero (a perfect hedge). ρ = +1 (A) gives no benefit at all.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>13.</span> On the risk-return plane, the <strong>tangency portfolio</strong> is best described as the portfolio that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> has the lowest possible variance of any portfolio</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> puts equal weight in every asset</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> maximizes the Sharpe ratio, where the capital allocation line from r<sub>f</sub> is tangent to the efficient frontier</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> maximizes expected return regardless of risk</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The tangency portfolio is exactly the maximum-Sharpe risky mix. Lowest variance (A) describes the minimum-variance portfolio, a different point; equal weighting (B) is a naive heuristic; maximizing return alone (D) ignores risk.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>14.</span> Why is the <strong>minimum-variance portfolio</strong> often preferred in practice over the full mean-variance optimum?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> It always has the highest expected return</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> It does not use the hard-to-estimate expected-return vector μ, so it is far more robust to estimation error</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> It requires no covariance matrix</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> It is the only portfolio that allows short-selling</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The MVP minimizes wᵗΣw subject only to the weights summing to one — expected returns never enter, sidestepping the "error-maximizer" problem. It does not maximize return (A) and absolutely needs Σ (C).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>15.</span> The defining feature of a risk-parity (equal-risk-contribution) portfolio is that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> every asset contributes an equal share of total portfolio risk</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> every asset has the same dollar weight</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> total portfolio variance is minimized</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> the Sharpe ratio is maximized</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Risk parity equalizes risk contributions, not dollar weights (B). It is generally neither the minimum-variance portfolio (C) nor the max-Sharpe tangency portfolio (D) — it deliberately overweights low-volatility assets relative to both.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> Why is risk parity considered more robust than mean-variance optimization out of sample?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> It always produces higher returns</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> It avoids using the covariance matrix entirely</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> It only works when there are exactly two assets</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> It depends only on the covariance matrix Σ, not on the hard-to-estimate expected returns μ</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Mean-variance is unstable because tiny errors in μ swing the weights wildly; risk parity drops μ entirely and uses only Σ, which is estimated far more reliably. It still needs Σ (B is false) and scales to many assets (C is false).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>17.</span> A factor model writes Σ ≈ BΩBᵗ + D. The main practical reason to prefer this over estimating Σ directly is that it…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> uses far fewer parameters, giving a more stable, less noisy covariance estimate</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> guarantees all assets become uncorrelated</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> removes the need for any historical return data</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> adds more parameters, capturing every nuance of the data</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A full Σ for n assets needs ~n²/2 noisy entries; the factor form needs only loadings, a small factor covariance, and a diagonal — far fewer parameters, hence more stable. It uses fewer parameters, not more (D), and assets remain correlated through shared factors (B is false).</div>
+    </div>
+
+    <!-- ============ MARKET MICROSTRUCTURE & MARKET-MAKING BASICS (Weeks 7–8) ============ -->
+    <div class="exam-sec">Market Microstructure &amp; Market-Making Basics · Weeks 7–8</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>18.</span> An order book shows a best bid of 75.20 and a best ask of 75.26. The bid–ask spread and the mid price are…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> spread 0.03, mid 75.23</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> spread 0.06, mid 75.26</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> spread 0.06, mid 75.23</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> spread 150.46, mid 0.06</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Spread = ask − bid = 75.26 − 75.20 = 0.06; mid = (75.26 + 75.20)/2 = 75.23. B uses the ask itself as the mid; D adds the two prices instead of subtracting and averaging.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>19.</span> Two sell limit orders rest at the same best ask price; order X arrived first, order Y arrived second. Under price–time priority, when a matching buy order arrives…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> The larger order fills first, regardless of arrival time</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> They split the fill equally regardless of time</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> Order Y fills first, because later orders get priority</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> Order X fills first, since among equal prices the earliest arrival has priority</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Price–time priority breaks ties at the same price by arrival time — first in, first out — so X fills first. A and B invent size-based or pro-rata rules the standard book does not use; C reverses the rule.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>20.</span> A market maker posting a passive limit order earns the spread as compensation mainly because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> limit orders always fill instantly</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> they bear the risk of being filled just as the market moves against them — adverse selection</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> the mid price is the true value, so resting orders are riskless</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> exchanges forbid market orders</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The maker supplies immediacy and is exposed to adverse selection — getting filled precisely when informed flow pushes the price against the quote — so the spread compensates for that. A and C are false, and market orders are central to any book (D is false).</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>21.</span> A market maker is accidentally left long 400 shares of a volatile stock. This inventory's danger is best described as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> a guaranteed loss equal to the half-spread</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> a positive expected return that distorts the spread</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> undirectional exposure with zero expected return but real variance</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> nothing, because inventory is always hedged for free</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The maker has no directional view, so the position's expected return is zero — but its variance (≈ |q|·σ·√t) can produce a large loss or gain. It is not a guaranteed loss (A) or a positive-edge bet (B), and hedging is neither free nor instant (D).</div>
+    </div>
+
+    <!-- ============ OPTIMAL QUOTING & THE CAPSTONE (Weeks 9–10) ============ -->
+    <div class="exam-sec">Optimal Quoting &amp; the Capstone · Weeks 9–10</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>22.</span> A market maker is currently <strong>long</strong> inventory (q &gt; 0). Relative to the mid-price, the reservation price r is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> below the mid, biasing quotes so the ask is more likely to fill and reduce the long</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> above the mid, so the maker quotes a higher bid to buy even more</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> exactly at the mid, because r ignores inventory</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> below the mid because the maker forecasts the price will fall</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> With q &gt; 0, the term −q·γσ²(T−t) is negative, pulling r below the mid; quoting around r makes the ask more competitive so the long gets sold off. D is the classic trap — the skew is risk management, not a price forecast.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>23.</span> Which change makes the Avellaneda–Stoikov optimal spread, γσ²(T−t) + (2/γ)ln(1+γ/κ), <strong>wider</strong>?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> Lower volatility σ</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> Lower risk aversion γ</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> Inventory sitting at exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> A longer time remaining (T − t) combined with higher risk aversion γ</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The inventory-risk term γσ²(T−t) rises with both γ and the time remaining, widening the spread. Lower σ (A) and lower γ (B) shrink it; the spread's width does not depend on the current inventory level (C) — inventory drives the quotes' skew, not their width.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>24.</span> A market maker holds long inventory while the mid drifts down all afternoon with no new trades. How should its P&amp;L be recorded?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> Unchanged — P&amp;L only moves when a trade happens</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> It falls, because the inventory must be marked to the new, lower mid</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> It improves, because holding inventory earns the spread</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> It is undefined until the position is closed</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Total P&amp;L = cash + q·mid. With q &gt; 0 and the mid falling, the mark-to-market term shrinks, so P&amp;L drops even with zero trades. A is the classic mistake of booking only realized cash; D is wrong — marking to market is well-defined every tick.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>25.</span> Two quoting strategies from the capstone simulator share an identical 95% VaR, but strategy X loses far more than strategy Y in its worst 1% of paths. Which statement is correct?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> Their Expected Shortfall is also identical</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> VaR fully captures the difference, so Expected Shortfall adds nothing</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> Strategy X has the higher Expected Shortfall, since ES averages losses beyond the VaR cutoff</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> Strategy Y is riskier, because lower VaR implies lower ES</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> ES averages all losses beyond the VaR cutoff, so it sees the heavier deep tail of X even when the cutoff itself matches — exactly VaR's blind spot. D is incoherent: the two strategies' VaRs are equal, not lower for Y.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C5 Risk &amp; MM Syllabus</div></a>
+        <a href="../lectures/l01-measuring-risk.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C5 Risk &amp; MM</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

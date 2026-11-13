@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 · Final Exam — Financial Data &amp; Time Series</title>
+    <style>
+        :root {
+            --bg: #14110a; --surface: #1f1a0e; --surface2: #2b2413; --border: #3a3119;
+            --text: #f4efe2; --text2: #bcae8c; --accent: #fbbf24; --accent2: #fcd34d;
+            --green: #34d399; --amber: #f59e0b; --red: #f87171; --blue: #60a5fa; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #2a230d 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #1a1402; border-color: var(--accent); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Finance</a> / <a href="../index.html">C2 Time Series</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C2 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from log-returns to market microstructure.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Returns, Data &amp; Stylized Facts <b>6</b></span>
+            <span class="wchip">Autocorrelation &amp; Stationarity <b>4</b></span>
+            <span class="wchip">Smoothing, AR/MA &amp; ARIMA <b>7</b></span>
+            <span class="wchip">GARCH Volatility <b>4</b></span>
+            <span class="wchip">Cointegration &amp; Capstone Signals <b>4</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ RETURNS, DATA & STYLIZED FACTS (Weeks 1-3) ============ -->
+    <div class="exam-sec">Returns, Data Handling &amp; Stylized Facts · Weeks 1–3</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>1.</span> A stock's price moves from $100 to $103. The simple (net) return R and the log-return r are related by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> r = R always exactly, with no approximation</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> R = ln(r)</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> r = ln(1+R); for small R the two are nearly equal, but r is slightly below R for a gain</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> r and R are unrelated statistics computed from different data</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The log-return is r = ln(1+R). The Taylor expansion ln(1+R) ≈ R − R²/2 + … shows r ≈ R for small moves but r is always a touch below R for a positive R.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>2.</span> Over two trading days, an asset has log-returns r₁ and r₂. The two-day log-return r(0→2) equals…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> r₁ + r₂, because log-returns sum across time while simple returns compound</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> r₁ × r₂</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> (r₁ + r₂) / 2</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> max(r₁, r₂)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Time-additivity: ln(P₂/P₀) = ln(P₁/P₀) + ln(P₂/P₁) = r₁ + r₂. Simple (gross) returns multiply instead; logs turn that product into a sum.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>3.</span> A stock does a 2-for-1 split. Computing daily returns from the raw (unadjusted) Close instead of the Adjusted Close will show…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> no effect at all, since splits don't change total shareholder wealth</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> a brief trading halt recorded as a missing day</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> a phantom dividend payment</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> a fake ≈−50% one-day "return" on the split date that never reflects an actual investor loss</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> A 2-for-1 split halves the quoted price while doubling share count — wealth is unchanged, but the raw close shows a mechanical ~−50% drop. The Adjusted Close removes this artifact.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>4.</span> When resampling a daily price series to month-end values in pandas, the correct aggregation for the <em>price</em> column is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> <code>.sum()</code> of all the daily prices</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> <code>.last()</code> — the final closing price of the period</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> <code>.count()</code> of the trading days in the period</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> <code>.diff()</code> of the first and last price</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A month-end price series takes the period's final close. Summing prices, counting days, or differencing are each the wrong operation for a price level (volume, by contrast, is the case where you'd sum).</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>5.</span> Daily equity index returns typically show positive excess kurtosis. Compared to a normal with the same variance, this means the return distribution has…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> a flatter peak and thinner tails</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> exactly the same shape, just shifted</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> negative variance in the tails</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> a sharper peak and fatter tails — more extreme moves than a normal predicts</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Leptokurtic ("fat-tailed") returns have a taller, narrower peak around zero and heavier tails — mass is pulled out of the normal's "shoulders" into both the center and the extremes.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>6.</span> For liquid equity returns, which best describes the autocorrelation pattern across lags?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> Returns and |returns| are both strongly autocorrelated for many lags</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> Returns are strongly autocorrelated; |returns| show none</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> Returns are close to zero autocorrelation, but |returns| (or squared returns) show strong, slowly-decaying positive autocorrelation</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> Neither returns nor |returns| ever show any detectable structure</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> This is the central puzzle: direction is unpredictable (near-zero ACF of returns) while magnitude is highly predictable (strong ACF of |returns|/R²) — the signature of volatility clustering.</div>
+    </div>
+
+    <!-- ============ AUTOCORRELATION & STATIONARITY (Week 4) ============ -->
+    <div class="exam-sec">Autocorrelation &amp; Stationarity · Week 4</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>7.</span> The autocorrelation function ρ(k) of a time series measures…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> the correlation between the series and a copy of itself shifted by k periods</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> the correlation between two unrelated assets</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> the variance of the series at time k</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> whether the series is normally distributed</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Autocorrelation is the correlation of a series with a lag-k copy of itself. Ordinary correlation between two different variables, a single-point variance, and a normality test are all different concepts.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>8.</span> A series' ACF decays gradually across many lags, while its PACF shows one large spike at lag 1 and then drops inside the noise band. This fingerprint best matches…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> an MA(1) process</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> an AR(1) process — direct one-step memory, with longer lags inherited through lag 1</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> pure white noise</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> a process with no stationary representation</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> "PACF cuts off, ACF tails off" is the AR(p) fingerprint (here p=1) — the lag-2+ ACF correlation is inherited through lag 1, not direct. MA(1) would show the reverse pattern; white noise would show no spikes anywhere.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>9.</span> The Augmented Dickey–Fuller (ADF) test's null hypothesis is that the series…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> is definitely stationary</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> has a unit root (is non-stationary) — rejecting it requires a small p-value</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> has zero mean</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> is normally distributed</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> ADF's null is "has a unit root." A large p-value only fails to reject non-stationarity; a small p-value (say &lt;0.05) is needed to reject it and call the series stationary.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>10.</span> A stock price series has a unit root (it wanders with no fixed level). The standard fix before time-series modeling is to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> multiply all prices by a constant</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> take the square root of each price</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> fit an ARMA model directly to the raw price</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> difference the (log) price once, which for a price series yields the return — typically achieving stationarity</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Differencing removes a unit root; one difference of a log price is exactly the log-return, which is much closer to stationary and safe to model.</div>
+    </div>
+
+    <!-- ============ SMOOTHING, AR/MA & ARIMA MODELS (Weeks 5-7) ============ -->
+    <div class="exam-sec">Smoothing, AR/MA &amp; ARIMA Models · Weeks 5–7</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>11.</span> Lengthening a simple moving average's window from 20 days to 100 days will…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> smooth the line further but make it react to turning points later (more lag)</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> make the line noisier and faster to react</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> have no effect on smoothness or lag</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> turn the SMA into an EWMA automatically</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Longer windows average away more noise (smoother) but center further into the past (more lag) — the smoothing-lag tradeoff; you cannot get both smoother and faster at once.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> For an AR(1) model X<sub>t</sub> = c + φX<sub>t−1</sub> + ε<sub>t</sub> to be stationary, φ must satisfy…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> φ = 1 exactly</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> φ &gt; 1</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> φ = 0 only</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> |φ| &lt; 1</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> |φ| &lt; 1 ensures shocks decay rather than compounding; φ = 1 is a random walk (non-stationary) and φ &gt; 1 explodes. φ = 0 is stationary too but is just the special case of white noise, not the general condition.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>13.</span> The key structural difference between an AR(p) and an MA(q) process is that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> AR is always positive-valued; MA can be negative</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> MA has infinite memory; AR has memory of exactly p lags</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> AR is built from the series' own past values (memory that decays but never fully vanishes); MA is built from past shocks with memory of exactly q lags</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> they are mathematically identical, just different names</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> AR regresses on its own lagged values with infinitely-decaying memory; MA is a weighted sum of recent white-noise shocks with memory of exactly q lags. B reverses which family has finite memory.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>14.</span> A sample ACF cuts off sharply after lag 2 (nothing significant beyond), while the PACF decays gradually across many lags. This combination points to fitting…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> an AR(2) model</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> a random walk</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> an MA(2) model — the ACF, not the PACF, counts the MA order</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> a GARCH(1,1) model</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> "ACF cuts off, PACF tails off" is the MA(q) fingerprint (mnemonic: the PACF counts AR terms, the ACF counts MA terms). An AR(2) would show the reverse pattern.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>15.</span> In the ARIMA(p, d, q) notation, the parameter d represents…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> the number of times the series is differenced to reach stationarity</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> the number of autoregressive lag terms</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> the number of moving-average error terms</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> the forecast horizon in trading days</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> d is the integration/differencing order — the "I" in ARIMA. The AR lags are p and the MA error terms are q; the forecast horizon is a separate choice entirely.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>16.</span> For a random-walk (ARIMA(0,1,0)) price forecast, the width of the 95% confidence band at horizon h grows approximately…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> it shrinks as h grows</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> it stays exactly the same width at every horizon</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> it grows linearly with h</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> it grows with √h — the same square-root-of-time scaling as volatility aggregation</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Forecast variance accumulates with each future shock; for a random walk the h-step standard error grows like σ√h, so the band fans out but more slowly than linearly.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>17.</span> A well-tuned ARIMA fit to daily returns barely beats the naive "tomorrow = today" forecast out-of-sample, yet the same toolkit forecasts squared returns well. The right interpretation is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> the ARIMA code must contain a bug</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> out-of-sample testing is the wrong way to judge a forecast</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> return levels are nearly unforecastable, while volatility (the magnitude of moves) is persistent and forecastable</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> squared returns are simply random noise and the result is luck</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Efficient markets erase predictable structure in return levels, but volatility clusters — giving squared returns real, exploitable persistence. There is no bug, and the volatility signal is not luck.</div>
+    </div>
+
+    <!-- ============ GARCH VOLATILITY MODELING (Week 8) ============ -->
+    <div class="exam-sec">GARCH Volatility Modeling · Week 8</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>18.</span> A GARCH(1,1) model is fit with α = 0.08 and β = 0.90. The persistence α+β = 0.98 being close to 1 means…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> volatility shocks decay slowly — once elevated, variance stays elevated for a long time before reverting to its long-run level</span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> the model is non-stationary and must be discarded</span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> tomorrow's return direction is now forecastable</span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> the long-run variance no longer exists</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> The persistence α+β sets the decay rate of a volatility shock toward the long-run level σ̄² = ω/(1−α−β); since 0.98 &lt; 1 the model is stationary and that long-run variance exists — it just takes a long time to get there.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>19.</span> A GARCH model's conditional variance forecast tells you…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> the exact sign of tomorrow's return</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> how large tomorrow's move is likely to be (the conditional variance), not which direction it goes</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> the exact price level next week</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> the long-run average return of the asset</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> GARCH models the variance of the shock, not its sign. It never claims to forecast direction or price level; the mean return is handled by a separate (usually constant) mean equation.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>20.</span> Compared with ARCH(q), the key advantage of GARCH(1,1) is that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> it can finally predict the direction of tomorrow's return</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> it removes the need to assume any distribution for the shocks</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> it guarantees α + β is always greater than 1</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> one lag of past variance summarizes the whole shock history, so far fewer parameters are needed to match slow volatility decay</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The βσ²<sub>t−1</sub> feedback term recursively packs the entire past into one number, letting GARCH(1,1) match slow decay with three parameters where ARCH would need many lags. α+β &gt; 1 would make variance explode — the opposite of desirable.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>21.</span> In σ<sub>t</sub>² = ω + αε<sub>t−1</sub>² + βσ<sub>t−1</sub>², the term "conditional" in "conditional heteroskedasticity" means…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> the variance is constant across all time</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> the variance is computed given everything known up to the previous period — it changes day to day</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> the model only applies under extreme market conditions</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> the variance is conditioned on the sign of the return only</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> "Heteroskedasticity" means non-constant variance; "conditional" means given the past information set. σ<sub>t</sub>² is a new number every day, built from yesterday's shock and variance — the opposite of a fixed constant.</div>
+    </div>
+
+    <!-- ============ CORRELATION, COINTEGRATION & CAPSTONE SIGNALS (Weeks 9-10) ============ -->
+    <div class="exam-sec">Correlation, Cointegration &amp; Capstone Signals · Weeks 9–10</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>22.</span> The key difference between correlation and cointegration is that…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> correlation is about price levels; cointegration is about daily returns</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> they are two names for exactly the same statistic</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> correlation describes short-term co-movement of returns; cointegration describes a long-run stationary relationship between price levels</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> cointegration can only be negative, while correlation can only be positive</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Correlation is a returns co-movement statistic; cointegration says a specific linear combination of the price levels is stationary. A has the two backwards, and one can hold without the other.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>23.</span> In the Engle–Granger procedure, after regressing price Y on price X you run an ADF test on the residual. A small ADF p-value means…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> the two series are uncorrelated</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> accept the unit-root null — the spread is a random walk</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> the hedge ratio β must equal exactly 1</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> reject the unit-root null — the residual spread is stationary, so X and Y are cointegrated</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> The ADF null is "has a unit root." A small p-value rejects it, meaning the residual (the spread) is stationary — the signature of cointegration. β is whatever OLS estimates, rarely exactly 1.</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>24.</span> Two statistically independent random-walk price series will, over many samples…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> often show a large, spuriously significant correlation in any single sample, despite having no real relationship or cointegration</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> always show a correlation of exactly zero</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> automatically become cointegrated, since both are I(1)</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> always Granger-cause each other</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Two unrelated random walks routinely produce a large, deceptively significant spurious correlation (and regression t-stat) over any given sample — exactly why you must test for a stationary spread, not trust correlation.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>25.</span> Strong negative lag-1 autocorrelation observed in high-frequency transaction prices (but not in mid-prices) is best explained by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> a genuine, freely tradable mean-reversion edge</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> bid–ask bounce — trades alternating between the bid and ask around a flat underlying mid-price</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> the central limit theorem acting on tick data</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> a data recording error that should simply be deleted</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Bid–ask bounce makes consecutive trade prices ricochet between bid and ask, manufacturing spurious negative autocorrelation with zero real price movement behind it. It is not tradable — capturing it means paying the very spread that creates it — and it is a real microstructure effect, not bad data.</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C2 Syllabus</div></a>
+        <a href="../lectures/l01-returns-log-returns.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C2 Time Series</a> · <a href="../../index.html">Quant Finance</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

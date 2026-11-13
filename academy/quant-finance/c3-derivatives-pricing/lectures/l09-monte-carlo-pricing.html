@@ -100,6 +100,35 @@
         .q details p { font-size: .88rem; color: var(--text2); margin: 8px 0 0; }
         .q details .ans { color: var(--green); font-weight: 700; }
 
+        /* ── DISCUSSION (interactive) ── */
+        .discussion { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--violet); border-radius: 14px; padding: 24px; margin: 48px 0 24px; }
+        .disc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .disc-head h2 { font-size: 1.3rem; font-weight: 700; }
+        .wkbadge { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--violet); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.3); padding: 3px 10px; border-radius: 100px; }
+        .disc-prompt { font-size: .98rem; margin: 6px 0 14px; }
+        .disc-item textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: inherit; font-size: .92rem; line-height: 1.6; resize: vertical; }
+        .disc-item textarea:focus { outline: none; border-color: var(--accent); }
+        .disc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+        .btn { font-family: inherit; font-size: .86rem; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s, border-color .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--accent); color: #1a1406; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+        .disc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-height: 18px; }
+        .saved-note { font-size: .74rem; color: var(--text2); }
+        .toast { font-size: .78rem; color: var(--green); opacity: 0; transition: opacity .2s; }
+        .toast.show { opacity: 1; }
+        .disc-model { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px; }
+        .disc-model h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent2); margin: 14px 0 8px; }
+        .disc-model h4:first-child { margin-top: 0; }
+        .disc-model p { font-size: .9rem; color: var(--text2); margin-bottom: 8px; }
+        .rubric { list-style: none; margin: 0; }
+        .rubric li { font-size: .86rem; padding: 4px 0 4px 24px; position: relative; color: var(--text2); }
+        .rubric li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
+        .draft-banner { background: linear-gradient(135deg, #2a2410, #3a330d); border: 1px solid #6b5b16; border-radius: 12px; padding: 14px 18px; font-size: .84rem; color: #f0e1a7; margin: 24px 0; }
+
         .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 40px 0; flex-wrap: wrap; }
         .lec-nav a { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
         .lec-nav a:hover { border-color: var(--accent); }
@@ -298,25 +327,42 @@ print(f"Black-Scholes  : {bs:.4f}")</pre>
         <p>Monte-Carlo is your universal pricer, but it is not the only one. <strong>Next week</strong> you'll line it up against binomial lattices and finite-difference PDE solvers, and see exactly when each wins — Monte-Carlo for high-dimensional and path-dependent exotics, lattices and PDEs for low-dimensional American-style early exercise where MC struggles. The same simulation engine reappears across the specialization: in <strong>risk management</strong> it powers Value-at-Risk and stress scenarios by simulating whole portfolios, and in <strong>model calibration</strong> it prices the exotics whose market quotes you fit your volatility surface to. Master the discounted-average idea here and you carry it into every corner of quantitative finance.</p>
     </div>
 
-    <!-- DISCUSSION -->
-    <div class="ext" style="background:linear-gradient(135deg,#13201a,#15241c); border-color:#2d5240;">
-        <h3 style="color:var(--green);">💬 Discussion</h3>
-        <p style="color:#bfe8d4;">A colleague proposes pricing a deep <em>out-of-the-money</em> call (strike far above today's price, so almost every simulated path expires worthless) using plain Monte-Carlo with 1,000,000 paths. The estimate comes back tiny — and its standard error is almost as large as the estimate itself. Why does Monte-Carlo struggle so badly here, and what would you change about the sampling to fix it without simply throwing 100× more paths at the problem?</p>
-        <details style="margin-top:14px;">
-            <summary style="cursor:pointer; color:var(--green); font-weight:600; font-size:.9rem;">Show a model response</summary>
-            <div style="font-size:.9rem; color:#cfe7da; margin-top:10px;">
-                <p style="margin-bottom:10px;">The problem is a <strong>rare event</strong>. The payoff is non-zero only on the small fraction of paths that finish above a far-away strike — say 1 path in 500. With a million paths only ~2,000 contribute anything; the other 998,000 just add zeros. The estimate is effectively built from those 2,000 informative samples, so its <em>relative</em> standard error is enormous: the coefficient of variation of an indicator-like payoff with success probability p scales like √((1−p)/p), which blows up as p → 0. Brute-forcing more paths helps only at the usual glacial 1/√N rate.</p>
-                <p style="margin-bottom:10px;">The fix is to change <em>where</em> we sample, not how much: <strong>importance sampling</strong>. Shift the simulated drift upward so paths are pushed toward the strike region where the payoff lives, then correct for the distortion by re-weighting each payoff with the likelihood ratio between the original and shifted distributions. The estimate stays unbiased, but now most paths are informative, so the variance collapses. Antithetic variates alone won't rescue this case — the payoff isn't symmetric enough — which is exactly why importance sampling is the standard tool for deep-OTM and tail-risk pricing.</p>
-                <p style="color:var(--green); font-weight:600; margin-top:6px;">✓ Self-check rubric — a strong answer should:</p>
-                <ul style="margin:6px 0 0 18px; color:#bfe8d4;">
-                    <li>Identify the issue as a <strong>rare-event / high relative-variance</strong> problem, not just "needs more paths."</li>
-                    <li>Explain <em>why</em> most paths contribute zero and how that inflates the standard error relative to the estimate.</li>
-                    <li>Propose <strong>importance sampling</strong> (or another targeted variance-reduction scheme) and mention the re-weighting that keeps the estimate unbiased.</li>
-                    <li>Note that simply scaling N up is the slow 1/√N route, and that antithetics don't address this case.</li>
+    <!-- ════════════════ DISCUSSION (interactive) ════════════════ -->
+    <div class="discussion">
+        <div class="disc-head">
+            <span class="wkbadge">Discussion 3 · Week 9</span>
+            <h2>💬 Discuss &amp; get feedback</h2>
+        </div>
+        <div class="disc-item" data-disc="qf-c3-l9-d3">
+            <p class="disc-prompt" id="prompt-qfc3l9">Closed-form, tree, and Monte-Carlo can all price the same option. When would you reach for each, and what does Monte-Carlo buy you that the others can't?</p>
+
+            <textarea id="ans-qfc3l9" placeholder="Write your response here… (saved automatically in your browser)"></textarea>
+
+            <div class="disc-actions">
+                <button class="btn btn-primary" onclick="askChatGPT(this)">Get feedback in ChatGPT ↗</button>
+                <button class="btn btn-ghost" onclick="copyForAI(this)">Copy prompt + my answer</button>
+                <button class="btn btn-ghost" onclick="toggleModel(this)">Show model response</button>
+            </div>
+            <div class="disc-meta">
+                <span class="saved-note" id="saved-qfc3l9">Not saved yet</span>
+                <span class="toast" id="toast-qfc3l9"></span>
+            </div>
+
+            <div class="disc-model" id="model-qfc3l9" hidden>
+                <h4>Model response</h4>
+                <p>Reach for the <strong>closed-form</strong> Black-Scholes formula whenever it applies: a European payoff on a single underlying following GBM. It's exact, instant, and carries no sampling noise — there's no reason to simulate anything when calculus already solved the integral. Reach for a <strong>binomial tree</strong> when the payoff needs <em>early-exercise</em> logic — an American option — because backward induction naturally compares "exercise now" against "hold" at every node, something a formula and a forward Monte-Carlo path can't express directly. The tree is an approximation that converges as steps grow, but it's cheap and low-dimensional problems handle it well. Reach for <strong>Monte-Carlo</strong> when the payoff is path-dependent (Asian, barrier, lookback) or depends on several underlyings at once — exactly the territory of §9.4 and the "Where this is heading" note above — because a lattice or PDE grid blows up combinatorially as dimensions or path-detail grow, while simulating one more path costs the same no matter how complicated the payoff's dependence on the trajectory is.</p>
+                <p>What Monte-Carlo buys that the other two can't: its cost barely scales with dimensionality (pricing a 50-asset basket costs about the same per path as pricing one asset, per §9.3), and it hands you an honest, quantified <strong>standard error</strong> s/√N on every estimate — neither Black-Scholes nor a tree tells you how uncertain its own number is. The price is the stubborn 1/√N convergence: quadrupling paths only halves the error, and plain Monte-Carlo is naturally a forward method, so it struggles with the backward-induction decision-making that early exercise needs (the subject of next week's method comparison). No single tool wins everywhere — the right choice depends on whether the payoff is path-independent-and-simple (closed form), early-exercisable (tree/PDE), or high-dimensional and path-dependent (Monte-Carlo).</p>
+                <h4>Self-check rubric</h4>
+                <ul class="rubric">
+                    <li>Matches each method to a concrete scenario — closed form for plain European payoffs, tree for American/early-exercise, Monte-Carlo for path-dependent or high-dimensional payoffs</li>
+                    <li>States Monte-Carlo's distinctive advantage: its cost doesn't scale with dimensionality, and/or it reports an explicit standard-error estimate the other methods don't</li>
+                    <li>Names a genuine Monte-Carlo weakness (slow 1/√N convergence, or difficulty with early exercise) rather than treating it as unconditionally best</li>
                 </ul>
             </div>
-        </details>
+        </div>
     </div>
+
+    <div class="draft-banner">📌 <b>How your responses are handled.</b> The ChatGPT button copies your prompt + answer to the clipboard and opens ChatGPT — paste with ⌘V if it opens empty (your full answer can be longer than a URL allows). The model response + rubric let you self-check with zero internet. No API keys, nothing leaves your machine except what you choose to paste; your draft is saved only in this browser.</div>
 
     <!-- QUIZ -->
     <div class="quiz">
@@ -399,6 +445,53 @@ print(f"Black-Scholes  : {bs:.4f}")</pre>
         const h = document.documentElement;
         const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
         bar.style.width = scrolled + '%';
+    });
+
+    // ── discussion: build the tutor prompt ──
+    function buildPrompt(item) {
+        const prompt = item.querySelector('.disc-prompt').innerText.trim();
+        const answer = item.querySelector('textarea').value.trim();
+        return `You are my derivatives-pricing tutor. Below is a discussion prompt and my answer. `
+             + `Give specific, encouraging feedback, flag anything inaccurate, and suggest one concrete improvement. Keep it brief.\n\n`
+             + `PROMPT:\n${prompt}\n\n`
+             + `MY ANSWER:\n${answer || "(I haven't written an answer yet — please ask me 2–3 guiding questions instead.)"}`;
+    }
+    function flash(item, msg) {
+        const t = item.querySelector('.toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    function copyText(text, item, msg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => flash(item, msg)).catch(() => flash(item, 'Copy failed — select & copy manually.'));
+        } else { flash(item, 'Clipboard unavailable — select & copy manually.'); }
+    }
+    function askChatGPT(btn) {
+        const item = btn.closest('.disc-item');
+        const full = buildPrompt(item);
+        copyText(full, item, 'Copied! Paste with ⌘V if ChatGPT opens empty.');
+        window.open('https://chatgpt.com/?q=' + encodeURIComponent(full.slice(0, 1500)), '_blank', 'noopener');
+    }
+    function copyForAI(btn) {
+        const item = btn.closest('.disc-item');
+        copyText(buildPrompt(item), item, 'Copied — paste into any AI chat.');
+    }
+    function toggleModel(btn) {
+        const m = btn.closest('.disc-item').querySelector('.disc-model');
+        if (m.hasAttribute('hidden')) { m.removeAttribute('hidden'); btn.textContent = 'Hide model response'; }
+        else { m.setAttribute('hidden', ''); btn.textContent = 'Show model response'; }
+    }
+
+    // ── discussion: auto-save answers to localStorage ──
+    document.querySelectorAll('.disc-item textarea').forEach(t => {
+        const key = 'academy:' + (t.closest('.disc-item').dataset.disc) + ':' + t.id;
+        const note = t.closest('.disc-item').querySelector('.saved-note');
+        const saved = localStorage.getItem(key);
+        if (saved) { t.value = saved; if (note) note.textContent = 'Restored your saved answer'; }
+        t.addEventListener('input', () => {
+            localStorage.setItem(key, t.value);
+            if (note) note.textContent = t.value ? 'Saved in this browser ✓' : 'Not saved yet';
+        });
     });
 </script>
 

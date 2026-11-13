@@ -239,7 +239,7 @@ econ-env\Scripts\activate          <span class="c"># Windows (PowerShell)</span>
 pip install quantecon nashpy numpy matplotlib jupyter</pre>
             <p><strong>Verify:</strong> run <code>python -c "import nashpy, quantecon; print('ok')"</code> — printing <code>ok</code> means you're set.</p>
         </details>
-        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">We'll write a tiny strict-dominance reducer for the row player, then let nashpy confirm the equilibrium of the worked example. Rows are (U, M, D); columns are (L, C, R).</p>
+        <p style="font-size:.9rem; color:var(--text2); margin-top:16px;">We'll write a strict-dominance reducer for the row player, then <strong>loop it</strong> so it keeps re-scanning the shrinking game — a single pass only ever finds what's dominated in the <em>original</em> game, but IESDS (2.3) requires repeating the scan on each smaller game, since removing a strategy can make a previously-safe strategy dominated. Finally we let nashpy confirm the equilibrium of the worked example. Rows are (U, M, D); columns are (L, C, R).</p>
         <pre><span class="c"># iesds.py — Lecture 2</span>
 import numpy as np
 import nashpy as nash
@@ -261,15 +261,38 @@ def strictly_dominated_rows(M):
                 dom.append(i); break
     return dom
 
-print("Row strictly-dominated indices:", strictly_dominated_rows(A))
-<span class="c"># Column dominance: compare COLUMNS of B, so transpose it</span>
-print("Col strictly-dominated indices:", strictly_dominated_rows(B.T))
+def iesds(A, B, row_labels, col_labels):
+    <span class="c"># Keep re-scanning the CURRENT (shrinking) game for newly-dominated</span>
+    <span class="c"># rows/columns -- stop only when a full pass finds none left to remove.</span>
+    A, B = A.copy(), B.copy()
+    row_labels, col_labels = list(row_labels), list(col_labels)
+    while True:
+        dom_rows = strictly_dominated_rows(A)
+        dom_cols = strictly_dominated_rows(B.T)      <span class="c"># columns of B, so transpose</span>
+        if not dom_rows and not dom_cols:
+            break
+        if dom_rows:
+            keep = [i for i in range(A.shape[0]) if i not in dom_rows]
+            print("delete row(s):", [row_labels[i] for i in dom_rows])
+            A, B = A[keep, :], B[keep, :]
+            row_labels = [row_labels[i] for i in keep]
+        if dom_cols:
+            keep = [j for j in range(A.shape[1]) if j not in dom_cols]
+            print("delete column(s):", [col_labels[j] for j in dom_cols])
+            A, B = A[:, keep], B[:, keep]
+            col_labels = [col_labels[j] for j in keep]
+    return A, B, row_labels, col_labels
 
-<span class="c"># Let nashpy enumerate the equilibrium of the full game</span>
+A_final, B_final, rows_final, cols_final = iesds(A, B, ['U', 'M', 'D'], ['L', 'C', 'R'])
+print("Surviving rows:", rows_final, " Surviving columns:", cols_final)
+<span class="c"># delete column(s): ['C']  ->  delete row(s): ['M', 'D']  ->  delete column(s): ['R']</span>
+<span class="c"># Surviving rows: ['U']  Surviving columns: ['L']</span>
+
+<span class="c"># Let nashpy independently enumerate the equilibrium of the FULL original game</span>
 game = nash.Game(A, B)
 for eq in game.support_enumeration():
     print(eq)              <span class="c"># ([1,0,0],[1,0,0]) -> Row U, Column L</span></pre>
-        <p style="font-size:.88rem; color:var(--text2);">The reducer flags column C (index 1) as strictly dominated, kicking off the chain that leaves (U, L); nashpy independently returns the same pure equilibrium. Try editing <code>A</code> and <code>B</code> so that <em>no</em> strategy is strictly dominated — you'll see the reducer return an empty list, a reminder that dominance only solves <em>some</em> games.</p>
+        <p style="font-size:.88rem; color:var(--text2);">The looped reducer automatically reproduces the worked example's full chain: it deletes column C first, which exposes M and D as newly dominated in the smaller game, deletes both, and that in turn exposes R as dominated, deleting it too — bottoming out at the single surviving cell (U, L). nashpy independently returns the same pure equilibrium on the full, un-reduced game. Try editing <code>A</code> and <code>B</code> so that <em>no</em> strategy is strictly dominated — you'll see the loop exit immediately with the original rows and columns untouched, a reminder that dominance only solves <em>some</em> games.</p>
     </div>
 
     <!-- EXTENSION -->

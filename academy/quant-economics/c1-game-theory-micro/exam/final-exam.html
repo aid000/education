@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C1 · Final Exam — Game Theory &amp; Strategic Micro</title>
+    <style>
+        :root {
+            --bg: #0a0f1a; --surface: #101829; --surface2: #16213a; --border: #1f2f4a;
+            --text: #e6eef8; --text2: #93a8c8; --accent: #60a5fa; --accent2: #93c5fd;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #818cf8; --violet: #a78bfa; --radius: 14px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        .head { padding: 40px 24px 28px; background: linear-gradient(180deg, #112038 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+        .head-inner { max-width: 800px; margin: 0 auto; }
+        .breadcrumb { font-size: .8rem; color: var(--text2); margin-bottom: 14px; }
+        .breadcrumb a { color: var(--accent2); text-decoration: none; }
+        .tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--amber); background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 3px 12px; border-radius: 100px; margin-bottom: 12px; }
+        .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; }
+        .head .sub { color: var(--text2); margin-top: 8px; font-size: 1rem; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        .info { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 28px 0; font-size: .9rem; color: var(--text2); }
+        .info b { color: var(--text); }
+        .info ul { margin: 8px 0 0 18px; }
+        .info li { margin-bottom: 3px; }
+
+        .weight { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wchip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; color: var(--text2); }
+        .wchip b { color: var(--accent2); }
+
+        .exam-sec { font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); font-weight: 700; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+        .exq { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .exq-q { font-weight: 600; margin-bottom: 12px; font-size: .96rem; }
+        .exq-q span { color: var(--accent); font-weight: 800; margin-right: 4px; }
+        .opts { display: flex; flex-direction: column; gap: 6px; }
+        .opt { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; color: var(--text2); padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+        .opt:hover { background: var(--surface2); }
+        .opt input { margin-top: 3px; accent-color: var(--accent); }
+        .opt b { color: var(--text); }
+        .opt.opt-correct { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.5); color: var(--text); }
+        .opt.opt-wrong { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); }
+        .exq-explain { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; font-size: .86rem; color: var(--text2); }
+        .exq-explain b { color: var(--green); }
+
+        .submit-bar { position: sticky; bottom: 0; background: linear-gradient(0deg, var(--bg) 60%, transparent); padding: 18px 0 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { font-family: inherit; font-size: .9rem; font-weight: 600; border-radius: 10px; padding: 11px 22px; cursor: pointer; border: 1px solid; transition: transform .08s, background .15s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--amber); color: #1a1402; border-color: var(--amber); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+        .score { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 20px 0; display: none; }
+        .score.show { display: block; }
+        .score .big { font-size: 1.8rem; font-weight: 800; }
+        .score .pct { font-size: 1rem; color: var(--text2); font-weight: 600; }
+        .score .msg { font-size: .88rem; color: var(--text2); margin-top: 4px; }
+        .score.pass { border-left: 3px solid var(--green); }
+        .score.pass .big { color: var(--green); }
+        .score.fail { border-left: 3px solid var(--amber); }
+        .score.fail .big { color: var(--amber); }
+
+        .lec-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0; flex-wrap: wrap; }
+        .lec-nav a { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .lec-nav a:hover { border-color: var(--accent); }
+        .lec-nav .dir { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+        .lec-nav .ttl { font-weight: 700; font-size: .92rem; margin-top: 2px; }
+
+        footer { text-align: center; padding: 36px 24px; color: var(--text2); font-size: .8rem; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent2); text-decoration: none; }
+        .disclaimer { margin-top: 8px; font-size: .74rem; opacity: .8; }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <div class="head-inner">
+        <div class="breadcrumb"><a href="../../../index.html">Academy</a> / <a href="../../index.html">Quant Economics</a> / <a href="../index.html">C1 Game Theory</a> / Final Exam</div>
+        <span class="tag">Final Exam · 25 Questions · 30% of grade</span>
+        <h1>C1 Final Exam</h1>
+        <p class="sub">Comprehensive — covers the full 10-week syllabus, from Nash equilibrium to auctions and the capstone solver.</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="info">
+        <b>How this works.</b> 25 multiple-choice questions spanning all ten weeks. Pick one answer per
+        question, then press <b>Submit exam</b> to score yourself — the page marks each question, reveals
+        explanations, and shows your total. Nothing is sent anywhere; it grades entirely in your browser.
+        <div class="weight">
+            <span class="wchip">Weighted toward critical areas:</span>
+            <span class="wchip">Nash Equilibrium &amp; Dominance <b>4</b></span>
+            <span class="wchip">Mixed Strategies &amp; Computation <b>5</b></span>
+            <span class="wchip">Sequential &amp; Repeated Games <b>5</b></span>
+            <span class="wchip">Oligopoly: Cournot/Bertrand/Stackelberg <b>6</b></span>
+            <span class="wchip">Auctions, Mechanism Design &amp; Capstone <b>5</b></span>
+        </div>
+    </div>
+
+    <div class="score" id="score">
+        <div class="big" id="score-big">—</div>
+        <div class="msg" id="score-msg"></div>
+    </div>
+
+    <!-- ============ NASH EQUILIBRIUM & DOMINANCE (Weeks 1-2) ============ -->
+    <div class="exam-sec">Nash Equilibrium &amp; Dominance · Weeks 1–2</div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>1.</span> At a Nash equilibrium…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q1" value="0"><span><b>A.</b> total payoff is always maximized</span></label>
+            <label class="opt"><input type="radio" name="q1" value="1"><span><b>B.</b> all players use identical strategies</span></label>
+            <label class="opt"><input type="radio" name="q1" value="2"><span><b>C.</b> no player can increase their payoff by unilaterally changing their own strategy</span></label>
+            <label class="opt"><input type="radio" name="q1" value="3"><span><b>D.</b> players must cooperate</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> That mutual best-response, no-regret condition is the definition. It does not require efficiency (A) — the prisoner's dilemma is the standard counterexample — nor identical strategies (B) or cooperation (D).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>2.</span> Strategy <em>s</em> is <strong>strictly dominated</strong> by <em>s'</em> when <em>s'</em> pays strictly more than <em>s</em>…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q2" value="0"><span><b>A.</b> against every possible strategy the opponents might play</span></label>
+            <label class="opt"><input type="radio" name="q2" value="1"><span><b>B.</b> only on average across the opponents' choices</span></label>
+            <label class="opt"><input type="radio" name="q2" value="2"><span><b>C.</b> only when the opponent also has a dominant strategy</span></label>
+            <label class="opt"><input type="radio" name="q2" value="3"><span><b>D.</b> only in the single most likely outcome</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Strict dominance requires <em>s'</em> to beat <em>s</em> in <strong>every</strong> column, with no exceptions — that airtight requirement is what lets a rational player delete <em>s</em> without knowing anything about the opponent's beliefs.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>3.</span> Iterated elimination of <strong>strictly</strong> dominated strategies (IESDS) is order-independent, meaning…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q3" value="0"><span><b>A.</b> you must always eliminate columns before rows</span></label>
+            <label class="opt"><input type="radio" name="q3" value="1"><span><b>B.</b> the order of deletion changes which strategies survive</span></label>
+            <label class="opt"><input type="radio" name="q3" value="2"><span><b>C.</b> it only works in two-player games</span></label>
+            <label class="opt"><input type="radio" name="q3" value="3"><span><b>D.</b> the final surviving set of strategies is the same no matter the deletion order</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Removing a strictly dominated strategy never un-does another strategy's strict dominance, so any order of deletion reaches the identical reduced game. (B) describes the failure mode of <em>weak</em> dominance, not strict.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>4.</span> If iterated elimination of strictly dominated strategies reduces a game to a single surviving cell, that cell…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q4" value="0"><span><b>A.</b> is only a candidate, not guaranteed to be an equilibrium</span></label>
+            <label class="opt"><input type="radio" name="q4" value="1"><span><b>B.</b> must be the game's unique Nash equilibrium</span></label>
+            <label class="opt"><input type="radio" name="q4" value="2"><span><b>C.</b> is guaranteed to be Pareto efficient</span></label>
+            <label class="opt"><input type="radio" name="q4" value="3"><span><b>D.</b> only applies to zero-sum games</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> A game that collapses to one cell under IESDS is "dominance-solvable," and that surviving cell is the unique Nash equilibrium. Dominance-solvability says nothing about Pareto efficiency (C) — a dominance-solvable game can still land on an inefficient outcome, as the prisoner's dilemma shows.</div>
+    </div>
+
+    <!-- ============ MIXED STRATEGIES (Weeks 3-4) ============ -->
+    <div class="exam-sec">Mixed Strategies · Weeks 3–4</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>5.</span> A mixed strategy is best described as…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q5" value="0"><span><b>A.</b> a probability distribution over a player's own pure actions</span></label>
+            <label class="opt"><input type="radio" name="q5" value="1"><span><b>B.</b> the average of both players' payoffs</span></label>
+            <label class="opt"><input type="radio" name="q5" value="2"><span><b>C.</b> a strategy that always wins</span></label>
+            <label class="opt"><input type="radio" name="q5" value="3"><span><b>D.</b> a strategy that is only ever used in zero-sum games</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> A mixed strategy assigns probabilities to your own actions; a pure strategy is the special case with probability 1 on a single action. No strategy guarantees a win (C) against a rational opponent, and mixing is used far beyond zero-sum games (D).</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>6.</span> Matching pennies has no pure-strategy Nash equilibrium because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q6" value="0"><span><b>A.</b> both players have a dominant strategy</span></label>
+            <label class="opt"><input type="radio" name="q6" value="1"><span><b>B.</b> the game is not zero-sum</span></label>
+            <label class="opt"><input type="radio" name="q6" value="2"><span><b>C.</b> best responses chase each other around the matrix with no stable cell</span></label>
+            <label class="opt"><input type="radio" name="q6" value="3"><span><b>D.</b> one player always prefers to cooperate</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> From any cell, the losing player always wants to switch, so no cell is stable. Matching pennies is exactly zero-sum (B is false), has no dominant strategy (A is false), and "cooperate" (D) belongs to a different game entirely.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>7.</span> In a mixed-strategy equilibrium, a player's own mixing probabilities are chosen to make…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q7" value="0"><span><b>A.</b> themselves indifferent between their own actions</span></label>
+            <label class="opt"><input type="radio" name="q7" value="1"><span><b>B.</b> the opponent indifferent between the opponent's actions</span></label>
+            <label class="opt"><input type="radio" name="q7" value="2"><span><b>C.</b> the sum of both players' payoffs equal</span></label>
+            <label class="opt"><input type="radio" name="q7" value="3"><span><b>D.</b> the game zero-sum</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> This is the cross-over rule at the heart of the indifference principle: your mix is engineered around the <em>opponent's</em> payoffs so that they cannot exploit you by leaning toward either option. (A) reverses the direction, which is the single most common error on this topic.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>8.</span> In a 2×2 game, the row player's equilibrium mixing probability <em>p</em> is pinned down by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q8" value="0"><span><b>A.</b> the row player's own indifference condition, using row payoffs</span></label>
+            <label class="opt"><input type="radio" name="q8" value="1"><span><b>B.</b> maximizing the row player's payoff directly</span></label>
+            <label class="opt"><input type="radio" name="q8" value="2"><span><b>C.</b> the sum of both players' payoffs</span></label>
+            <label class="opt"><input type="radio" name="q8" value="3"><span><b>D.</b> the column player's indifference condition, using column payoffs</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> <em>p</em> is set to make the <strong>column</strong> player indifferent, so it is solved from the column player's expected-payoff equations — not the row player's own payoffs (A), which is the classic reversed-cross-over mistake.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>9.</span> When using support enumeration to find a mixed equilibrium, a candidate solution is valid only if…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q9" value="0"><span><b>A.</b> both players use the same number of strategies in their support</span></label>
+            <label class="opt"><input type="radio" name="q9" value="1"><span><b>B.</b> the game is symmetric</span></label>
+            <label class="opt"><input type="radio" name="q9" value="2"><span><b>C.</b> all probabilities are non-negative and no strategy outside the support pays strictly more</span></label>
+            <label class="opt"><input type="radio" name="q9" value="3"><span><b>D.</b> the equilibrium is Pareto efficient</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> A valid candidate needs legal probabilities <em>and</em> no profitable deviation to an unused strategy. Supports can differ in size across players (A is false), symmetry isn't required (B), and Nash equilibria are frequently inefficient (D).</div>
+    </div>
+
+    <!-- ============ SEQUENTIAL & REPEATED GAMES (Weeks 5-6) ============ -->
+    <div class="exam-sec">Sequential &amp; Repeated Games · Weeks 5–6</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>10.</span> Backward induction solves a finite perfect-information game by…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q10" value="0"><span><b>A.</b> starting at the last decision nodes and folding optimal payoffs back toward the root</span></label>
+            <label class="opt"><input type="radio" name="q10" value="1"><span><b>B.</b> averaging payoffs across all terminal nodes</span></label>
+            <label class="opt"><input type="radio" name="q10" value="2"><span><b>C.</b> maximizing the sum of both players' payoffs at the root</span></label>
+            <label class="opt"><input type="radio" name="q10" value="3"><span><b>D.</b> randomizing over every available strategy</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Solve the last mover first, replace that node with its optimal payoff, then work backward to the root. (C) maximizes joint welfare, but each player optimizes only their own payoff.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>11.</span> A subgame-perfect equilibrium requires the strategy profile to be a Nash equilibrium…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q11" value="0"><span><b>A.</b> only along the path that is actually played</span></label>
+            <label class="opt"><input type="radio" name="q11" value="1"><span><b>B.</b> in every subgame, including those off the equilibrium path</span></label>
+            <label class="opt"><input type="radio" name="q11" value="2"><span><b>C.</b> only in the first stage of the game</span></label>
+            <label class="opt"><input type="radio" name="q11" value="3"><span><b>D.</b> only when both players have a dominant strategy</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> SPE demands Nash play in <em>every</em> subgame — exactly what prunes non-credible threats like "I will fight entry" when accommodating is actually better once entry occurs. (A) describes plain Nash equilibrium, the weaker standard SPE corrects.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>12.</span> The discount factor δ in a repeated game primarily measures…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q12" value="0"><span><b>A.</b> the number of times the stage game is repeated</span></label>
+            <label class="opt"><input type="radio" name="q12" value="1"><span><b>B.</b> how much a player cares about the opponent's welfare</span></label>
+            <label class="opt"><input type="radio" name="q12" value="2"><span><b>C.</b> the probability that a player makes a mistake</span></label>
+            <label class="opt"><input type="radio" name="q12" value="3"><span><b>D.</b> how much a player values future payoffs relative to a payoff today</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> δ blends time preference with the odds the relationship continues — purely about the value of one's own future. Cooperation sustained by a high δ is enlightened self-interest, not altruism (B).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>13.</span> A player using grim trigger who observes a single defection by the opponent will…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q13" value="0"><span><b>A.</b> defect in every remaining period, with no forgiveness</span></label>
+            <label class="opt"><input type="radio" name="q13" value="1"><span><b>B.</b> forgive immediately and keep cooperating</span></label>
+            <label class="opt"><input type="radio" name="q13" value="2"><span><b>C.</b> defect for exactly two periods, then return to cooperation</span></label>
+            <label class="opt"><input type="radio" name="q13" value="3"><span><b>D.</b> ignore the defection entirely</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Grim trigger is unforgiving by design — one defection triggers permanent retaliation. (B) describes tit-for-tat's one-period punishment instead.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>14.</span> In a finitely repeated prisoner's dilemma with a commonly known final period, the unique subgame-perfect outcome is to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q14" value="0"><span><b>A.</b> cooperate in every period</span></label>
+            <label class="opt"><input type="radio" name="q14" value="1"><span><b>B.</b> cooperate until the last period, then defect once</span></label>
+            <label class="opt"><input type="radio" name="q14" value="2"><span><b>C.</b> defect in every single period, by backward unraveling</span></label>
+            <label class="opt"><input type="radio" name="q14" value="3"><span><b>D.</b> randomize 50/50 each period</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The known last period is a plain one-shot dilemma (defect), which removes any credible threat in the second-to-last period, and so on back to period one — backward unraveling destroys cooperation whenever the horizon is finite and commonly known.</div>
+    </div>
+
+    <!-- ============ OLIGOPOLY: COURNOT, BERTRAND & STACKELBERG (Weeks 7-8) ============ -->
+    <div class="exam-sec">Oligopoly: Cournot, Bertrand &amp; Stackelberg · Weeks 7–8</div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>15.</span> In the Cournot model, the variable each firm strategically chooses is its…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q15" value="0"><span><b>A.</b> price</span></label>
+            <label class="opt"><input type="radio" name="q15" value="1"><span><b>B.</b> advertising budget</span></label>
+            <label class="opt"><input type="radio" name="q15" value="2"><span><b>C.</b> marginal cost</span></label>
+            <label class="opt"><input type="radio" name="q15" value="3"><span><b>D.</b> quantity produced</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Cournot is quantity competition — the market price clears afterward via demand. Choosing price (A) instead is the Bertrand model.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>16.</span> With linear demand P = a − bQ and constant marginal cost c, the symmetric Cournot–Nash output per firm is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q16" value="0"><span><b>A.</b> (a − c)/(2b), the monopoly quantity</span></label>
+            <label class="opt"><input type="radio" name="q16" value="1"><span><b>B.</b> (a − c)/(3b)</span></label>
+            <label class="opt"><input type="radio" name="q16" value="2"><span><b>C.</b> (a − c)/b, the competitive quantity</span></label>
+            <label class="opt"><input type="radio" name="q16" value="3"><span><b>D.</b> a/(3b)</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Solving the symmetric reaction functions q = (a−c)/(2b) − q/2 gives q* = (a−c)/(3b) per firm — one-third of the competitive quantity, between monopoly (A) and competition (C).</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>17.</span> The Bertrand paradox says that, with identical products and constant marginal cost, two price-setting firms…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q17" value="0"><span><b>A.</b> split the monopoly profit evenly</span></label>
+            <label class="opt"><input type="radio" name="q17" value="1"><span><b>B.</b> each charge the monopoly price</span></label>
+            <label class="opt"><input type="radio" name="q17" value="2"><span><b>C.</b> drive price down to marginal cost and earn zero profit</span></label>
+            <label class="opt"><input type="radio" name="q17" value="3"><span><b>D.</b> cannot reach any equilibrium</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> Any price above marginal cost invites undercutting, so the unique equilibrium drives price to c with zero economic profit — even with only two firms. A unique equilibrium does exist (D is false).</div>
+    </div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>18.</span> Ranking total output on the same linear demand curve, the correct order is…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q18" value="0"><span><b>A.</b> Q<sub>monopoly</sub> &lt; Q<sub>cournot</sub> &lt; Q<sub>competition</sub></span></label>
+            <label class="opt"><input type="radio" name="q18" value="1"><span><b>B.</b> Q<sub>competition</sub> &lt; Q<sub>cournot</sub> &lt; Q<sub>monopoly</sub></span></label>
+            <label class="opt"><input type="radio" name="q18" value="2"><span><b>C.</b> Q<sub>cournot</sub> &lt; Q<sub>monopoly</sub> &lt; Q<sub>competition</sub></span></label>
+            <label class="opt"><input type="radio" name="q18" value="3"><span><b>D.</b> all three structures produce the same output</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Monopoly restricts output most ((a−c)/2b), competition produces most ((a−c)/b), and Cournot sits in between (2(a−c)/3b). Market power — not headcount alone — is what restricts output.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>19.</span> What distinguishes the Stackelberg model from Cournot?</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q19" value="0"><span><b>A.</b> Firms choose prices instead of quantities</span></label>
+            <label class="opt"><input type="radio" name="q19" value="1"><span><b>B.</b> The goods are differentiated rather than homogeneous</span></label>
+            <label class="opt"><input type="radio" name="q19" value="2"><span><b>C.</b> There are many firms instead of two</span></label>
+            <label class="opt"><input type="radio" name="q19" value="3"><span><b>D.</b> One firm commits to a quantity first, and the other observes it before responding</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Stackelberg is sequential quantity competition — the leader moves first and the follower's best response is computed by backward induction. Both models still use quantities and two homogeneous-good firms, so A, B, and C are wrong.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>20.</span> The Stackelberg leader earns more than it would under Cournot because…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q20" value="0"><span><b>A.</b> it produces less output, raising the price</span></label>
+            <label class="opt"><input type="radio" name="q20" value="1"><span><b>B.</b> its observable, irreversible commitment to a large output forces the follower to retreat</span></label>
+            <label class="opt"><input type="radio" name="q20" value="2"><span><b>C.</b> it secretly colludes with the follower</span></label>
+            <label class="opt"><input type="radio" name="q20" value="3"><span><b>D.</b> it faces a lower marginal cost than the follower</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> The first-mover advantage comes entirely from credible commitment: a large, observed, irreversible q1 shifts the follower down its reaction curve. The leader produces <em>more</em>, not less (A), and there is no collusion (C) or cost asymmetry (D) in the model.</div>
+    </div>
+
+    <!-- ============ AUCTIONS, MECHANISM DESIGN & CAPSTONE (Weeks 9-10) ============ -->
+    <div class="exam-sec">Auctions, Mechanism Design &amp; Capstone · Weeks 9–10</div>
+
+    <div class="exq" data-correct="0">
+        <div class="exq-q"><span>21.</span> In a second-price (Vickrey) sealed-bid auction, a bidder's weakly dominant strategy is to bid…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q21" value="0"><span><b>A.</b> exactly their true value</span></label>
+            <label class="opt"><input type="radio" name="q21" value="1"><span><b>B.</b> slightly above their true value, to be safe</span></label>
+            <label class="opt"><input type="radio" name="q21" value="2"><span><b>C.</b> the (n − 1)/n fraction of their value</span></label>
+            <label class="opt"><input type="radio" name="q21" value="3"><span><b>D.</b> whatever they expect the second-highest rival to bid</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: A.</b> Your bid only decides whether you win, not what you pay (you pay the runner-up's bid), so bidding your true value is weakly dominant. (C) is the <em>first</em>-price shading rule, not second-price.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>22.</span> In the symmetric first-price auction with values uniform on [0,1] and <em>n</em> bidders, equilibrium bids b(v) = ((n − 1)/n)·v behave such that, as <em>n</em> grows large…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q22" value="0"><span><b>A.</b> bids approach zero</span></label>
+            <label class="opt"><input type="radio" name="q22" value="1"><span><b>B.</b> bids exceed the bidder's true value</span></label>
+            <label class="opt"><input type="radio" name="q22" value="2"><span><b>C.</b> bids stay fixed at half the value regardless of n</span></label>
+            <label class="opt"><input type="radio" name="q22" value="3"><span><b>D.</b> bids approach the bidder's true value v</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> As n grows, (n−1)/n → 1, so bids approach v — more competition squeezes shading toward zero. Bids never exceed v in equilibrium (B), since that risks a loss-making win.</div>
+    </div>
+
+    <div class="exq" data-correct="2">
+        <div class="exq-q"><span>23.</span> The Revenue Equivalence Theorem states that, under its assumptions (independent private values, risk-neutral symmetric bidders, item to the highest valuer), the standard auction formats…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q23" value="0"><span><b>A.</b> always give the first-price format the highest revenue</span></label>
+            <label class="opt"><input type="radio" name="q23" value="1"><span><b>B.</b> guarantee identical revenue in every single realized auction</span></label>
+            <label class="opt"><input type="radio" name="q23" value="2"><span><b>C.</b> yield the same expected revenue</span></label>
+            <label class="opt"><input type="radio" name="q23" value="3"><span><b>D.</b> yield zero revenue whenever bidders are rational</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: C.</b> The theorem equates <em>expected</em> revenue under its assumptions — bid shading in first-price and pay-the-runner-up in second-price cancel on average. (B) confuses the expectation with a single realized draw, which can differ auction to auction.</div>
+    </div>
+
+    <div class="exq" data-correct="1">
+        <div class="exq-q"><span>24.</span> A mechanism is "incentive-compatible" when…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q24" value="0"><span><b>A.</b> it always selects the most efficient outcome regardless of what is reported</span></label>
+            <label class="opt"><input type="radio" name="q24" value="1"><span><b>B.</b> truthful reporting of private information is a best response for each participant</span></label>
+            <label class="opt"><input type="radio" name="q24" value="2"><span><b>C.</b> it charges every participant an identical fee</span></label>
+            <label class="opt"><input type="radio" name="q24" value="3"><span><b>D.</b> it requires no payments from any player</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: B.</b> Incentive compatibility means the rules make honesty optimal — under dominant-strategy IC, regardless of what others report, exactly the second-price auction's property. (A) describes efficiency, a separate design goal.</div>
+    </div>
+
+    <div class="exq" data-correct="3">
+        <div class="exq-q"><span>25.</span> A Cournot best-response simulation's quantities keep oscillating and never settle. The appropriate response is to…</div>
+        <div class="opts">
+            <label class="opt"><input type="radio" name="q25" value="0"><span><b>A.</b> report the value from the final iteration anyway</span></label>
+            <label class="opt"><input type="radio" name="q25" value="1"><span><b>B.</b> conclude the game has no Nash equilibrium</span></label>
+            <label class="opt"><input type="radio" name="q25" value="2"><span><b>C.</b> keep increasing iterations until the output looks stable by eye</span></label>
+            <label class="opt"><input type="radio" name="q25" value="3"><span><b>D.</b> recognize non-convergence, since best-response iteration only converges when the dynamics form a contraction</span></label>
+        </div>
+        <div class="exq-explain" hidden><b>Answer: D.</b> Oscillation means the best-response map is not contracting toward the fixed point; the honest move is to detect and report that, not paste an arbitrary iterate into a report (A). An equilibrium can still exist even when this particular dynamic fails to find it (B is false).</div>
+    </div>
+
+    <div class="submit-bar">
+        <button class="btn btn-primary" onclick="gradeExam()">Submit exam</button>
+        <button class="btn btn-ghost" onclick="resetExam()">Reset</button>
+    </div>
+
+    <div class="lec-nav">
+        <a href="../index.html"><div class="dir">← Course</div><div class="ttl">C1 Syllabus</div></a>
+        <a href="../lectures/l01-games-and-nash.html" class="next"><div class="dir">Review →</div><div class="ttl">Start from Lecture 1</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p><a href="../index.html">← C1 Game Theory</a> · <a href="../../index.html">Quant Economics</a> · <a href="../../../index.html">Academy</a></p>
+    <p class="disclaimer">AI tools were used to generate part of the content.</p>
+</footer>
+
+<script>
+    function gradeExam() {
+        const qs = document.querySelectorAll('.exq');
+        let score = 0, answered = 0;
+        qs.forEach(q => {
+            const correct = parseInt(q.dataset.correct);
+            const opts = q.querySelectorAll('.opt');
+            opts.forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+            opts[correct].classList.add('opt-correct');
+            const chosen = q.querySelector('input:checked');
+            if (chosen) {
+                answered++;
+                const idx = parseInt(chosen.value);
+                if (idx === correct) score++;
+                else opts[idx].classList.add('opt-wrong');
+            }
+            q.querySelector('.exq-explain').hidden = false;
+        });
+        const pct = Math.round(score / qs.length * 100);
+        const box = document.getElementById('score');
+        const big = document.getElementById('score-big');
+        const msg = document.getElementById('score-msg');
+        big.innerHTML = score + ' / ' + qs.length + ' <span class="pct">(' + pct + '%)</span>';
+        const passed = pct >= 70;
+        box.className = 'score show ' + (passed ? 'pass' : 'fail');
+        let note = (answered < qs.length) ? (qs.length - answered) + ' left blank. ' : '';
+        msg.textContent = note + (passed
+            ? 'Passing (≥70%). Review any red answers below.'
+            : 'Below 70% — revisit the flagged topics and the linked lectures, then retry.');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetExam() {
+        document.querySelectorAll('.exq input:checked').forEach(i => i.checked = false);
+        document.querySelectorAll('.opt').forEach(o => o.classList.remove('opt-correct', 'opt-wrong'));
+        document.querySelectorAll('.exq-explain').forEach(e => e.hidden = true);
+        document.getElementById('score').className = 'score';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
